@@ -1,0 +1,4 @@
+# Normalize line endings. Text files stored as LF (packager runs on Linux);
+# PowerShell scripts stay CRLF for Windows.
+* text=auto eol=lf
+*.ps1 text eol=crlf
