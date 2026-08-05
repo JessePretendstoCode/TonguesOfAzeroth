@@ -1,4 +1,4 @@
-## Interface: 30300
+## Interface: 30405
 ## Title: Tongues of Azeroth
 ## Notes: Speak the languages of Azeroth (Orcish, Darnassian, Old God, and more), similar to Tongues.
 ## Author: You

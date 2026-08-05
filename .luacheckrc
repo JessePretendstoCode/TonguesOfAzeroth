@@ -9,15 +9,24 @@ ignore = {
 }
 
 globals = {
-    "TonguesOfAzerothDB",
-    "SLASH_OLDGODTONGUES1", "SLASH_OLDGODTONGUES2", "SLASH_OLDGODTONGUES3",
+    "TonguesOfAzerothDB", "OldGodTonguesDB",
+    "SLASH_TONGUESOFAZEROTH1", "SLASH_TONGUESOFAZEROTH2", "SLASH_TONGUESOFAZEROTH3",
 }
 
 read_globals = {
-    "CreateFrame", "UIParent", "DEFAULT_CHAT_FRAME", "GetAddOnMetadata",
-    "SlashCmdList", "hooksecurefunc", "GetTime", "SendChatMessage",
+    -- core
+    "CreateFrame", "UIParent", "DEFAULT_CHAT_FRAME", "SlashCmdList",
+    "hooksecurefunc", "GetTime", "GetBuildInfo", "SendChatMessage",
+    "UnitName", "UnitIsDead", "PlaySoundFile", "ChatTypeInfo", "NUM_CHAT_WINDOWS",
+    -- metadata (both eras)
+    "GetAddOnMetadata", "C_AddOns",
+    -- addon messaging (both eras)
+    "SendAddonMessage", "RegisterAddonMessagePrefix", "C_ChatInfo",
+    -- group state (both eras)
+    "IsInRaid", "IsInGroup", "GetNumRaidMembers", "GetNumPartyMembers", "GetNumGroupMembers",
+    -- legacy options API (3.3.5a)
     "InterfaceOptions_AddCategory", "InterfaceOptionsFrame_OpenToCategory",
-    "InterfaceOptionsFramePanelContainer",
-    "UIDropDownMenu_Initialize", "UIDropDownMenu_SetWidth", "UIDropDownMenu_SetText",
-    "UIDropDownMenu_SetSelectedValue", "UIDropDownMenu_CreateInfo", "UIDropDownMenu_AddButton",
+    "InterfaceOptionsFramePanelContainer", "InterfaceAddOnsList_Update",
+    -- modern options API
+    "Settings",
 }

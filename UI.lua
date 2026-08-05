@@ -1,15 +1,17 @@
 --[[-------------------------------------------------------------------------
     Tongues of Azeroth - UI.lua
-    In-game configuration registered under Interface -> AddOns.
+    In-game configuration registered under the game's AddOns options.
       * Main panel: enable, language, strength, channel filters, preview.
       * Learned Languages sub-panel: per-language checkboxes, decode display style.
 
-    Settings apply live (written straight to SavedVariables). Uses only stock
-    3.3.5a widgets.
+    All widgets come from ns.Compat, so the same panel renders on the 3.3.5a
+    client (Interface Options) and on modern clients (the Settings panel), with
+    no reliance on UIDropDownMenu or templates that retail has removed.
 ---------------------------------------------------------------------------]]
 
 local ADDON, ns = ...
 local Language = ns.Language
+local Compat = ns.Compat
 
 local SAMPLE = "The old gods whisper madness into your mind."
 
@@ -24,6 +26,11 @@ local CHANNEL_LABELS = {
     GUILD         = "Guild",
     OFFICER       = "Officer",
     CHANNEL       = "General & Trade Channels",
+}
+
+local DECODE_STYLES = {
+    { id = "emote",   name = "Emote (yellow * line)" },
+    { id = "whisper", name = "Whisper (purple line)" },
 }
 
 local mainPanel, learnedPanel
@@ -59,23 +66,13 @@ local function refreshPreview()
     previewOutput:SetText(Language.TranslateText(src, d.strength, d.language))
 end
 
-local function initLangDropdown()
-    local d = db()
+local function langItems()
+    local items = {}
     local langs = Language.GetLanguages()
     for i = 1, #langs do
-        local entry = langs[i]
-        local info = UIDropDownMenu_CreateInfo()
-        info.text = entry.name
-        info.value = entry.id
-        info.checked = (entry.id == d.language)
-        info.func = function()
-            d.language = entry.id
-            UIDropDownMenu_SetSelectedValue(langDropdown, entry.id)
-            UIDropDownMenu_SetText(langDropdown, Language.GetLanguageName(entry.id))
-            refreshPreview()
-        end
-        UIDropDownMenu_AddButton(info)
+        items[i] = { text = langs[i].name, value = langs[i].id }
     end
+    return items
 end
 
 local function decodeStyleLabel(styleId)
@@ -83,33 +80,11 @@ local function decodeStyleLabel(styleId)
     return "Emote (yellow * line)"
 end
 
-local function initDecodeStyleDropdown()
-    local d = db()
-    local styles = {
-        { id = "emote", name = "Emote (yellow * line)" },
-        { id = "whisper", name = "Whisper (purple line)" },
-    }
-    for i = 1, #styles do
-        local entry = styles[i]
-        local info = UIDropDownMenu_CreateInfo()
-        info.text = entry.name
-        info.value = entry.id
-        info.checked = (entry.id == d.decodeStyle)
-        info.func = function()
-            d.decodeStyle = entry.id
-            UIDropDownMenu_SetSelectedValue(decodeStyleDropdown, entry.id)
-            UIDropDownMenu_SetText(decodeStyleDropdown, entry.name)
-        end
-        UIDropDownMenu_AddButton(info)
-    end
-end
-
 local function RefreshMain()
     if not mainPanel then return end
     local d = db()
     enableCheck:SetChecked(d.enabled)
-    UIDropDownMenu_SetSelectedValue(langDropdown, d.language)
-    UIDropDownMenu_SetText(langDropdown, Language.GetLanguageName(d.language))
+    langDropdown:SetSelected(d.language, Language.GetLanguageName(d.language))
     slider:SetValue(d.strength)
     valueText:SetText(d.strength .. "%")
     for ch, check in pairs(channelChecks) do
@@ -124,14 +99,12 @@ local function RefreshLearned()
     for langId, check in pairs(learnedChecks) do
         check:SetChecked(d.learned[langId] and true or false)
     end
-    UIDropDownMenu_SetSelectedValue(decodeStyleDropdown, d.decodeStyle)
-    UIDropDownMenu_SetText(decodeStyleDropdown, decodeStyleLabel(d.decodeStyle))
+    decodeStyleDropdown:SetSelected(d.decodeStyle, decodeStyleLabel(d.decodeStyle))
 end
 
 local function BuildMainPanel()
-    mainPanel = CreateFrame("Frame", "TonguesOfAzerothOptions", InterfaceOptionsFramePanelContainer)
+    mainPanel = Compat.CreateOptionsPanel("TonguesOfAzerothOptions")
     mainPanel.name = "Tongues of Azeroth"
-    mainPanel:Hide()
 
     local title = mainPanel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
     title:SetPoint("TOPLEFT", 16, -16)
@@ -143,9 +116,8 @@ local function BuildMainPanel()
     subtitle:SetJustifyH("LEFT")
     subtitle:SetText("Speak the languages of Azeroth in chat, Tongues-style.")
 
-    enableCheck = CreateFrame("CheckButton", "TonguesOfAzerothEnable", mainPanel, "InterfaceOptionsCheckButtonTemplate")
+    enableCheck = Compat.CreateCheckbox(mainPanel, "Enable auto-translate in chat")
     enableCheck:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -16)
-    _G[enableCheck:GetName() .. "Text"]:SetText("Enable auto-translate in chat")
     enableCheck:SetScript("OnClick", function(self)
         db().enabled = self:GetChecked() and true or false
     end)
@@ -154,23 +126,18 @@ local function BuildMainPanel()
     langLabel:SetPoint("TOPLEFT", enableCheck, "BOTTOMLEFT", 0, -18)
     langLabel:SetText("Language")
 
-    langDropdown = CreateFrame("Frame", "TonguesOfAzerothLangDropdown", mainPanel, "UIDropDownMenuTemplate")
-    langDropdown:SetPoint("TOPLEFT", langLabel, "BOTTOMLEFT", -16, -4)
-    UIDropDownMenu_SetWidth(langDropdown, 260)
-    UIDropDownMenu_Initialize(langDropdown, initLangDropdown)
+    langDropdown = Compat.CreateDropdown(mainPanel, 260)
+    langDropdown:SetPoint("TOPLEFT", langLabel, "BOTTOMLEFT", 0, -6)
+    langDropdown:SetItems(langItems())
+    langDropdown.onSelect = function(value)
+        db().language = value
+        refreshPreview()
+    end
 
-    slider = CreateFrame("Slider", "TonguesOfAzerothSlider", mainPanel, "OptionsSliderTemplate")
-    slider:SetPoint("TOPLEFT", langDropdown, "BOTTOMLEFT", 16, -40)
+    slider = Compat.CreateSlider(mainPanel, 0, 100, 1, "Strength", "0 - Plain", "100 - Full")
+    slider:SetPoint("TOPLEFT", langDropdown, "BOTTOMLEFT", 0, -34)
     slider:SetWidth(320)
-    slider:SetMinMaxValues(0, 100)
-    slider:SetValueStep(1)
-    _G[slider:GetName() .. "Low"]:SetText("0 - Plain")
-    _G[slider:GetName() .. "High"]:SetText("100 - Full")
-    _G[slider:GetName() .. "Text"]:SetText("Strength")
-
-    valueText = slider:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-    valueText:SetPoint("TOP", slider, "BOTTOM", 0, -2)
-
+    valueText = slider.valueText
     slider:SetScript("OnValueChanged", function(self, value)
         value = math.floor(value + 0.5)
         db().strength = value
@@ -179,7 +146,7 @@ local function BuildMainPanel()
     end)
 
     local channelLabel = mainPanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    channelLabel:SetPoint("TOPLEFT", slider, "BOTTOMLEFT", -16, -20)
+    channelLabel:SetPoint("TOPLEFT", slider, "BOTTOMLEFT", 0, -24)
     channelLabel:SetText("Channels")
 
     local channelHint = mainPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
@@ -189,13 +156,13 @@ local function BuildMainPanel()
     channelHint:SetText("Applies when you speak and when you listen.")
 
     local channelList = ns.CHANNEL_TYPES or {}
-    local ROW_H = 20
+    local ROW_H = 22
     local COL2_X = 210
     local half = math.ceil(#channelList / 2)
 
     for i = 1, #channelList do
         local ch = channelList[i]
-        local check = CreateFrame("CheckButton", "TonguesOfAzerothChannel_" .. ch, mainPanel, "InterfaceOptionsCheckButtonTemplate")
+        local check = Compat.CreateCheckbox(mainPanel, CHANNEL_LABELS[ch] or ch)
         local row, col
         if i <= half then
             row = i - 1
@@ -205,7 +172,6 @@ local function BuildMainPanel()
             col = COL2_X
         end
         check:SetPoint("TOPLEFT", channelHint, "BOTTOMLEFT", col, -4 - row * ROW_H)
-        _G[check:GetName() .. "Text"]:SetText(CHANNEL_LABELS[ch] or ch)
         check:SetScript("OnClick", function(self)
             db().channels[ch] = self:GetChecked() and true or false
         end)
@@ -214,7 +180,7 @@ local function BuildMainPanel()
 
     local channelRows = half
     local previewLabel = mainPanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    previewLabel:SetPoint("TOPLEFT", channelHint, "BOTTOMLEFT", 0, -8 - channelRows * ROW_H)
+    previewLabel:SetPoint("TOPLEFT", channelHint, "BOTTOMLEFT", 0, -12 - channelRows * ROW_H)
     previewLabel:SetText("Preview (type to test):")
 
     previewInput = CreateFrame("EditBox", "TonguesOfAzerothPreviewInput", mainPanel, "InputBoxTemplate")
@@ -238,10 +204,9 @@ local function BuildMainPanel()
 end
 
 local function BuildLearnedPanel()
-    learnedPanel = CreateFrame("Frame", "TonguesOfAzerothLearnedOptions", mainPanel)
+    learnedPanel = Compat.CreateOptionsPanel("TonguesOfAzerothLearnedOptions")
     learnedPanel.name = "Learned Languages"
     learnedPanel.parent = mainPanel.name
-    learnedPanel:Hide()
 
     local title = learnedPanel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
     title:SetPoint("TOPLEFT", 16, -16)
@@ -257,23 +222,29 @@ local function BuildLearnedPanel()
     styleLabel:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -16)
     styleLabel:SetText("Decode display style")
 
-    decodeStyleDropdown = CreateFrame("Frame", "TonguesOfAzerothDecodeStyle", learnedPanel, "UIDropDownMenuTemplate")
-    decodeStyleDropdown:SetPoint("TOPLEFT", styleLabel, "BOTTOMLEFT", -16, -4)
-    UIDropDownMenu_SetWidth(decodeStyleDropdown, 220)
-    UIDropDownMenu_Initialize(decodeStyleDropdown, initDecodeStyleDropdown)
+    decodeStyleDropdown = Compat.CreateDropdown(learnedPanel, 220)
+    decodeStyleDropdown:SetPoint("TOPLEFT", styleLabel, "BOTTOMLEFT", 0, -6)
+    local styleItems = {}
+    for i = 1, #DECODE_STYLES do
+        styleItems[i] = { text = DECODE_STYLES[i].name, value = DECODE_STYLES[i].id }
+    end
+    decodeStyleDropdown:SetItems(styleItems)
+    decodeStyleDropdown.onSelect = function(value)
+        db().decodeStyle = value
+    end
 
     local langLabel = learnedPanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    langLabel:SetPoint("TOPLEFT", decodeStyleDropdown, "BOTTOMLEFT", 16, -24)
+    langLabel:SetPoint("TOPLEFT", decodeStyleDropdown, "BOTTOMLEFT", 0, -22)
     langLabel:SetText("Languages you understand")
 
     local langs = Language.GetLanguages()
-    local ROW_H = 20
+    local ROW_H = 22
     local COL2_X = 210
     local half = math.ceil(#langs / 2)
 
     for i = 1, #langs do
         local entry = langs[i]
-        local check = CreateFrame("CheckButton", "TonguesOfAzerothLearned_" .. entry.id, learnedPanel, "InterfaceOptionsCheckButtonTemplate")
+        local check = Compat.CreateCheckbox(learnedPanel, entry.name)
         local row, col
         if i <= half then
             row = i - 1
@@ -283,7 +254,6 @@ local function BuildLearnedPanel()
             col = COL2_X
         end
         check:SetPoint("TOPLEFT", langLabel, "BOTTOMLEFT", col, -4 - row * ROW_H)
-        _G[check:GetName() .. "Text"]:SetText(entry.name)
         check:SetScript("OnClick", function(self)
             db().learned[entry.id] = self:GetChecked() and true or false
         end)
@@ -292,7 +262,7 @@ local function BuildLearnedPanel()
 
     local langRows = half
     local note = learnedPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-    note:SetPoint("TOPLEFT", langLabel, "BOTTOMLEFT", 0, -8 - langRows * ROW_H)
+    note:SetPoint("TOPLEFT", langLabel, "BOTTOMLEFT", 0, -12 - langRows * ROW_H)
     note:SetPoint("RIGHT", learnedPanel, "RIGHT", -32, 0)
     note:SetJustifyH("LEFT")
     note:SetText("Decoding only works for text produced by Tongues of Azeroth. Rare words may not reverse perfectly.")
@@ -303,13 +273,12 @@ end
 
 local function BuildPanels()
     if panelsBuilt then return end
-    if not InterfaceOptionsFramePanelContainer then return end
 
     BuildMainPanel()
-    InterfaceOptions_AddCategory(mainPanel)
+    Compat.RegisterOptionsPanel(mainPanel, mainPanel.name)
 
     BuildLearnedPanel()
-    InterfaceOptions_AddCategory(learnedPanel)
+    Compat.RegisterOptionsPanel(learnedPanel, learnedPanel.name, mainPanel.name)
 
     panelsBuilt = true
 end
@@ -331,16 +300,10 @@ end
 
 function ns.OpenConfig()
     BuildPanels()
-    if not mainPanel then return end
-    if InterfaceAddOnsList_Update then InterfaceAddOnsList_Update() end
-    InterfaceOptionsFrame_OpenToCategory(mainPanel)
-    InterfaceOptionsFrame_OpenToCategory(mainPanel)
+    Compat.OpenOptionsPanel(mainPanel)
 end
 
 function ns.OpenLearnedConfig()
     BuildPanels()
-    if not learnedPanel then return end
-    if InterfaceAddOnsList_Update then InterfaceAddOnsList_Update() end
-    InterfaceOptionsFrame_OpenToCategory(learnedPanel)
-    InterfaceOptionsFrame_OpenToCategory(learnedPanel)
+    Compat.OpenOptionsPanel(learnedPanel)
 end

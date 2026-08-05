@@ -12,6 +12,7 @@
 
 local ADDON, ns = ...
 local Language = ns.Language
+local Compat = ns.Compat
 
 local MAX_MESSAGE = 255
 
@@ -92,15 +93,15 @@ local function addonDistribution(chatType, channel)
 end
 
 local function sendDecodePayload(original, encoded, langId, strength, chatType, channel)
-    if not SendAddonMessage or original == encoded then return end
+    if not Compat.canSendAddonMessage or original == encoded then return end
     local payload = langId .. "\001" .. tostring(strength or 100) .. "\001" .. original .. "\001" .. encoded
     if #payload > MAX_ADDON_PAYLOAD then return end
 
     local function send(dist, target)
         if dist == "WHISPER" and target then
-            SendAddonMessage(ADDON_PREFIX, payload, dist, target)
+            Compat.SendAddonMessage(ADDON_PREFIX, payload, dist, target)
         elseif dist then
-            SendAddonMessage(ADDON_PREFIX, payload, dist)
+            Compat.SendAddonMessage(ADDON_PREFIX, payload, dist)
         end
     end
 
@@ -110,9 +111,9 @@ local function sendDecodePayload(original, encoded, langId, strength, chatType, 
     -- Say/Yell have no addon channel; mirror payload to party/raid so grouped friends can decode.
     local sayType = normalizeChatType(chatType)
     if sayType == "SAY" or sayType == "YELL" then
-        if GetNumRaidMembers and GetNumRaidMembers() > 0 then
+        if Compat.InRaid() then
             send("RAID")
-        elseif GetNumPartyMembers and GetNumPartyMembers() > 0 then
+        elseif Compat.InParty() then
             send("PARTY")
         end
     end
@@ -569,9 +570,7 @@ f:SetScript("OnEvent", function(self, event, name)
     if event == "ADDON_LOADED" and name == ADDON then
         migrateDB()
         installSendHook()
-        if RegisterAddonMessagePrefix then
-            RegisterAddonMessagePrefix(ADDON_PREFIX)
-        end
+        Compat.RegisterAddonMessagePrefix(ADDON_PREFIX)
         Print("loaded. Type |cffffff00/ogt|r for the panel.")
     elseif event == "PLAYER_LOGIN" then
         installSendHook()

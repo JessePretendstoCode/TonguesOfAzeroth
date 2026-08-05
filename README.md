@@ -1,9 +1,12 @@
-# Tongues of Azeroth (v0.2)
+# Tongues of Azeroth
 
-A World of Warcraft **3.3.5a (Wrath of the Lich King)** roleplay addon that translates your
-outgoing chat into the fictional languages of Azeroth, in the style of the classic
-*Tongues* addon. Includes the eldritch **Old God (Shath'yar)** tongue plus the major
-playable-race languages.
+A World of Warcraft roleplay addon that translates your outgoing chat into the fictional
+languages of Azeroth, in the style of the classic *Tongues* addon. Includes the eldritch
+**Old God (Shath'yar)** tongue plus the major playable-race languages.
+
+**Runs on every client** — 3.3.5a (Wrath, incl. Project Ascension), Classic (Vanilla /
+Cata / Mists), and Retail — from a single install. A feature-detected compatibility layer
+(`Compat.lua`) adapts the UI and chat APIs to whichever client it loads on.
 
 The playable-race languages use **Blizzard's own in-game language parser word lists**
 (documented on Wowpedia / Warcraft Wiki) — the same word tables the game uses to mask
@@ -28,26 +31,28 @@ generate identical text.
 - **Learned Languages** — mark dialects you understand; when another Tongues of
   Azeroth user speaks one, you see a second line showing the original meaning
   (emote or whisper style).
-- **In-game configuration** under **Interface → AddOns → Tongues of Azeroth**, with a live
-  preview.
+- **In-game configuration** (Interface → AddOns on 3.3.5a; the Settings panel on modern
+  clients), with a live preview.
 - **Slash commands** for quick control.
 - Punctuation, numbers, spacing, and links are preserved — only words are translated.
-- Pure Lua, **no external libraries**, uses only stock 3.3.5a widgets.
+- Pure Lua, **no external libraries**; portable widgets render identically on old and new clients.
 
 ---
 
 ## Installation
 
-1. Copy the `TonguesOfAzeroth-v0_2` folder into:
+1. Copy the `TonguesOfAzeroth` folder into your client's AddOns folder:
    ```
    World of Warcraft\Interface\AddOns\
    ```
-2. The folder must contain `TonguesOfAzeroth-v0_2.toc` (same name as the folder),
-   plus `Language.lua`, `Core.lua`, `Whispers.lua`, and `UI.lua`.
-3. **Do not use a dot in the folder name** (e.g. `v0.2` breaks 3.3.5 detection;
-   use `v0_2` instead).
-3. Launch the game, and enable **Tongues of Azeroth** on the character-select AddOns list.
-4. In game, type `/ogt` or open **Interface → AddOns → Tongues of Azeroth**.
+2. The folder must be named `TonguesOfAzeroth` and contain `TonguesOfAzeroth.toc` plus
+   `Compat.lua`, `Language.lua`, `Core.lua`, `Whispers.lua`, and `UI.lua`. (The extra
+   `TonguesOfAzeroth_Mainline.toc` / `_Vanilla.toc` / etc. let modern clients pick the
+   right interface version; the old 3.3.5a client just reads the base `.toc`.)
+3. Launch the game and enable **Tongues of Azeroth** on the character-select AddOns list
+   (on 3.3.5a, tick **Load out of date AddOns** if needed).
+4. In game, type `/ogt`, or open the options (Interface → AddOns on 3.3.5a; Settings →
+   AddOns on modern clients).
 
 ---
 
@@ -190,4 +195,30 @@ takes priority over the parser/generator).
 
 ## Compatibility
 
-- Built and tested against interface version **30300** (WoW 3.3.5a).
+One download runs on all current clients via version-suffixed TOCs + `Compat.lua`:
+
+| Client | Interface | TOC |
+|--------|-----------|-----|
+| 3.3.5a (Wrath / Project Ascension) | `30300` | `TonguesOfAzeroth.toc` (base) |
+| Wrath Classic | `30405` | `TonguesOfAzeroth_Wrath.toc` |
+| Cataclysm Classic | `40402` | `TonguesOfAzeroth_Cata.toc` |
+| Mists of Pandaria Classic | `50504` | `TonguesOfAzeroth_Mists.toc` |
+| Classic Era (Vanilla) | `11509` | `TonguesOfAzeroth_Vanilla.toc` |
+| Retail (Midnight) | `120007` | `TonguesOfAzeroth_Mainline.toc` |
+
+Modern interface numbers only affect the "out of date" flag and are easy to bump; the base
+`30300` TOC is what the old 3.3.5a client loads.
+
+---
+
+## Support
+
+This addon is free and always will be. If it added some flavor to your roleplay and you'd
+like to say thanks, you can leave a tip — entirely optional:
+
+- **GitHub Sponsors:** use the **Sponsor** button at the top of the repo.
+
+_(A Ko-fi / PayPal tip jar may be added here later.)_
+
+Donations support development only; they never unlock features (the addon has no paywalls
+and shows no in-game donation prompts, per Blizzard's add-on policy).

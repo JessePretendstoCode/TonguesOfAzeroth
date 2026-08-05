@@ -1,0 +1,7 @@
+# Shared donation config for all of this author's addons.
+# Keep these identical across every repo so they point at the same donation page.
+github: [JessePretendstoCode]     # enables the "Sponsor" button on the repo
+
+# Add these once the accounts exist (uncomment + fill in):
+# ko_fi: YOURKOFIHANDLE                              # https://ko-fi.com/YOURKOFIHANDLE
+# custom: ["https://www.paypal.me/YOURPAYPAL"]
