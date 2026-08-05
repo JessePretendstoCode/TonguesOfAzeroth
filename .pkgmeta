@@ -1,0 +1,7 @@
+package-as: TonguesOfAzeroth
+
+ignore:
+  - ".luacheckrc"
+  - "*.ps1"
+
+manual-changelog: CHANGELOG.md

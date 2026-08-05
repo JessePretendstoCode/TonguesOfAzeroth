@@ -1,0 +1,14 @@
+## Interface: 30300
+## Title: Tongues of Azeroth
+## Notes: Speak the languages of Azeroth (Orcish, Darnassian, Old God, and more), similar to Tongues.
+## Author: You
+## Version: 0.2.5
+## SavedVariablesPerCharacter: TonguesOfAzerothDB
+## X-Curse-Project-ID:
+## X-WoWI-ID:
+## X-Wago-ID:
+
+Language.lua
+Core.lua
+Whispers.lua
+UI.lua
