@@ -216,9 +216,8 @@ Modern interface numbers only affect the "out of date" flag and are easy to bump
 This addon is free and always will be. If it added some flavor to your roleplay and you'd
 like to say thanks, you can leave a tip — entirely optional:
 
+- **Ko-fi:** https://ko-fi.com/jessemods
 - **GitHub Sponsors:** use the **Sponsor** button at the top of the repo.
-
-_(A Ko-fi / PayPal tip jar may be added here later.)_
 
 Donations support development only; they never unlock features (the addon has no paywalls
 and shows no in-game donation prompts, per Blizzard's add-on policy).
