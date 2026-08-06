@@ -4,7 +4,7 @@
 ## Author: You
 ## Version: 0.2.5
 ## SavedVariablesPerCharacter: TonguesOfAzerothDB
-## X-Curse-Project-ID:
+## X-Curse-Project-ID: 1641225
 ## X-WoWI-ID:
 ## X-Wago-ID:
 
