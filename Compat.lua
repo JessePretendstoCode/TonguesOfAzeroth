@@ -194,7 +194,7 @@ local function ensureStandaloneWindow()
 
     local titlebar = CreateFrame("Frame", nil, win)
     titlebar:SetPoint("TOPLEFT", 0, 0)
-    titlebar:SetPoint("TOPRIGHT", -74, 0)   -- room for the back/close button
+    titlebar:SetPoint("TOPRIGHT", -100, 0)   -- room for the back + close buttons
     titlebar:SetHeight(26)
     titlebar:EnableMouse(true)
     titlebar:RegisterForDrag("LeftButton")
@@ -225,10 +225,11 @@ local function ensureStandaloneWindow()
     close:SetScript("OnClick", function() win:Hide() end)
     win.closeBtn = close
 
-    -- Back button - shown on sub-panels; runs the current panel's _backAction.
+    -- Back button - shown on sub-panels (in addition to the close X); runs the
+    -- current panel's _backAction. Sits just left of the close button.
     local back = CreateFrame("Button", nil, win)
     back:SetSize(64, 22)
-    back:SetPoint("TOPRIGHT", -4, -2)
+    back:SetPoint("TOPRIGHT", close, "TOPLEFT", -4, -1)
     back:SetFrameLevel(win:GetFrameLevel() + 5)
     back:RegisterForClicks("LeftButtonUp")
     local bbg = back:CreateTexture(nil, "BACKGROUND")
@@ -242,8 +243,13 @@ local function ensureStandaloneWindow()
     bhl:SetAllPoints()
     Compat.SolidTexture(bhl, 1, 1, 1, 0.15)
     back:SetScript("OnClick", function()
-        local action = win._current and win._current._backAction
+        local cur = win._current
+        local action = cur and cur._backAction
         if action then action() end
+        -- If the action didn't swap the hosted panel (e.g. modern clients open
+        -- the native Settings panel instead of reusing this window), close this
+        -- window so it doesn't linger behind the settings UI.
+        if win._current == cur then win:Hide() end
     end)
     win.backBtn = back
 
@@ -274,13 +280,10 @@ function Compat.ShowStandalone(frame)
     win._current = frame
 
     win.titleText:SetText(frame.name or "Options")
-    if frame._backAction then
-        win.closeBtn:Hide()
-        win.backBtn:Show()
-    else
-        win.backBtn:Hide()
-        win.closeBtn:Show()
-    end
+    -- The close (X) is always available so any panel can be dismissed. Sub-panels
+    -- (those with a _backAction) additionally get a Back button beside it.
+    win.closeBtn:Show()
+    if frame._backAction then win.backBtn:Show() else win.backBtn:Hide() end
 
     win:Show()
     if win.Raise then win:Raise() end

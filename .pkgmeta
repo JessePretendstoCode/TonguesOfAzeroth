@@ -4,5 +4,6 @@ ignore:
   - ".luacheckrc"
   - "*.ps1"
   - "UI_*.png"
+  - "DESCRIPTION.md"
 
 manual-changelog: CHANGELOG.md

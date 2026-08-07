@@ -2,6 +2,19 @@
 
 All notable changes to Tongues of Azeroth are documented here.
 
+## [0.2.8]
+- **Language Trainer difficulty:** choose Easy (4), Medium (5), Hard (6), or Very
+  Hard (7) letters. The grid resizes to fit, and each difficulty is worth more
+  fluency per solve (1% / 2% / 3% / 4%), further multiplied by your streak.
+- **Reveal button:** give up on the current word to see the answer (this resets
+  your streak and earns no fluency). The answer is also shown when you run out of
+  tries.
+- **Streak-driven fluency:** solves add fluency scaled by your current streak, so a
+  longer streak grows fluency faster. Fluency still persists and never drops.
+- **Trainer close button:** the trainer (and other sub-panels) now always have a
+  close (X) alongside Back, fixing a case on modern clients where the trainer
+  window could be left open behind the Settings panel.
+
 ## [0.2.7]
 - **Accents:** a new dialect system that *flavors your English* instead of
   translating it — Dwarven ("I cannae do this, aye!"), Troll ("da voodoo, mon."),
