@@ -3,5 +3,6 @@ package-as: TonguesOfAzeroth
 ignore:
   - ".luacheckrc"
   - "*.ps1"
+  - "UI_*.png"
 
 manual-changelog: CHANGELOG.md

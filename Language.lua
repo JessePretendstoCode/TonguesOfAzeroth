@@ -280,6 +280,232 @@ register("demonic", {
 })
 
 --=========================================================================--
+--  GENERATED LANGUAGES
+--  Most of WoW's creature/beast tongues (and a few misc ones) never had an
+--  official in-game parser word list, so -- like the original Tongues addon --
+--  we synthesise them with per-language syllable pools. Each has its own
+--  distinct sound. Output stays length-matched to the source word.
+--
+--  Sub-languages are ALIASES that share their parent's word set (so e.g. Amani
+--  reads identically to Zandali), exactly as the original addon described.
+--=========================================================================--
+
+-- Register a generated language from syllable pools.
+local function G(id, name, apostrophe, onsets, nuclei, codas)
+    register(id, {
+        name = name,
+        generator = { apostrophe = apostrophe, onsets = onsets, nuclei = nuclei, codas = codas },
+    })
+end
+
+-- Register a sub-language that reuses its parent's word set / generator.
+local function alias(id, name, parentId)
+    local p = LANGUAGES[parentId]
+    if not p then return end
+    register(id, {
+        name = name,
+        words = p.words,
+        generator = p.generator,
+        dict = p.dict,
+        sub = true,
+        parent = parentId,
+        wordset = p.wordset or parentId, -- generators seed from this so output matches parent
+    })
+end
+
+G("common", "Common", 0.03,
+    { "", "b", "d", "f", "g", "h", "k", "l", "m", "n", "p", "r", "s", "t", "v", "w", "br", "st", "th", "gr", "tr", "cl", "dr" },
+    { "a", "e", "i", "o", "u", "ae", "ou", "ea", "ai" },
+    { "", "n", "r", "l", "s", "t", "d", "m", "k", "th", "st", "nd" })
+
+G("wolf", "Wolf", 0.05,
+    { "gr", "hr", "rr", "gn", "gruf", "aw", "w", "ar", "rou", "grr" },
+    { "oo", "ow", "au", "aa", "uu", "o" },
+    { "rr", "r", "f", "wl", "gh", "ff" })
+
+G("bear", "Bear", 0.03,
+    { "gr", "br", "rr", "gro", "mrr", "ur", "rah", "bru", "gnar" },
+    { "oo", "aa", "uu", "ow", "o", "ar" },
+    { "r", "rr", "f", "gh", "mph" })
+
+G("ursine", "Ursine", 0.03,
+    { "gro", "bru", "rrr", "mor", "gnar", "ur", "brm" },
+    { "oo", "aa", "uu", "o", "au" },
+    { "r", "rr", "mph", "gh", "f" })
+
+G("bat", "Bat", 0.05,
+    { "ee", "sk", "ch", "ts", "zk", "kee", "ss", "ki", "tsk" },
+    { "ee", "ii", "i", "ea", "ai" },
+    { "k", "t", "ss", "ch", "tt", "kt" })
+
+G("boar", "Boar", 0.02,
+    { "gr", "sn", "hr", "gh", "ghr", "snr", "gru", "rn" },
+    { "o", "u", "oo", "uu", "au" },
+    { "f", "nk", "rt", "gh", "rn", "h" })
+
+G("serpent", "Serpent", 0.06,
+    { "ss", "sh", "ssa", "hss", "sse", "ssi", "sc", "zss", "s" },
+    { "a", "i", "ii", "ai", "ee", "aa" },
+    { "ss", "sh", "s", "x", "zz" })
+
+G("cat", "Cat", 0.04,
+    { "mr", "mrr", "rr", "pur", "mew", "ny", "mn", "mrow" },
+    { "ow", "ee", "ao", "eo", "au", "ia" },
+    { "w", "r", "rr", "ss", "p" })
+
+G("seal", "Seal", 0.03,
+    { "or", "ar", "rr", "aw", "org", "brr", "ork" },
+    { "oo", "au", "ar", "o", "ow" },
+    { "k", "rk", "f", "gh", "rr" })
+
+G("bird", "Bird", 0.05,
+    { "tw", "ch", "tr", "pi", "ki", "tik", "chi", "tsi" },
+    { "ee", "i", "ir", "ia" },
+    { "t", "p", "k", "tt", "rp" })
+
+G("ravenspeech", "Ravenspeech", 0.05,
+    { "kr", "kaa", "cr", "kra", "gra", "kaw", "nvr", "kor" },
+    { "aa", "o", "aw", "or", "oo" },
+    { "k", "rk", "r", "w", "kh" })
+
+G("moonkin", "Moonkin", 0.03,
+    { "h", "ho", "oo", "w", "wo", "moo", "kh", "how" },
+    { "oo", "o", "ooo", "au" },
+    { "t", "n", "k", "m", "h" })
+
+G("trentish", "Trentish", 0.04,
+    { "br", "gr", "thr", "wr", "gn", "rn", "bur", "thal", "dru" },
+    { "aa", "oo", "ee", "o", "u", "ea" },
+    { "th", "r", "l", "n", "sh", "mn", "rr" })
+
+G("darkiron", "Dark Iron", 0.06,
+    { "gr", "kh", "dr", "zg", "mor", "bal", "gor", "thak", "dun" },
+    { "a", "o", "u", "aa", "e" },
+    { "r", "k", "z", "gg", "th", "rn", "az" })
+
+G("kalimag", "Kalimag (Elemental)", 0.05,
+    { "koo", "rag", "fla", "aq", "tor", "gron", "zap", "kro", "sh" },
+    { "aa", "oo", "ee", "u", "o", "ah" },
+    { "sh", "k", "r", "th", "zz", "gg", "n" })
+
+G("titan", "Titan", 0.04,
+    { "ka", "az", "ur", "tho", "dun", "kel", "bran", "nor", "ari" },
+    { "a", "o", "u", "aa", "ia" },
+    { "n", "r", "th", "m", "s", "l", "x" })
+
+G("draconic", "Draconic", 0.04,
+    { "dra", "vor", "kal", "thar", "sor", "axi", "mal", "nex", "vex" },
+    { "aa", "o", "e", "i", "aar", "ia" },
+    { "th", "x", "r", "s", "k", "ss", "n" })
+
+G("nerubian", "Nerubian", 0.05,
+    { "ak", "kr", "zik", "ss", "xi", "tk", "kx", "zz", "chk" },
+    { "a", "i", "ii", "ee", "ik" },
+    { "k", "x", "t", "ss", "kk", "tk" })
+
+G("nerglish", "Nerglish (Murloc)", 0.02,
+    { "mrgl", "mgl", "gll", "blbl", "mrr", "gl", "bl", "mm", "grl", "mur" },
+    { "a", "ah", "gl", "aa", "uh", "gg" },
+    { "gl", "glgl", "bl", "rgl", "k", "mrgl" })
+
+G("nazja", "Nazja (Naga)", 0.05,
+    { "ss", "sha", "naz", "zss", "ssi", "hss", "vsh", "sse" },
+    { "a", "ii", "aa", "ee", "ai" },
+    { "ss", "sh", "zz", "s", "x" })
+
+G("undead", "Undead", 0.02,
+    { "gr", "mm", "uh", "hn", "brr", "mor", "gh", "nn" },
+    { "uh", "aa", "oo", "o", "au", "ur" },
+    { "gh", "rr", "n", "m", "h" })
+
+G("pandaren", "Pandaren", 0.02,
+    { "ch", "zh", "ji", "xi", "hu", "li", "mao", "shu", "wan" },
+    { "a", "o", "u", "i", "ao", "ia" },
+    { "n", "ng", "o", "i", "h" })
+
+G("gilnean", "Gilnean (Codespeak)", 0.12,
+    { "", "bl", "cr", "g", "str", "th", "wot", "gov", "oi", "bri" },
+    { "a", "o", "e", "i", "ou", "ar", "ee" },
+    { "n", "er", "t", "ck", "ff" })
+
+G("stag", "Stag", 0.02,
+    { "br", "gr", "hn", "sn", "hr", "rn", "gruf" },
+    { "aa", "oo", "eh", "o", "u" },
+    { "f", "gh", "rt", "h", "n" })
+
+G("orca", "Orca", 0.03,
+    { "ee", "cl", "kw", "wh", "eek", "cli", "brr" },
+    { "ee", "ii", "oo", "ea", "aw" },
+    { "k", "kt", "w", "ss" })
+
+G("vrykul", "Vrykul", 0.03,
+    { "thor", "bjor", "hrol", "gunn", "skald", "fjor", "vald", "ragn", "har", "ulf" },
+    { "a", "o", "u", "au", "ja" },
+    { "n", "r", "d", "th", "lf", "gr", "sk" })
+
+G("goblin", "Goblin", 0.04,
+    { "zik", "gob", "kli", "fizz", "grz", "nix", "zap", "bru", "gaz" },
+    { "i", "a", "o", "ee", "u" },
+    { "z", "k", "t", "zt", "gg", "nk" })
+
+G("ogre", "Ogre (Ogri'zhan)", 0.03,
+    { "gro", "mog", "rok", "dug", "brr", "gor", "thud", "mag", "uln" },
+    { "o", "u", "a", "aa", "oo" },
+    { "k", "g", "gg", "r", "sh", "th" })
+
+G("furbolg", "Furbolg", 0.03,
+    { "gr", "ur", "mor", "bru", "gnar", "rah", "hru", "tor" },
+    { "oo", "aa", "uu", "o", "au" },
+    { "r", "rr", "gh", "mph", "f", "k" })
+
+G("sprite", "Sprite (Faerie)", 0.06,
+    { "ti", "li", "fae", "syl", "pi", "gli", "shi", "wi", "ny", "lu" },
+    { "ee", "i", "ia", "ai", "y" },
+    { "l", "n", "ll", "sh", "p", "t" })
+
+G("tuskarr", "Tuskarr", 0.03,
+    { "tuk", "nuk", "or", "ka", "amn", "tor", "gah", "brr", "uk", "na" },
+    { "a", "u", "oo", "aa", "o" },
+    { "k", "rr", "n", "t", "tuk", "gh" })
+
+G("ethereal", "Ethereal", 0.05,
+    { "ka", "xi", "zae", "vor", "aeth", "nu", "sha", "kel", "vex", "zi" },
+    { "ae", "ee", "ii", "oo", "ia", "aa" },
+    { "th", "x", "s", "n", "sh", "l", "r" })
+
+G("sylvan", "Sylvan", 0.05,
+    { "syl", "ael", "thal", "nae", "lor", "fen", "dru", "wyn", "cae", "ith" },
+    { "a", "e", "i", "ae", "ia", "ee" },
+    { "n", "l", "r", "th", "s", "ll", "dr" })
+
+--  Sub-languages (aliases sharing their parent's word set).
+alias("troll",     "Troll (Zandali)",       "zandali")
+alias("amani",     "Amani (Troll)",         "zandali")
+alias("gurubashi", "Gurubashi (Troll)",     "zandali")
+alias("drakkari",  "Drakkari (Troll)",      "zandali")
+alias("forsaken",  "Forsaken",              "gutterspeak")
+alias("lowcommon", "Low Common",            "common")
+alias("sindassi",  "Sindassi (Thalassian)", "thalassian")
+alias("shalassian", "Shalassian (Nightborne)", "thalassian")
+alias("eredun",    "Eredun (Demonic)",      "demonic")
+alias("hyena",     "Hyena",                 "wolf")
+alias("corehound", "Core Hound",            "wolf")
+alias("sporebat",  "Sporebat",              "bat")
+alias("nether",    "Nether (Warpstalker)",  "serpent")
+alias("raptor",    "Raptor",                "serpent")
+alias("chimaera",  "Chimaera",              "serpent")
+alias("crocolisk", "Crocolisk",             "serpent")
+alias("devilsaur", "Devilsaur",             "serpent")
+alias("turtle",    "Turtle",                "trentish")
+alias("elemental", "Elemental",             "kalimag")
+alias("qiraji",    "Qiraji",                "nerubian")
+alias("silithid",  "Silithid",              "nerubian")
+alias("wasp",      "Wasp",                  "nerubian")
+alias("ravager",   "Ravager",               "nerubian")
+alias("scorpid",   "Scorpid",               "nerubian")
+alias("spider",    "Spider",                "nerubian")
+
+--=========================================================================--
 --  Deterministic hashing + PRNG (Lua 5.1 / WoW safe; all math < 2^53).
 --=========================================================================--
 local function hashString(s)
@@ -309,7 +535,9 @@ end
 local generateCache = {}
 
 local function generateWord(lower, lang)
-    local key = lang.id .. ":" .. lower
+    -- Seed from the shared wordset id so sub-languages generate identically to
+    -- their parent (and share the cache).
+    local key = (lang.wordset or lang.id) .. ":" .. lower
     local cached = generateCache[key]
     if cached then return cached end
 
@@ -382,7 +610,21 @@ function Language.GetLanguages()
     local out = {}
     for i = 1, #LANGUAGE_ORDER do
         local id = LANGUAGE_ORDER[i]
-        out[i] = { id = id, name = LANGUAGES[id].name }
+        local l = LANGUAGES[id]
+        out[i] = { id = id, name = l.name, sub = l.sub or false, parent = l.parent }
+    end
+    return out
+end
+
+-- Primary (non-sub) languages, for compact UI lists.
+function Language.GetPrimaryLanguages()
+    local out = {}
+    for i = 1, #LANGUAGE_ORDER do
+        local id = LANGUAGE_ORDER[i]
+        local l = LANGUAGES[id]
+        if not l.sub then
+            out[#out + 1] = { id = id, name = l.name }
+        end
     end
     return out
 end
@@ -394,6 +636,15 @@ end
 
 function Language.IsValid(langId)
     return LANGUAGES[langId] ~= nil
+end
+
+-- Canonical word-set id: a sub-language resolves to its parent (they share a
+-- word set), a primary resolves to itself. Used so trainer fluency is shared
+-- between a language and its dialects.
+function Language.GetWordsetId(langId)
+    local l = LANGUAGES[langId]
+    if not l then return langId end
+    return l.wordset or langId
 end
 
 -- Word token pattern: letters plus in-word apostrophes/hyphens (Dun-fel, Ok-Hoga).
@@ -690,6 +941,57 @@ function Language.DecodeWord(word, langId)
     if not source then return word end
     if strlower(origTranslateWord(source, langId)) ~= strlower(word) then return word end
     return applyCase(word, source)
+end
+
+-- True for languages produced by a syllable generator (Old God and all the
+-- creature/misc tongues) rather than a fixed same-length word list.
+function Language.IsGenerated(langId)
+    local l = LANGUAGES[langId]
+    return l ~= nil and l.generator ~= nil and l.words == nil
+end
+
+-- Approximate word-by-word decode via the reverse maps. Unlike TryDecode this
+-- does NOT need a cached full-message mapping (so a friend's speech reads even
+-- when the addon-sync packet never arrives). It is lossy: only vocabulary the
+-- addon has indexed (common words + words seen/spoken) can be recovered.
+-- Returns decoded text and the number of words recognised (0 -> nil).
+function Language.DecodeWordwise(text, langId)
+    if not text or text == "" then return nil, 0 end
+    local matched = 0
+    local decoded = text:gsub(WORD_PATTERN, function(word)
+        local src = Language.DecodeWord(word, langId)
+        if src and strlower(src) ~= strlower(word) then
+            matched = matched + 1
+            return src
+        end
+        return word
+    end)
+    if matched == 0 then return nil, 0 end
+    return decoded, matched
+end
+
+-- Partial decode: only reverse words whose English source is in `allowed`
+-- (a { [englishLower] = true } set, e.g. the words you've unlocked in the
+-- trainer). Works for any language because we match each allowed word against
+-- its own encoding, so no sync or reverse-map coverage is required.
+function Language.DecodePartial(text, langId, allowed)
+    if not text or text == "" or not allowed then return nil, 0 end
+    local map = {}
+    for w in pairs(allowed) do
+        local enc = strlower(origTranslateWord(w, langId))
+        if enc ~= w then map[enc] = w end
+    end
+    local matched = 0
+    local decoded = text:gsub(WORD_PATTERN, function(word)
+        local src = map[strlower(word)]
+        if src then
+            matched = matched + 1
+            return applyCase(word, src)
+        end
+        return word
+    end)
+    if matched == 0 then return nil, 0 end
+    return decoded, matched
 end
 
 function Language.DecodeText(text, langId)

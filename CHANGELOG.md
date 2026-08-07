@@ -2,6 +2,27 @@
 
 All notable changes to Tongues of Azeroth are documented here.
 
+## [0.2.7]
+- **Accents:** a new dialect system that *flavors your English* instead of
+  translating it — Dwarven ("I cannae do this, aye!"), Troll ("da voodoo, mon."),
+  plus Orcish, Darnassian, Draenei, Tauren, Forsaken, Pandaren, Goblin, Gilnean,
+  Vrykul, and Pirate. Each has its own dropdown and strength slider (0-100). Set
+  Language strength to 0% (or turn auto-translate off) to speak with a pure accent.
+- **Language Trainer ("Decipher"):** a Wordle-style minigame for learning
+  languages, with a per-language picker, reputation ranks, and fluency progress.
+- **Fluency & partial decoding:** learned languages track a rank and percentage
+  shown with live-updating progress bars; solving words in the trainer unlocks
+  partial decoding of a language before you've fully learned it.
+- **70+ languages & dialects** (up from 11): creature/beast tongues (Wolf, Bear,
+  Serpent, Bird, Cat, Raptor...), faction tongues (Dark Iron, Gilnean, Goblin,
+  Vrykul, Ogre...), elemental/eldritch (Kalimag, Titan, Draconic, Nerubian,
+  Ethereal...), and Troll/Elf sub-dialects that share their parent's sound.
+- **Minimap button** for one-click access, plus a standalone draggable window with
+  Back/Close navigation for clients without a native options tree (e.g. Ascension).
+- Chat output now stays in the default chat frame (no stray panels), and generated
+  languages fall back to word-by-word decoding so common words still translate for
+  other users.
+
 ## [0.2.6]
 - Cross-client support: one install now runs on 3.3.5a (Wrath / Ascension),
   Classic (Vanilla / Cata / Mists), and Retail, via a feature-detected

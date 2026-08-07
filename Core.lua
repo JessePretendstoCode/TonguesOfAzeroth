@@ -119,7 +119,10 @@ local function sendDecodePayload(original, encoded, langId, strength, chatType, 
     end
 end
 
-local function addToAllChatFrames(msg, style)
+-- Output goes to the primary chat window ONLY. We deliberately never write to
+-- other chat frames/panels or spawn windows of our own, so the addon stays out
+-- of the player's other chat tabs (Combat Log, ElvUI side panels, etc.).
+local function addToChat(msg, style)
     local r, g, b = 1, 1, 0.5
     if style == "whisper" then
         if ChatTypeInfo and ChatTypeInfo.WHISPER then
@@ -133,17 +136,14 @@ local function addToAllChatFrames(msg, style)
         r, g, b = info.r, info.g, info.b
     end
 
-    local n = NUM_CHAT_WINDOWS or 10
-    for i = 1, n do
-        local frame = _G["ChatFrame" .. i]
-        if frame then
-            frame:AddMessage(msg, r, g, b)
-        end
+    local frame = DEFAULT_CHAT_FRAME
+    if frame and frame.AddMessage then
+        frame:AddMessage(msg, r, g, b)
     end
 end
 
 local function Print(msg)
-    addToAllChatFrames(PREFIX .. msg, "system")
+    addToChat(PREFIX .. msg, "system")
 end
 
 local function migrateDB()
@@ -181,6 +181,22 @@ local function migrateDB()
     end
     if db.decodeStyle == nil then
         db.decodeStyle = "emote"
+    end
+    if not db.minimap then
+        db.minimap = {}
+    end
+    if db.minimap.hide == nil then
+        db.minimap.hide = false
+    end
+    if db.minimap.angle == nil then
+        db.minimap.angle = 200
+    end
+
+    if not db.accent then db.accent = {} end
+    if db.accent.enabled == nil then db.accent.enabled = false end
+    if db.accent.strength == nil then db.accent.strength = 100 end
+    if db.accent.id == nil or not (ns.Accent and ns.Accent.IsValid(db.accent.id)) then
+        db.accent.id = (ns.Accent and ns.Accent.DEFAULT) or "dwarf"
     end
 
     -- One-time: enable all channel toggles (older saves may have some off).
@@ -220,15 +236,29 @@ local function installSendHook()
         local channelKey = normalizeChatType(sendType)
         local outMsg = msg
 
-        if TonguesOfAzerothDB and TonguesOfAzerothDB.enabled and not suppress
+        local canProcess = not suppress and type(msg) == "string" and msg ~= ""
             and ns.IsChannelEnabled(channelKey)
-            and type(msg) == "string" and msg ~= "" then
+
+        -- Language translation only "wins" when it's on AND actually doing
+        -- something (strength > 0). At 0% strength it's a no-op, so accents can
+        -- take over -- letting you drop Language strength to 0 to speak with a
+        -- pure accent instead.
+        local langActive = canProcess and TonguesOfAzerothDB
+            and TonguesOfAzerothDB.enabled and getStrength() > 0
+
+        if langActive then
             local langId = TonguesOfAzerothDB.language
             local strength = getStrength()
             outMsg = translateOutgoing(msg, langId, strength)
             if outMsg ~= msg then
                 sendDecodePayload(msg, outMsg, langId, strength, sendType, channel)
             end
+        elseif canProcess and ns.Accent
+            and TonguesOfAzerothDB and TonguesOfAzerothDB.accent
+            and TonguesOfAzerothDB.accent.enabled then
+            -- Otherwise, apply the spoken accent (plain readable dialect).
+            local a = TonguesOfAzerothDB.accent
+            outMsg = ns.Accent.Apply(msg, a.id, a.strength or 100)
         end
 
         return orig_SendChatMessage(outMsg, sendType, language, channel)
@@ -258,22 +288,71 @@ end
 local function tryDecodeMessage(message)
     migrateDB()
     local learned = TonguesOfAzerothDB.learned or {}
+    local trainerWords = (TonguesOfAzerothDB.trainer and TonguesOfAzerothDB.trainer.words) or {}
 
-    local bestDecoded, bestScore, bestLangId, bestLangName
+    -- Checked in the Learned panel = you fully understand the language (its own
+    -- or its parent's box, since sub-languages share a word set).
+    local function isChecked(entry)
+        return (learned[entry.id] or (entry.parent and learned[entry.parent])) and true or false
+    end
+
+    -- Words you've unlocked for a language in the trainer (shared per word set),
+    -- as a { [englishLower] = true } set, or nil if none.
+    local function unlockedSet(entry)
+        local w = trainerWords[Language.GetWordsetId(entry.id)]
+        if not w then return nil end
+        local set, any = {}, false
+        for word in pairs(w) do set[string.lower(word)] = true; any = true end
+        return any and set or nil
+    end
+
     local langs = Language.GetLanguages()
+
+    -- 1) Fully-understood (checked) languages: exact cached mapping first...
+    local bestDecoded, bestScore, bestLangId, bestLangName
     for i = 1, #langs do
-        local langId = langs[i].id
-        if learned[langId] then
-            local decoded, score = Language.TryDecode(message, langId)
+        if isChecked(langs[i]) then
+            local decoded, score = Language.TryDecode(message, langs[i].id)
             if decoded and (not bestScore or score > bestScore) then
-                bestDecoded = decoded
-                bestScore = score
-                bestLangId = langId
-                bestLangName = langs[i].name
+                bestDecoded, bestScore = decoded, score
+                bestLangId, bestLangName = langs[i].id, langs[i].name
             end
         end
     end
-    return bestDecoded, bestScore, bestLangId, bestLangName
+    -- ...then approximate word-by-word decode for generated languages (their
+    -- output is exotic enough not to false-positive on ordinary chat; authentic
+    -- word-list languages stay cache/sync-based to avoid collision guesses).
+    if not bestDecoded then
+        for i = 1, #langs do
+            if isChecked(langs[i]) and Language.IsGenerated(langs[i].id) then
+                local decoded, count = Language.DecodeWordwise(message, langs[i].id)
+                if decoded and (not bestScore or count > bestScore) then
+                    bestDecoded, bestScore = decoded, count
+                    bestLangId, bestLangName = langs[i].id, langs[i].name
+                end
+            end
+        end
+    end
+    if bestDecoded then
+        return bestDecoded, bestScore, bestLangId, bestLangName
+    end
+
+    -- 2) Unchecked languages: only reveal the specific words you've unlocked in
+    --    the trainer. This works for every language (generated or word-list).
+    local bestCount
+    for i = 1, #langs do
+        if not isChecked(langs[i]) then
+            local allowed = unlockedSet(langs[i])
+            if allowed then
+                local decoded, count = Language.DecodePartial(message, langs[i].id, allowed)
+                if decoded and (not bestCount or count > bestCount) then
+                    bestDecoded, bestCount = decoded, count
+                    bestLangId, bestLangName = langs[i].id, langs[i].name
+                end
+            end
+        end
+    end
+    return bestDecoded, bestCount, bestLangId, bestLangName
 end
 
 local function showDecode(sender, original, decoded, langId, langName)
@@ -288,7 +367,7 @@ local function showDecode(sender, original, decoded, langId, langName)
             .. "|cffcccccc\"" .. original .. "\"|r "
             .. "|cff888888->|r |cffffffff\"" .. decoded .. "\"|r"
     end
-    addToAllChatFrames(msg, style)
+    addToChat(msg, style)
 end
 
 local function onIncomingChat(event, message, sender)
@@ -337,11 +416,30 @@ local function setEnabled(state)
 end
 
 local function listLanguages()
-    Print("available languages:")
+    Print("available languages (use |cffffff00/toa lang <id>|r):")
     local langs = Language.GetLanguages()
+    local active = TonguesOfAzerothDB and TonguesOfAzerothDB.language
+
+    -- Group each primary with the sub-languages that share its word set.
+    local subsOf = {}
     for i = 1, #langs do
-        local marker = (langs[i].id == TonguesOfAzerothDB.language) and " |cff00ff00(active)|r" or ""
-        Print("  |cffffff00" .. langs[i].id .. "|r - " .. langs[i].name .. marker)
+        local l = langs[i]
+        if l.sub and l.parent then
+            subsOf[l.parent] = subsOf[l.parent] or {}
+            table.insert(subsOf[l.parent], l.id)
+        end
+    end
+
+    for i = 1, #langs do
+        local l = langs[i]
+        if not l.sub then
+            local marker = (l.id == active) and " |cff00ff00(active)|r" or ""
+            Print("  |cffffff00" .. l.id .. "|r - " .. l.name .. marker)
+            local subs = subsOf[l.id]
+            if subs then
+                Print("      subs: |cffaaaaaa" .. table.concat(subs, ", ") .. "|r")
+            end
+        end
     end
 end
 
@@ -489,8 +587,8 @@ local function testRoundtrip(input)
 end
 
 local function usage()
-    Print("commands:")
-    Print("  |cffffff00/ogt|r  - open the config panel")
+    Print("commands (also |cffffff00/ogt|r, |cffffff00/tongues|r):")
+    Print("  |cffffff00/toa|r  - open the config panel")
     Print("  |cffffff00/ogt on|off|r  - toggle auto-translate")
     Print("  |cffffff00/ogt lang <id>|r  - set language (see /ogt list)")
     Print("  |cffffff00/ogt list|r  - list available languages")
@@ -499,6 +597,10 @@ local function usage()
     Print("  |cffffff00/ogt encode [lang] [strength] <text>|r  - preview translation output")
     Print("  |cffffff00/ogt roundtrip [lang] [strength] <text>|r  - encode then decode (self-test)")
     Print("  |cffffff00/ogt strength <0-100>|r  - set translation strength")
+    Print("  |cffffff00/ogt minimap|r  - show/hide the minimap button")
+    Print("  |cffffff00/ogt game|r  - play the Decipher language trainer")
+    Print("  |cffffff00/ogt accent [on|off|<id>|list]|r  - speak in a dialect accent")
+    Print("  |cffffff00/ogt accentstrength <0-100>|r  - set accent thickness")
     Print("  |cffffff00/ogt say <text>|r  - say a translated line once")
     Print("  |cffffff00/ogt yell <text>|r  - yell a translated line once")
     Print("  |cffffff00/ogt p <text>|r  - preview a translation (only you see it)")
@@ -538,6 +640,52 @@ local function handleSlash(input)
         else
             Print("Strength is currently |cffffff00" .. getStrength() .. "%|r. Use /ogt strength <0-100>.")
         end
+    elseif cmd == "accent" then
+        migrateDB()
+        local a = TonguesOfAzerothDB.accent
+        local arg = string.lower(rest or "")
+        if arg == "" then
+            if ns.OpenAccentConfig then ns.OpenAccentConfig() end
+        elseif arg == "on" then
+            a.enabled = true
+            Print("Accent |cff00ff00enabled|r (" .. (ns.Accent and ns.Accent.GetAccentName(a.id) or a.id) .. ").")
+        elseif arg == "off" then
+            a.enabled = false
+            Print("Accent |cffff0000disabled|r.")
+        elseif arg == "list" then
+            if ns.Accent then
+                Print("Accents:")
+                local list = ns.Accent.GetAccents()
+                for i = 1, #list do
+                    Print("  |cffffff00" .. list[i].id .. "|r - " .. list[i].name)
+                end
+            end
+        elseif ns.Accent and ns.Accent.IsValid(arg) then
+            a.id = arg
+            a.enabled = true
+            Print("Accent set to |cffffff00" .. ns.Accent.GetAccentName(arg) .. "|r.")
+        else
+            Print("Unknown accent. Use /ogt accent list.")
+        end
+        if ns.OnSettingsChanged then ns.OnSettingsChanged() end
+    elseif cmd == "accentstrength" then
+        migrateDB()
+        local n = tonumber(rest)
+        if n then
+            TonguesOfAzerothDB.accent.strength = math.max(0, math.min(100, math.floor(n + 0.5)))
+            Print("Accent strength set to |cffffff00" .. TonguesOfAzerothDB.accent.strength .. "%|r.")
+        else
+            Print("Accent strength is |cffffff00" .. (TonguesOfAzerothDB.accent.strength or 100) .. "%|r. Use /ogt accentstrength <0-100>.")
+        end
+        if ns.OnSettingsChanged then ns.OnSettingsChanged() end
+    elseif cmd == "game" or cmd == "learn" or cmd == "trainer" or cmd == "wordle" then
+        if ns.OpenTrainer then ns.OpenTrainer() end
+    elseif cmd == "minimap" or cmd == "mm" then
+        migrateDB()
+        TonguesOfAzerothDB.minimap = TonguesOfAzerothDB.minimap or {}
+        TonguesOfAzerothDB.minimap.hide = not TonguesOfAzerothDB.minimap.hide
+        Print("Minimap button " .. (TonguesOfAzerothDB.minimap.hide and "|cffff0000hidden|r" or "|cff00ff00shown|r") .. ".")
+        if ns.ApplyMinimapShown then ns.ApplyMinimapShown() end
     elseif cmd == "say" and rest ~= "" then
         speak(rest, "SAY")
     elseif cmd == "yell" and rest ~= "" then
@@ -551,9 +699,10 @@ local function handleSlash(input)
     end
 end
 
-SLASH_TONGUESOFAZEROTH1 = "/ogt"
-SLASH_TONGUESOFAZEROTH2 = "/oldgod"
-SLASH_TONGUESOFAZEROTH3 = "/tongues"
+SLASH_TONGUESOFAZEROTH1 = "/toa"
+SLASH_TONGUESOFAZEROTH2 = "/ogt"
+SLASH_TONGUESOFAZEROTH3 = "/oldgod"
+SLASH_TONGUESOFAZEROTH4 = "/tongues"
 SlashCmdList["TONGUESOFAZEROTH"] = handleSlash
 
 -- Export channel list for the UI.
@@ -571,7 +720,8 @@ f:SetScript("OnEvent", function(self, event, name)
         migrateDB()
         installSendHook()
         Compat.RegisterAddonMessagePrefix(ADDON_PREFIX)
-        Print("loaded. Type |cffffff00/ogt|r for the panel.")
+        -- No login message on purpose: keep the addon silent and out of chat
+        -- until the player actually uses it.
     elseif event == "PLAYER_LOGIN" then
         installSendHook()
     end

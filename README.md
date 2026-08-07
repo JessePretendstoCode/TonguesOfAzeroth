@@ -1,8 +1,11 @@
 # Tongues of Azeroth
 
-A World of Warcraft roleplay addon that translates your outgoing chat into the fictional
-languages of Azeroth, in the style of the classic *Tongues* addon. Includes the eldritch
-**Old God (Shath'yar)** tongue plus the major playable-race languages.
+A World of Warcraft roleplay addon that transforms your chat into the languages and
+dialects of Azeroth, in the style of the classic *Tongues* addon. Speak **70+ languages**
+— from the eldritch **Old God (Shath'yar)** tongue and the playable-race languages to
+beast, elemental, and faction tongues — or drop the language and speak plain English with
+a **spoken accent** (Dwarven, Troll, Pirate, and more). There's even a **Wordle-style
+language trainer** to earn fluency and decode what others say.
 
 **Runs on every client** — 3.3.5a (Wrath, incl. Project Ascension), Classic (Vanilla /
 Cata / Mists), and Retail — from a single install. A feature-detected compatibility layer
@@ -22,19 +25,33 @@ generate identical text.
 
 ## Features
 
-- **11 languages**, each with its own phonetic "feel" and a small lore-inspired dictionary.
+- **70+ languages & dialects** — the 11 core playable-race/Old God languages plus dozens
+  of generated tongues: beasts & creatures (Wolf, Bear, Serpent, Cat, Bird, Raptor…),
+  factions (Dark Iron, Gilnean, Goblin, Ogre, Vrykul, Furbolg…), and elemental/eldritch
+  (Kalimag, Titan, Draconic, Nerubian, Nazja, Ethereal…). Troll and Elf sub-dialects share
+  their parent tongue's sound, so `Amani`, `Gurubashi`, and `Drakkari` all sound like Troll.
+- **Accents** — instead of translating, flavor your *English* with a spoken dialect:
+  Dwarven ("I cannae do this, aye!"), Troll ("da voodoo, mon."), Orcish, Darnassian,
+  Draenei, Tauren, Forsaken, Pandaren, Goblin, Gilnean, Vrykul, and Pirate. Each has its
+  own strength slider so you can go subtle or thick.
+- **Language Trainer ("Decipher")** — a Wordle-style minigame for learning languages. Pick
+  a language, solve daily-style word puzzles, climb **reputation ranks**, and build
+  **fluency %** shown on live progress bars. Solving words unlocks partial decoding of that
+  language even before you're fully fluent.
 - **Strength slider (0–100)** — control *how much* of your text is translated. `0` leaves
-  your text untouched; `100` fully translates it. In between, words convert
-  deterministically, one by one, as you raise the level.
-- **Channel filters** — choose which chat types are translated when you speak and
+  your text untouched (and lets accents through); `100` fully translates it. In between,
+  words convert deterministically, one by one, as you raise the level.
+- **Channel filters** — choose which chat types are translated/accented when you speak and
   scanned when you listen (Say, Yell, Whisper, Party, Raid, etc.).
-- **Learned Languages** — mark dialects you understand; when another Tongues of
-  Azeroth user speaks one, you see a second line showing the original meaning
-  (emote or whisper style).
+- **Learned Languages** — mark dialects you understand; when another Tongues of Azeroth
+  user speaks one, you see a second line showing the original meaning (emote or whisper
+  style). Fluency earned in the trainer is shown per language.
+- **Minimap button** for one-click access, plus a standalone draggable window (with
+  Back/Close navigation) for clients without a native options tree (e.g. Project Ascension).
 - **In-game configuration** (Interface → AddOns on 3.3.5a; the Settings panel on modern
   clients), with a live preview.
 - **Slash commands** for quick control.
-- Punctuation, numbers, spacing, and links are preserved — only words are translated.
+- Punctuation, numbers, spacing, and links are preserved — only words are transformed.
 - Pure Lua, **no external libraries**; portable widgets render identically on old and new clients.
 
 ---
@@ -46,7 +63,8 @@ generate identical text.
    World of Warcraft\Interface\AddOns\
    ```
 2. The folder must be named `TonguesOfAzeroth` and contain `TonguesOfAzeroth.toc` plus
-   `Compat.lua`, `Language.lua`, `Core.lua`, `Whispers.lua`, and `UI.lua`. (The extra
+   `Compat.lua`, `Language.lua`, `Accent.lua`, `Core.lua`, `Whispers.lua`, `Game.lua`, and
+   `UI.lua`. (The extra
    `TonguesOfAzeroth_Mainline.toc` / `_Vanilla.toc` / etc. let modern clients pick the
    right interface version; the old 3.3.5a client just reads the base `.toc`.)
 3. Launch the game and enable **Tongues of Azeroth** on the character-select AddOns list
@@ -78,6 +96,21 @@ generate identical text.
 > substitution. **Old God (Shath'yar)** has no in-game parser list, so it is produced by a
 > length-capped syllable generator.
 
+**Plus 60+ generated tongues and dialects.** On top of the core word-list languages above,
+Tongues of Azeroth ships dozens of *generated* languages, each with its own phonetic style:
+
+- **Beasts & creatures:** Wolf, Bear, Bat, Boar, Serpent, Cat, Seal, Bird, Ravenspeech,
+  Stag, Orca, plus hunter-pet dialects (Raptor, Chimaera, Crocolisk, Core Hound, Spider,
+  Scorpid, Wasp, Sporebat, Turtle…).
+- **Peoples & factions:** Common, Dark Iron, Gilnean, Goblin, Ogre (Ogri'zhan), Furbolg,
+  Tuskarr, Vrykul, Pandaren, Sprite (Faerie), Sylvan, Moonkin, Trentish.
+- **Elemental, eldritch & ancient:** Kalimag (Elemental), Titan, Draconic, Nerubian
+  (+ Qiraji / Silithid), Nerglish (Murloc), Nazja (Naga), Ethereal, Undead.
+- **Sub-dialects** that share a parent's sound: Troll variants (Amani, Gurubashi, Drakkari),
+  Sindassi & Shalassian (Thalassian), Eredun (Demonic), Forsaken (Gutterspeak), and more.
+
+All of them appear in the config dropdown and in `/ogt list`.
+
 ---
 
 ## Commands
@@ -89,7 +122,12 @@ generate identical text.
 | `/ogt toggle`               | Toggle auto-translate                                   |
 | `/ogt lang <id>`            | Set the language (e.g. `/ogt lang orcish`)              |
 | `/ogt list`                 | List all language IDs (marks the active one)            |
+| `/ogt learned`              | List languages you understand                           |
 | `/ogt strength <0-100>`   | Set the translation strength                            |
+| `/ogt accent [on\|off\|<id>\|list]` | Speak in a dialect accent (e.g. `/ogt accent dwarf`) |
+| `/ogt accentstrength <0-100>` | Set accent thickness                                  |
+| `/ogt game`                 | Open the "Decipher" language trainer minigame           |
+| `/ogt minimap`              | Show / hide the minimap button                          |
 | `/ogt say <text>`           | Say one translated line (ignores the on/off toggle)     |
 | `/ogt yell <text>`          | Yell one translated line                                |
 | `/ogt p <text>`             | Preview a translation (only you see it)                 |
@@ -115,8 +153,22 @@ Open **Interface → AddOns → Tongues of Azeroth** (or type `/ogt`).
 
 - Check each dialect you understand.
 - Pick **decode display style** (emote or whisper-colored line).
+- See your **fluency** (rank + %) per language on live progress bars.
 - When someone speaks that language via Tongues of Azeroth, you see their
   translated line in chat plus a second line: `"translated" → "original"`.
+
+**Accents tab**
+
+- Toggle **Speak with an accent**, choose an accent, and set its **strength**.
+- Accents rewrite your English into a dialect rather than a language. Auto-translate
+  takes precedence, so turn it off (or set Language strength to `0%`) to hear your accent.
+- Live preview shows exactly how your speech will read.
+
+**Language Trainer ("Decipher")**
+
+- A Wordle-style word puzzle. Pick the language you're learning, guess the daily-style
+  word, and earn **fluency** and **reputation ranks** for that language.
+- Fluency unlocks partial decoding of that language even before you're fully fluent.
 
 Settings are stored **per character** (`SavedVariablesPerCharacter`).
 
