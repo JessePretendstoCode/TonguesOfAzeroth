@@ -223,47 +223,136 @@ end
 --  SendChatMessage wrapper for auto-translate mode.
 --=========================================================================--
 local orig_SendChatMessage
+local ourSendHook
 local suppress = false
 local hookInstalled = false
+local editBoxHookCount = 0
 
-local function installSendHook()
-    if hookInstalled then return end
-    if type(SendChatMessage) ~= "function" then return end
-    orig_SendChatMessage = SendChatMessage
-    SendChatMessage = function(msg, chatType, language, channel)
-        migrateDB()
-        local sendType = chatType or "SAY"
-        local channelKey = normalizeChatType(sendType)
-        local outMsg = msg
+-- Shared outgoing transform. Given a raw message and its chat type, return
+-- (outgoingText, changed). Also fires the decode payload for grouped ToA users
+-- when a translation actually changed the text.
+--   * Language translation "wins" only when it's on AND doing something
+--     (strength > 0). At 0% strength it's a no-op, so accents can take over --
+--     letting you drop Language strength to 0 to speak with a pure accent.
+local function transformOutgoing(msg, sendType, channel)
+    if type(msg) ~= "string" or msg == "" then return msg, false end
+    local channelKey = normalizeChatType(sendType)
+    if not ns.IsChannelEnabled(channelKey) then return msg, false end
 
-        local canProcess = not suppress and type(msg) == "string" and msg ~= ""
-            and ns.IsChannelEnabled(channelKey)
+    local db = TonguesOfAzerothDB
+    if not db then return msg, false end
 
-        -- Language translation only "wins" when it's on AND actually doing
-        -- something (strength > 0). At 0% strength it's a no-op, so accents can
-        -- take over -- letting you drop Language strength to 0 to speak with a
-        -- pure accent instead.
-        local langActive = canProcess and TonguesOfAzerothDB
-            and TonguesOfAzerothDB.enabled and getStrength() > 0
-
-        if langActive then
-            local langId = TonguesOfAzerothDB.language
-            local strength = getStrength()
-            outMsg = translateOutgoing(msg, langId, strength)
-            if outMsg ~= msg then
-                sendDecodePayload(msg, outMsg, langId, strength, sendType, channel)
-            end
-        elseif canProcess and ns.Accent
-            and TonguesOfAzerothDB and TonguesOfAzerothDB.accent
-            and TonguesOfAzerothDB.accent.enabled then
-            -- Otherwise, apply the spoken accent (plain readable dialect).
-            local a = TonguesOfAzerothDB.accent
-            outMsg = ns.Accent.Apply(msg, a.id, a.strength or 100)
+    if db.enabled and getStrength() > 0 then
+        local langId = db.language
+        local strength = getStrength()
+        local out = translateOutgoing(msg, langId, strength)
+        if out ~= msg then
+            sendDecodePayload(msg, out, langId, strength, sendType, channel)
+            return out, true
         end
-
-        return orig_SendChatMessage(outMsg, sendType, language, channel)
+        return out, false
+    elseif ns.Accent and db.accent and db.accent.enabled then
+        local a = db.accent
+        local ok, res = pcall(ns.Accent.Apply, msg, a.id, a.strength or 100)
+        if ok and type(res) == "string" then return res, res ~= msg end
     end
+    return msg, false
+end
+
+-- The SendChatMessage wrapper. Handles programmatic sends (other addons, our
+-- own /toa say). Typed chat on Retail is handled by the edit-box hook below;
+-- `suppress` prevents this wrapper from double-translating in that case.
+local function sendHookBody(msg, chatType, language, channel)
+    migrateDB()
+    local sendType = chatType or "SAY"
+    if suppress then
+        return orig_SendChatMessage(msg, sendType, language, channel)
+    end
+    local outMsg = transformOutgoing(msg, sendType, channel)
+    return orig_SendChatMessage(outMsg, sendType, language, channel)
+end
+
+-- Installs (or re-asserts) our SendChatMessage wrapper. Safe to call repeatedly:
+-- if another addon replaced the global after us, we chain on top of theirs so
+-- our translation/accent still runs. Never captures ourselves as "original".
+local function installSendHook()
+    if type(SendChatMessage) ~= "function" then return end
+    if ourSendHook and SendChatMessage == ourSendHook then
+        hookInstalled = true
+        return
+    end
+    -- Whatever is live right now (Blizzard original or a later addon's wrapper)
+    -- becomes our downstream target.
+    orig_SendChatMessage = SendChatMessage
+    ourSendHook = sendHookBody
+    SendChatMessage = ourSendHook
     hookInstalled = true
+end
+
+--=========================================================================--
+--  Edit-box interception (the reliable path for typed chat).
+--  On modern Retail, Blizzard's secure chat code does not route the messages
+--  you TYPE through an addon's SendChatMessage replacement (taint / securecall),
+--  so we translate the text inside the chat edit box just before it is sent.
+--  This changes the actual content, so it works on every client.
+--=========================================================================--
+local function editBoxTargets(editBox)
+    local chatType = editBox:GetAttribute("chatType") or "SAY"
+    local channel
+    if chatType == "WHISPER" or chatType == "BN_WHISPER" then
+        channel = editBox:GetAttribute("tellTarget")
+    elseif chatType == "CHANNEL" then
+        channel = editBox:GetAttribute("channelTarget")
+    end
+    return chatType, channel
+end
+
+-- Returns true if it rewrote the edit box text (so the caller suppresses the
+-- SendChatMessage wrapper to avoid translating twice).
+local function preTranslateEditBox(editBox)
+    if suppress then return false end
+    if not TonguesOfAzerothDB then return false end
+    if not editBox or not editBox.GetText then return false end
+
+    local text = editBox:GetText()
+    if type(text) ~= "string" or text == "" then return false end
+    -- Leave slash commands (and thus /toa ... , /s , /e , etc.) untouched.
+    if string.sub(text, 1, 1) == "/" then return false end
+
+    migrateDB()
+    local chatType, channel = editBoxTargets(editBox)
+    local out, changed = transformOutgoing(text, chatType, channel)
+    if changed and out ~= text then
+        editBox:SetText(out)
+        return true
+    end
+    return false
+end
+
+local editHooked = setmetatable({}, { __mode = "k" })
+local function hookEditBox(editBox)
+    if not editBox or editHooked[editBox] then return end
+    editHooked[editBox] = true
+    editBoxHookCount = editBoxHookCount + 1
+    local origScript = editBox:GetScript("OnEnterPressed")
+    editBox:SetScript("OnEnterPressed", function(self, ...)
+        local changed = preTranslateEditBox(self)
+        if changed then suppress = true end
+        if origScript then
+            local ok, err = pcall(origScript, self, ...)
+            suppress = false
+            if not ok and geterrorhandler then geterrorhandler()(err) end
+        else
+            suppress = false
+        end
+    end)
+end
+
+local function hookAllEditBoxes()
+    local n = NUM_CHAT_WINDOWS or 10
+    for i = 1, n do
+        hookEditBox(_G["ChatFrame" .. i .. "EditBox"])
+    end
 end
 
 local function speak(msg, chatType, channel)
@@ -586,6 +675,47 @@ local function testRoundtrip(input)
     end
 end
 
+local function debugReport()
+    migrateDB()
+    local db = TonguesOfAzerothDB
+    local a = db.accent or {}
+    local getMeta = (C_AddOns and C_AddOns.GetAddOnMetadata) or GetAddOnMetadata
+    local ver = (getMeta and getMeta(ADDON, "Version")) or "?"
+
+    Print("|cff8000ff--- diagnostics ---|r")
+    Print(("version |cffffff00%s|r  modules: Language=%s Accent=%s Compat=%s")
+        :format(ver, tostring(ns.Language ~= nil), tostring(ns.Accent ~= nil), tostring(ns.Compat ~= nil)))
+    Print(("hook installed=|cffffff00%s|r  global is ours=%s")
+        :format(tostring(hookInstalled),
+            (SendChatMessage == ourSendHook) and "|cff00ff00YES|r" or "|cffff0000NO (clobbered!)|r"))
+    Print(("edit boxes hooked=|cffffff00%d|r (typed-chat interception)")
+        :format(editBoxHookCount))
+    Print(("enabled=%s  strength=|cffffff00%d%%|r  lang=|cffffff00%s|r")
+        :format(db.enabled and "|cff00ff00ON|r" or "|cffff0000OFF|r", getStrength(), tostring(db.language)))
+    Print(("accent enabled=%s  id=|cffffff00%s|r  strength=|cffffff00%d%%|r")
+        :format(a.enabled and "|cff00ff00ON|r" or "|cffff0000OFF|r", tostring(a.id), a.strength or 0))
+    Print("SAY channel enabled=" .. (ns.IsChannelEnabled("SAY") and "|cff00ff00YES|r" or "|cffff0000NO|r"))
+
+    -- Live engine test (bypasses the send hook so we can tell whether the
+    -- problem is the hook not firing vs. the translation/accent engine itself).
+    local sample = "hello my friend we attack at dawn"
+    Print("sample:    |cffffffff\"" .. sample .. "\"|r")
+    local enc = translateOutgoing(sample, db.language, getStrength())
+    Print("translate: |cffcccccc\"" .. enc .. "\"|r "
+        .. ((enc ~= sample) and "|cff00ff00(changed)|r" or "|cffff0000(unchanged)|r"))
+    if ns.Accent then
+        local ok, acc = pcall(ns.Accent.Apply, sample, a.id, a.strength or 100)
+        if ok then
+            Print("accent:    |cffcccccc\"" .. tostring(acc) .. "\"|r "
+                .. ((acc ~= sample) and "|cff00ff00(changed)|r" or "|cffff0000(unchanged)|r"))
+        else
+            Print("accent:    |cffff0000error: " .. tostring(acc) .. "|r")
+        end
+    end
+    Print("If 'global is ours=NO', another addon is intercepting chat. If the")
+    Print("live tests changed but chat doesn't, the send path is being bypassed.")
+end
+
 local function usage()
     Print("commands (also |cffffff00/ogt|r, |cffffff00/tongues|r):")
     Print("  |cffffff00/toa|r  - open the config panel")
@@ -604,6 +734,7 @@ local function usage()
     Print("  |cffffff00/ogt say <text>|r  - say a translated line once")
     Print("  |cffffff00/ogt yell <text>|r  - yell a translated line once")
     Print("  |cffffff00/ogt p <text>|r  - preview a translation (only you see it)")
+    Print("  |cffffff00/ogt debug|r  - diagnostics (hook status + live test)")
 end
 
 local function handleSlash(input)
@@ -692,6 +823,9 @@ local function handleSlash(input)
         speak(rest, "YELL")
     elseif (cmd == "p" or cmd == "preview") and rest ~= "" then
         Print("|cffccccff" .. Language.TranslateText(rest, getStrength(), TonguesOfAzerothDB.language) .. "|r")
+    elseif cmd == "debug" or cmd == "diag" then
+        installSendHook()
+        debugReport()
     elseif cmd == "help" then
         usage()
     else
@@ -715,6 +849,7 @@ ns.DEFAULT_CHANNELS = DEFAULT_CHANNELS
 local f = CreateFrame("Frame")
 f:RegisterEvent("ADDON_LOADED")
 f:RegisterEvent("PLAYER_LOGIN")
+f:RegisterEvent("PLAYER_ENTERING_WORLD")
 f:SetScript("OnEvent", function(self, event, name)
     if event == "ADDON_LOADED" and name == ADDON then
         migrateDB()
@@ -722,7 +857,22 @@ f:SetScript("OnEvent", function(self, event, name)
         Compat.RegisterAddonMessagePrefix(ADDON_PREFIX)
         -- No login message on purpose: keep the addon silent and out of chat
         -- until the player actually uses it.
-    elseif event == "PLAYER_LOGIN" then
+    else
+        -- PLAYER_LOGIN / PLAYER_ENTERING_WORLD: re-assert the hook after every
+        -- other addon has loaded, so a later addon that also wraps
+        -- SendChatMessage can't leave us bypassed (common on Retail), and hook
+        -- the chat edit boxes -- the reliable path for messages you type.
         installSendHook()
+        hookAllEditBoxes()
     end
 end)
+
+-- Retail spawns temporary chat windows (e.g. whisper tabs) on demand; hook
+-- their edit boxes as they appear.
+if type(hooksecurefunc) == "function" and type(FCF_OpenTemporaryWindow) == "function" then
+    hooksecurefunc("FCF_OpenTemporaryWindow", function()
+        hookAllEditBoxes()
+        local frame = _G["ChatFrame" .. (FCF_GetCurrentChatFrameID and FCF_GetCurrentChatFrameID() or "")]
+        if frame and frame.editBox then hookEditBox(frame.editBox) end
+    end)
+end

@@ -2,6 +2,16 @@
 
 All notable changes to Tongues of Azeroth are documented here.
 
+## [0.2.9]
+- **Fix: translation & accents on Retail.** Messages you *type* are now translated
+  reliably on modern Retail. Blizzard's secure chat path doesn't route typed
+  messages through an addon's `SendChatMessage` replacement, so the addon now
+  translates the text in the chat edit box just before it's sent. Auto-translate,
+  accents, and 0%-strength "pure accent" mode all work when typing directly into
+  chat, on every supported client.
+- Added `/toa debug` — prints hook status and runs a live translate/accent test to
+  help diagnose chat issues.
+
 ## [0.2.8]
 - **Language Trainer difficulty:** choose Easy (4), Medium (5), Hard (6), or Very
   Hard (7) letters. The grid resizes to fit, and each difficulty is worth more
