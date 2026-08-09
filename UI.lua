@@ -36,7 +36,7 @@ local DECODE_STYLES = {
 
 local mainPanel, learnedPanel, accentPanel
 local langDropdown, slider, valueText, enableCheck, previewInput, previewOutput
-local minimapCheck
+local minimapCheck, tagCheck
 local accentEnableCheck, accentDropdown, accentSlider, accentValueText
 local accentPreviewInput, accentPreviewOutput
 local channelChecks = {}
@@ -66,6 +66,7 @@ local function db()
     if TonguesOfAzerothDB.minimap.hide == nil then TonguesOfAzerothDB.minimap.hide = false end
     if TonguesOfAzerothDB.minimap.angle == nil then TonguesOfAzerothDB.minimap.angle = 200 end
     if TonguesOfAzerothDB.outputFrame == nil then TonguesOfAzerothDB.outputFrame = 0 end
+    if TonguesOfAzerothDB.tagLanguage == nil then TonguesOfAzerothDB.tagLanguage = true end
     if not TonguesOfAzerothDB.accent then TonguesOfAzerothDB.accent = {} end
     if TonguesOfAzerothDB.accent.enabled == nil then TonguesOfAzerothDB.accent.enabled = false end
     if TonguesOfAzerothDB.accent.strength == nil then TonguesOfAzerothDB.accent.strength = 100 end
@@ -144,6 +145,7 @@ local function RefreshMain()
     local d = db()
     enableCheck:SetChecked(d.enabled)
     if minimapCheck then minimapCheck:SetChecked(not d.minimap.hide) end
+    if tagCheck then tagCheck:SetChecked(d.tagLanguage ~= false) end
     langDropdown:SetSelected(d.language, Language.GetLanguageName(d.language))
     slider:SetValue(d.strength)
     valueText:SetText(d.strength .. "%")
@@ -296,8 +298,14 @@ local function BuildMainPanel()
         ApplyMinimapShown()
     end)
 
+    tagCheck = Compat.CreateCheckbox(mainPanel, "Prefix messages with [Language]")
+    tagCheck:SetPoint("TOPLEFT", minimapCheck, "BOTTOMLEFT", 0, -6)
+    tagCheck:SetScript("OnClick", function(self)
+        db().tagLanguage = self:GetChecked() and true or false
+    end)
+
     local langLabel = mainPanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    langLabel:SetPoint("TOPLEFT", minimapCheck, "BOTTOMLEFT", 0, -18)
+    langLabel:SetPoint("TOPLEFT", tagCheck, "BOTTOMLEFT", 0, -18)
     langLabel:SetText("Language")
 
     langDropdown = Compat.CreateDropdown(mainPanel, 260)

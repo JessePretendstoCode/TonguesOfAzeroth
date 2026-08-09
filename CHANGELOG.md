@@ -2,6 +2,21 @@
 
 All notable changes to Tongues of Azeroth are documented here.
 
+## [0.2.11]
+- **Fix: `/target`, `/cast`, and other protected commands no longer error on
+  Retail.** The previous edit-box hook tainted the chat send path, which broke
+  protected slash commands typed into chat. Removed that hook entirely.
+- **Language tags on outgoing messages:** your speech is now prefixed with the
+  language, e.g. `[Orcish] Lok'tar!`, so others can see what tongue you're using.
+  Toggle it with the "Prefix messages with [Language]" checkbox or `/toa tag`.
+  The tag is cosmetic and is stripped before decoding on the listener's side.
+- **Retail 12.0 (Midnight) chat rework:** typed-chat translation now uses
+  Blizzard's dedicated `ChatFrame.OnEditBoxPreSendText` event, which is
+  taint-safe (it fires after slash-command parsing, so protected commands are
+  untouched). Note: Blizzard blocks chat-text edits during combat lockdown, so
+  messages sent while in combat go out untranslated — an engine limitation that
+  affects every chat-modifying addon on Midnight.
+
 ## [0.2.10]
 - **Accents feel natural:** tail interjections are now occasional (about 30% of
   messages at full strength, scaled down with strength) instead of tagged onto

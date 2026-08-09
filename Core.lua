@@ -200,6 +200,10 @@ local function migrateDB()
     if db.outputFrame == nil then
         db.outputFrame = 0
     end
+    -- Prepend "[Language] " to translated messages so everyone can see the tongue.
+    if db.tagLanguage == nil then
+        db.tagLanguage = true
+    end
     if not db.minimap then
         db.minimap = {}
     end
@@ -244,7 +248,21 @@ local orig_SendChatMessage
 local ourSendHook
 local suppress = false
 local hookInstalled = false
-local editBoxHookCount = 0
+local sendHookCount = 0
+-- Set by the Retail 12.0+ pre-send callback when it has already rewritten the
+-- outgoing text, so the SendChatMessage wrapper (if it also runs on that client)
+-- doesn't translate a second time.
+local preSendActive = false
+local preSendRegistered = false
+
+-- Prepend a "[Language] " flavor tag so listeners (even without the addon) can
+-- see which tongue you're speaking, e.g. "[Orcish] <gibberish>". The tag is
+-- purely cosmetic: it is NOT part of the decode mapping (see sendDecodePayload
+-- below, which is called with the untagged text), and receivers strip it before
+-- decoding, so learned-language decoding is unaffected.
+local function languageTag(langId)
+    return "[" .. Language.GetLanguageName(langId) .. "] "
+end
 
 -- Shared outgoing transform. Given a raw message and its chat type, return
 -- (outgoingText, changed). Also fires the decode payload for grouped ToA users
@@ -265,7 +283,11 @@ local function transformOutgoing(msg, sendType, channel)
         local strength = getStrength()
         local out = translateOutgoing(msg, langId, strength)
         if out ~= msg then
+            -- Cache/sync the UNTAGGED mapping so decoding still matches.
             sendDecodePayload(msg, out, langId, strength, sendType, channel)
+            if db.tagLanguage ~= false then
+                out = fit(languageTag(langId) .. out)
+            end
             return out, true
         end
         return out, false
@@ -277,99 +299,86 @@ local function transformOutgoing(msg, sendType, channel)
     return msg, false
 end
 
--- The SendChatMessage wrapper. Handles programmatic sends (other addons, our
--- own /toa say). Typed chat on Retail is handled by the edit-box hook below;
--- `suppress` prevents this wrapper from double-translating in that case.
+-- The SendChatMessage wrapper. Taint-safe: SendChatMessage is never in the path
+-- of protected commands (/target, /cast, /use...), so wrapping it never blocks
+-- those. This is the intercept point on 3.3.5a / Classic and for our own
+-- programmatic sends. On Retail 12.0+ (Midnight) typed chat bypasses this path
+-- entirely (see onEditBoxPreSend below); `preSendActive` guards the rare case
+-- where both fire so we never translate/tag twice.
 local function sendHookBody(msg, chatType, language, channel)
     migrateDB()
+    sendHookCount = sendHookCount + 1
     local sendType = chatType or "SAY"
-    if suppress then
+    if suppress or preSendActive then
+        preSendActive = false
         return orig_SendChatMessage(msg, sendType, language, channel)
     end
     local outMsg = transformOutgoing(msg, sendType, channel)
     return orig_SendChatMessage(outMsg, sendType, language, channel)
 end
 
--- Installs (or re-asserts) our SendChatMessage wrapper. Safe to call repeatedly:
--- if another addon replaced the global after us, we chain on top of theirs so
--- our translation/accent still runs. Never captures ourselves as "original".
+-- Installs our SendChatMessage wrapper exactly once. We deliberately do NOT
+-- re-assert later: if another addon chain-wraps us afterwards, we still run as
+-- part of that chain, and re-capturing their wrapper as our "original" would
+-- create mutual recursion (them -> us -> them -> ...). Installing once is both
+-- loop-safe and keeps our translation in the send path.
 local function installSendHook()
+    if hookInstalled then return end
     if type(SendChatMessage) ~= "function" then return end
-    if ourSendHook and SendChatMessage == ourSendHook then
-        hookInstalled = true
-        return
-    end
-    -- Whatever is live right now (Blizzard original or a later addon's wrapper)
-    -- becomes our downstream target.
     orig_SendChatMessage = SendChatMessage
     ourSendHook = sendHookBody
     SendChatMessage = ourSendHook
     hookInstalled = true
 end
 
---=========================================================================--
---  Edit-box interception (the reliable path for typed chat).
---  On modern Retail, Blizzard's secure chat code does not route the messages
---  you TYPE through an addon's SendChatMessage replacement (taint / securecall),
---  so we translate the text inside the chat edit box just before it is sent.
---  This changes the actual content, so it works on every client.
---=========================================================================--
-local function editBoxTargets(editBox)
-    local chatType = editBox:GetAttribute("chatType") or "SAY"
-    local channel
-    if chatType == "WHISPER" or chatType == "BN_WHISPER" then
-        channel = editBox:GetAttribute("tellTarget")
-    elseif chatType == "CHANNEL" then
-        channel = editBox:GetAttribute("channelTarget")
-    end
-    return chatType, channel
-end
-
--- Returns true if it rewrote the edit box text (so the caller suppresses the
--- SendChatMessage wrapper to avoid translating twice).
-local function preTranslateEditBox(editBox)
-    if suppress then return false end
-    if not TonguesOfAzerothDB then return false end
-    if not editBox or not editBox.GetText then return false end
+-- Retail 12.0+ (Midnight) rebuilt the chat send path: typed messages no longer
+-- go through the global SendChatMessage, so our wrapper above never sees them.
+-- Blizzard added the "ChatFrame.OnEditBoxPreSendText" event *for addons* to make
+-- final edits to outgoing text. It fires AFTER slash-command parsing (so
+-- protected commands like /target never reach it -> no taint) and BEFORE the
+-- text is read for sending, so editBox:SetText() changes the outgoing message.
+--
+-- Caveat: SetText() during combat lockdown taints the follow-up (protected) send
+-- on 12.0+, which Blizzard blocks. We skip translating in combat so the message
+-- still goes out (untranslated) rather than erroring -- the same limitation that
+-- affects every chat-modifying addon on Midnight.
+-- Registered with ns as the callback owner, so this fires as
+-- onEditBoxPreSend(owner, editBox). The message text is NOT passed as an
+-- argument; it must be read back from the edit box via GetText().
+local function onEditBoxPreSend(_, editBox)
+    preSendActive = false
+    if not TonguesOfAzerothDB then return end
+    if not editBox or not editBox.GetText or not editBox.SetText then return end
+    if InCombatLockdown and InCombatLockdown() then return end
+    migrateDB()
 
     local text = editBox:GetText()
-    if type(text) ~= "string" or text == "" then return false end
-    -- Leave slash commands (and thus /toa ... , /s , /e , etc.) untouched.
-    if string.sub(text, 1, 1) == "/" then return false end
+    if type(text) ~= "string" or text == "" then return end
 
-    migrateDB()
-    local chatType, channel = editBoxTargets(editBox)
+    local chatType = "SAY"
+    if editBox.GetAttribute then
+        chatType = editBox:GetAttribute("chatType") or editBox.chatType or "SAY"
+    end
+    local channel
+    if chatType == "WHISPER" or chatType == "BN_WHISPER" then
+        channel = editBox.GetAttribute and editBox:GetAttribute("tellTarget")
+    elseif chatType == "CHANNEL" then
+        channel = editBox.GetAttribute and editBox:GetAttribute("channelTarget")
+    end
+
     local out, changed = transformOutgoing(text, chatType, channel)
     if changed and out ~= text then
         editBox:SetText(out)
-        return true
+        preSendActive = true
     end
-    return false
 end
 
-local editHooked = setmetatable({}, { __mode = "k" })
-local function hookEditBox(editBox)
-    if not editBox or editHooked[editBox] then return end
-    editHooked[editBox] = true
-    editBoxHookCount = editBoxHookCount + 1
-    local origScript = editBox:GetScript("OnEnterPressed")
-    editBox:SetScript("OnEnterPressed", function(self, ...)
-        local changed = preTranslateEditBox(self)
-        if changed then suppress = true end
-        if origScript then
-            local ok, err = pcall(origScript, self, ...)
-            suppress = false
-            if not ok and geterrorhandler then geterrorhandler()(err) end
-        else
-            suppress = false
-        end
-    end)
-end
-
-local function hookAllEditBoxes()
-    local n = NUM_CHAT_WINDOWS or 10
-    for i = 1, n do
-        hookEditBox(_G["ChatFrame" .. i .. "EditBox"])
+local function registerPreSendHook()
+    if preSendRegistered then return end
+    if type(EventRegistry) == "table" and EventRegistry.RegisterCallback then
+        local ok = pcall(EventRegistry.RegisterCallback, EventRegistry,
+            "ChatFrame.OnEditBoxPreSendText", onEditBoxPreSend, ns)
+        if ok then preSendRegistered = true end
     end
 end
 
@@ -380,11 +389,15 @@ local function speak(msg, chatType, channel)
     local langId = TonguesOfAzerothDB and TonguesOfAzerothDB.language
     local strength = getStrength()
     local translated = translateOutgoing(msg, langId, strength)
-    if orig_SendChatMessage then
-        orig_SendChatMessage(translated, chatType or "SAY", nil, channel)
-    end
+    local out = translated
     if translated ~= msg then
         sendDecodePayload(msg, translated, langId, strength, chatType or "SAY", channel)
+        if TonguesOfAzerothDB and TonguesOfAzerothDB.tagLanguage ~= false then
+            out = fit(languageTag(langId) .. translated)
+        end
+    end
+    if orig_SendChatMessage then
+        orig_SendChatMessage(out, chatType or "SAY", nil, channel)
     end
     suppress = false
 end
@@ -485,9 +498,13 @@ local function onIncomingChat(event, message, sender)
     local chatType = CHAT_EVENTS[event]
     if not chatType or not ns.IsChannelEnabled(chatType) then return end
 
-    local bestDecoded, bestScore, bestLangId, bestLangName = tryDecodeMessage(message)
+    -- Strip a leading "[Language] " flavor tag (ours or another ToA user's) so
+    -- decoding sees the raw encoded text that matches the cached mapping.
+    local stripped = message:gsub("^%[[^%]]+%]%s+", "")
+
+    local bestDecoded, bestScore, bestLangId, bestLangName = tryDecodeMessage(stripped)
     if bestDecoded then
-        showDecode(sender, message, bestDecoded, bestLangId, bestLangName)
+        showDecode(sender, stripped, bestDecoded, bestLangId, bestLangName)
     end
 end
 
@@ -706,8 +723,11 @@ local function debugReport()
     Print(("hook installed=|cffffff00%s|r  global is ours=%s")
         :format(tostring(hookInstalled),
             (SendChatMessage == ourSendHook) and "|cff00ff00YES|r" or "|cffff0000NO (clobbered!)|r"))
-    Print(("edit boxes hooked=|cffffff00%d|r (typed-chat interception)")
-        :format(editBoxHookCount))
+    Print(("SendChatMessage seen=|cffffff00%d|r time(s) this session")
+        :format(sendHookCount))
+    Print(("Retail pre-send hook=%s  in combat=%s")
+        :format(preSendRegistered and "|cff00ff00REGISTERED|r" or "|cffff8800n/a (older client)|r",
+            (InCombatLockdown and InCombatLockdown()) and "|cffff0000YES (chat edits paused)|r" or "|cff00ff00no|r"))
     Print(("enabled=%s  strength=|cffffff00%d%%|r  lang=|cffffff00%s|r")
         :format(db.enabled and "|cff00ff00ON|r" or "|cffff0000OFF|r", getStrength(), tostring(db.language)))
     Print(("accent enabled=%s  id=|cffffff00%s|r  strength=|cffffff00%d%%|r")
@@ -730,8 +750,8 @@ local function debugReport()
             Print("accent:    |cffff0000error: " .. tostring(acc) .. "|r")
         end
     end
-    Print("If 'global is ours=NO', another addon is intercepting chat. If the")
-    Print("live tests changed but chat doesn't, the send path is being bypassed.")
+    Print("On Retail 12.0+, typed chat uses the pre-send hook (not SendChatMessage,")
+    Print("so seen=0 is normal there). Chat edits pause in combat by design.")
 end
 
 local function usage()
@@ -747,6 +767,7 @@ local function usage()
     Print("  |cffffff00/ogt strength <0-100>|r  - set translation strength")
     Print("  |cffffff00/ogt minimap|r  - show/hide the minimap button")
     Print("  |cffffff00/ogt output <1-N|default>|r  - send translations to a chat window")
+    Print("  |cffffff00/ogt tag [on|off]|r  - prefix messages with [Language]")
     Print("  |cffffff00/ogt game|r  - play the Decipher language trainer")
     Print("  |cffffff00/ogt accent [on|off|<id>|list]|r  - speak in a dialect accent")
     Print("  |cffffff00/ogt accentstrength <0-100>|r  - set accent thickness")
@@ -828,6 +849,20 @@ local function handleSlash(input)
             Print("Accent strength is |cffffff00" .. (TonguesOfAzerothDB.accent.strength or 100) .. "%|r. Use /ogt accentstrength <0-100>.")
         end
         if ns.OnSettingsChanged then ns.OnSettingsChanged() end
+    elseif cmd == "tag" or cmd == "langtag" then
+        migrateDB()
+        local arg = string.lower(rest or "")
+        if arg == "on" then
+            TonguesOfAzerothDB.tagLanguage = true
+        elseif arg == "off" then
+            TonguesOfAzerothDB.tagLanguage = false
+        else
+            TonguesOfAzerothDB.tagLanguage = not TonguesOfAzerothDB.tagLanguage
+        end
+        Print("Language tag " .. (TonguesOfAzerothDB.tagLanguage
+            and "|cff00ff00ON|r (messages start with [Language])"
+            or "|cffff0000OFF|r") .. ".")
+        if ns.OnSettingsChanged then ns.OnSettingsChanged() end
     elseif cmd == "game" or cmd == "learn" or cmd == "trainer" or cmd == "wordle" then
         if ns.OpenTrainer then ns.OpenTrainer() end
     elseif cmd == "minimap" or cmd == "mm" then
@@ -871,6 +906,7 @@ local function handleSlash(input)
         Print("|cffccccff" .. Language.TranslateText(rest, getStrength(), TonguesOfAzerothDB.language) .. "|r")
     elseif cmd == "debug" or cmd == "diag" then
         installSendHook()
+        registerPreSendHook()
         debugReport()
     elseif cmd == "help" then
         usage()
@@ -895,30 +931,16 @@ ns.DEFAULT_CHANNELS = DEFAULT_CHANNELS
 local f = CreateFrame("Frame")
 f:RegisterEvent("ADDON_LOADED")
 f:RegisterEvent("PLAYER_LOGIN")
-f:RegisterEvent("PLAYER_ENTERING_WORLD")
 f:SetScript("OnEvent", function(self, event, name)
     if event == "ADDON_LOADED" and name == ADDON then
         migrateDB()
         installSendHook()
+        registerPreSendHook()
         Compat.RegisterAddonMessagePrefix(ADDON_PREFIX)
         -- No login message on purpose: keep the addon silent and out of chat
         -- until the player actually uses it.
-    else
-        -- PLAYER_LOGIN / PLAYER_ENTERING_WORLD: re-assert the hook after every
-        -- other addon has loaded, so a later addon that also wraps
-        -- SendChatMessage can't leave us bypassed (common on Retail), and hook
-        -- the chat edit boxes -- the reliable path for messages you type.
+    elseif event == "PLAYER_LOGIN" then
         installSendHook()
-        hookAllEditBoxes()
+        registerPreSendHook()
     end
 end)
-
--- Retail spawns temporary chat windows (e.g. whisper tabs) on demand; hook
--- their edit boxes as they appear.
-if type(hooksecurefunc) == "function" and type(FCF_OpenTemporaryWindow) == "function" then
-    hooksecurefunc("FCF_OpenTemporaryWindow", function()
-        hookAllEditBoxes()
-        local frame = _G["ChatFrame" .. (FCF_GetCurrentChatFrameID and FCF_GetCurrentChatFrameID() or "")]
-        if frame and frame.editBox then hookEditBox(frame.editBox) end
-    end)
-end
