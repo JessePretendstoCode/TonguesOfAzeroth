@@ -2,6 +2,16 @@
 
 All notable changes to Tongues of Azeroth are documented here.
 
+## [0.2.10]
+- **Accents feel natural:** tail interjections are now occasional (about 30% of
+  messages at full strength, scaled down with strength) instead of tagged onto
+  every line, and short messages get none. Comma-style tails are woven into the
+  sentence ("...madness, aye.") rather than tacked on as a new clause. Trimmed the
+  most out-of-place lines (e.g. the Goblin sales pitches).
+- **Route translations to a chat window:** new "Show translations in" option
+  (Learned Languages panel) sends decoded translations to a chat tab of your
+  choice instead of the main window. Also via `/toa output <1-N|default>`.
+
 ## [0.2.9]
 - **Fix: translation & accents on Retail.** Messages you *type* are now translated
   reliably on modern Retail. Blizzard's secure chat path doesn't route typed

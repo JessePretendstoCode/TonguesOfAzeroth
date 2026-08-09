@@ -119,10 +119,23 @@ local function sendDecodePayload(original, encoded, langId, strength, chatType, 
     end
 end
 
--- Output goes to the primary chat window ONLY. We deliberately never write to
--- other chat frames/panels or spawn windows of our own, so the addon stays out
--- of the player's other chat tabs (Combat Log, ElvUI side panels, etc.).
-local function addToChat(msg, style)
+-- Resolve the chat window that decoded translations should print to. Players
+-- can send the (often noisy) decode output to a dedicated tab -- e.g. "Chat 3"
+-- -- via the "Show translations in" setting; 0 keeps it in the default window.
+local function getDecodeFrame()
+    local idx = TonguesOfAzerothDB and TonguesOfAzerothDB.outputFrame
+    if idx and idx >= 1 then
+        local f = _G["ChatFrame" .. idx]
+        if f and f.AddMessage then
+            return f
+        end
+    end
+    return DEFAULT_CHAT_FRAME
+end
+
+-- Addon output. Command feedback goes to the default window; decoded
+-- translations can be routed to a chosen window by passing `frame`.
+local function addToChat(msg, style, frame)
     local r, g, b = 1, 1, 0.5
     if style == "whisper" then
         if ChatTypeInfo and ChatTypeInfo.WHISPER then
@@ -136,7 +149,7 @@ local function addToChat(msg, style)
         r, g, b = info.r, info.g, info.b
     end
 
-    local frame = DEFAULT_CHAT_FRAME
+    frame = frame or DEFAULT_CHAT_FRAME
     if frame and frame.AddMessage then
         frame:AddMessage(msg, r, g, b)
     end
@@ -181,6 +194,11 @@ local function migrateDB()
     end
     if db.decodeStyle == nil then
         db.decodeStyle = "emote"
+    end
+    -- Which chat window the addon's decoded translations are printed to.
+    -- 0 = the default chat frame; 1..NUM_CHAT_WINDOWS = that ChatFrame index.
+    if db.outputFrame == nil then
+        db.outputFrame = 0
     end
     if not db.minimap then
         db.minimap = {}
@@ -456,7 +474,7 @@ local function showDecode(sender, original, decoded, langId, langName)
             .. "|cffcccccc\"" .. original .. "\"|r "
             .. "|cff888888->|r |cffffffff\"" .. decoded .. "\"|r"
     end
-    addToChat(msg, style)
+    addToChat(msg, style, getDecodeFrame())
 end
 
 local function onIncomingChat(event, message, sender)
@@ -728,6 +746,7 @@ local function usage()
     Print("  |cffffff00/ogt roundtrip [lang] [strength] <text>|r  - encode then decode (self-test)")
     Print("  |cffffff00/ogt strength <0-100>|r  - set translation strength")
     Print("  |cffffff00/ogt minimap|r  - show/hide the minimap button")
+    Print("  |cffffff00/ogt output <1-N|default>|r  - send translations to a chat window")
     Print("  |cffffff00/ogt game|r  - play the Decipher language trainer")
     Print("  |cffffff00/ogt accent [on|off|<id>|list]|r  - speak in a dialect accent")
     Print("  |cffffff00/ogt accentstrength <0-100>|r  - set accent thickness")
@@ -817,6 +836,33 @@ local function handleSlash(input)
         TonguesOfAzerothDB.minimap.hide = not TonguesOfAzerothDB.minimap.hide
         Print("Minimap button " .. (TonguesOfAzerothDB.minimap.hide and "|cffff0000hidden|r" or "|cff00ff00shown|r") .. ".")
         if ns.ApplyMinimapShown then ns.ApplyMinimapShown() end
+    elseif cmd == "output" or cmd == "window" or cmd == "out" then
+        migrateDB()
+        local maxWin = NUM_CHAT_WINDOWS or 10
+        local arg = string.lower(rest or "")
+        if arg == "" then
+            local cur = TonguesOfAzerothDB.outputFrame or 0
+            if cur >= 1 then
+                local name = GetChatWindowInfo and GetChatWindowInfo(cur)
+                Print("Translations show in |cffffff00" .. (name and name ~= "" and name or ("Chat window " .. cur)) .. "|r.")
+            else
+                Print("Translations show in the |cffffff00default|r chat window.")
+            end
+            Print("Use |cffffff00/ogt output <1-" .. maxWin .. ">|r or |cffffff00/ogt output default|r.")
+        elseif arg == "default" or arg == "0" or arg == "main" then
+            TonguesOfAzerothDB.outputFrame = 0
+            Print("Translations will show in the |cffffff00default|r chat window.")
+        else
+            local n = tonumber(arg)
+            if n and n >= 1 and n <= maxWin then
+                TonguesOfAzerothDB.outputFrame = n
+                local name = GetChatWindowInfo and GetChatWindowInfo(n)
+                Print("Translations will show in |cffffff00" .. (name and name ~= "" and name or ("Chat window " .. n)) .. "|r.")
+            else
+                Print("Usage: |cffffff00/ogt output <1-" .. maxWin .. ">|r or |cffffff00/ogt output default|r.")
+            end
+        end
+        if ns.OnSettingsChanged then ns.OnSettingsChanged() end
     elseif cmd == "say" and rest ~= "" then
         speak(rest, "SAY")
     elseif cmd == "yell" and rest ~= "" then

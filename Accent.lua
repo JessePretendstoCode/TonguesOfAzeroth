@@ -69,7 +69,7 @@ reg("dwarf", {
         good = "braw", man = "lad", woman = "lass", girl = "lass", boy = "lad",
     },
     patterns = { { "ing$", "in'" } },
-    tails = { ", aye!", ", lad.", ", ye ken?", " an' that's tha' truth." },
+    tails = { ", aye.", ", lad.", ", ye ken?", ", ah tell ye." },
 })
 
 reg("troll", {
@@ -81,7 +81,7 @@ reg("troll", {
         with = "wit", brother = "bruddah", little = "likkle", of = "o'",
     },
     patterns = { { "^th", "d" }, { "ing$", "in'" } },
-    tails = { ", mon.", ", ya know.", " I tell ya.", " mon, respect." },
+    tails = { ", mon.", ", ya know?", ", I tell ya.", ", respect." },
 })
 
 reg("orc", {
@@ -92,7 +92,7 @@ reg("orc", {
         ["okay"] = "dabu", ok = "dabu", the = "da",
     },
     patterns = {},
-    tails = { " Lok'tar ogar!", " Dabu.", " Zug zug.", " Blood and thunder!" },
+    tails = { ", zug zug.", " Lok'tar ogar!", ", dabu.", " Blood and thunder!" },
 })
 
 reg("nightelf", {
@@ -103,7 +103,7 @@ reg("nightelf", {
         goodbye = "ande'thoras-ethil", night = "night", moon = "Elune's grace",
     },
     patterns = {},
-    tails = { ", by Elune.", " Ishnu-alah.", " The goddess watches.", " Elune be with you." },
+    tails = { ", by Elune.", ", ishnu-alah.", ", child of the stars.", " Elune be with you." },
 })
 
 reg("draenei", {
@@ -114,7 +114,7 @@ reg("draenei", {
         good = "radiant", evil = "corrupted",
     },
     patterns = {},
-    tails = { ", the Light guides us.", " Naaru bless you.", " So it is foretold.", " Peace be upon you." },
+    tails = { ", by the Light.", ", so it is foretold.", " Naaru guide you.", " Peace be upon you." },
 })
 
 reg("tauren", {
@@ -124,7 +124,7 @@ reg("tauren", {
         earth = "the earthmother", nature = "the wilds", peace = "harmony",
     },
     patterns = {},
-    tails = { ", by the Earthmother.", " Walk with her always.", " Patience, little one.", " An'she guide you." },
+    tails = { ", by the Earthmother.", ", little one.", ", walk in harmony.", " An'she guide you." },
 })
 
 reg("forsaken", {
@@ -135,7 +135,7 @@ reg("forsaken", {
         happy = "content", warm = "cold",
     },
     patterns = {},
-    tails = { "... *groan*", ", in undeath.", " The Dark Lady watches.", " Death is only the beginning." },
+    tails = { ", in undeath.", " *groan*", " The Dark Lady watches.", ", heh." },
 })
 
 reg("pandaren", {
@@ -145,7 +145,7 @@ reg("pandaren", {
         angry = "unbalanced", friend = "friend", war = "conflict",
     },
     patterns = {},
-    tails = { ", slow down.", " Patience, my friend.", " *sips tea*", " Balance in all things." },
+    tails = { ", slow down.", ", my friend.", " *sips tea*", " Balance in all things." },
 })
 
 reg("goblin", {
@@ -155,7 +155,7 @@ reg("goblin", {
         deal = "bargain", buddy = "pal", hello = "heya", great = "profitable",
     },
     patterns = {},
-    tails = { " Time is money, friend!", " Best price, guaranteed!", " Ka-BOOM!", " No refunds!" },
+    tails = { ", pal.", ", time is money.", ", heh.", ", trust me." },
 })
 
 reg("gilnean", {
@@ -166,7 +166,7 @@ reg("gilnean", {
         mate = "mate", right = "roight",
     },
     patterns = { { "^h", "'" } },
-    tails = { ", guv'nor.", " right proper.", ", innit.", ", mate." },
+    tails = { ", guv'nor.", ", right proper.", ", innit.", ", mate." },
 })
 
 reg("vrykul", {
@@ -176,7 +176,7 @@ reg("vrykul", {
         drink = "mead", hall = "great hall", warrior = "einherjar",
     },
     patterns = {},
-    tails = { " For the All-Father!", ", to Valhalla!", " Skål!", " Odyn watches!" },
+    tails = { ", ja.", " Skål!", " For the All-Father!", " Odyn watches!" },
 })
 
 reg("pirate", {
@@ -187,7 +187,7 @@ reg("pirate", {
         the = "th'", of = "o'", ["you're"] = "ye be",
     },
     patterns = { { "ing$", "in'" } },
-    tails = { ", arr!", ", matey!", " yarr harr!", ", ye scurvy dog!" },
+    tails = { ", arr.", ", matey.", ", ye scurvy dog!", " Yarr harr!" },
 })
 
 --=========================================================================--
@@ -195,23 +195,61 @@ reg("pirate", {
 --=========================================================================--
 local WORD = "[%a][%a']*"
 
--- Attach a tail interjection without producing junk like "meetin'?, matey!".
--- If the sentence already ends in terminal punctuation, the tail becomes its
--- own capitalized clause ("meetin'? Matey!"). A trailing comma/semicolon is
--- dropped so comma-style tails read cleanly.
+-- At full strength, only about this share of eligible messages get a tail, so
+-- interjections stay flavorful instead of tagging every single sentence. The
+-- actual chance scales with the accent strength (strength% * this / 100).
+local TAIL_MAX_RATE = 30
+-- Messages shorter than this many words never get a tail (avoids bolting a
+-- flourish onto a one-word reply like "Aye" or "No").
+local TAIL_MIN_WORDS = 3
+
+local function wordCount(s)
+    local n = 0
+    for _ in s:gmatch("%S+") do n = n + 1 end
+    return n
+end
+
+local function endsWithTerminator(s)
+    local last = strsub(s, -1)
+    return last == "." or last == "!" or last == "?"
+end
+
+-- Attach a tail so it reads naturally. Tails are authored in two styles,
+-- auto-detected from their text:
+--   * interjection (starts with ",")  -> woven into the last clause:
+--         "we attack at dawn"       -> "we attack at dawn, aye."
+--         "the gods whisper mad."   -> "the gods whisper mad, aye."
+--   * emote        (contains "*")     -> appended verbatim: "... *groan*".
+--   * phrase       (anything else)    -> added as its own capitalized sentence:
+--         "the gods whisper mad."   -> "the gods whisper mad. Lok'tar ogar!"
 local function appendTail(out, tail)
     out = out:gsub("%s+$", "")
-    if out == "" then return tail end
-    local last = strsub(out, -1)
-    if last == "." or last == "!" or last == "?" then
-        local core = tail:gsub("^[%s,%.;:]+", "")
-        core = core:gsub("^%a", strupper)
-        if core == "" then return out .. tail end
-        return out .. " " .. core
-    elseif last == "," or last == ";" or last == ":" then
-        return strsub(out, 1, -2) .. tail
+    if out == "" then return (tail:gsub("^[%s,%.]+", "")) end
+
+    if tail:find("%*") then
+        local emote = tail:gsub("^[%.%s]+", "")
+        return out .. " " .. emote
     end
-    return out .. tail
+
+    local trimmed = tail:gsub("^%s+", "")
+    if strsub(trimmed, 1, 1) == "," then
+        -- Interjection: reduce to its words (+ trailing punctuation).
+        local core = trimmed:gsub("^[%s,]+", "")
+        local word = core:gsub("[%s%p]+$", "")
+        if word == "" then return out end
+        if endsWithTerminator(out) then
+            local term = strsub(out, -1)
+            local body = out:gsub("[%.%!%?]+$", "")
+            return body .. ", " .. word .. term
+        end
+        local endPunct = core:match("([%.%!%?]+)%s*$") or "."
+        return out .. ", " .. word .. endPunct
+    end
+
+    -- Standalone phrase.
+    local phrase = trimmed:gsub("^%a", strupper)
+    if not endsWithTerminator(out) then out = out .. "." end
+    return out .. " " .. phrase
 end
 
 function Accent.Apply(text, id, strength)
@@ -237,8 +275,15 @@ function Accent.Apply(text, id, strength)
         return word
     end)
 
-    if acc.tails and #acc.tails > 0 and (hashString(text) % 100) < strength then
-        out = appendTail(out, acc.tails[(hashString(text) % #acc.tails) + 1])
+    -- Tails are occasional flourishes, not a stamp on every message: gate them
+    -- on a strength-scaled chance and skip very short lines. Deterministic, so a
+    -- given message always reads the same way.
+    if acc.tails and #acc.tails > 0 and wordCount(text) >= TAIL_MIN_WORDS then
+        local chance = math.floor(strength * TAIL_MAX_RATE / 100)
+        if (hashString("toa-tail:" .. text) % 100) < chance then
+            local idx = (hashString("toa-pick:" .. text) % #acc.tails) + 1
+            out = appendTail(out, acc.tails[idx])
+        end
     end
     return out
 end

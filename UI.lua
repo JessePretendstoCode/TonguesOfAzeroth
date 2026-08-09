@@ -43,6 +43,7 @@ local channelChecks = {}
 local learnedChecks = {}
 local learnedBars = {}
 local decodeStyleDropdown
+local outputDropdown
 local panelsBuilt = false
 local minimapButton
 
@@ -64,6 +65,7 @@ local function db()
     if not TonguesOfAzerothDB.minimap then TonguesOfAzerothDB.minimap = {} end
     if TonguesOfAzerothDB.minimap.hide == nil then TonguesOfAzerothDB.minimap.hide = false end
     if TonguesOfAzerothDB.minimap.angle == nil then TonguesOfAzerothDB.minimap.angle = 200 end
+    if TonguesOfAzerothDB.outputFrame == nil then TonguesOfAzerothDB.outputFrame = 0 end
     if not TonguesOfAzerothDB.accent then TonguesOfAzerothDB.accent = {} end
     if TonguesOfAzerothDB.accent.enabled == nil then TonguesOfAzerothDB.accent.enabled = false end
     if TonguesOfAzerothDB.accent.strength == nil then TonguesOfAzerothDB.accent.strength = 100 end
@@ -116,6 +118,27 @@ local function decodeStyleLabel(styleId)
     return "Emote (yellow * line)"
 end
 
+local function outputWindowLabel(idx)
+    if not idx or idx == 0 then return "Default (current window)" end
+    local name = GetChatWindowInfo and GetChatWindowInfo(idx)
+    if name and name ~= "" then return idx .. ": " .. name end
+    return "Chat window " .. idx
+end
+
+-- Every named chat window, plus a "default" entry. Rebuilt on panel show so a
+-- window the player renamed/created since login appears without a reload.
+local function outputItems()
+    local items = { { text = outputWindowLabel(0), value = 0 } }
+    local n = NUM_CHAT_WINDOWS or 10
+    for i = 1, n do
+        local name = GetChatWindowInfo and GetChatWindowInfo(i)
+        if name and name ~= "" then
+            items[#items + 1] = { text = i .. ": " .. name, value = i }
+        end
+    end
+    return items
+end
+
 local function RefreshMain()
     if not mainPanel then return end
     local d = db()
@@ -162,6 +185,10 @@ local function RefreshLearned()
         end
     end
     decodeStyleDropdown:SetSelected(d.decodeStyle, decodeStyleLabel(d.decodeStyle))
+    if outputDropdown then
+        outputDropdown:SetItems(outputItems())
+        outputDropdown:SetSelected(d.outputFrame or 0, outputWindowLabel(d.outputFrame or 0))
+    end
 end
 
 local function ApplyMinimapShown()
@@ -379,6 +406,19 @@ local function BuildLearnedPanel()
     decodeStyleDropdown:SetItems(styleItems)
     decodeStyleDropdown.onSelect = function(value)
         db().decodeStyle = value
+    end
+
+    -- Where decoded translations are printed. Sits beside the style picker.
+    local outputLabel = learnedPanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    outputLabel:SetPoint("TOPLEFT", styleLabel, "TOPLEFT", 250, 0)
+    outputLabel:SetText("Show translations in")
+
+    outputDropdown = Compat.CreateDropdown(learnedPanel, 220)
+    outputDropdown:SetPoint("TOPLEFT", outputLabel, "BOTTOMLEFT", 0, -6)
+    outputDropdown:SetItems(outputItems())
+    outputDropdown.onSelect = function(value)
+        db().outputFrame = value
+        outputDropdown:SetSelected(value, outputWindowLabel(value))
     end
 
     local langLabel = learnedPanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
