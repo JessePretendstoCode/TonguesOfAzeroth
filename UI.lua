@@ -30,13 +30,14 @@ local CHANNEL_LABELS = {
 }
 
 local DECODE_STYLES = {
-    { id = "emote",   name = "Emote (yellow * line)" },
-    { id = "whisper", name = "Whisper (purple line)" },
+    { id = "inline",  name = "In-line (rewrite the chat line, like WoW)" },
+    { id = "emote",   name = "Emote (separate yellow * line)" },
+    { id = "whisper", name = "Whisper (separate purple line)" },
 }
 
 local mainPanel, learnedPanel, accentPanel
 local langDropdown, slider, valueText, enableCheck, previewInput, previewOutput
-local minimapCheck, tagCheck
+local minimapCheck, tagCheck, fluencyCheck
 local accentEnableCheck, accentDropdown, accentSlider, accentValueText
 local accentPreviewInput, accentPreviewOutput
 local channelChecks = {}
@@ -61,12 +62,13 @@ local function db()
     end
     if not TonguesOfAzerothDB.channels then TonguesOfAzerothDB.channels = {} end
     if not TonguesOfAzerothDB.learned then TonguesOfAzerothDB.learned = {} end
-    if TonguesOfAzerothDB.decodeStyle == nil then TonguesOfAzerothDB.decodeStyle = "emote" end
+    if TonguesOfAzerothDB.decodeStyle == nil then TonguesOfAzerothDB.decodeStyle = "inline" end
     if not TonguesOfAzerothDB.minimap then TonguesOfAzerothDB.minimap = {} end
     if TonguesOfAzerothDB.minimap.hide == nil then TonguesOfAzerothDB.minimap.hide = false end
     if TonguesOfAzerothDB.minimap.angle == nil then TonguesOfAzerothDB.minimap.angle = 200 end
     if TonguesOfAzerothDB.outputFrame == nil then TonguesOfAzerothDB.outputFrame = 0 end
     if TonguesOfAzerothDB.tagLanguage == nil then TonguesOfAzerothDB.tagLanguage = true end
+    if TonguesOfAzerothDB.tagFluency == nil then TonguesOfAzerothDB.tagFluency = true end
     if not TonguesOfAzerothDB.accent then TonguesOfAzerothDB.accent = {} end
     if TonguesOfAzerothDB.accent.enabled == nil then TonguesOfAzerothDB.accent.enabled = false end
     if TonguesOfAzerothDB.accent.strength == nil then TonguesOfAzerothDB.accent.strength = 100 end
@@ -115,8 +117,9 @@ local function langItems()
 end
 
 local function decodeStyleLabel(styleId)
-    if styleId == "whisper" then return "Whisper (purple line)" end
-    return "Emote (yellow * line)"
+    if styleId == "inline" then return "In-line (rewrite the chat line, like WoW)" end
+    if styleId == "whisper" then return "Whisper (separate purple line)" end
+    return "Emote (separate yellow * line)"
 end
 
 local function outputWindowLabel(idx)
@@ -146,6 +149,7 @@ local function RefreshMain()
     enableCheck:SetChecked(d.enabled)
     if minimapCheck then minimapCheck:SetChecked(not d.minimap.hide) end
     if tagCheck then tagCheck:SetChecked(d.tagLanguage ~= false) end
+    if fluencyCheck then fluencyCheck:SetChecked(d.tagFluency ~= false) end
     langDropdown:SetSelected(d.language, Language.GetLanguageName(d.language))
     slider:SetValue(d.strength)
     valueText:SetText(d.strength .. "%")
@@ -214,6 +218,9 @@ local function SetupMinimapButton()
                 ns.OpenConfig()
             end
         end,
+        onScroll = function(delta)
+            if ns.CycleLanguage then ns.CycleLanguage(delta > 0 and 1 or -1) end
+        end,
         onTooltip = function(tt)
             tt:AddLine("Tongues of Azeroth")
             tt:AddLine("Language: |cffffffff" .. Language.GetLanguageName(d.language) .. "|r", 0.8, 0.8, 0.8)
@@ -221,6 +228,7 @@ local function SetupMinimapButton()
             tt:AddLine(" ")
             tt:AddLine("|cffffffffLeft-click|r  Open settings", 1, 1, 1)
             tt:AddLine("|cffffffffRight-click|r  Toggle auto-translate", 1, 1, 1)
+            tt:AddLine("|cffffffffScroll|r  Cycle learned languages", 1, 1, 1)
             tt:AddLine("|cffffffffDrag|r  Move around minimap", 1, 1, 1)
         end,
         onAngleChanged = function(angle)
@@ -304,8 +312,15 @@ local function BuildMainPanel()
         db().tagLanguage = self:GetChecked() and true or false
     end)
 
+    fluencyCheck = Compat.CreateCheckbox(mainPanel, "Show fluency in tag (Broken / Partial / Fluent / Perfect)")
+    fluencyCheck:SetPoint("TOPLEFT", tagCheck, "BOTTOMLEFT", 16, -4)
+    fluencyCheck:SetScript("OnClick", function(self)
+        db().tagFluency = self:GetChecked() and true or false
+        refreshPreview()
+    end)
+
     local langLabel = mainPanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    langLabel:SetPoint("TOPLEFT", tagCheck, "BOTTOMLEFT", 0, -18)
+    langLabel:SetPoint("TOPLEFT", fluencyCheck, "BOTTOMLEFT", -16, -18)
     langLabel:SetText("Language")
 
     langDropdown = Compat.CreateDropdown(mainPanel, 260)
@@ -316,6 +331,26 @@ local function BuildMainPanel()
         langDropdown:SetSelected(value, Language.GetLanguageName(value))
         refreshPreview()
     end
+
+    -- Quick-cycle button through your learned languages (also on the minimap
+    -- scroll wheel and via /toa next|prev).
+    local cycleBtn = CreateFrame("Button", nil, mainPanel)
+    cycleBtn:SetSize(92, 24)
+    cycleBtn:SetPoint("LEFT", langDropdown, "RIGHT", 8, 0)
+    local cbg = cycleBtn:CreateTexture(nil, "BACKGROUND")
+    cbg:SetAllPoints()
+    Compat.SolidTexture(cbg, 0.18, 0.16, 0.24, 1)
+    Compat.AddBorder(cycleBtn, 0.5, 0.45, 0.7, 0.9)
+    local cbtext = cycleBtn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    cbtext:SetPoint("CENTER", 0, 0)
+    cbtext:SetText("Next |cff9a7cff>|r")
+    local chl = cycleBtn:CreateTexture(nil, "HIGHLIGHT")
+    chl:SetAllPoints()
+    Compat.SolidTexture(chl, 1, 1, 1, 0.12)
+    cycleBtn:SetScript("OnClick", function()
+        if ns.CycleLanguage then ns.CycleLanguage(1) end
+        RefreshMain()
+    end)
 
     slider = Compat.CreateSlider(mainPanel, 0, 100, 1, "Strength", "0 - Plain", "100 - Full")
     slider:SetPoint("TOPLEFT", langDropdown, "BOTTOMLEFT", 0, -34)

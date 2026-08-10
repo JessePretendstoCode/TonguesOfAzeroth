@@ -193,7 +193,14 @@ local function migrateDB()
         db.learned = {}
     end
     if db.decodeStyle == nil then
-        db.decodeStyle = "emote"
+        db.decodeStyle = "inline"
+    end
+    -- One-time: move existing users onto the new in-line display (the chat line
+    -- itself is rewritten, like retail). They can pick a legacy style again in
+    -- Learned Languages if they prefer the old separate line.
+    if not db.decodeStyleV2 then
+        db.decodeStyle = "inline"
+        db.decodeStyleV2 = true
     end
     -- Which chat window the addon's decoded translations are printed to.
     -- 0 = the default chat frame; 1..NUM_CHAT_WINDOWS = that ChatFrame index.
@@ -203,6 +210,11 @@ local function migrateDB()
     -- Prepend "[Language] " to translated messages so everyone can see the tongue.
     if db.tagLanguage == nil then
         db.tagLanguage = true
+    end
+    -- Include a fluency adjective in that tag (Broken/Partial/Fluent) based on
+    -- your Language Trainer progress for the spoken language.
+    if db.tagFluency == nil then
+        db.tagFluency = true
     end
     if not db.minimap then
         db.minimap = {}
@@ -260,8 +272,27 @@ local preSendRegistered = false
 -- purely cosmetic: it is NOT part of the decode mapping (see sendDecodePayload
 -- below, which is called with the untagged text), and receivers strip it before
 -- decoding, so learned-language decoding is unaffected.
+-- Roleplay flavor: how well you actually speak the tongue, from your Language
+-- Trainer (Wordle) fluency for that language. <25% Broken, <75% Partial,
+-- <100% Fluent, 100% Perfect. Returns nil if the trainer module/data is absent.
+local function fluencyAdjective(langId)
+    if not (ns.Trainer and ns.Trainer.GetProgress) then return nil end
+    local ok, _, _, frac = pcall(ns.Trainer.GetProgress, langId)
+    if not ok or type(frac) ~= "number" then return nil end
+    if frac >= 1 then return "Perfect"
+    elseif frac >= 0.75 then return "Fluent"
+    elseif frac >= 0.25 then return "Partial"
+    else return "Broken" end
+end
+
 local function languageTag(langId)
-    return "[" .. Language.GetLanguageName(langId) .. "] "
+    local name = Language.GetLanguageName(langId)
+    local db = TonguesOfAzerothDB
+    if db and db.tagFluency ~= false then
+        local adj = fluencyAdjective(langId)
+        if adj then name = adj .. " " .. name end
+    end
+    return "[" .. name .. "] "
 end
 
 -- Shared outgoing transform. Given a raw message and its chat type, return
@@ -495,6 +526,10 @@ local function onIncomingChat(event, message, sender)
     migrateDB()
     if sender == UnitName("player") then return end
 
+    -- In-line mode rewrites the chat line itself via inlineChatFilter, so we must
+    -- not also print a separate decode line here.
+    if (TonguesOfAzerothDB.decodeStyle or "inline") == "inline" then return end
+
     local chatType = CHAT_EVENTS[event]
     if not chatType or not ns.IsChannelEnabled(chatType) then return end
 
@@ -526,6 +561,35 @@ chatFrame:SetScript("OnEvent", function(self, event, ...)
         onIncomingChat(event, message, sender)
     end
 end)
+
+-- In-line decode (retail-style). Registered as a chat message filter so it edits
+-- the message the client is about to display: when you understand the tongue,
+-- the actual chat line becomes the decoded text (with a small language marker)
+-- instead of a separate posted line. Messages you don't understand are left as
+-- their gibberish, preserving immersion for everyone. Partial (word-by-word)
+-- understanding shows here too -- exactly the "learning" experience.
+local function inlineChatFilter(_, event, msg, sender, ...)
+    if not msg or msg == "" then return false end
+    migrateDB()
+    if (TonguesOfAzerothDB.decodeStyle or "inline") ~= "inline" then return false end
+    if sender == UnitName("player") then return false end
+
+    local chatType = CHAT_EVENTS[event]
+    if not chatType or not ns.IsChannelEnabled(chatType) then return false end
+
+    local stripped = msg:gsub("^%[[^%]]+%]%s+", "")
+    local decoded, _, _, langName = tryDecodeMessage(stripped)
+    if not decoded or decoded == stripped then return false end
+
+    local marker = "|cff9a7cff[" .. (langName or "?") .. "]|r "
+    return false, marker .. decoded, sender, ...
+end
+
+if ChatFrame_AddMessageEventFilter then
+    for event in pairs(CHAT_EVENTS) do
+        ChatFrame_AddMessageEventFilter(event, inlineChatFilter)
+    end
+end
 
 --=========================================================================--
 --  Slash commands
@@ -576,6 +640,52 @@ local function setLanguage(id)
     else
         Print("Unknown language '|cffff0000" .. id .. "|r'. Use |cffffff00/ogt list|r.")
     end
+end
+
+-- The languages you can quickly cycle between: any you've marked Learned or made
+-- trainer progress in, in registration order, with your current one guaranteed
+-- present. Returned as an ordered list of language ids.
+function ns.GetKnownLanguages()
+    migrateDB()
+    local db = TonguesOfAzerothDB
+    local seen, list = {}, {}
+    local function add(id)
+        if id and not seen[id] and Language.IsValid(id) then
+            seen[id] = true
+            list[#list + 1] = id
+        end
+    end
+    local langs = Language.GetLanguages()
+    for i = 1, #langs do
+        local id = langs[i].id
+        local isLearned = db.learned and db.learned[id]
+        local frac = 0
+        if ns.Trainer and ns.Trainer.GetProgress then
+            local ok, _, _, f = pcall(ns.Trainer.GetProgress, id)
+            if ok and type(f) == "number" then frac = f end
+        end
+        if isLearned or frac > 0 then add(id) end
+    end
+    add(db.language) -- always include what you're currently speaking
+    return list
+end
+
+-- Cycle the spoken language among your known languages. dir = 1 (next) or -1.
+function ns.CycleLanguage(dir)
+    local list = ns.GetKnownLanguages()
+    if #list <= 1 then
+        Print("No other learned languages yet -- learn some in the |cffffff00Language Trainer|r or check them under |cffffff00Learned Languages|r.")
+        return
+    end
+    dir = dir or 1
+    local cur = TonguesOfAzerothDB.language
+    local idx = 1
+    for i = 1, #list do
+        if list[i] == cur then idx = i break end
+    end
+    idx = idx + dir
+    if idx > #list then idx = 1 elseif idx < 1 then idx = #list end
+    setLanguage(list[idx])
 end
 
 local function listLearned()
@@ -759,6 +869,7 @@ local function usage()
     Print("  |cffffff00/toa|r  - open the config panel")
     Print("  |cffffff00/ogt on|off|r  - toggle auto-translate")
     Print("  |cffffff00/ogt lang <id>|r  - set language (see /ogt list)")
+    Print("  |cffffff00/ogt next|r / |cffffff00prev|r  - cycle your learned languages")
     Print("  |cffffff00/ogt list|r  - list available languages")
     Print("  |cffffff00/ogt learned|r  - list languages you understand")
     Print("  |cffffff00/ogt decode [lang] <text>|r  - decode translated text back to english")
@@ -793,6 +904,10 @@ local function handleSlash(input)
         setEnabled(not TonguesOfAzerothDB.enabled)
     elseif cmd == "lang" or cmd == "language" then
         setLanguage(rest)
+    elseif cmd == "next" or cmd == "cycle" then
+        ns.CycleLanguage(1)
+    elseif cmd == "prev" or cmd == "previous" then
+        ns.CycleLanguage(-1)
     elseif cmd == "list" or cmd == "langs" then
         listLanguages()
     elseif cmd == "learned" then

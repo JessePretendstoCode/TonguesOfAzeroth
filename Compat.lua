@@ -630,6 +630,13 @@ function Compat.CreateMinimapButton(globalName, opts)
         if opts.onClick then opts.onClick(mouseButton) end
     end)
 
+    if opts.onScroll then
+        btn:EnableMouseWheel(true)
+        btn:SetScript("OnMouseWheel", function(_, delta)
+            opts.onScroll(delta)
+        end)
+    end
+
     btn:SetScript("OnEnter", function(self)
         if opts.onTooltip then
             GameTooltip:SetOwner(self, "ANCHOR_LEFT")

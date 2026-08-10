@@ -2,6 +2,21 @@
 
 All notable changes to Tongues of Azeroth are documented here.
 
+## [0.2.12]
+- **In-line translation (like retail):** decoded speech now rewrites the actual
+  chat line in place -- e.g. `Crunch says: [Orcish] Lok'tar!` -- instead of
+  posting a separate emote/whisper line. Tongues you don't understand stay
+  gibberish, and words you've unlocked in the trainer show through for a real
+  "learning" feel. This is now the default; the old separate-line styles are
+  still available under Learned Languages -> Decode display style.
+- **Fluency in the tag:** your `[Language]` prefix now reflects how well you speak
+  it, from your Language Trainer progress: **Broken** (<25%), **Partial**
+  (<75%), **Fluent** (<100%), or **Perfect** at full mastery. Toggle with "Show
+  fluency in tag" on the main panel.
+- **Cycle your languages fast:** scroll the mouse wheel over the minimap button,
+  hit the new "Next" button by the language dropdown, or use `/toa next` and
+  `/toa prev` to rotate through the languages you've learned or trained.
+
 ## [0.2.11]
 - **Fix: `/target`, `/cast`, and other protected commands no longer error on
   Retail.** The previous edit-box hook tainted the chat send path, which broke
