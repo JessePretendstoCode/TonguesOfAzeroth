@@ -35,11 +35,14 @@ local DECODE_STYLES = {
     { id = "whisper", name = "Whisper (separate purple line)" },
 }
 
-local mainPanel, learnedPanel, accentPanel
+local mainPanel, learnedPanel, accentPanel, customPanel
 local langDropdown, slider, valueText, enableCheck, previewInput, previewOutput
 local minimapCheck, tagCheck, fluencyCheck
 local accentEnableCheck, accentDropdown, accentSlider, accentValueText
 local accentPreviewInput, accentPreviewOutput
+local customEditDropdown, customNameInput, customApostSlider, customApostText
+local customOnsetInput, customNucleiInput, customCodaInput
+local customPreviewInput, customPreviewOutput, customStatus, customEditingId
 local channelChecks = {}
 local learnedChecks = {}
 local learnedBars = {}
@@ -292,6 +295,11 @@ local function BuildMainPanel()
         if ns.OpenAccentConfig then ns.OpenAccentConfig() end
     end)
     accentBtn:SetPoint("TOPRIGHT", learnedBtn, "BOTTOMRIGHT", 0, -4)
+
+    local customBtn = makeNavButton("Create Language", function()
+        if ns.OpenCustomConfig then ns.OpenCustomConfig() end
+    end)
+    customBtn:SetPoint("TOPRIGHT", accentBtn, "BOTTOMRIGHT", 0, -4)
 
     enableCheck = Compat.CreateCheckbox(mainPanel, "Enable auto-translate in chat")
     enableCheck:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -16)
@@ -646,6 +654,244 @@ local function BuildAccentPanel()
     accentPanel:SetScript("OnShow", RefreshAccent)
 end
 
+--=========================================================================--
+--  Custom Language builder
+--=========================================================================--
+local CUSTOM_SAMPLE = "Hello friend, well met on the road"
+local CUSTOM_DEFAULTS = {
+    onsets = "k, th, v, sh, r, n, m, g, dr, gr",
+    nuclei = "a, e, i, o, u, ae, ei",
+    codas  = ", n, r, th, k, l",
+    apostrophe = 10,
+}
+
+-- Split a comma-separated sound list; empty tokens (from ",,") are kept so a
+-- player can allow "no sound" in a position, mirroring the built-in generators.
+local function splitPool(text)
+    local out = {}
+    if type(text) ~= "string" or text:gsub("%s", "") == "" then return out end
+    for token in (text .. ","):gmatch("(.-),") do
+        out[#out + 1] = token:gsub("^%s+", ""):gsub("%s+$", "")
+    end
+    return out
+end
+
+local function joinPool(list)
+    if type(list) ~= "table" then return "" end
+    return table.concat(list, ", ")
+end
+
+local function customFieldsToDef()
+    return {
+        id = customEditingId, -- nil for a new language (id is derived from name)
+        name = customNameInput and customNameInput:GetText() or "",
+        onsets = splitPool(customOnsetInput and customOnsetInput:GetText()),
+        nuclei = splitPool(customNucleiInput and customNucleiInput:GetText()),
+        codas  = splitPool(customCodaInput and customCodaInput:GetText()),
+        apostrophe = (customApostSlider and customApostSlider:GetValue() or 10) / 100,
+    }
+end
+
+local function refreshCustomPreview()
+    if not customPreviewOutput then return end
+    local src = customPreviewInput and customPreviewInput:GetText() or ""
+    if src == "" then src = CUSTOM_SAMPLE end
+    customPreviewOutput:SetText(Language.PreviewTranslate(src, customFieldsToDef()))
+end
+
+local function customStatusMsg(text, isError)
+    if not customStatus then return end
+    customStatus:SetText((isError and "|cffff5555" or "|cff55ff55") .. text .. "|r")
+end
+
+local function customEditItems()
+    local items = { { text = "+ New language", value = "" } }
+    local list = ns.GetCustomLanguages and ns.GetCustomLanguages() or {}
+    for i = 1, #list do
+        items[#items + 1] = { text = list[i].name, value = list[i].id }
+    end
+    return items
+end
+
+local function loadCustomIntoFields(id)
+    local def
+    if id and id ~= "" then
+        local saved = TonguesOfAzerothDB and TonguesOfAzerothDB.customLanguages
+        def = saved and saved[id]
+    end
+    customEditingId = (def and id) or nil
+    if def then
+        customNameInput:SetText(def.name or id)
+        customOnsetInput:SetText(joinPool(def.onsets))
+        customNucleiInput:SetText(joinPool(def.nuclei))
+        customCodaInput:SetText(joinPool(def.codas))
+        local pct = math.floor((tonumber(def.apostrophe) or 0) * 100 + 0.5)
+        customApostSlider:SetValue(pct)
+        customApostText:SetText(pct .. "%")
+    else
+        customNameInput:SetText("")
+        customOnsetInput:SetText(CUSTOM_DEFAULTS.onsets)
+        customNucleiInput:SetText(CUSTOM_DEFAULTS.nuclei)
+        customCodaInput:SetText(CUSTOM_DEFAULTS.codas)
+        customApostSlider:SetValue(CUSTOM_DEFAULTS.apostrophe)
+        customApostText:SetText(CUSTOM_DEFAULTS.apostrophe .. "%")
+    end
+    refreshCustomPreview()
+end
+
+local function RefreshCustom()
+    if not customPanel then return end
+    if customEditDropdown then
+        customEditDropdown:SetItems(customEditItems())
+        local label = customEditingId and Language.GetLanguageName(customEditingId) or "+ New language"
+        customEditDropdown:SetSelected(customEditingId or "", label)
+    end
+    refreshCustomPreview()
+end
+
+local function BuildCustomPanel()
+    customPanel = Compat.CreateOptionsPanel("TonguesOfAzerothCustomOptions")
+    customPanel.name = "Create Language"
+    customPanel.parent = mainPanel.name
+
+    local title = customPanel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+    title:SetPoint("TOPLEFT", 16, -16)
+    title:SetText("Create a Language")
+
+    local subtitle = customPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -8)
+    subtitle:SetPoint("RIGHT", customPanel, "RIGHT", -32, 0)
+    subtitle:SetJustifyH("LEFT")
+    if subtitle.SetWordWrap then subtitle:SetWordWrap(true) end
+    subtitle:SetText("Build a tongue from sounds. Words keep their length so it reads like a real language. Separate sounds with commas; use two commas (, ,) to allow \"no sound\".")
+
+    local editLabel = customPanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    editLabel:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -14)
+    editLabel:SetText("Edit")
+    customEditDropdown = Compat.CreateDropdown(customPanel, 220)
+    customEditDropdown:SetPoint("TOPLEFT", editLabel, "BOTTOMLEFT", 0, -6)
+    customEditDropdown:SetItems(customEditItems())
+    customEditDropdown.onSelect = function(value)
+        loadCustomIntoFields(value)
+        RefreshCustom()
+    end
+
+    local nameLabel = customPanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    nameLabel:SetPoint("TOPLEFT", editLabel, "TOPLEFT", 250, 0)
+    nameLabel:SetText("Name")
+    customNameInput = CreateFrame("EditBox", "TonguesOfAzerothCustomName", customPanel, "InputBoxTemplate")
+    customNameInput:SetPoint("TOPLEFT", nameLabel, "BOTTOMLEFT", 6, -6)
+    customNameInput:SetSize(220, 20)
+    customNameInput:SetAutoFocus(false)
+    customNameInput:SetScript("OnTextChanged", refreshCustomPreview)
+    customNameInput:SetScript("OnEnterPressed", customNameInput.ClearFocus)
+    customNameInput:SetScript("OnEscapePressed", customNameInput.ClearFocus)
+
+    local function poolBox(name, labelText, anchorTo, gapY)
+        local lbl = customPanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+        lbl:SetPoint("TOPLEFT", anchorTo, "BOTTOMLEFT", 0, gapY)
+        lbl:SetText(labelText)
+        local box = CreateFrame("EditBox", name, customPanel, "InputBoxTemplate")
+        box:SetPoint("TOPLEFT", lbl, "BOTTOMLEFT", 6, -6)
+        box:SetSize(470, 20)
+        box:SetAutoFocus(false)
+        box:SetScript("OnTextChanged", refreshCustomPreview)
+        box:SetScript("OnEnterPressed", box.ClearFocus)
+        box:SetScript("OnEscapePressed", box.ClearFocus)
+        return box
+    end
+
+    customOnsetInput  = poolBox("TonguesOfAzerothCustomOnsets", "Starting sounds (onsets)", customEditDropdown, -20)
+    customNucleiInput = poolBox("TonguesOfAzerothCustomNuclei", "Vowel sounds (required)", customOnsetInput, -12)
+    customCodaInput   = poolBox("TonguesOfAzerothCustomCodas", "Ending sounds (codas)", customNucleiInput, -12)
+
+    customApostSlider = Compat.CreateSlider(customPanel, 0, 30, 1, "Apostrophes", "0 - None", "30 - Lots")
+    customApostSlider:SetPoint("TOPLEFT", customCodaInput, "BOTTOMLEFT", -6, -28)
+    customApostSlider:SetWidth(320)
+    customApostText = customApostSlider.valueText
+    customApostSlider:SetScript("OnValueChanged", function(self, value)
+        value = math.floor(value + 0.5)
+        customApostText:SetText(value .. "%")
+        refreshCustomPreview()
+    end)
+
+    local previewLabel = customPanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    previewLabel:SetPoint("TOPLEFT", customApostSlider, "BOTTOMLEFT", 6, -26)
+    previewLabel:SetText("Preview (type to test):")
+    customPreviewInput = CreateFrame("EditBox", "TonguesOfAzerothCustomPreviewInput", customPanel, "InputBoxTemplate")
+    customPreviewInput:SetPoint("TOPLEFT", previewLabel, "BOTTOMLEFT", 6, -8)
+    customPreviewInput:SetSize(470, 20)
+    customPreviewInput:SetAutoFocus(false)
+    customPreviewInput:SetText(CUSTOM_SAMPLE)
+    customPreviewInput:SetScript("OnTextChanged", refreshCustomPreview)
+    customPreviewInput:SetScript("OnEnterPressed", customPreviewInput.ClearFocus)
+    customPreviewInput:SetScript("OnEscapePressed", customPreviewInput.ClearFocus)
+
+    customPreviewOutput = customPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+    customPreviewOutput:SetPoint("TOPLEFT", customPreviewInput, "BOTTOMLEFT", -6, -12)
+    customPreviewOutput:SetPoint("RIGHT", customPanel, "RIGHT", -32, 0)
+    customPreviewOutput:SetJustifyH("LEFT")
+    customPreviewOutput:SetHeight(36)
+    customPreviewOutput:SetSpacing(2)
+
+    local function styleButton(btn, label, w)
+        btn:SetSize(w or 110, 24)
+        local bg = btn:CreateTexture(nil, "BACKGROUND"); bg:SetAllPoints()
+        Compat.SolidTexture(bg, 0.18, 0.16, 0.24, 1)
+        Compat.AddBorder(btn, 0.5, 0.45, 0.7, 0.9)
+        local t = btn:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        t:SetPoint("CENTER", 0, 0); t:SetText(label)
+        local hl = btn:CreateTexture(nil, "HIGHLIGHT"); hl:SetAllPoints()
+        Compat.SolidTexture(hl, 1, 1, 1, 0.12)
+    end
+
+    local saveBtn = CreateFrame("Button", nil, customPanel)
+    saveBtn:SetPoint("TOPLEFT", customPreviewOutput, "BOTTOMLEFT", 6, -14)
+    styleButton(saveBtn, "Save", 110)
+    saveBtn:SetScript("OnClick", function()
+        local def = customFieldsToDef()
+        if not def.name or def.name:gsub("%s", "") == "" then
+            customStatusMsg("Give your language a name first.", true)
+            return
+        end
+        local ok, idOrErr = ns.SaveCustomLanguage(def)
+        if ok then
+            customEditingId = idOrErr
+            if langDropdown then langDropdown:SetItems(langItems()) end
+            RefreshCustom()
+            customStatusMsg("Saved \"" .. def.name .. "\" -- it's in your language list now.", false)
+        else
+            customStatusMsg("Could not save: " .. tostring(idOrErr), true)
+        end
+    end)
+
+    local deleteBtn = CreateFrame("Button", nil, customPanel)
+    deleteBtn:SetPoint("LEFT", saveBtn, "RIGHT", 8, 0)
+    styleButton(deleteBtn, "Delete", 110)
+    deleteBtn:SetScript("OnClick", function()
+        if not customEditingId then
+            customStatusMsg("Pick a saved language to delete first.", true)
+            return
+        end
+        local nm = Language.GetLanguageName(customEditingId)
+        if ns.DeleteCustomLanguage(customEditingId) then
+            customEditingId = nil
+            if langDropdown then langDropdown:SetItems(langItems()) end
+            loadCustomIntoFields(nil)
+            RefreshCustom()
+            customStatusMsg("Deleted \"" .. nm .. "\".", false)
+        end
+    end)
+
+    customStatus = customPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    customStatus:SetPoint("LEFT", deleteBtn, "RIGHT", 12, 0)
+    customStatus:SetText("")
+
+    loadCustomIntoFields(nil)
+    customPanel.refresh = RefreshCustom
+    customPanel:SetScript("OnShow", RefreshCustom)
+end
+
 local function BuildPanels()
     if panelsBuilt then return end
 
@@ -658,10 +904,14 @@ local function BuildPanels()
     BuildAccentPanel()
     Compat.RegisterOptionsPanel(accentPanel, accentPanel.name, mainPanel.name)
 
+    BuildCustomPanel()
+    Compat.RegisterOptionsPanel(customPanel, customPanel.name, mainPanel.name)
+
     -- In the shared standalone window (legacy/custom clients), the sub-panels
     -- show a Back button (to the main panel) instead of their own close button.
     learnedPanel._backAction = function() ns.OpenConfig() end
     accentPanel._backAction = function() ns.OpenConfig() end
+    customPanel._backAction = function() ns.OpenConfig() end
 
     panelsBuilt = true
 end
@@ -683,6 +933,9 @@ ns.OnSettingsChanged = function()
     if mainPanel and mainPanel:IsVisible() then RefreshMain() end
     if learnedPanel and learnedPanel:IsVisible() then RefreshLearned() end
     if accentPanel and accentPanel:IsVisible() then RefreshAccent() end
+    if customPanel and customPanel:IsVisible() then RefreshCustom() end
+    -- Keep the main language dropdown in sync when custom languages change.
+    if langDropdown then langDropdown:SetItems(langItems()) end
 end
 
 -- Called by the trainer after a solve so fluency bars update live if the
@@ -704,4 +957,9 @@ end
 function ns.OpenAccentConfig()
     BuildPanels()
     Compat.OpenOptionsPanel(accentPanel)
+end
+
+function ns.OpenCustomConfig()
+    BuildPanels()
+    Compat.OpenOptionsPanel(customPanel)
 end

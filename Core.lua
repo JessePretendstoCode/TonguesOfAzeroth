@@ -192,6 +192,10 @@ local function migrateDB()
     if not db.learned then
         db.learned = {}
     end
+    -- User-created languages: { [id] = { id, name, apostrophe, onsets, nuclei, codas } }
+    if not db.customLanguages then
+        db.customLanguages = {}
+    end
     if db.decodeStyle == nil then
         db.decodeStyle = "inline"
     end
@@ -670,6 +674,71 @@ function ns.GetKnownLanguages()
     return list
 end
 
+--=========================================================================--
+--  Custom languages
+--=========================================================================--
+-- Register every saved custom language into the engine. Called on load.
+local function loadCustomLanguages()
+    migrateDB()
+    local defs = TonguesOfAzerothDB.customLanguages or {}
+    for id, def in pairs(defs) do
+        if type(def) == "table" then
+            def.id = def.id or id
+            Language.RegisterCustom(def)
+        end
+    end
+end
+
+-- Ordered list of the player's custom languages, for the builder UI.
+function ns.GetCustomLanguages()
+    migrateDB()
+    local out = {}
+    for _, def in pairs(TonguesOfAzerothDB.customLanguages or {}) do
+        out[#out + 1] = { id = def.id, name = def.name or def.id }
+    end
+    table.sort(out, function(a, b) return (a.name or "") < (b.name or "") end)
+    return out
+end
+
+-- Validate + register + persist a custom language. Returns ok, idOrError.
+function ns.SaveCustomLanguage(def)
+    migrateDB()
+    local ok, idOrErr = Language.RegisterCustom(def)
+    if not ok then return false, idOrErr end
+    local id = idOrErr
+    TonguesOfAzerothDB.customLanguages[id] = {
+        id = id,
+        name = def.name,
+        apostrophe = def.apostrophe,
+        onsets = def.onsets,
+        nuclei = def.nuclei,
+        codas = def.codas,
+    }
+    if ns.OnSettingsChanged then ns.OnSettingsChanged() end
+    return true, id
+end
+
+-- Remove a custom language. Falls back to the default tongue if it was active.
+function ns.DeleteCustomLanguage(id)
+    migrateDB()
+    if not id or not Language.IsCustom(id) then return false end
+    Language.UnregisterCustom(id)
+    TonguesOfAzerothDB.customLanguages[id] = nil
+    if TonguesOfAzerothDB.language == id then
+        TonguesOfAzerothDB.language = Language.DEFAULT
+    end
+    if ns.OnSettingsChanged then ns.OnSettingsChanged() end
+    return true
+end
+
+-- Public API for power users / external files (transient; not persisted):
+--   TonguesOfAzeroth_RegisterLanguage{ name = "Sylvan", nuclei = {...}, ... }
+function TonguesOfAzeroth_RegisterLanguage(def)
+    local ok, idOrErr = Language.RegisterCustom(def)
+    if ok and ns.OnSettingsChanged then ns.OnSettingsChanged() end
+    return ok, idOrErr
+end
+
 -- Cycle the spoken language among your known languages. dir = 1 (next) or -1.
 function ns.CycleLanguage(dir)
     local list = ns.GetKnownLanguages()
@@ -872,6 +941,7 @@ local function usage()
     Print("  |cffffff00/ogt next|r / |cffffff00prev|r  - cycle your learned languages")
     Print("  |cffffff00/ogt list|r  - list available languages")
     Print("  |cffffff00/ogt learned|r  - list languages you understand")
+    Print("  |cffffff00/ogt custom|r  - create your own language")
     Print("  |cffffff00/ogt decode [lang] <text>|r  - decode translated text back to english")
     Print("  |cffffff00/ogt encode [lang] [strength] <text>|r  - preview translation output")
     Print("  |cffffff00/ogt roundtrip [lang] [strength] <text>|r  - encode then decode (self-test)")
@@ -912,6 +982,8 @@ local function handleSlash(input)
         listLanguages()
     elseif cmd == "learned" then
         listLearned()
+    elseif cmd == "custom" or cmd == "create" then
+        if ns.OpenCustomConfig then ns.OpenCustomConfig() end
     elseif cmd == "decode" or cmd == "testdecode" then
         testDecode(rest)
     elseif cmd == "encode" or cmd == "enc" then
@@ -1049,6 +1121,7 @@ f:RegisterEvent("PLAYER_LOGIN")
 f:SetScript("OnEvent", function(self, event, name)
     if event == "ADDON_LOADED" and name == ADDON then
         migrateDB()
+        loadCustomLanguages()
         installSendHook()
         registerPreSendHook()
         Compat.RegisterAddonMessagePrefix(ADDON_PREFIX)

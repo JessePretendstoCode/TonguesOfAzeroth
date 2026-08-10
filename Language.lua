@@ -647,6 +647,87 @@ function Language.GetWordsetId(langId)
     return l.wordset or langId
 end
 
+--=========================================================================--
+--  Custom (user-created) languages
+--  Generator-based (syllable pools), registered at runtime from either the
+--  in-game builder (persisted in SavedVariables) or the public API. They flow
+--  through the same registry as built-ins, so dropdowns, cycling, the trainer,
+--  fluency tags and in-line decode all work with them automatically.
+--=========================================================================--
+local function cleanPool(list, fallback)
+    local out = {}
+    if type(list) == "table" then
+        for i = 1, #list do
+            if type(list[i]) == "string" and list[i] ~= "" then
+                out[#out + 1] = list[i]
+            elseif list[i] == "" then
+                out[#out + 1] = "" -- an explicit empty syllable is allowed
+            end
+        end
+    end
+    if #out == 0 and fallback then
+        for i = 1, #fallback do out[i] = fallback[i] end
+    end
+    return out
+end
+
+-- A safe id derived from a display name: lowercase alphanumerics only.
+function Language.MakeCustomId(name)
+    return (type(name) == "string" and strlower(name):gsub("[^%a%d]", "")) or ""
+end
+
+function Language.IsCustom(langId)
+    local l = LANGUAGES[langId]
+    return (l and l.custom) and true or false
+end
+
+-- Register (or replace) a custom generated language. Returns ok, idOrErr.
+function Language.RegisterCustom(def)
+    if type(def) ~= "table" then return false, "definition must be a table" end
+    local id = Language.MakeCustomId(def.id or def.name)
+    if id == "" then return false, "invalid id/name" end
+    if LANGUAGES[id] and not LANGUAGES[id].custom then
+        return false, "'" .. id .. "' is a built-in language"
+    end
+
+    local name = type(def.name) == "string" and def.name:gsub("^%s+", ""):gsub("%s+$", "") or ""
+    if name == "" then name = id end
+
+    local nuclei = cleanPool(def.nuclei)
+    if #nuclei == 0 then return false, "needs at least one vowel sound" end
+    local onsets = cleanPool(def.onsets, { "" })
+    local codas  = cleanPool(def.codas, { "" })
+
+    local apostrophe = tonumber(def.apostrophe) or 0
+    if apostrophe < 0 then apostrophe = 0 elseif apostrophe > 1 then apostrophe = 1 end
+
+    local existed = LANGUAGES[id] ~= nil
+    LANGUAGES[id] = {
+        id = id, name = name, custom = true,
+        generator = { apostrophe = apostrophe, onsets = onsets, nuclei = nuclei, codas = codas },
+    }
+    if not existed then
+        LANGUAGE_ORDER[#LANGUAGE_ORDER + 1] = id
+    end
+    for k in pairs(generateCache) do
+        if strsub(k, 1, #id + 1) == id .. ":" then generateCache[k] = nil end
+    end
+    return true, id
+end
+
+function Language.UnregisterCustom(langId)
+    local l = LANGUAGES[langId]
+    if not l or not l.custom then return false end
+    LANGUAGES[langId] = nil
+    for i = #LANGUAGE_ORDER, 1, -1 do
+        if LANGUAGE_ORDER[i] == langId then table.remove(LANGUAGE_ORDER, i) end
+    end
+    for k in pairs(generateCache) do
+        if strsub(k, 1, #langId + 1) == langId .. ":" then generateCache[k] = nil end
+    end
+    return true
+end
+
 -- Word token pattern: letters plus in-word apostrophes/hyphens (Dun-fel, Ok-Hoga).
 local WORD_PATTERN = "[%a][%a'-]*"
 function Language.WordTranslates(word, strength)
@@ -715,6 +796,41 @@ end
 
 function Language.RememberEncodedMessage(langId, english, encoded, strength)
     rememberEncodedMessage(langId, english, encoded, strength)
+end
+
+-- Translate using an ad-hoc syllable generator WITHOUT registering it, for the
+-- custom-language builder's live preview. `def` = { onsets, nuclei, codas,
+-- apostrophe }. Uncached so it reflects edits immediately.
+function Language.PreviewTranslate(text, def)
+    if not text or text == "" or type(def) ~= "table" then return text end
+    local nuclei = def.nuclei
+    if type(nuclei) ~= "table" or #nuclei == 0 then return text end
+    local onsets = (type(def.onsets) == "table" and #def.onsets > 0) and def.onsets or { "" }
+    local codas  = (type(def.codas) == "table" and #def.codas > 0) and def.codas or { "" }
+    local apo = tonumber(def.apostrophe) or 0
+
+    local function genWord(lower)
+        local rng = makeRNG(hashString("preview:" .. lower) + 1)
+        local target = strlen(lower)
+        if target < 2 then target = 2 elseif target > MAX_WORD_LEN then target = MAX_WORD_LEN end
+        local word = ""
+        while strlen(word) < target do
+            local syl = pick(rng, onsets) .. pick(rng, nuclei) .. pick(rng, codas)
+            if syl == "" then syl = pick(rng, nuclei) end
+            if word ~= "" and rng() < apo then
+                word = word .. "'" .. syl
+            else
+                word = word .. syl
+            end
+        end
+        return word
+    end
+
+    local protected, saved = protectSegments(text)
+    local out = protected:gsub(WORD_PATTERN, function(word)
+        return applyCase(word, genWord(strlower(word)))
+    end)
+    return restoreSegments(out, saved)
 end
 
 function Language.TranslateText(text, strength, langId, remember)

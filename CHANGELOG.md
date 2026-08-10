@@ -2,6 +2,18 @@
 
 All notable changes to Tongues of Azeroth are documented here.
 
+## [0.2.13]
+- **Create your own languages!** New "Create Language" panel (also `/toa custom`)
+  lets you build a tongue from sound pools -- starting sounds, vowels, ending
+  sounds -- with an apostrophe-frequency slider and a live preview. Saved
+  languages appear everywhere: the language dropdown, quick-cycle, the Trainer,
+  fluency tags and in-line decode. Because the sync payload carries the original
+  text, other Tongues of Azeroth users see your custom speech decoded in-line
+  even without your definition.
+- **Add-on API for power users:** `TonguesOfAzeroth_RegisterLanguage{ name=...,
+  onsets=..., nuclei=..., codas=..., apostrophe=... }` registers a language from
+  your own Lua (e.g. a personal file), no UI needed.
+
 ## [0.2.12]
 - **In-line translation (like retail):** decoded speech now rewrites the actual
   chat line in place -- e.g. `Crunch says: [Orcish] Lok'tar!` -- instead of
