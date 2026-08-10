@@ -7,3 +7,6 @@
 Thumbs.db
 .vscode/
 .idea/
+
+# Transient commit message scratch file
+.git-commit-msg.tmp
