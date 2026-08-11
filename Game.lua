@@ -241,6 +241,35 @@ function ns.Trainer.GetRank(frac)
     return r.name, r.color
 end
 
+-- Directly set a language's fluency (0-1). Used by passive learning, the main
+-- panel Fluency slider and the Make Fluent / Reset buttons. Writes to the same
+-- per-wordset "points" store the trainer uses, so speaking strength, decode
+-- tags and trainer progress all stay in sync. Returns the clamped value.
+function ns.Trainer.SetFluency(id, frac)
+    local key = Language.GetWordsetId(id or "")
+    if not key or key == "" then return 0 end
+    local d = DB()
+    frac = tonumber(frac) or 0
+    if frac < 0 then frac = 0 elseif frac > 1 then frac = 1 end
+    d.points[key] = frac
+    return frac
+end
+
+-- Add (or subtract) fluency, clamped to 0-1. Returns the new value.
+function ns.Trainer.AddFluency(id, delta)
+    local _, _, cur = progressFor(id)
+    return ns.Trainer.SetFluency(id, (cur or 0) + (tonumber(delta) or 0))
+end
+
+-- Wipe a language's fluency and the words unlocked for its wordset (full reset).
+function ns.Trainer.ResetFluency(id)
+    local key = Language.GetWordsetId(id or "")
+    if not key or key == "" then return end
+    local d = DB()
+    d.points[key] = 0
+    d.words[key] = nil
+end
+
 local function setTile(r, c, letter, state)
     local tile = tiles[r] and tiles[r][c]
     if not tile then return end

@@ -45,8 +45,10 @@ local customOnsetInput, customNucleiInput, customCodaInput
 local customPreviewInput, customPreviewOutput, customStatus, customEditingId
 local customShareInput
 local channelChecks = {}
-local learnedChecks = {}
+local learnedRows = {}
 local learnedBars = {}
+local passiveCheck
+local pendingFluentId, pendingResetId
 local decodeStyleDropdown
 local outputDropdown
 local panelsBuilt = false
@@ -82,12 +84,26 @@ local function db()
     return TonguesOfAzerothDB
 end
 
+-- Fluency % (0-100) of a language from the trainer store. Speaking strength ==
+-- fluency, so this is what the main slider and the preview use now.
+local function fluencyPct(langId)
+    if ns.Trainer and ns.Trainer.GetProgress and langId then
+        local ok, _, _, frac = pcall(ns.Trainer.GetProgress, langId)
+        if ok and type(frac) == "number" then return math.floor(frac * 100 + 0.5) end
+    end
+    return db().strength or 100
+end
+
+-- Guard so RefreshMain's programmatic slider:SetValue() doesn't write fluency
+-- back (which would fight with passive learning / the Trainer).
+local settingSlider = false
+
 local function refreshPreview()
     if not (previewInput and previewOutput) then return end
     local d = db()
     local src = previewInput:GetText()
     if src == "" then src = SAMPLE end
-    previewOutput:SetText(Language.TranslateText(src, d.strength, d.language))
+    previewOutput:SetText(Language.TranslateText(src, fluencyPct(d.language), d.language))
 end
 
 local function langItems()
@@ -155,8 +171,11 @@ local function RefreshMain()
     if tagCheck then tagCheck:SetChecked(d.tagLanguage ~= false) end
     if fluencyCheck then fluencyCheck:SetChecked(d.tagFluency ~= false) end
     langDropdown:SetSelected(d.language, Language.GetLanguageName(d.language))
-    slider:SetValue(d.strength)
-    valueText:SetText(d.strength .. "%")
+    local fp = fluencyPct(d.language)
+    settingSlider = true
+    slider:SetValue(fp)
+    settingSlider = false
+    valueText:SetText(fp .. "%")
     for ch, check in pairs(channelChecks) do
         check:SetChecked(d.channels[ch] and true or false)
     end
@@ -166,34 +185,43 @@ end
 local function RefreshLearned()
     if not learnedPanel then return end
     local d = db()
-    for langId, check in pairs(learnedChecks) do
-        check:SetChecked(d.learned[langId] and true or false)
-
+    for langId, rowRef in pairs(learnedRows) do
         local base = Language.GetLanguageName(langId)
-        local learnedWords, frac = 0, 0
+        local frac = 0
         if ns.Trainer and ns.Trainer.GetProgress then
-            learnedWords, _, frac = ns.Trainer.GetProgress(langId)
+            _, _, frac = ns.Trainer.GetProgress(langId)
         end
 
-        local bar = learnedBars[langId]
-        if learnedWords and learnedWords > 0 then
+        local bar = rowRef.bar
+        -- Gate on fluency %, not solved-word count, so passively-learned or
+        -- slider-/button-set fluency shows a bar too.
+        if frac and frac > 0 then
             local rank, color = ns.Trainer.GetRank(frac)
             local hex = color and string.format("%02x%02x%02x",
                 math.floor(color[1] * 255), math.floor(color[2] * 255), math.floor(color[3] * 255)) or "9fd8ff"
-            if check.labelText then
-                check.labelText:SetText(string.format("%s  |cff%s(%s %d%%)|r",
-                    base, hex, rank, math.floor(frac * 100 + 0.5)))
-            end
+            rowRef.name:SetText(string.format("%s  |cff%s(%s %d%%)|r",
+                base, hex, rank, math.floor(frac * 100 + 0.5)))
             if bar then
                 bar.fill:SetWidth(math.max(1, bar.barW * frac))
                 if color then Compat.SolidTexture(bar.fill, color[1], color[2], color[3], 1) end
                 bar.fill:Show()
             end
         else
-            if check.labelText then check.labelText:SetText(base) end
+            rowRef.name:SetText(base)
             if bar then bar.fill:Hide() end
         end
+
+        -- Light up the "make fluent" check when you already fully know it.
+        local isFluent = (d.learned[langId] or (frac and frac >= 1)) and true or false
+        if rowRef.fluentBtn and rowRef.fluentBtn.icon then
+            if isFluent then
+                rowRef.fluentBtn.icon:SetVertexColor(1, 1, 1, 1)
+            else
+                rowRef.fluentBtn.icon:SetVertexColor(0.55, 0.55, 0.55, 0.9)
+            end
+        end
     end
+    if passiveCheck then passiveCheck:SetChecked(d.passiveLearning ~= false) end
     decodeStyleDropdown:SetSelected(d.decodeStyle, decodeStyleLabel(d.decodeStyle))
     if outputDropdown then
         outputDropdown:SetItems(outputItems())
@@ -337,8 +365,9 @@ local function BuildMainPanel()
     langDropdown:SetItems(langItems())
     langDropdown.onSelect = function(value)
         db().language = value
-        langDropdown:SetSelected(value, Language.GetLanguageName(value))
-        refreshPreview()
+        -- Refresh the whole panel so the Fluency slider snaps to the newly
+        -- selected language's fluency.
+        RefreshMain()
     end
 
     -- Quick-cycle button through your learned languages (also on the minimap
@@ -361,19 +390,31 @@ local function BuildMainPanel()
         RefreshMain()
     end)
 
-    slider = Compat.CreateSlider(mainPanel, 0, 100, 1, "Strength", "0 - Plain", "100 - Full")
+    slider = Compat.CreateSlider(mainPanel, 0, 100, 1, "Fluency", "0 - None", "100 - Fluent")
     slider:SetPoint("TOPLEFT", langDropdown, "BOTTOMLEFT", 0, -34)
     slider:SetWidth(320)
     valueText = slider.valueText
     slider:SetScript("OnValueChanged", function(self, value)
         value = math.floor(value + 0.5)
-        db().strength = value
         valueText:SetText(value .. "%")
+        if settingSlider then return end
+        -- Fluency IS your speaking strength: this sets how fully you speak the
+        -- selected language (and drives its decode tag).
+        if ns.SetLanguageFluency then ns.SetLanguageFluency(db().language, value / 100) end
         refreshPreview()
     end)
 
+    -- Anchored well below the slider so it clears the slider's own min/max and
+    -- value labels (which sit just under the track).
+    local fluencyHint = mainPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    fluencyHint:SetPoint("TOPLEFT", slider, "BOTTOMLEFT", 0, -26)
+    fluencyHint:SetPoint("RIGHT", mainPanel, "RIGHT", -32, 0)
+    fluencyHint:SetJustifyH("LEFT")
+    if fluencyHint.SetWordWrap then fluencyHint:SetWordWrap(true) end
+    fluencyHint:SetText("How well you speak this tongue -- higher fluency = more of it comes through. Build it by hearing it, in the Trainer, or per-language under Learned Languages.")
+
     local channelLabel = mainPanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    channelLabel:SetPoint("TOPLEFT", slider, "BOTTOMLEFT", 0, -24)
+    channelLabel:SetPoint("TOPLEFT", fluencyHint, "BOTTOMLEFT", 0, -16)
     channelLabel:SetText("Channels")
 
     local channelHint = mainPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
@@ -443,10 +484,18 @@ local function BuildLearnedPanel()
     subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -8)
     subtitle:SetPoint("RIGHT", learnedPanel, "RIGHT", -32, 0)
     subtitle:SetJustifyH("LEFT")
-    subtitle:SetText("Check languages you understand. Decoding uses the same channel filters as the main panel.")
+    subtitle:SetText("Your languages and how fluently you speak each. Use the |cff66dd66check|r to instantly master a tongue, or |cffdd6666reset|r it to 0%.")
+
+    -- Global learning method: passive (learn by hearing). The Trainer minigame is
+    -- always available via its own button; this toggles the automatic learning.
+    passiveCheck = Compat.CreateCheckbox(learnedPanel, "Passive learning -- overhearing a tongue slowly builds your fluency in it")
+    passiveCheck:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -8)
+    passiveCheck:SetScript("OnClick", function(self)
+        db().passiveLearning = self:GetChecked() and true or false
+    end)
 
     local styleLabel = learnedPanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    styleLabel:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -16)
+    styleLabel:SetPoint("TOPLEFT", passiveCheck, "BOTTOMLEFT", 0, -12)
     styleLabel:SetText("Decode display style")
 
     decodeStyleDropdown = Compat.CreateDropdown(learnedPanel, 220)
@@ -475,17 +524,70 @@ local function BuildLearnedPanel()
 
     local langLabel = learnedPanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     langLabel:SetPoint("TOPLEFT", decodeStyleDropdown, "BOTTOMLEFT", 0, -22)
-    langLabel:SetText("Languages you understand")
+    langLabel:SetText("Your languages")
 
     -- Footer note, pinned to the bottom so the scroll area can size against it.
     local note = learnedPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     note:SetPoint("BOTTOMLEFT", learnedPanel, "BOTTOMLEFT", 16, 14)
     note:SetPoint("BOTTOMRIGHT", learnedPanel, "BOTTOMRIGHT", -28, 14)
     note:SetJustifyH("LEFT")
-    note:SetText("Fluency (rank & %) is earned by solving words in the Language Trainer. Decoding works for text produced by Tongues of Azeroth; rare words may not reverse perfectly.")
+    note:SetText("Fluency = how fully you speak a tongue. Build it by hearing it (passive), in the Language Trainer, or with the buttons above. Decoding works for text produced by Tongues of Azeroth; rare words may not reverse perfectly.")
 
-    -- Scrollable list: fits every language (with a progress bar per row) inside
-    -- the fixed window. Mouse-wheel scrolls; ScrollFrame clips overflow.
+    -- Confirmation dialogs for the instant-fluency and reset buttons (defined
+    -- once). We stash the target language in an upvalue rather than the popup's
+    -- data arg so it works identically on 3.3.5a and Retail.
+    StaticPopupDialogs = StaticPopupDialogs or {}
+    StaticPopupDialogs["TONGUESOFAZEROTH_MAKE_FLUENT"] = {
+        text = "Become fully fluent in \"%s\"?\n\nThis instantly sets your fluency to 100%% (you'll speak and understand it perfectly).",
+        button1 = YES or "Yes",
+        button2 = NO or "No",
+        OnAccept = function()
+            if pendingFluentId and ns.MakeLanguageFluent then ns.MakeLanguageFluent(pendingFluentId) end
+            pendingFluentId = nil
+        end,
+        OnCancel = function() pendingFluentId = nil end,
+        timeout = 0, whileDead = true, hideOnEscape = true, preferredIndex = 3,
+    }
+    StaticPopupDialogs["TONGUESOFAZEROTH_RESET_FLUENCY"] = {
+        text = "Reset \"%s\" to 0%%?\n\nThis wipes your fluency and any words you've unlocked for it.",
+        button1 = YES or "Yes",
+        button2 = NO or "No",
+        OnAccept = function()
+            if pendingResetId and ns.ResetLanguageFluency then ns.ResetLanguageFluency(pendingResetId) end
+            pendingResetId = nil
+        end,
+        OnCancel = function() pendingResetId = nil end,
+        timeout = 0, whileDead = true, hideOnEscape = true, preferredIndex = 3,
+    }
+
+    -- Small square icon button with a tooltip (used for the check / reset icons).
+    local function iconButton(parent, tex, tip, r, g, b)
+        local btn = CreateFrame("Button", nil, parent)
+        btn:SetSize(24, 24)
+        local bg = btn:CreateTexture(nil, "BACKGROUND"); bg:SetAllPoints()
+        Compat.SolidTexture(bg, 0.16, 0.15, 0.20, 1)
+        Compat.AddBorder(btn, r or 0.5, g or 0.45, b or 0.7, 0.9)
+        local icon = btn:CreateTexture(nil, "ARTWORK")
+        icon:SetPoint("CENTER", 0, 0)
+        icon:SetSize(16, 16)
+        icon:SetTexture(tex)
+        btn.icon = icon
+        local hl = btn:CreateTexture(nil, "HIGHLIGHT"); hl:SetAllPoints()
+        Compat.SolidTexture(hl, 1, 1, 1, 0.15)
+        if tip then
+            btn:SetScript("OnEnter", function(self)
+                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+                GameTooltip:SetText(tip, 1, 1, 1, 1, true)
+                GameTooltip:Show()
+            end)
+            btn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+        end
+        return btn
+    end
+
+    -- Scrollable single-column list: each row is a language with its fluency bar
+    -- and two icon buttons -- a check (make fully fluent) and a circle-slash
+    -- (reset to 0%), both behind a confirmation. Mouse-wheel scrolls.
     local scroll = CreateFrame("ScrollFrame", "TonguesOfAzerothLearnedScroll", learnedPanel)
     scroll:SetPoint("TOPLEFT", langLabel, "BOTTOMLEFT", 0, -6)
     scroll:SetPoint("BOTTOMRIGHT", note, "TOPRIGHT", 0, 10)
@@ -497,32 +599,42 @@ local function BuildLearnedPanel()
     -- Primary languages only; sub-languages share their parent's word set (and
     -- fluency), so learning/showing the parent covers them.
     local langs = Language.GetPrimaryLanguages()
-    local ROW_H = 34
-    local COLS = 2
-    local CHILD_W = 540
-    local COL_W = CHILD_W / COLS
-    local rows = math.ceil(#langs / COLS)
-    child:SetSize(CHILD_W, rows * ROW_H + 6)
+    local ROW_H = 38
+    local CHILD_W = 560
+    child:SetSize(CHILD_W, #langs * ROW_H + 6)
 
     for i = 1, #langs do
         local entry = langs[i]
-        local col = math.floor((i - 1) / rows)   -- column-major so columns stay balanced
-        local row = (i - 1) % rows
-        local x = col * COL_W
-        local y = -(row * ROW_H)
+        local rowF = CreateFrame("Frame", nil, child)
+        rowF:SetSize(CHILD_W, ROW_H)
+        rowF:SetPoint("TOPLEFT", child, "TOPLEFT", 0, -((i - 1) * ROW_H))
 
-        local check = Compat.CreateCheckbox(child, entry.name)
-        check:SetPoint("TOPLEFT", child, "TOPLEFT", x, y)
-        check:SetScript("OnClick", function(self)
-            db().learned[entry.id] = self:GetChecked() and true or false
+        local name = rowF:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+        name:SetPoint("TOPLEFT", rowF, "TOPLEFT", 4, -3)
+        name:SetText(entry.name)
+
+        -- Reset (circle-slash) + Make Fluent (check) icons, vertically centered.
+        local resetBtn = iconButton(rowF, "Interface\\Buttons\\UI-GroupLoot-Pass-Up",
+            "Reset " .. entry.name .. " to 0% (wipes fluency)", 0.7, 0.4, 0.4)
+        resetBtn:SetPoint("RIGHT", rowF, "RIGHT", -6, 0)
+        resetBtn:SetScript("OnClick", function()
+            pendingResetId = entry.id
+            StaticPopup_Show("TONGUESOFAZEROTH_RESET_FLUENCY", entry.name)
         end)
-        learnedChecks[entry.id] = check
 
-        -- Thin fluency bar beneath the label.
-        local barW = COL_W - 44
-        local bar = CreateFrame("Frame", nil, child)
+        local fluentBtn = iconButton(rowF, "Interface\\RAIDFRAME\\ReadyCheck-Ready",
+            "Make " .. entry.name .. " fully fluent (100%)", 0.4, 0.6, 0.4)
+        fluentBtn:SetPoint("RIGHT", resetBtn, "LEFT", -8, 0)
+        fluentBtn:SetScript("OnClick", function()
+            pendingFluentId = entry.id
+            StaticPopup_Show("TONGUESOFAZEROTH_MAKE_FLUENT", entry.name)
+        end)
+
+        -- Thin fluency bar beneath the label (left of the buttons).
+        local barW = CHILD_W - 110
+        local bar = CreateFrame("Frame", nil, rowF)
         bar:SetSize(barW, 6)
-        bar:SetPoint("TOPLEFT", check, "BOTTOMLEFT", 26, -1)
+        bar:SetPoint("TOPLEFT", name, "BOTTOMLEFT", 0, -3)
         local track = bar:CreateTexture(nil, "BACKGROUND")
         track:SetAllPoints()
         Compat.SolidTexture(track, 1, 1, 1, 0.10)
@@ -535,6 +647,8 @@ local function BuildLearnedPanel()
         bar.fill = fill
         bar.barW = barW
         learnedBars[entry.id] = bar
+
+        learnedRows[entry.id] = { name = name, bar = bar, fluentBtn = fluentBtn }
     end
 
     scroll:SetScript("OnMouseWheel", function(self, delta)
@@ -605,7 +719,7 @@ local function BuildAccentPanel()
     hint:SetPoint("RIGHT", accentPanel, "RIGHT", -32, 0)
     hint:SetJustifyH("LEFT")
     if hint.SetWordWrap then hint:SetWordWrap(true) end
-    hint:SetText("Uses the same channels as the main panel. Auto-translate overrides accents, so turn it off (or set Language strength to 0%) to hear your accent.")
+    hint:SetText("Uses the same channels as the main panel. Auto-translate overrides accents whenever you have any fluency in the spoken tongue, so turn auto-translate off (or speak a language you're 0% fluent in) to hear your accent.")
 
     local accentLabel = accentPanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     accentLabel:SetPoint("TOPLEFT", hint, "BOTTOMLEFT", 0, -16)
@@ -1027,6 +1141,14 @@ end
 -- Called by the trainer after a solve so fluency bars update live if the
 -- Learned Languages panel happens to be open at the same time.
 ns.RefreshLearnedIfShown = function()
+    if learnedPanel and learnedPanel:IsVisible() then RefreshLearned() end
+end
+
+-- Lightweight refresh for frequent fluency changes (passive learning, slider
+-- drags, Make Fluent / Reset). Only touches visible panels and, crucially, does
+-- NOT rebuild the language dropdown list (unlike OnSettingsChanged).
+ns.RefreshFluencyIfShown = function()
+    if mainPanel and mainPanel:IsVisible() then RefreshMain() end
     if learnedPanel and learnedPanel:IsVisible() then RefreshLearned() end
 end
 

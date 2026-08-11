@@ -542,6 +542,15 @@ function Compat.CreateStatusBar(parent, width, height)
 
     local text = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     text:SetPoint("CENTER", 0, 0)
+    -- White + outline + shadow so the label stays readable on any fill color
+    -- (e.g. a full gold "Master" bar), instead of low-contrast tan-on-gold.
+    text:SetTextColor(1, 1, 1, 1)
+    local tf, tsz = text:GetFont()
+    if tf then text:SetFont(tf, tsz, "OUTLINE") end
+    if text.SetShadowColor then
+        text:SetShadowColor(0, 0, 0, 1)
+        text:SetShadowOffset(1, -1)
+    end
     bar.text = text
 
     bar._frac = 0

@@ -233,6 +233,28 @@ local function migrateDB()
         db.minimap.angle = 200
     end
 
+    -- Passive learning: overhearing a tongue slowly builds fluency in it. On by
+    -- default -- players who prefer trainer-only learning can turn it off.
+    if db.passiveLearning == nil then
+        db.passiveLearning = true
+    end
+
+    -- One-time: "strength" used to be a single global slider; now speaking
+    -- strength IS your per-language fluency. Seed the language you were actively
+    -- speaking from that old strength (only if you have no fluency in it yet) so
+    -- you don't suddenly speak plain English in it. Deferred until the trainer
+    -- module is loaded so the fluency store exists.
+    if not db.fluencyMigrated and ns.Trainer and ns.Trainer.SetFluency and ns.Trainer.GetProgress then
+        db.fluencyMigrated = true
+        local s = db.strength
+        if type(s) == "number" and s > 0 and db.language then
+            local _, _, cur = ns.Trainer.GetProgress(db.language)
+            if (tonumber(cur) or 0) <= 0 then
+                ns.Trainer.SetFluency(db.language, s / 100)
+            end
+        end
+    end
+
     if not db.accent then db.accent = {} end
     if db.accent.enabled == nil then db.accent.enabled = false end
     if db.accent.strength == nil then db.accent.strength = 100 end
@@ -256,8 +278,24 @@ function ns.IsChannelEnabled(chatType)
     return TonguesOfAzerothDB.channels[chatType] and true or false
 end
 
+-- Speaking strength for the language you're speaking IS your fluency in it: a
+-- 40%-fluent speaker renders ~40% of their words in the tongue (sounds broken),
+-- a Perfect speaker speaks it fully. This ties how you *sound* to how well you
+-- actually know the language. Falls back to the legacy manual strength only if
+-- the trainer/fluency module isn't loaded yet.
+local function fluencyPercent(langId)
+    if not (ns.Trainer and ns.Trainer.GetProgress and langId) then return nil end
+    local ok, _, _, frac = pcall(ns.Trainer.GetProgress, langId)
+    if not ok or type(frac) ~= "number" then return nil end
+    return math.floor(frac * 100 + 0.5)
+end
+
 local function getStrength()
-    return TonguesOfAzerothDB and TonguesOfAzerothDB.strength or 100
+    local db = TonguesOfAzerothDB
+    if not db then return 100 end
+    local pct = fluencyPercent(db.language)
+    if pct ~= nil then return pct end
+    return db.strength or 100
 end
 
 --=========================================================================--
@@ -528,17 +566,60 @@ local function showDecode(sender, original, decoded, langId, langName)
     addToChat(msg, style, getDecodeFrame())
 end
 
+-- Passive learning: overhearing a tongue (identified by its "[Language]" tag)
+-- slowly builds your fluency in it. ~0.25%/word -> roughly 100 words to climb a
+-- quarter-tier, ~400 words to reach Perfect. Only OTHER players' tagged speech
+-- counts, and only up to full fluency.
+local PASSIVE_PER_WORD = 0.0025
+local FLUENCY_ADJECTIVES = { broken = true, partial = true, fluent = true, perfect = true }
+local passiveNameToId
+local function passiveLangIdFromTag(tag)
+    if not passiveNameToId then
+        passiveNameToId = {}
+        local langs = Language.GetLanguages()
+        for i = 1, #langs do
+            passiveNameToId[string.lower(langs[i].name)] = langs[i].id
+        end
+    end
+    tag = string.lower(tag):gsub("^%s+", ""):gsub("%s+$", "")
+    local first, rest = tag:match("^(%S+)%s+(.+)$")
+    if first and FLUENCY_ADJECTIVES[first] then tag = rest end
+    return passiveNameToId[tag]
+end
+ns.InvalidatePassiveNames = function() passiveNameToId = nil end
+
+local function notePassiveExposure(message)
+    local db = TonguesOfAzerothDB
+    if not (db and db.passiveLearning) then return end
+    if not (ns.Trainer and ns.Trainer.AddFluency and ns.Trainer.GetProgress) then return end
+    local tag = message:match("^%[([^%]]+)%]")
+    if not tag then return end
+    local langId = passiveLangIdFromTag(tag)
+    if not langId then return end
+    local _, _, frac = ns.Trainer.GetProgress(langId)
+    if type(frac) == "number" and frac >= 1 then return end
+    local body = message:gsub("^%[[^%]]+%]%s*", "")
+    local words = 0
+    for _ in body:gmatch("%S+") do words = words + 1 end
+    if words <= 0 then return end
+    ns.Trainer.AddFluency(langId, words * PASSIVE_PER_WORD)
+    if ns.RefreshFluencyIfShown then ns.RefreshFluencyIfShown() end
+end
+
 local function onIncomingChat(event, message, sender)
     if not message or message == "" then return end
     migrateDB()
     if sender == UnitName("player") then return end
 
+    local chatType = CHAT_EVENTS[event]
+    if not chatType or not ns.IsChannelEnabled(chatType) then return end
+
+    -- Overhearing a tongue slowly teaches it (before any decode/display logic).
+    notePassiveExposure(message)
+
     -- In-line mode rewrites the chat line itself via inlineChatFilter, so we must
     -- not also print a separate decode line here.
     if (TonguesOfAzerothDB.decodeStyle or "inline") == "inline" then return end
-
-    local chatType = CHAT_EVENTS[event]
-    if not chatType or not ns.IsChannelEnabled(chatType) then return end
 
     -- Strip a leading "[Language] " flavor tag (ours or another ToA user's) so
     -- decoding sees the raw encoded text that matches the cached mapping.
@@ -751,6 +832,7 @@ function ns.SaveCustomLanguage(def)
         nuclei = def.nuclei,
         codas = def.codas,
     }
+    if ns.InvalidatePassiveNames then ns.InvalidatePassiveNames() end
     if ns.OnSettingsChanged then ns.OnSettingsChanged() end
     return true, id
 end
@@ -764,6 +846,7 @@ function ns.DeleteCustomLanguage(id)
     if TonguesOfAzerothDB.language == id then
         TonguesOfAzerothDB.language = Language.DEFAULT
     end
+    if ns.InvalidatePassiveNames then ns.InvalidatePassiveNames() end
     if ns.OnSettingsChanged then ns.OnSettingsChanged() end
     return true
 end
@@ -774,6 +857,41 @@ function TonguesOfAzeroth_RegisterLanguage(def)
     local ok, idOrErr = Language.RegisterCustom(def)
     if ok and ns.OnSettingsChanged then ns.OnSettingsChanged() end
     return ok, idOrErr
+end
+
+--=========================================================================--
+--  Fluency control (shared by the Fluency slider, Make Fluent, Reset)
+--  Fluency == speaking strength, so these change how you SOUND in a tongue.
+--=========================================================================--
+-- Set fluency to a 0-1 fraction (used by the per-language slider). Fluency only;
+-- comprehension (the "learned" flag) is managed separately.
+function ns.SetLanguageFluency(langId, frac)
+    if not (langId and ns.Trainer and ns.Trainer.SetFluency) then return 0 end
+    migrateDB()
+    local applied = ns.Trainer.SetFluency(langId, frac)
+    if ns.RefreshFluencyIfShown then ns.RefreshFluencyIfShown() end
+    return applied
+end
+
+-- Instantly become fully fluent: fluency 100% AND flag it fully understood, so
+-- you both speak and read it. (The "Make Fluent" button, after confirmation.)
+function ns.MakeLanguageFluent(langId)
+    if not langId then return end
+    migrateDB()
+    if ns.Trainer and ns.Trainer.SetFluency then ns.Trainer.SetFluency(langId, 1) end
+    TonguesOfAzerothDB.learned = TonguesOfAzerothDB.learned or {}
+    TonguesOfAzerothDB.learned[langId] = true
+    if ns.RefreshFluencyIfShown then ns.RefreshFluencyIfShown() end
+end
+
+-- Reset a language to 0%: wipe fluency, unlocked trainer words and the learned
+-- flag, so it's as if you never knew it. (The "Reset" button, after confirm.)
+function ns.ResetLanguageFluency(langId)
+    if not langId then return end
+    migrateDB()
+    if ns.Trainer and ns.Trainer.ResetFluency then ns.Trainer.ResetFluency(langId) end
+    if TonguesOfAzerothDB.learned then TonguesOfAzerothDB.learned[langId] = nil end
+    if ns.RefreshFluencyIfShown then ns.RefreshFluencyIfShown() end
 end
 
 -- Build a copy-safe share code for a saved custom language.
@@ -1027,7 +1145,7 @@ local function usage()
     Print("  |cffffff00/ogt decode [lang] <text>|r  - decode translated text back to english")
     Print("  |cffffff00/ogt encode [lang] [strength] <text>|r  - preview translation output")
     Print("  |cffffff00/ogt roundtrip [lang] [strength] <text>|r  - encode then decode (self-test)")
-    Print("  |cffffff00/ogt strength <0-100>|r  - set translation strength")
+    Print("  |cffffff00/ogt fluency <0-100>|r  - set your fluency (= how you speak it) in the current language")
     Print("  |cffffff00/ogt minimap|r  - show/hide the minimap button")
     Print("  |cffffff00/ogt output <1-N|default>|r  - send translations to a chat window")
     Print("  |cffffff00/ogt tag [on|off]|r  - prefix messages with [Language]")
@@ -1102,13 +1220,17 @@ local function handleSlash(input)
         testEncode(rest)
     elseif cmd == "roundtrip" or cmd == "rt" then
         testRoundtrip(rest)
-    elseif cmd == "strength" or cmd == "corruption" or cmd == "corrupt" then
+    elseif cmd == "strength" or cmd == "corruption" or cmd == "corrupt" or cmd == "fluency" then
+        -- Speaking strength IS your fluency in the current language now, so this
+        -- sets/reads the active language's fluency.
+        local langId = TonguesOfAzerothDB.language
         local n = tonumber(rest)
         if n then
-            TonguesOfAzerothDB.strength = math.max(0, math.min(100, math.floor(n + 0.5)))
-            Print("Strength set to |cffffff00" .. TonguesOfAzerothDB.strength .. "%|r.")
+            n = math.max(0, math.min(100, math.floor(n + 0.5)))
+            ns.SetLanguageFluency(langId, n / 100)
+            Print("Fluency in |cffffff00" .. Language.GetLanguageName(langId) .. "|r set to |cffffff00" .. n .. "%|r.")
         else
-            Print("Strength is currently |cffffff00" .. getStrength() .. "%|r. Use /ogt strength <0-100>.")
+            Print("Your fluency in |cffffff00" .. Language.GetLanguageName(langId) .. "|r is |cffffff00" .. getStrength() .. "%|r. Use |cffffff00/ogt fluency <0-100>|r.")
         end
     elseif cmd == "accent" then
         migrateDB()

@@ -2,6 +2,27 @@
 
 All notable changes to Tongues of Azeroth are documented here.
 
+## [0.2.15]
+- **Updated for Retail patch 12.1.0** (interface 120100) so it loads without the
+  out-of-date warning on the current live client.
+- **Fluency now decides how you speak.** The main slider is now a per-language
+  **Fluency** control: a 40%-fluent speaker only renders ~40% of their words in
+  the tongue (sounds broken), while a Perfect speaker speaks it fully. The slider
+  snaps to whichever language you have selected, and it's the same value behind
+  your `[Broken/Partial/Fluent/Perfect]` chat tag -- how well you know a tongue
+  and how you sound in it are finally one and the same.
+- **Choose how you learn.** Under **Learned Languages**:
+  - **Passive learning** (on by default): overhearing a tongue -- any tagged
+    message -- slowly builds your fluency in it (roughly 100 words a tier).
+  - **Language Trainer**: the Decipher minigame, as before.
+  - **Make Fluent / Reset** buttons on every language row: instantly become 100%
+    fluent (with a confirmation), or wipe a language back to 0%.
+- Heads-up: because speaking now scales with fluency, a tongue you haven't
+  learned yet comes out mostly in plain speech until you build it up. Your
+  previously-set strength is carried over to the language you were speaking.
+- `/toa fluency <0-100>` sets your fluency in the current language (replaces the
+  old `/toa strength`).
+
 ## [0.2.14]
 - **Accents got a serious accent.** Every dialect was rebuilt with far richer,
   more distinctive spelling and slang, so the flavor actually comes through --
