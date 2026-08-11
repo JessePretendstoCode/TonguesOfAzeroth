@@ -80,6 +80,9 @@ local CHAT_EVENTS = {
 local PREFIX = "|cff8000ff[ToA]|r "
 local ADDON_PREFIX = "ToA2"
 local MAX_ADDON_PAYLOAD = 240
+-- Marker that distinguishes an in-game "here's a custom language" broadcast from
+-- the ordinary decode-sync payloads that share the same addon prefix.
+local LANG_SHARE_TAG = "TOAL1:"
 
 local function addonDistribution(chatType, channel)
     chatType = normalizeChatType(chatType)
@@ -547,6 +550,36 @@ local function onIncomingChat(event, message, sender)
     end
 end
 
+-- Someone sent us a custom language in-game. Confirm before adding it.
+local pendingShare
+StaticPopupDialogs = StaticPopupDialogs or {}
+StaticPopupDialogs["TONGUESOFAZEROTH_IMPORT_LANG"] = {
+    text = "%s shared the language \"%s\" with you.\nAdd it to Tongues of Azeroth?",
+    button1 = ACCEPT or "Accept",
+    button2 = CANCEL or "Decline",
+    OnAccept = function()
+        if pendingShare then
+            local ok, idOrErr = ns.SaveCustomLanguage(pendingShare)
+            if ok then
+                Print("Imported language |cffffff00" .. (pendingShare.name or idOrErr) .. "|r. Find it in your language list.")
+            else
+                Print("Import failed: " .. tostring(idOrErr))
+            end
+            pendingShare = nil
+        end
+    end,
+    OnCancel = function() pendingShare = nil end,
+    timeout = 0, whileDead = true, hideOnEscape = true, preferredIndex = 3,
+}
+
+local function handleLangShare(code, sender)
+    local def, err = Language.ImportShareString(code)
+    if not def then return end
+    pendingShare = def
+    local who = (sender and sender:gsub("%-.*", "")) or "Someone"
+    StaticPopup_Show("TONGUESOFAZEROTH_IMPORT_LANG", who, def.name or def.id)
+end
+
 local chatFrame = CreateFrame("Frame")
 for event in pairs(CHAT_EVENTS) do
     chatFrame:RegisterEvent(event)
@@ -554,9 +587,13 @@ end
 chatFrame:RegisterEvent("CHAT_MSG_ADDON")
 chatFrame:SetScript("OnEvent", function(self, event, ...)
     if event == "CHAT_MSG_ADDON" then
-        local prefix, message = ...
-        if prefix == ADDON_PREFIX and Language.ImportDecodePayload then
-            Language.ImportDecodePayload(message)
+        local prefix, message, _, sender = ...
+        if prefix == ADDON_PREFIX then
+            if type(message) == "string" and message:sub(1, #LANG_SHARE_TAG) == LANG_SHARE_TAG then
+                handleLangShare(message:sub(#LANG_SHARE_TAG + 1), sender)
+            elseif Language.ImportDecodePayload then
+                Language.ImportDecodePayload(message)
+            end
         end
         return
     end
@@ -737,6 +774,48 @@ function TonguesOfAzeroth_RegisterLanguage(def)
     local ok, idOrErr = Language.RegisterCustom(def)
     if ok and ns.OnSettingsChanged then ns.OnSettingsChanged() end
     return ok, idOrErr
+end
+
+-- Build a copy-safe share code for a saved custom language.
+function ns.ExportCustomLanguage(id)
+    migrateDB()
+    local def = TonguesOfAzerothDB.customLanguages and TonguesOfAzerothDB.customLanguages[id]
+    if not def then return nil end
+    return Language.ExportShareString(def)
+end
+
+-- Import a share code: validate, register and persist it. Returns ok, idOrError.
+function ns.ImportCustomLanguage(code)
+    local def, err = Language.ImportShareString(code)
+    if not def then return false, err or "invalid code" end
+    return ns.SaveCustomLanguage(def)
+end
+
+-- Send a custom language to another addon user over the hidden addon channel.
+-- target nil => broadcast to your raid/party. Returns ok, message.
+function ns.ShareCustomLanguage(id, target)
+    migrateDB()
+    if not Language.IsCustom(id) then return false, "Only your own custom languages can be shared." end
+    local code = ns.ExportCustomLanguage(id)
+    if not code then return false, "Could not build a share code." end
+    if not Compat.canSendAddonMessage then return false, "Addon messaging isn't available on this client." end
+
+    local msg = LANG_SHARE_TAG .. code
+    if #msg > MAX_ADDON_PAYLOAD then
+        return false, "This language is too big to send in-game -- share the copy/paste code instead."
+    end
+
+    if target and target ~= "" then
+        Compat.SendAddonMessage(ADDON_PREFIX, msg, "WHISPER", target)
+        return true, "Sent " .. Language.GetLanguageName(id) .. " to " .. target .. "."
+    elseif Compat.InRaid() then
+        Compat.SendAddonMessage(ADDON_PREFIX, msg, "RAID")
+        return true, "Shared " .. Language.GetLanguageName(id) .. " with your raid."
+    elseif Compat.InParty() then
+        Compat.SendAddonMessage(ADDON_PREFIX, msg, "PARTY")
+        return true, "Shared " .. Language.GetLanguageName(id) .. " with your party."
+    end
+    return false, "Target a player or join a group to share in-game (or use the copy/paste code)."
 end
 
 -- Cycle the spoken language among your known languages. dir = 1 (next) or -1.
@@ -942,6 +1021,9 @@ local function usage()
     Print("  |cffffff00/ogt list|r  - list available languages")
     Print("  |cffffff00/ogt learned|r  - list languages you understand")
     Print("  |cffffff00/ogt custom|r  - create your own language")
+    Print("  |cffffff00/ogt import <code>|r  - add a shared language from a code")
+    Print("  |cffffff00/ogt export [name]|r  - get a shareable code for a custom language")
+    Print("  |cffffff00/ogt share [player]|r  - send your custom language to a target/group")
     Print("  |cffffff00/ogt decode [lang] <text>|r  - decode translated text back to english")
     Print("  |cffffff00/ogt encode [lang] [strength] <text>|r  - preview translation output")
     Print("  |cffffff00/ogt roundtrip [lang] [strength] <text>|r  - encode then decode (self-test)")
@@ -984,6 +1066,36 @@ local function handleSlash(input)
         listLearned()
     elseif cmd == "custom" or cmd == "create" then
         if ns.OpenCustomConfig then ns.OpenCustomConfig() end
+    elseif cmd == "import" then
+        if rest == "" then
+            Print("Usage: |cffffff00/ogt import <share code>|r (or paste it in the Create Language panel).")
+        else
+            local ok, idOrErr = ns.ImportCustomLanguage(rest)
+            if ok then
+                Print("Imported language |cffffff00" .. Language.GetLanguageName(idOrErr) .. "|r.")
+                if ns.OpenCustomConfig then ns.OpenCustomConfig() end
+            else
+                Print("Import failed: " .. tostring(idOrErr))
+            end
+        end
+    elseif cmd == "export" then
+        local id = (rest ~= "" and Language.MakeCustomId(rest)) or TonguesOfAzerothDB.language
+        if id and Language.IsCustom(id) then
+            if ns.OpenCustomConfig then ns.OpenCustomConfig() end
+            if ns.ShowExportCode then ns.ShowExportCode(id) end
+            Print("Share code for |cffffff00" .. Language.GetLanguageName(id) .. "|r is in the Create Language panel -- select it and copy.")
+        else
+            Print("Set a custom language first, or use |cffffff00/ogt export <name>|r.")
+        end
+    elseif cmd == "share" then
+        local id = TonguesOfAzerothDB.language
+        if not (id and Language.IsCustom(id)) then
+            Print("Select one of your custom languages first (it's the language you're currently speaking).")
+        else
+            local target = (rest ~= "" and rest) or (UnitName and UnitExists and UnitExists("target") and UnitIsPlayer and UnitIsPlayer("target") and UnitName("target")) or nil
+            local ok, msg = ns.ShareCustomLanguage(id, target)
+            Print(ok and ("|cff00ff00" .. msg .. "|r") or ("|cffff0000" .. msg .. "|r"))
+        end
     elseif cmd == "decode" or cmd == "testdecode" then
         testDecode(rest)
     elseif cmd == "encode" or cmd == "enc" then

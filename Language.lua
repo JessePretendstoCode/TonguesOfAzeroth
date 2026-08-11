@@ -728,6 +728,95 @@ function Language.UnregisterCustom(langId)
     return true
 end
 
+--=========================================================================--
+--  Share codes (export/import a custom language as a copy-safe string)
+--=========================================================================--
+local B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+local function base64enc(data)
+    return ((data:gsub(".", function(x)
+        local r, b = "", x:byte()
+        for i = 8, 1, -1 do r = r .. (b % 2 ^ i - b % 2 ^ (i - 1) > 0 and "1" or "0") end
+        return r
+    end) .. "0000"):gsub("%d%d%d?%d?%d?%d?", function(x)
+        if #x < 6 then return "" end
+        local c = 0
+        for i = 1, 6 do c = c + (x:sub(i, i) == "1" and 2 ^ (6 - i) or 0) end
+        return B64:sub(c + 1, c + 1)
+    end) .. ({ "", "==", "=" })[#data % 3 + 1])
+end
+local function base64dec(data)
+    data = data:gsub("[^" .. "A-Za-z0-9+/" .. "=]", "")
+    return (data:gsub(".", function(x)
+        if x == "=" then return "" end
+        local r, f = "", (B64:find(x, 1, true) - 1)
+        for i = 6, 1, -1 do r = r .. (f % 2 ^ i - f % 2 ^ (i - 1) > 0 and "1" or "0") end
+        return r
+    end):gsub("%d%d%d?%d?%d?%d?%d?%d?", function(x)
+        if #x ~= 8 then return "" end
+        local c = 0
+        for i = 1, 8 do c = c + (x:sub(i, i) == "1" and 2 ^ (8 - i) or 0) end
+        return string.char(c)
+    end))
+end
+
+local SHARE_PREFIX = "ToA1-"
+local SHARE_SEP = "\029"
+
+-- Build a copy-safe share code from a custom-language def. The internal id is
+-- embedded so an import reproduces the language EXACTLY (identical output for
+-- everyone), regardless of how they'd have spelled the name.
+function Language.ExportShareString(def)
+    if type(def) ~= "table" then return nil end
+    local id = Language.MakeCustomId(def.id or def.name)
+    if id == "" then return nil end
+    local apos = floor((tonumber(def.apostrophe) or 0) * 100 + 0.5)
+    local function csv(list) return type(list) == "table" and table.concat(list, ",") or "" end
+    local payload = table.concat(
+        { "2", id, def.name or id, tostring(apos), csv(def.onsets), csv(def.nuclei), csv(def.codas) },
+        SHARE_SEP)
+    return SHARE_PREFIX .. base64enc(payload)
+end
+
+-- Parse a share code back into a def (does NOT register). Returns def or nil,err.
+function Language.ImportShareString(code)
+    if type(code) ~= "string" then return nil, "empty code" end
+    code = code:gsub("%s", "")
+    if code == "" then return nil, "empty code" end
+    if strsub(code, 1, #SHARE_PREFIX) == SHARE_PREFIX then
+        code = strsub(code, #SHARE_PREFIX + 1)
+    end
+    local ok, payload = pcall(base64dec, code)
+    if not ok or type(payload) ~= "string" or payload == "" then
+        return nil, "that doesn't look like a share code"
+    end
+
+    local parts = {}
+    for field in (payload .. SHARE_SEP):gmatch("(.-)" .. SHARE_SEP) do
+        parts[#parts + 1] = field
+    end
+    if parts[1] ~= "2" then return nil, "unsupported share-code version" end
+
+    local function split(csvs)
+        local out = {}
+        if csvs and csvs ~= "" then
+            for token in (csvs .. ","):gmatch("(.-),") do out[#out + 1] = token end
+        end
+        return out
+    end
+
+    local def = {
+        id = parts[2],
+        name = parts[3],
+        apostrophe = (tonumber(parts[4]) or 0) / 100,
+        onsets = split(parts[5]),
+        nuclei = split(parts[6]),
+        codas = split(parts[7]),
+    }
+    if not def.id or def.id == "" then return nil, "share code is missing an id" end
+    if #def.nuclei == 0 then return nil, "share code has no vowel sounds" end
+    return def
+end
+
 -- Word token pattern: letters plus in-word apostrophes/hyphens (Dun-fel, Ok-Hoga).
 local WORD_PATTERN = "[%a][%a'-]*"
 function Language.WordTranslates(word, strength)

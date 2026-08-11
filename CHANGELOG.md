@@ -2,6 +2,30 @@
 
 All notable changes to Tongues of Azeroth are documented here.
 
+## [0.2.14]
+- **Accents got a serious accent.** Every dialect was rebuilt with far richer,
+  more distinctive spelling and slang, so the flavor actually comes through --
+  e.g. Dwarven *"Ah'm gaun tae the tavern tonicht -- whit dae ye think aboot a
+  braw drink wi' the lads?"* Now covering **Dwarven, Troll, Orcish, Draenei,
+  Goblin, Gilnean, Vrykul** and **Pirate**.
+- **Strength now = how garbled the sentence is.** Instead of randomly picking
+  which words get touched, the slider sets an intensity level: low strength gives
+  just the signature markers, and as you raise it more (and heavier) sound-shifts
+  switch on across the *whole* line -- fully deterministic, so a message always
+  reads the same. Crank it to 100% for a thick, unmistakable accent.
+- Retired a few accents that didn't read well (Tauren, Night Elf, Pandaren,
+  Forsaken); if you had one selected it falls back to Dwarven automatically.
+- **Share your custom languages.** The Create Language panel now has a Share
+  section: **Copy code** produces a compact, copy/paste share code (great for
+  Discord or forums), and paste one in + **Import** to add it instantly. The code
+  pins the language's internal id so an import reproduces it *exactly* for
+  everyone.
+- **Send it in-game, no copying.** **Share to target** (or `/toa share [player]`)
+  sends a custom language straight to another Tongues of Azeroth user over the
+  hidden addon channel -- to your target, party, or raid. They get an
+  Accept/Decline prompt and it's added on accept.
+- New slash commands: `/toa import <code>`, `/toa export [name]`, `/toa share [player]`.
+
 ## [0.2.13]
 - **Create your own languages!** New "Create Language" panel (also `/toa custom`)
   lets you build a tongue from sound pools -- starting sounds, vowels, ending

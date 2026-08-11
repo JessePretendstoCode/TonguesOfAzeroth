@@ -43,6 +43,7 @@ local accentPreviewInput, accentPreviewOutput
 local customEditDropdown, customNameInput, customApostSlider, customApostText
 local customOnsetInput, customNucleiInput, customCodaInput
 local customPreviewInput, customPreviewOutput, customStatus, customEditingId
+local customShareInput
 local channelChecks = {}
 local learnedChecks = {}
 local learnedBars = {}
@@ -548,7 +549,7 @@ local function BuildLearnedPanel()
     learnedPanel:SetScript("OnShow", RefreshLearned)
 end
 
-local ACCENT_SAMPLE = "I cannot do this, my friend. Are you going to the meeting?"
+local ACCENT_SAMPLE = "I'm going to the tavern tonight. What do you think about a good drink with the lads?"
 
 local function refreshAccentPreview()
     if not (accentPreviewInput and accentPreviewOutput and Accent) then return end
@@ -739,6 +740,16 @@ local function loadCustomIntoFields(id)
     refreshCustomPreview()
 end
 
+function ns.ShowExportCode(id)
+    if not customShareInput then return end
+    local code = ns.ExportCustomLanguage and ns.ExportCustomLanguage(id)
+    if code then
+        customShareInput:SetText(code)
+        customShareInput:SetFocus()
+        customShareInput:HighlightText()
+    end
+end
+
 local function RefreshCustom()
     if not customPanel then return end
     if customEditDropdown then
@@ -886,6 +897,81 @@ local function BuildCustomPanel()
     customStatus = customPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     customStatus:SetPoint("LEFT", deleteBtn, "RIGHT", 12, 0)
     customStatus:SetText("")
+
+    -- Share section: copy/paste code + direct in-game send.
+    local shareLabel = customPanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    shareLabel:SetPoint("TOPLEFT", saveBtn, "BOTTOMLEFT", -6, -18)
+    shareLabel:SetText("Share")
+
+    local shareHint = customPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    shareHint:SetPoint("TOPLEFT", shareLabel, "BOTTOMLEFT", 0, -4)
+    shareHint:SetPoint("RIGHT", customPanel, "RIGHT", -32, 0)
+    shareHint:SetJustifyH("LEFT")
+    if shareHint.SetWordWrap then shareHint:SetWordWrap(true) end
+    shareHint:SetText("Copy the code to send via Discord, or paste one in and Import. \"Share to target\" sends it in-game to your target/group.")
+
+    customShareInput = CreateFrame("EditBox", "TonguesOfAzerothCustomShare", customPanel, "InputBoxTemplate")
+    customShareInput:SetPoint("TOPLEFT", shareHint, "BOTTOMLEFT", 6, -8)
+    customShareInput:SetSize(470, 20)
+    customShareInput:SetAutoFocus(false)
+    customShareInput:SetScript("OnEnterPressed", customShareInput.ClearFocus)
+    customShareInput:SetScript("OnEscapePressed", customShareInput.ClearFocus)
+    -- Select-all on focus so the player can just Ctrl+C.
+    customShareInput:SetScript("OnEditFocusGained", function(self) self:HighlightText() end)
+
+    local getCodeBtn = CreateFrame("Button", nil, customPanel)
+    getCodeBtn:SetPoint("TOPLEFT", customShareInput, "BOTTOMLEFT", -6, -12)
+    styleButton(getCodeBtn, "Copy code", 110)
+    getCodeBtn:SetScript("OnClick", function()
+        if not customEditingId then
+            customStatusMsg("Save your language first, then Copy code.", true)
+            return
+        end
+        local code = ns.ExportCustomLanguage and ns.ExportCustomLanguage(customEditingId)
+        if code then
+            customShareInput:SetText(code)
+            customShareInput:SetFocus()
+            customShareInput:HighlightText()
+            customStatusMsg("Code ready -- press Ctrl+C to copy.", false)
+        else
+            customStatusMsg("Could not build a share code.", true)
+        end
+    end)
+
+    local importBtn = CreateFrame("Button", nil, customPanel)
+    importBtn:SetPoint("LEFT", getCodeBtn, "RIGHT", 8, 0)
+    styleButton(importBtn, "Import", 110)
+    importBtn:SetScript("OnClick", function()
+        local code = customShareInput:GetText() or ""
+        if code:gsub("%s", "") == "" then
+            customStatusMsg("Paste a share code into the box first.", true)
+            return
+        end
+        local ok, idOrErr = ns.ImportCustomLanguage(code)
+        if ok then
+            customEditingId = idOrErr
+            loadCustomIntoFields(idOrErr)
+            if langDropdown then langDropdown:SetItems(langItems()) end
+            RefreshCustom()
+            customShareInput:SetText("")
+            customStatusMsg("Imported \"" .. Language.GetLanguageName(idOrErr) .. "\".", false)
+        else
+            customStatusMsg("Import failed: " .. tostring(idOrErr), true)
+        end
+    end)
+
+    local shareTargetBtn = CreateFrame("Button", nil, customPanel)
+    shareTargetBtn:SetPoint("LEFT", importBtn, "RIGHT", 8, 0)
+    styleButton(shareTargetBtn, "Share to target", 130)
+    shareTargetBtn:SetScript("OnClick", function()
+        if not customEditingId then
+            customStatusMsg("Save your language first, then share it.", true)
+            return
+        end
+        local target = (UnitExists and UnitExists("target") and UnitIsPlayer and UnitIsPlayer("target") and UnitName("target")) or nil
+        local ok, msg = ns.ShareCustomLanguage(customEditingId, target)
+        customStatusMsg(msg, not ok)
+    end)
 
     loadCustomIntoFields(nil)
     customPanel.refresh = RefreshCustom
