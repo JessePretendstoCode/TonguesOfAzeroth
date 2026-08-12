@@ -657,3 +657,101 @@ function Compat.CreateMinimapButton(globalName, opts)
 
     return btn
 end
+
+--=========================================================================--
+--  Confirmation dialog. We deliberately do NOT use Blizzard's global
+--  StaticPopupDialogs table. Adding our keys to it *taints that table*, and on
+--  Retail 12.0+ (Midnight) any later read of StaticPopupDialogs -- which happens
+--  when the Game menu / Esc handler and the player status bar run -- inherits
+--  that taint and then faults on the player frame's "secret" health value:
+--  "attempt to compare a secret number value (execution tainted by
+--  'TonguesOfAzeroth')". Owning our own frame keeps us out of that secure path.
+--  (Inserting into UISpecialFrames, by contrast, is taint-safe -- verified via
+--  the client's taint.log -- so we still use it for Esc-to-close.)
+--
+--  Compat.ShowConfirm{ text=, acceptText=, cancelText=, onAccept=, onCancel= }
+--=========================================================================--
+local confirmFrame
+
+local function resolveConfirm(f, accepted)
+    if f._resolved then return end
+    f._resolved = true
+    local onAccept, onCancel = f._onAccept, f._onCancel
+    f._onAccept, f._onCancel = nil, nil
+    f:Hide()
+    if accepted then
+        if onAccept then onAccept() end
+    elseif onCancel then
+        onCancel()
+    end
+end
+
+local function buildConfirm()
+    local f = CreateFrame("Frame", "TonguesOfAzerothConfirm", UIParent)
+    f:SetFrameStrata("FULLSCREEN_DIALOG")
+    f:SetSize(440, 170)
+    f:SetPoint("CENTER", 0, 120)
+    f:EnableMouse(true)
+    f:SetToplevel(true)
+    f:Hide()
+
+    local bg = f:CreateTexture(nil, "BACKGROUND")
+    bg:SetAllPoints()
+    Compat.SolidTexture(bg, 0.04, 0.04, 0.06, 0.97)
+    Compat.AddBorder(f, 0.5, 0.45, 0.7, 0.95)
+
+    local text = f:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    text:SetPoint("TOPLEFT", 18, -18)
+    text:SetPoint("TOPRIGHT", -18, -18)
+    text:SetJustifyH("LEFT")
+    text:SetJustifyV("TOP")
+    if text.SetWordWrap then text:SetWordWrap(true) end
+    f.text = text
+
+    local function makeButton()
+        local b = CreateFrame("Button", nil, f)
+        b:SetSize(130, 26)
+        local bbg = b:CreateTexture(nil, "BACKGROUND"); bbg:SetAllPoints()
+        Compat.SolidTexture(bbg, 0.18, 0.16, 0.24, 1)
+        Compat.AddBorder(b, 0.5, 0.45, 0.7, 0.9)
+        local bhl = b:CreateTexture(nil, "HIGHLIGHT"); bhl:SetAllPoints()
+        Compat.SolidTexture(bhl, 1, 1, 1, 0.15)
+        local bl = b:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        bl:SetPoint("CENTER")
+        b.label = bl
+        return b
+    end
+
+    local accept = makeButton()
+    accept:SetPoint("BOTTOMRIGHT", f, "BOTTOM", -6, 16)
+    accept:SetScript("OnClick", function() resolveConfirm(f, true) end)
+    f.accept = accept
+
+    local cancel = makeButton()
+    cancel:SetPoint("BOTTOMLEFT", f, "BOTTOM", 6, 16)
+    cancel:SetScript("OnClick", function() resolveConfirm(f, false) end)
+    f.cancel = cancel
+
+    -- Esc (via UISpecialFrames) hides us -> treat as cancel. If a button already
+    -- resolved the dialog, _resolved is set and this is a harmless no-op.
+    if type(UISpecialFrames) == "table" then tinsert(UISpecialFrames, "TonguesOfAzerothConfirm") end
+    f:SetScript("OnHide", function(self) resolveConfirm(self, false) end)
+
+    return f
+end
+
+function Compat.ShowConfirm(opts)
+    opts = opts or {}
+    confirmFrame = confirmFrame or buildConfirm()
+    local f = confirmFrame
+    if f:IsShown() then resolveConfirm(f, false) end
+    f._resolved = false
+    f._onAccept = opts.onAccept
+    f._onCancel = opts.onCancel
+    f.text:SetText(opts.text or "")
+    f.accept.label:SetText(opts.acceptText or (YES or "Yes"))
+    f.cancel.label:SetText(opts.cancelText or (NO or "No"))
+    f:Show()
+    f:Raise()
+    return f
+end

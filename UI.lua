@@ -48,7 +48,6 @@ local channelChecks = {}
 local learnedRows = {}
 local learnedBars = {}
 local passiveCheck
-local pendingFluentId, pendingResetId
 local decodeStyleDropdown
 local outputDropdown
 local panelsBuilt = false
@@ -533,33 +532,6 @@ local function BuildLearnedPanel()
     note:SetJustifyH("LEFT")
     note:SetText("Fluency = how fully you speak a tongue. Build it by hearing it (passive), in the Language Trainer, or with the buttons above. Decoding works for text produced by Tongues of Azeroth; rare words may not reverse perfectly.")
 
-    -- Confirmation dialogs for the instant-fluency and reset buttons (defined
-    -- once). We stash the target language in an upvalue rather than the popup's
-    -- data arg so it works identically on 3.3.5a and Retail.
-    StaticPopupDialogs = StaticPopupDialogs or {}
-    StaticPopupDialogs["TONGUESOFAZEROTH_MAKE_FLUENT"] = {
-        text = "Become fully fluent in \"%s\"?\n\nThis instantly sets your fluency to 100%% (you'll speak and understand it perfectly).",
-        button1 = YES or "Yes",
-        button2 = NO or "No",
-        OnAccept = function()
-            if pendingFluentId and ns.MakeLanguageFluent then ns.MakeLanguageFluent(pendingFluentId) end
-            pendingFluentId = nil
-        end,
-        OnCancel = function() pendingFluentId = nil end,
-        timeout = 0, whileDead = true, hideOnEscape = true, preferredIndex = 3,
-    }
-    StaticPopupDialogs["TONGUESOFAZEROTH_RESET_FLUENCY"] = {
-        text = "Reset \"%s\" to 0%%?\n\nThis wipes your fluency and any words you've unlocked for it.",
-        button1 = YES or "Yes",
-        button2 = NO or "No",
-        OnAccept = function()
-            if pendingResetId and ns.ResetLanguageFluency then ns.ResetLanguageFluency(pendingResetId) end
-            pendingResetId = nil
-        end,
-        OnCancel = function() pendingResetId = nil end,
-        timeout = 0, whileDead = true, hideOnEscape = true, preferredIndex = 3,
-    }
-
     -- Small square icon button with a tooltip (used for the check / reset icons).
     local function iconButton(parent, tex, tip, r, g, b)
         local btn = CreateFrame("Button", nil, parent)
@@ -618,16 +590,20 @@ local function BuildLearnedPanel()
             "Reset " .. entry.name .. " to 0% (wipes fluency)", 0.7, 0.4, 0.4)
         resetBtn:SetPoint("RIGHT", rowF, "RIGHT", -6, 0)
         resetBtn:SetScript("OnClick", function()
-            pendingResetId = entry.id
-            StaticPopup_Show("TONGUESOFAZEROTH_RESET_FLUENCY", entry.name)
+            Compat.ShowConfirm({
+                text = string.format("Reset \"%s\" to 0%%?\n\nThis wipes your fluency and any words you've unlocked for it.", entry.name),
+                onAccept = function() if ns.ResetLanguageFluency then ns.ResetLanguageFluency(entry.id) end end,
+            })
         end)
 
         local fluentBtn = iconButton(rowF, "Interface\\RAIDFRAME\\ReadyCheck-Ready",
             "Make " .. entry.name .. " fully fluent (100%)", 0.4, 0.6, 0.4)
         fluentBtn:SetPoint("RIGHT", resetBtn, "LEFT", -8, 0)
         fluentBtn:SetScript("OnClick", function()
-            pendingFluentId = entry.id
-            StaticPopup_Show("TONGUESOFAZEROTH_MAKE_FLUENT", entry.name)
+            Compat.ShowConfirm({
+                text = string.format("Become fully fluent in \"%s\"?\n\nThis instantly sets your fluency to 100%% (you'll speak and understand it perfectly).", entry.name),
+                onAccept = function() if ns.MakeLanguageFluent then ns.MakeLanguageFluent(entry.id) end end,
+            })
         end)
 
         -- Thin fluency bar beneath the label (left of the buttons).

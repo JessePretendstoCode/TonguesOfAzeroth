@@ -649,34 +649,27 @@ local function onIncomingChat(event, message, sender)
     end
 end
 
--- Someone sent us a custom language in-game. Confirm before adding it.
-local pendingShare
-StaticPopupDialogs = StaticPopupDialogs or {}
-StaticPopupDialogs["TONGUESOFAZEROTH_IMPORT_LANG"] = {
-    text = "%s shared the language \"%s\" with you.\nAdd it to Tongues of Azeroth?",
-    button1 = ACCEPT or "Accept",
-    button2 = CANCEL or "Decline",
-    OnAccept = function()
-        if pendingShare then
-            local ok, idOrErr = ns.SaveCustomLanguage(pendingShare)
+-- Someone sent us a custom language in-game. Confirm before adding it. Uses our
+-- own dialog (Compat.ShowConfirm) rather than StaticPopupDialogs -- see the note
+-- in Compat.lua: touching that global taints protected UI on Retail 12.0+.
+local function handleLangShare(code, sender)
+    local def = Language.ImportShareString(code)
+    if not def then return end
+    local who = (sender and sender:gsub("%-.*", "")) or "Someone"
+    Compat.ShowConfirm({
+        text = string.format("%s shared the language \"%s\" with you.\nAdd it to Tongues of Azeroth?",
+            who, def.name or def.id or "?"),
+        acceptText = ACCEPT or "Accept",
+        cancelText = CANCEL or "Decline",
+        onAccept = function()
+            local ok, idOrErr = ns.SaveCustomLanguage(def)
             if ok then
-                Print("Imported language |cffffff00" .. (pendingShare.name or idOrErr) .. "|r. Find it in your language list.")
+                Print("Imported language |cffffff00" .. (def.name or idOrErr) .. "|r. Find it in your language list.")
             else
                 Print("Import failed: " .. tostring(idOrErr))
             end
-            pendingShare = nil
-        end
-    end,
-    OnCancel = function() pendingShare = nil end,
-    timeout = 0, whileDead = true, hideOnEscape = true, preferredIndex = 3,
-}
-
-local function handleLangShare(code, sender)
-    local def, err = Language.ImportShareString(code)
-    if not def then return end
-    pendingShare = def
-    local who = (sender and sender:gsub("%-.*", "")) or "Someone"
-    StaticPopup_Show("TONGUESOFAZEROTH_IMPORT_LANG", who, def.name or def.id)
+        end,
+    })
 end
 
 local chatFrame = CreateFrame("Frame")

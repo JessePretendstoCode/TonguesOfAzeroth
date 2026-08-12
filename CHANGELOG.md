@@ -2,6 +2,16 @@
 
 All notable changes to Tongues of Azeroth are documented here.
 
+## [0.2.17]
+- **Actually fixed the Retail taint error** (confirmed via the client's taint
+  log). The real culprit was registering our confirmation/import dialogs in
+  Blizzard's global `StaticPopupDialogs` table -- on Midnight (12.0+), touching
+  that table taints it, and the Game menu / Esc handler reading it then faulted
+  on the player frame's protected health value (`attempt to compare a secret
+  number value`). Our dialogs now use a self-contained frame that never touches
+  any Blizzard global, so opening the Character frame or pressing Esc is clean.
+  (The 0.2.16 `SendChatMessage` change is still correct and stays in.)
+
 ## [0.2.16]
 - **Fixed a taint error on Retail (12.0+/Midnight).** Opening the Character frame
   or the Game menu could throw `attempt to compare a secret number value
