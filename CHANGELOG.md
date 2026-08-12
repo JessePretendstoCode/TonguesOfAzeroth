@@ -2,6 +2,16 @@
 
 All notable changes to Tongues of Azeroth are documented here.
 
+## [0.2.16]
+- **Fixed a taint error on Retail (12.0+/Midnight).** Opening the Character frame
+  or the Game menu could throw `attempt to compare a secret number value
+  (execution tainted by 'TonguesOfAzeroth')`. On Midnight, overwriting the global
+  `SendChatMessage` leaks taint into Blizzard's secure chat/UI pipeline. We now
+  rely solely on the taint-safe `OnEditBoxPreSendText` event for typed chat on
+  Retail and never replace the global there (older clients that lack that event
+  are unaffected and keep working as before). A full client restart clears any
+  taint left over from a previous session.
+
 ## [0.2.15]
 - **Updated for Retail patch 12.1.0** (interface 120100) so it loads without the
   out-of-date warning on the current live client.

@@ -393,16 +393,34 @@ local function sendHookBody(msg, chatType, language, channel)
     return orig_SendChatMessage(outMsg, sendType, language, channel)
 end
 
+-- Midnight (Retail 12.0+) folded SendChatMessage into the secure chat pipeline:
+-- OVERWRITING the global now spreads taint into unrelated protected UI, so simply
+-- opening the Character frame or Game Menu throws "attempt to compare a secret
+-- number value (execution tainted by 'TonguesOfAzeroth')". Blizzard's sanctioned
+-- replacement is the OnEditBoxPreSendText event (see onEditBoxPreSend), which we
+-- already register. So on 12.0+ we must NEVER clobber the global.
+-- GetBuildInfo's 4th return (interface number) is nil on very old clients
+-- (e.g. 3.3.5a), which correctly falls through to the legacy hook path.
+local function usesPreSendPipeline()
+    local v = select(4, GetBuildInfo())
+    return type(v) == "number" and v >= 120000
+end
+
 -- Installs our SendChatMessage wrapper exactly once. We deliberately do NOT
 -- re-assert later: if another addon chain-wraps us afterwards, we still run as
 -- part of that chain, and re-capturing their wrapper as our "original" would
 -- create mutual recursion (them -> us -> them -> ...). Installing once is both
 -- loop-safe and keeps our translation in the send path.
 local function installSendHook()
-    if hookInstalled then return end
     if type(SendChatMessage) ~= "function" then return end
-    orig_SendChatMessage = SendChatMessage
+    -- Always keep a plain reference to the real SendChatMessage for our own
+    -- programmatic sends (/toa say|yell, speak()). Reading a global is taint-free;
+    -- only *writing* it is the problem.
+    if not orig_SendChatMessage then orig_SendChatMessage = SendChatMessage end
     ourSendHook = sendHookBody
+    -- Retail 12.0+: rely solely on the taint-safe pre-send event; never overwrite.
+    if usesPreSendPipeline() then return end
+    if hookInstalled then return end
     SendChatMessage = ourSendHook
     hookInstalled = true
 end
@@ -1096,12 +1114,18 @@ local function debugReport()
     Print("|cff8000ff--- diagnostics ---|r")
     Print(("version |cffffff00%s|r  modules: Language=%s Accent=%s Compat=%s")
         :format(ver, tostring(ns.Language ~= nil), tostring(ns.Accent ~= nil), tostring(ns.Compat ~= nil)))
-    Print(("hook installed=|cffffff00%s|r  global is ours=%s")
-        :format(tostring(hookInstalled),
-            (SendChatMessage == ourSendHook) and "|cff00ff00YES|r" or "|cffff0000NO (clobbered!)|r"))
+    if usesPreSendPipeline() then
+        -- On Midnight retail we intentionally do NOT overwrite the global (doing so
+        -- taints protected UI); typed chat is handled by the pre-send event below.
+        Print("send path=|cff00ff00pre-send event|r (global SendChatMessage left untouched -- taint-safe)")
+    else
+        Print(("hook installed=|cffffff00%s|r  global is ours=%s")
+            :format(tostring(hookInstalled),
+                (SendChatMessage == ourSendHook) and "|cff00ff00YES|r" or "|cffff0000NO (clobbered!)|r"))
+    end
     Print(("SendChatMessage seen=|cffffff00%d|r time(s) this session")
         :format(sendHookCount))
-    Print(("Retail pre-send hook=%s  in combat=%s")
+    Print(("pre-send hook=%s  in combat=%s")
         :format(preSendRegistered and "|cff00ff00REGISTERED|r" or "|cffff8800n/a (older client)|r",
             (InCombatLockdown and InCombatLockdown()) and "|cffff0000YES (chat edits paused)|r" or "|cff00ff00no|r"))
     Print(("enabled=%s  strength=|cffffff00%d%%|r  lang=|cffffff00%s|r")
