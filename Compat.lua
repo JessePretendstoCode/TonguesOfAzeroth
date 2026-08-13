@@ -613,11 +613,30 @@ function Compat.CreateMinimapButton(globalName, opts)
     hl:SetAllPoints(icon)
     Compat.SolidTexture(hl, 1, 1, 1, 0.20)
 
-    local radius = 80
+    -- Place the button just OUTSIDE the minimap ring. A hardcoded radius (the old
+    -- 80) lands *inside* on scaled/larger minimaps, so derive it from the minimap's
+    -- actual size each time, and follow the minimap's shape (square minimaps push
+    -- the corners out further). "GetMinimapShape" is the community-standard global
+    -- some UI addons set; default to round when it's absent.
     function btn:UpdatePosition(angleDeg)
         local a = math.rad(angleDeg or 200)
+        local cos, sin = math.cos(a), math.sin(a)
+        local r = (Minimap:GetWidth() / 2) + 8
+
+        local shape = (type(GetMinimapShape) == "function" and GetMinimapShape()) or "ROUND"
+        local x, y
+        if shape == "ROUND" then
+            x, y = cos * r, sin * r
+        else
+            -- Square/rounded shapes: clamp to the square edge so the button hugs the
+            -- border instead of floating off the corner.
+            local q = r / math.sqrt(2)
+            x = math.max(-q, math.min(q, cos * r))
+            y = math.max(-q, math.min(q, sin * r))
+        end
+
         self:ClearAllPoints()
-        self:SetPoint("CENTER", Minimap, "CENTER", math.cos(a) * radius, math.sin(a) * radius)
+        self:SetPoint("CENTER", Minimap, "CENTER", x, y)
     end
 
     btn:SetScript("OnDragStart", function(self)

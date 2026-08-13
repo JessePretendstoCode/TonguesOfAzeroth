@@ -2,6 +2,21 @@
 
 All notable changes to Tongues of Azeroth are documented here.
 
+## [0.2.18]
+- **Yapper compatibility.** Yapper replaces the chat edit box and sends through
+  its own pipeline, so our normal intercepts never saw its messages. We now hook
+  into Yapper's official public API (`YapperAPI` `PRE_SEND` filter), so text you
+  type in Yapper is translated/accented just like the default edit box. Taint-free
+  (uses Yapper's supported API -- no Blizzard globals touched).
+- **Minimap button sits outside the ring now.** The position is derived from your
+  actual minimap size (and shape) instead of a fixed radius, so it no longer lands
+  *inside* the minimap on larger/scaled setups.
+- **New floating language bar.** An optional, draggable HUD (in the spirit of the
+  old Tongues button) that shows your active language and fluency at a glance:
+  left-click cycles your learned languages, scroll cycles too, shift-click toggles
+  auto-translate, right-click opens settings. Off by default; enable it (and lock
+  its position) under the main options. It's a plain frame -- no taint.
+
 ## [0.2.17]
 - **Actually fixed the Retail taint error** (confirmed via the client's taint
   log). The real culprit was registering our confirmation/import dialogs in

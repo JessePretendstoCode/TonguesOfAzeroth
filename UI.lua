@@ -38,6 +38,7 @@ local DECODE_STYLES = {
 local mainPanel, learnedPanel, accentPanel, customPanel
 local langDropdown, slider, valueText, enableCheck, previewInput, previewOutput
 local minimapCheck, tagCheck, fluencyCheck
+local widgetCheck, widgetLockCheck
 local accentEnableCheck, accentDropdown, accentSlider, accentValueText
 local accentPreviewInput, accentPreviewOutput
 local customEditDropdown, customNameInput, customApostSlider, customApostText
@@ -71,6 +72,12 @@ local function db()
     if not TonguesOfAzerothDB.minimap then TonguesOfAzerothDB.minimap = {} end
     if TonguesOfAzerothDB.minimap.hide == nil then TonguesOfAzerothDB.minimap.hide = false end
     if TonguesOfAzerothDB.minimap.angle == nil then TonguesOfAzerothDB.minimap.angle = 200 end
+    if not TonguesOfAzerothDB.widget then TonguesOfAzerothDB.widget = {} end
+    if TonguesOfAzerothDB.widget.enabled == nil then TonguesOfAzerothDB.widget.enabled = false end
+    if TonguesOfAzerothDB.widget.locked == nil then TonguesOfAzerothDB.widget.locked = false end
+    if TonguesOfAzerothDB.widget.point == nil then TonguesOfAzerothDB.widget.point = "CENTER" end
+    if TonguesOfAzerothDB.widget.x == nil then TonguesOfAzerothDB.widget.x = 0 end
+    if TonguesOfAzerothDB.widget.y == nil then TonguesOfAzerothDB.widget.y = -140 end
     if TonguesOfAzerothDB.outputFrame == nil then TonguesOfAzerothDB.outputFrame = 0 end
     if TonguesOfAzerothDB.tagLanguage == nil then TonguesOfAzerothDB.tagLanguage = true end
     if TonguesOfAzerothDB.tagFluency == nil then TonguesOfAzerothDB.tagFluency = true end
@@ -167,6 +174,11 @@ local function RefreshMain()
     local d = db()
     enableCheck:SetChecked(d.enabled)
     if minimapCheck then minimapCheck:SetChecked(not d.minimap.hide) end
+    if widgetCheck then widgetCheck:SetChecked(d.widget.enabled and true or false) end
+    if widgetLockCheck then
+        widgetLockCheck:SetChecked(d.widget.locked and true or false)
+        widgetLockCheck:SetShown(d.widget.enabled and true or false)
+    end
     if tagCheck then tagCheck:SetChecked(d.tagLanguage ~= false) end
     if fluencyCheck then fluencyCheck:SetChecked(d.tagFluency ~= false) end
     langDropdown:SetSelected(d.language, Language.GetLanguageName(d.language))
@@ -273,6 +285,127 @@ local function SetupMinimapButton()
 end
 ns.SetupMinimapButton = SetupMinimapButton
 
+--=========================================================================--
+--  Floating language widget. A small draggable HUD in the spirit of the old
+--  Tongues button: shows your active language at a glance and makes switching
+--  quick. Off by default. It's entirely our own frame on UIParent with no
+--  Blizzard globals and is NOT added to UISpecialFrames/UIPanelWindows, so it
+--  never touches the (protected) panel manager -- i.e. completely taint-free.
+--=========================================================================--
+local langWidget
+
+local function fluencyAdjective(pct)
+    if pct >= 100 then return "Perfect", 1, 0.85, 0.2 end
+    if pct >= 75 then return "Fluent", 0.4, 0.85, 0.4 end
+    if pct >= 25 then return "Partial", 0.95, 0.8, 0.3 end
+    return "Broken", 0.95, 0.5, 0.4
+end
+
+local function RefreshLanguageWidget()
+    if not langWidget then return end
+    local d = db()
+    if not d.widget.enabled then langWidget:Hide(); return end
+    langWidget:Show()
+    langWidget.name:SetText(Language.GetLanguageName(d.language))
+    local adj, ar, ag, ab = fluencyAdjective(fluencyPct(d.language))
+    langWidget.sub:SetText(adj)
+    langWidget.sub:SetTextColor(ar, ag, ab)
+    if d.enabled then
+        langWidget.dot:SetText("Auto")
+        langWidget.dot:SetTextColor(0.4, 0.9, 0.4)
+    else
+        langWidget.dot:SetText("Off")
+        langWidget.dot:SetTextColor(0.9, 0.4, 0.4)
+    end
+end
+ns.RefreshLanguageWidget = RefreshLanguageWidget
+
+local function saveWidgetPosition()
+    local point, _, relPoint, x, y = langWidget:GetPoint()
+    local d = db()
+    d.widget.point = point or "CENTER"
+    d.widget.relPoint = relPoint or point or "CENTER"
+    d.widget.x = x or 0
+    d.widget.y = y or 0
+end
+
+local function SetupLanguageWidget()
+    local d = db()
+    if not langWidget then
+        local f = CreateFrame("Frame", "TonguesOfAzerothLangWidget", UIParent)
+        f:SetSize(140, 40)
+        f:SetFrameStrata("MEDIUM")
+        f:SetClampedToScreen(true)
+        f:SetMovable(true)
+        f:EnableMouse(true)
+        f:EnableMouseWheel(true)
+        f:RegisterForDrag("LeftButton")
+
+        local bg = f:CreateTexture(nil, "BACKGROUND")
+        bg:SetAllPoints()
+        Compat.SolidTexture(bg, 0.05, 0.05, 0.08, 0.9)
+        Compat.AddBorder(f, 0.5, 0.45, 0.7, 0.95)
+
+        local name = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        name:SetPoint("TOP", 0, -6)
+        name:SetTextColor(1, 0.82, 0.2)
+        f.name = name
+
+        local sub = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        sub:SetPoint("BOTTOMLEFT", 8, 6)
+        f.sub = sub
+
+        local dot = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        dot:SetPoint("BOTTOMRIGHT", -8, 6)
+        f.dot = dot
+
+        f:SetScript("OnDragStart", function(self)
+            if db().widget.locked then return end
+            self:StartMoving()
+        end)
+        f:SetScript("OnDragStop", function(self)
+            self:StopMovingOrSizing()
+            saveWidgetPosition()
+        end)
+        f:SetScript("OnMouseWheel", function(_, delta)
+            if ns.CycleLanguage then ns.CycleLanguage(delta > 0 and 1 or -1) end
+        end)
+        f:SetScript("OnMouseUp", function(_, button)
+            if button == "LeftButton" then
+                if IsShiftKeyDown and IsShiftKeyDown() then
+                    local dd = db()
+                    dd.enabled = not dd.enabled
+                    if ns.OnSettingsChanged then ns.OnSettingsChanged() end
+                elseif ns.CycleLanguage then
+                    ns.CycleLanguage(1)
+                end
+            elseif button == "RightButton" then
+                if ns.OpenConfig then ns.OpenConfig() end
+            end
+        end)
+        f:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_TOP")
+            GameTooltip:SetText("Tongues of Azeroth", 1, 1, 1)
+            GameTooltip:AddLine("Language: |cffffffff" .. Language.GetLanguageName(db().language) .. "|r", 0.8, 0.8, 0.8)
+            GameTooltip:AddLine(" ")
+            GameTooltip:AddLine("|cffffffffLeft-click|r  Next learned language", 1, 1, 1)
+            GameTooltip:AddLine("|cffffffffScroll|r  Cycle languages", 1, 1, 1)
+            GameTooltip:AddLine("|cffffffffShift-click|r  Toggle auto-translate", 1, 1, 1)
+            GameTooltip:AddLine("|cffffffffRight-click|r  Open settings", 1, 1, 1)
+            GameTooltip:AddLine("|cffffffffDrag|r  Move (unlock in options)", 0.7, 0.7, 0.7)
+            GameTooltip:Show()
+        end)
+        f:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+        langWidget = f
+    end
+    langWidget:ClearAllPoints()
+    langWidget:SetPoint(d.widget.point or "CENTER", UIParent,
+        d.widget.relPoint or d.widget.point or "CENTER", d.widget.x or 0, d.widget.y or -140)
+    RefreshLanguageWidget()
+end
+ns.SetupLanguageWidget = SetupLanguageWidget
+
 local function BuildMainPanel()
     mainPanel = Compat.CreateOptionsPanel("TonguesOfAzerothOptions")
     mainPanel.name = "Tongues of Azeroth"
@@ -342,8 +475,22 @@ local function BuildMainPanel()
         ApplyMinimapShown()
     end)
 
+    widgetCheck = Compat.CreateCheckbox(mainPanel, "Show floating language bar")
+    widgetCheck:SetPoint("TOPLEFT", minimapCheck, "BOTTOMLEFT", 0, -6)
+    widgetCheck:SetScript("OnClick", function(self)
+        db().widget.enabled = self:GetChecked() and true or false
+        SetupLanguageWidget()
+        if widgetLockCheck then widgetLockCheck:SetShown(db().widget.enabled) end
+    end)
+
+    widgetLockCheck = Compat.CreateCheckbox(mainPanel, "Lock the floating bar in place")
+    widgetLockCheck:SetPoint("TOPLEFT", widgetCheck, "BOTTOMLEFT", 16, -4)
+    widgetLockCheck:SetScript("OnClick", function(self)
+        db().widget.locked = self:GetChecked() and true or false
+    end)
+
     tagCheck = Compat.CreateCheckbox(mainPanel, "Prefix messages with [Language]")
-    tagCheck:SetPoint("TOPLEFT", minimapCheck, "BOTTOMLEFT", 0, -6)
+    tagCheck:SetPoint("TOPLEFT", widgetLockCheck, "BOTTOMLEFT", -16, -6)
     tagCheck:SetScript("OnClick", function(self)
         db().tagLanguage = self:GetChecked() and true or false
     end)
@@ -1102,6 +1249,7 @@ initFrame:SetScript("OnEvent", function(self, event, name)
     end
     if event == "PLAYER_LOGIN" then
         SetupMinimapButton()
+        SetupLanguageWidget()
     end
 end)
 
@@ -1112,6 +1260,7 @@ ns.OnSettingsChanged = function()
     if customPanel and customPanel:IsVisible() then RefreshCustom() end
     -- Keep the main language dropdown in sync when custom languages change.
     if langDropdown then langDropdown:SetItems(langItems()) end
+    RefreshLanguageWidget()
 end
 
 -- Called by the trainer after a solve so fluency bars update live if the
@@ -1126,6 +1275,7 @@ end
 ns.RefreshFluencyIfShown = function()
     if mainPanel and mainPanel:IsVisible() then RefreshMain() end
     if learnedPanel and learnedPanel:IsVisible() then RefreshLearned() end
+    RefreshLanguageWidget()
 end
 
 function ns.OpenConfig()

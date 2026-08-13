@@ -476,6 +476,33 @@ local function registerPreSendHook()
     end
 end
 
+-- Yapper (a popular chat addon) replaces Blizzard's edit box with its own overlay
+-- and routes outgoing text through its own pipeline (Router / C_ChatInfo.*), so it
+-- never touches the global SendChatMessage OR the ChatFrame.OnEditBoxPreSendText
+-- event -- our two normal intercept points both miss it. Yapper exposes a public
+-- API (_G.YapperAPI) with a "PRE_SEND" filter designed exactly for this: the
+-- callback receives { text, chatType, language, target } and returns the (possibly
+-- modified) payload, or false to cancel. This is taint-free (no Blizzard globals)
+-- and Yapper-sanctioned, so it survives their internal refactors.
+local yapperFilterHandle
+local function registerYapperFilter()
+    if yapperFilterHandle then return end
+    local api = _G.YapperAPI
+    if type(api) ~= "table" or type(api.RegisterFilter) ~= "function" then return end
+    local ok, handle = pcall(api.RegisterFilter, api, "PRE_SEND", function(payload)
+        if type(payload) ~= "table" or type(payload.text) ~= "string" then return end
+        if not TonguesOfAzerothDB then return end
+        migrateDB()
+        local out, changed = transformOutgoing(payload.text, payload.chatType, payload.target)
+        if changed and out ~= payload.text then
+            payload.text = out
+            return payload
+        end
+        -- nil = "unchanged", Yapper keeps the original payload.
+    end)
+    if ok and handle then yapperFilterHandle = handle end
+end
+
 local function speak(msg, chatType, channel)
     migrateDB()
     installSendHook()
@@ -1121,6 +1148,12 @@ local function debugReport()
     Print(("pre-send hook=%s  in combat=%s")
         :format(preSendRegistered and "|cff00ff00REGISTERED|r" or "|cffff8800n/a (older client)|r",
             (InCombatLockdown and InCombatLockdown()) and "|cffff0000YES (chat edits paused)|r" or "|cff00ff00no|r"))
+    do
+        local hasYapper = type(_G.YapperAPI) == "table"
+        Print(("Yapper=%s  our filter=%s")
+            :format(hasYapper and "|cff00ff00detected|r" or "|cff888888not present|r",
+                yapperFilterHandle and "|cff00ff00REGISTERED|r" or (hasYapper and "|cffff0000NO|r" or "|cff888888n/a|r")))
+    end
     Print(("enabled=%s  strength=|cffffff00%d%%|r  lang=|cffffff00%s|r")
         :format(db.enabled and "|cff00ff00ON|r" or "|cffff0000OFF|r", getStrength(), tostring(db.language)))
     Print(("accent enabled=%s  id=|cffffff00%s|r  strength=|cffffff00%d%%|r")
@@ -1345,6 +1378,7 @@ local function handleSlash(input)
     elseif cmd == "debug" or cmd == "diag" then
         installSendHook()
         registerPreSendHook()
+        registerYapperFilter()
         debugReport()
     elseif cmd == "help" then
         usage()
@@ -1381,5 +1415,7 @@ f:SetScript("OnEvent", function(self, event, name)
     elseif event == "PLAYER_LOGIN" then
         installSendHook()
         registerPreSendHook()
+        -- Yapper (and other addons) finish loading by now, so _G.YapperAPI exists.
+        registerYapperFilter()
     end
 end)
