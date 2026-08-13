@@ -2,6 +2,21 @@
 
 All notable changes to Tongues of Azeroth are documented here.
 
+## [0.2.19]
+- **Minimap button now uses LibDBIcon.** On modern clients the button is driven by
+  the standard LibDBIcon library (bundled), so it's placed exactly like every other
+  addon's button -- reliably *outside* the ring -- and can be collected/auto-hidden
+  by minimap-button managers (SexyMap, etc.). Genuine 3.3.5a (Ascension) keeps the
+  built-in dependency-free button.
+- **Floating bar: right-click language menu.** Right-clicking the floating language
+  bar now opens a scrollable menu of *every* language (grouped, with your active one
+  highlighted) plus quick Auto-translate and Open-settings entries -- instead of
+  opening the full window.
+- **Learn all / Reset all.** New buttons at the top of the Learned Languages list to
+  instantly master, or wipe, every language at once (each behind a confirmation).
+- **Quieter chat.** Cycling languages (minimap scroll, floating bar, `/toa next|prev`)
+  no longer spams a line into chat on every switch.
+
 ## [0.2.18]
 - **Yapper compatibility.** Yapper replaces the chat edit box and sends through
   its own pipeline, so our normal intercepts never saw its messages. We now hook

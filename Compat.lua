@@ -613,28 +613,25 @@ function Compat.CreateMinimapButton(globalName, opts)
     hl:SetAllPoints(icon)
     Compat.SolidTexture(hl, 1, 1, 1, 0.20)
 
-    -- Place the button just OUTSIDE the minimap ring. A hardcoded radius (the old
-    -- 80) lands *inside* on scaled/larger minimaps, so derive it from the minimap's
-    -- actual size each time, and follow the minimap's shape (square minimaps push
-    -- the corners out further). "GetMinimapShape" is the community-standard global
-    -- some UI addons set; default to round when it's absent.
+    -- Match LibDBIcon's placement math (what every other addon button uses), so
+    -- ours lines up with them and rides just OUTSIDE the ring regardless of the
+    -- minimap's size/shape. A round minimap uses an ellipse on the edge; a square
+    -- one projects onto the square edge. The old code clamped to r/sqrt(2), which
+    -- pulled the button *inside* the map -- the reported "still inside" bug.
     function btn:UpdatePosition(angleDeg)
         local a = math.rad(angleDeg or 200)
         local cos, sin = math.cos(a), math.sin(a)
-        local r = (Minimap:GetWidth() / 2) + 8
-
+        local w = (Minimap:GetWidth() / 2) + 6
+        local h = (Minimap:GetHeight() / 2) + 6
         local shape = (type(GetMinimapShape) == "function" and GetMinimapShape()) or "ROUND"
         local x, y
         if shape == "ROUND" then
-            x, y = cos * r, sin * r
+            x, y = cos * w, sin * h
         else
-            -- Square/rounded shapes: clamp to the square edge so the button hugs the
-            -- border instead of floating off the corner.
-            local q = r / math.sqrt(2)
-            x = math.max(-q, math.min(q, cos * r))
-            y = math.max(-q, math.min(q, sin * r))
+            local diag = math.sqrt(2) * w - 10
+            x = math.max(-w, math.min(cos * diag, w))
+            y = math.max(-h, math.min(sin * diag, h))
         end
-
         self:ClearAllPoints()
         self:SetPoint("CENTER", Minimap, "CENTER", x, y)
     end

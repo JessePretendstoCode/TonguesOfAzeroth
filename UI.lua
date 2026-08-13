@@ -240,17 +240,88 @@ local function RefreshLearned()
     end
 end
 
+-- On modern clients we drive the minimap button through LibDBIcon (bundled) so it
+-- behaves exactly like every other addon's button: correct placement AND
+-- collectable / auto-hideable by minimap-button managers (SexyMap, etc.). The
+-- libs aren't loaded on genuine 3.3.5a (Ascension), where we fall back to our
+-- dependency-free Compat button.
+local ldbIcon
+local LDB_NAME = "TonguesOfAzeroth"
+
 local function ApplyMinimapShown()
-    if not minimapButton then return end
-    if db().minimap.hide then minimapButton:Hide() else minimapButton:Show() end
+    local hide = db().minimap.hide and true or false
+    if ldbIcon then
+        if hide then ldbIcon:Hide(LDB_NAME) else ldbIcon:Show(LDB_NAME) end
+    elseif minimapButton then
+        if hide then minimapButton:Hide() else minimapButton:Show() end
+    end
 end
 ns.ApplyMinimapShown = ApplyMinimapShown
 
+local function tooltipLines(tt)
+    tt:AddLine("Tongues of Azeroth")
+    tt:AddLine("Language: |cffffffff" .. Language.GetLanguageName(db().language) .. "|r", 0.8, 0.8, 0.8)
+    tt:AddLine("Auto-translate: " .. (db().enabled and "|cff00ff00ON|r" or "|cffff0000OFF|r"), 0.8, 0.8, 0.8)
+    tt:AddLine(" ")
+    tt:AddLine("|cffffffffLeft-click|r  Open settings", 1, 1, 1)
+    tt:AddLine("|cffffffffRight-click|r  Toggle auto-translate", 1, 1, 1)
+    tt:AddLine("|cffffffffScroll|r  Cycle learned languages", 1, 1, 1)
+end
+
+local function setupLDBButton()
+    if ldbIcon then return true end
+    if not _G.LibStub then return false end
+    local okI, iconLib = pcall(_G.LibStub, "LibDBIcon-1.0", true)
+    local okD, ldb = pcall(_G.LibStub, "LibDataBroker-1.1", true)
+    if not (okI and iconLib and okD and ldb) then return false end
+
+    local obj = ldb.GetDataObjectByName and ldb:GetDataObjectByName(LDB_NAME)
+    if not obj then
+        local okObj, made = pcall(function()
+            return ldb:NewDataObject(LDB_NAME, {
+                type = "launcher",
+                icon = "Interface\\Icons\\INV_Misc_Orb_04",
+                OnClick = function(_, mouseButton)
+                    if mouseButton == "RightButton" then
+                        local d = db(); d.enabled = not d.enabled
+                        if ns.OnSettingsChanged then ns.OnSettingsChanged() end
+                    elseif ns.OpenConfig then
+                        ns.OpenConfig()
+                    end
+                end,
+                OnTooltipShow = tooltipLines,
+            })
+        end)
+        if not okObj then return false end
+        obj = made
+    end
+
+    -- db.minimap doubles as LibDBIcon's saved table (it uses .hide + .minimapPos).
+    local okReg = pcall(function() iconLib:Register(LDB_NAME, obj, db().minimap) end)
+    if not okReg then return false end
+    ldbIcon = iconLib
+
+    -- LibDBIcon doesn't wire the mouse wheel, so add scroll-to-cycle ourselves.
+    local btn = iconLib.GetMinimapButton and iconLib:GetMinimapButton(LDB_NAME)
+    if btn then
+        btn:EnableMouseWheel(true)
+        btn:SetScript("OnMouseWheel", function(_, delta)
+            if ns.CycleLanguage then ns.CycleLanguage(delta > 0 and 1 or -1) end
+        end)
+    end
+    return true
+end
+
 local function SetupMinimapButton()
-    if minimapButton then ApplyMinimapShown(); return end
     local d = db()
-    -- Generic purple orb (a built-in Blizzard icon, so it also renders on Ascension,
-    -- which won't load custom/loose texture files).
+    if setupLDBButton() then
+        ApplyMinimapShown()
+        return
+    end
+
+    -- Fallback: dependency-free custom button (3.3.5a / Ascension). Generic purple
+    -- orb (a built-in Blizzard icon, so it renders even where loose textures don't).
+    if minimapButton then ApplyMinimapShown(); return end
     minimapButton = Compat.CreateMinimapButton("TonguesOfAzerothMinimapButton", {
         icon = "Interface\\Icons\\INV_Misc_Orb_04",
         onClick = function(mouseButton)
@@ -265,13 +336,7 @@ local function SetupMinimapButton()
             if ns.CycleLanguage then ns.CycleLanguage(delta > 0 and 1 or -1) end
         end,
         onTooltip = function(tt)
-            tt:AddLine("Tongues of Azeroth")
-            tt:AddLine("Language: |cffffffff" .. Language.GetLanguageName(d.language) .. "|r", 0.8, 0.8, 0.8)
-            tt:AddLine("Auto-translate: " .. (d.enabled and "|cff00ff00ON|r" or "|cffff0000OFF|r"), 0.8, 0.8, 0.8)
-            tt:AddLine(" ")
-            tt:AddLine("|cffffffffLeft-click|r  Open settings", 1, 1, 1)
-            tt:AddLine("|cffffffffRight-click|r  Toggle auto-translate", 1, 1, 1)
-            tt:AddLine("|cffffffffScroll|r  Cycle learned languages", 1, 1, 1)
+            tooltipLines(tt)
             tt:AddLine("|cffffffffDrag|r  Move around minimap", 1, 1, 1)
         end,
         onAngleChanged = function(angle)
@@ -329,6 +394,158 @@ local function saveWidgetPosition()
     d.widget.y = y or 0
 end
 
+-- Right-click language menu for the floating widget. A self-contained popup (own
+-- frame + full-screen click-catcher to close on outside click); no Blizzard
+-- globals / UIDropDownMenu, so it renders everywhere and stays taint-free.
+local widgetMenu
+local openWidgetMenu
+
+local function closeWidgetMenu()
+    if widgetMenu then widgetMenu:Hide() end
+end
+
+openWidgetMenu = function()
+    if not langWidget then return end
+    if not widgetMenu then
+        local m = CreateFrame("Frame", "TonguesOfAzerothLangMenu", UIParent)
+        m:SetFrameStrata("FULLSCREEN_DIALOG")
+        m:SetFrameLevel(60)
+        m:SetClampedToScreen(true)
+        m:EnableMouse(true)
+        m:EnableMouseWheel(true)
+        local bg = m:CreateTexture(nil, "BACKGROUND"); bg:SetAllPoints()
+        Compat.SolidTexture(bg, 0.04, 0.04, 0.06, 0.97)
+        Compat.AddBorder(m, 0.5, 0.45, 0.7, 0.95)
+        m.langRows = {}   -- scrollable language list
+        m.footRows = {}   -- pinned footer (auto-translate + settings)
+        m.offset = 0
+        -- Full-screen catcher behind the menu: any click outside a row closes it.
+        local closer = CreateFrame("Button", nil, UIParent)
+        closer:SetFrameStrata("FULLSCREEN_DIALOG")
+        closer:SetFrameLevel(55)
+        closer:SetAllPoints(UIParent)
+        closer:RegisterForClicks("AnyUp")
+        closer:SetScript("OnClick", function() m:Hide() end)
+        closer:Hide()
+        m.closer = closer
+        m:SetScript("OnHide", function() closer:Hide() end)
+        m:SetScript("OnMouseWheel", function(self, delta) if self.Scroll then self:Scroll(delta) end end)
+        widgetMenu = m
+    end
+
+    local m = widgetMenu
+    local d = db()
+    local W, RH, PAD, DIV, MAXV = 190, 22, 6, 8, 10
+
+    local function makeRow(pool, i)
+        local r = pool[i]
+        if not r then
+            r = CreateFrame("Button", nil, m)
+            r:SetHeight(RH)
+            r:EnableMouseWheel(true)
+            local t = r:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+            t:SetPoint("LEFT", 10, 0); t:SetPoint("RIGHT", -10, 0); t:SetJustifyH("LEFT")
+            r.text = t
+            local h = r:CreateTexture(nil, "HIGHLIGHT"); h:SetAllPoints()
+            Compat.SolidTexture(h, 1, 1, 1, 0.18)
+            r:SetScript("OnMouseWheel", function(_, delta) if m.Scroll then m:Scroll(delta) end end)
+            pool[i] = r
+        end
+        return r
+    end
+
+    local items = langItems()   -- full grouped list (every language), same as main dropdown
+    local total = #items
+    local visible = math.max(1, math.min(total, MAXV))
+    local maxOffset = math.max(0, total - visible)
+
+    -- Open scrolled so the active language is already in view.
+    m.offset = 0
+    for i = 1, total do
+        if items[i].value == d.language then
+            m.offset = i - math.floor(visible / 2) - 1
+            break
+        end
+    end
+    if m.offset < 0 then m.offset = 0 end
+    if m.offset > maxOffset then m.offset = maxOffset end
+
+    local function renderLangs()
+        for i = 1, #m.langRows do m.langRows[i]:Hide() end
+        for slot = 1, visible do
+            local item = items[m.offset + slot]
+            if item then
+                local r = makeRow(m.langRows, slot)
+                r:ClearAllPoints()
+                r:SetPoint("TOPLEFT", m, "TOPLEFT", 4, -PAD - (slot - 1) * RH)
+                r:SetPoint("RIGHT", m, "RIGHT", -4, 0)
+                local isCur = (item.value == d.language)
+                r.text:SetText(item.text)
+                if isCur then r.text:SetTextColor(0.4, 0.85, 0.4) else r.text:SetTextColor(0.9, 0.9, 0.9) end
+                r:SetScript("OnClick", function()
+                    db().language = item.value
+                    if ns.OnSettingsChanged then ns.OnSettingsChanged() end
+                    closeWidgetMenu()
+                end)
+                r:Show()
+            end
+        end
+    end
+
+    function m:Scroll(delta)
+        if total <= visible then return end
+        self.offset = self.offset - delta   -- wheel up = earlier entries
+        if self.offset < 0 then self.offset = 0 end
+        if self.offset > maxOffset then self.offset = maxOffset end
+        renderLangs()
+    end
+
+    renderLangs()
+
+    -- Footer pinned below the (scrollable) language list.
+    local footTop = PAD + visible * RH + DIV
+    for i = 1, #m.footRows do m.footRows[i]:Hide() end
+
+    if not m.divider then
+        local dv = m:CreateTexture(nil, "ARTWORK")
+        Compat.SolidTexture(dv, 0.4, 0.38, 0.55, 0.8)
+        dv:SetHeight(1)
+        m.divider = dv
+    end
+    m.divider:ClearAllPoints()
+    m.divider:SetPoint("TOPLEFT", m, "TOPLEFT", 6, -(PAD + visible * RH + DIV / 2))
+    m.divider:SetPoint("TOPRIGHT", m, "TOPRIGHT", -6, -(PAD + visible * RH + DIV / 2))
+
+    local rAuto = makeRow(m.footRows, 1)
+    rAuto:ClearAllPoints()
+    rAuto:SetPoint("TOPLEFT", m, "TOPLEFT", 4, -footTop)
+    rAuto:SetPoint("RIGHT", m, "RIGHT", -4, 0)
+    rAuto.text:SetText(d.enabled and "Auto-translate: |cff66dd66ON|r" or "Auto-translate: |cffdd6666OFF|r")
+    rAuto:SetScript("OnClick", function()
+        local dd = db(); dd.enabled = not dd.enabled
+        if ns.OnSettingsChanged then ns.OnSettingsChanged() end
+        openWidgetMenu()
+    end)
+    rAuto:Show()
+
+    local rSet = makeRow(m.footRows, 2)
+    rSet:ClearAllPoints()
+    rSet:SetPoint("TOPLEFT", m, "TOPLEFT", 4, -(footTop + RH))
+    rSet:SetPoint("RIGHT", m, "RIGHT", -4, 0)
+    rSet.text:SetText("Open settings...")
+    rSet:SetScript("OnClick", function()
+        closeWidgetMenu()
+        if ns.OpenConfig then ns.OpenConfig() end
+    end)
+    rSet:Show()
+
+    m:SetSize(W, footTop + 2 * RH + PAD)
+    m:ClearAllPoints()
+    m:SetPoint("BOTTOM", langWidget, "TOP", 0, 4)
+    m.closer:Show()
+    m:Show()
+end
+
 local function SetupLanguageWidget()
     local d = db()
     if not langWidget then
@@ -380,7 +597,7 @@ local function SetupLanguageWidget()
                     ns.CycleLanguage(1)
                 end
             elseif button == "RightButton" then
-                if ns.OpenConfig then ns.OpenConfig() end
+                if widgetMenu and widgetMenu:IsShown() then closeWidgetMenu() else openWidgetMenu() end
             end
         end)
         f:SetScript("OnEnter", function(self)
@@ -391,7 +608,7 @@ local function SetupLanguageWidget()
             GameTooltip:AddLine("|cffffffffLeft-click|r  Next learned language", 1, 1, 1)
             GameTooltip:AddLine("|cffffffffScroll|r  Cycle languages", 1, 1, 1)
             GameTooltip:AddLine("|cffffffffShift-click|r  Toggle auto-translate", 1, 1, 1)
-            GameTooltip:AddLine("|cffffffffRight-click|r  Open settings", 1, 1, 1)
+            GameTooltip:AddLine("|cffffffffRight-click|r  Language menu", 1, 1, 1)
             GameTooltip:AddLine("|cffffffffDrag|r  Move (unlock in options)", 0.7, 0.7, 0.7)
             GameTooltip:Show()
         end)
@@ -479,6 +696,7 @@ local function BuildMainPanel()
     widgetCheck:SetPoint("TOPLEFT", minimapCheck, "BOTTOMLEFT", 0, -6)
     widgetCheck:SetScript("OnClick", function(self)
         db().widget.enabled = self:GetChecked() and true or false
+        if not db().widget.enabled then closeWidgetMenu() end
         SetupLanguageWidget()
         if widgetLockCheck then widgetLockCheck:SetShown(db().widget.enabled) end
     end)
@@ -671,6 +889,40 @@ local function BuildLearnedPanel()
     local langLabel = learnedPanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     langLabel:SetPoint("TOPLEFT", decodeStyleDropdown, "BOTTOMLEFT", 0, -22)
     langLabel:SetText("Your languages")
+
+    -- Bulk "Learn all" / "Reset all" buttons on the list header row, both gated
+    -- behind a confirmation.
+    local function textButton(parent, w, label, rr, gg, bb)
+        local b = CreateFrame("Button", nil, parent)
+        b:SetSize(w, 22)
+        local bbg = b:CreateTexture(nil, "BACKGROUND"); bbg:SetAllPoints()
+        Compat.SolidTexture(bbg, 0.18, 0.16, 0.24, 1)
+        Compat.AddBorder(b, rr or 0.5, gg or 0.45, bb or 0.7, 0.9)
+        local hl = b:CreateTexture(nil, "HIGHLIGHT"); hl:SetAllPoints()
+        Compat.SolidTexture(hl, 1, 1, 1, 0.15)
+        local t = b:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        t:SetPoint("CENTER"); t:SetText(label)
+        b.label = t
+        return b
+    end
+
+    local learnAllBtn = textButton(learnedPanel, 84, "Learn all", 0.4, 0.6, 0.4)
+    learnAllBtn:SetPoint("LEFT", langLabel, "RIGHT", 20, 0)
+    learnAllBtn:SetScript("OnClick", function()
+        Compat.ShowConfirm({
+            text = "Become fully fluent in ALL languages?\n\nThis instantly sets every language to 100% -- you'll speak and understand all of them perfectly.",
+            onAccept = function() if ns.MakeAllFluent then ns.MakeAllFluent() end end,
+        })
+    end)
+
+    local resetAllBtn = textButton(learnedPanel, 84, "Reset all", 0.7, 0.4, 0.4)
+    resetAllBtn:SetPoint("LEFT", learnAllBtn, "RIGHT", 8, 0)
+    resetAllBtn:SetScript("OnClick", function()
+        Compat.ShowConfirm({
+            text = "Reset ALL languages to 0%?\n\nThis wipes your fluency and every word you've unlocked across all tongues. This cannot be undone.",
+            onAccept = function() if ns.ResetAllFluency then ns.ResetAllFluency() end end,
+        })
+    end)
 
     -- Footer note, pinned to the bottom so the scroll area can size against it.
     local note = learnedPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")

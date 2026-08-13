@@ -2,12 +2,16 @@
 ## Title: Tongues of Azeroth
 ## Notes: Speak the languages of Azeroth (Orcish, Darnassian, Old God, and more), similar to Tongues.
 ## Author: You
-## Version: 0.2.18
+## Version: 0.2.19
 ## SavedVariablesPerCharacter: TonguesOfAzerothDB
 ## X-Curse-Project-ID: 1641225
 ## X-WoWI-ID:
 ## X-Wago-ID:
 
+Libs\LibStub\LibStub.lua
+Libs\CallbackHandler-1.0\CallbackHandler-1.0.lua
+Libs\LibDataBroker-1.1\LibDataBroker-1.1.lua
+Libs\LibDBIcon-1.0\LibDBIcon-1.0.lua
 Compat.lua
 Language.lua
 Accent.lua

@@ -791,13 +791,15 @@ local function listLanguages()
     end
 end
 
-local function setLanguage(id)
+local function setLanguage(id, silent)
     id = string.lower(id or "")
     if Language.IsValid(id) then
         TonguesOfAzerothDB.language = id
-        Print("Language set to |cffffff00" .. Language.GetLanguageName(id) .. "|r.")
+        if not silent then
+            Print("Language set to |cffffff00" .. Language.GetLanguageName(id) .. "|r.")
+        end
         if ns.OnSettingsChanged then ns.OnSettingsChanged() end
-    else
+    elseif not silent then
         Print("Unknown language '|cffff0000" .. id .. "|r'. Use |cffffff00/ogt list|r.")
     end
 end
@@ -932,6 +934,31 @@ function ns.ResetLanguageFluency(langId)
     if ns.RefreshFluencyIfShown then ns.RefreshFluencyIfShown() end
 end
 
+-- Bulk versions for the Learned panel's "Learn all" / "Reset all" buttons. We loop
+-- the primary languages (sub-languages share a parent's fluency) and refresh once.
+function ns.MakeAllFluent()
+    migrateDB()
+    local langs = Language.GetPrimaryLanguages and Language.GetPrimaryLanguages() or {}
+    TonguesOfAzerothDB.learned = TonguesOfAzerothDB.learned or {}
+    for i = 1, #langs do
+        local id = langs[i].id
+        if ns.Trainer and ns.Trainer.SetFluency then ns.Trainer.SetFluency(id, 1) end
+        TonguesOfAzerothDB.learned[id] = true
+    end
+    if ns.RefreshFluencyIfShown then ns.RefreshFluencyIfShown() end
+end
+
+function ns.ResetAllFluency()
+    migrateDB()
+    local langs = Language.GetPrimaryLanguages and Language.GetPrimaryLanguages() or {}
+    for i = 1, #langs do
+        local id = langs[i].id
+        if ns.Trainer and ns.Trainer.ResetFluency then ns.Trainer.ResetFluency(id) end
+        if TonguesOfAzerothDB.learned then TonguesOfAzerothDB.learned[id] = nil end
+    end
+    if ns.RefreshFluencyIfShown then ns.RefreshFluencyIfShown() end
+end
+
 -- Build a copy-safe share code for a saved custom language.
 function ns.ExportCustomLanguage(id)
     migrateDB()
@@ -975,12 +1002,12 @@ function ns.ShareCustomLanguage(id, target)
 end
 
 -- Cycle the spoken language among your known languages. dir = 1 (next) or -1.
+-- Cycling is silent: it fires on the minimap scroll wheel, the floating widget,
+-- and /toa next|prev, so printing every switch floods chat. The active language
+-- is already reflected on the widget / minimap tooltip.
 function ns.CycleLanguage(dir)
     local list = ns.GetKnownLanguages()
-    if #list <= 1 then
-        Print("No other learned languages yet -- learn some in the |cffffff00Language Trainer|r or check them under |cffffff00Learned Languages|r.")
-        return
-    end
+    if #list <= 1 then return end
     dir = dir or 1
     local cur = TonguesOfAzerothDB.language
     local idx = 1
@@ -989,7 +1016,7 @@ function ns.CycleLanguage(dir)
     end
     idx = idx + dir
     if idx > #list then idx = 1 elseif idx < 1 then idx = #list end
-    setLanguage(list[idx])
+    setLanguage(list[idx], true)
 end
 
 local function listLearned()
