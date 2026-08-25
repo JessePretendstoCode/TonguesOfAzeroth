@@ -38,7 +38,7 @@ local DECODE_STYLES = {
 local mainPanel, learnedPanel, accentPanel, customPanel
 local mainContent
 local langDropdown, slider, valueText, enableCheck, previewInput, previewOutput
-local minimapCheck, tagCheck, fluencyCheck, nativeHideCheck, autoDisableCheck
+local minimapCheck, fluencyCheck, nativeHideCheck, autoDisableCheck
 local widgetCheck, widgetLockCheck
 local accentEnableCheck, accentDropdown, accentSlider, accentValueText
 local accentPreviewInput, accentPreviewOutput, accentEmotesCheck
@@ -84,7 +84,7 @@ local function db()
     if TonguesOfAzerothDB.widget.x == nil then TonguesOfAzerothDB.widget.x = 0 end
     if TonguesOfAzerothDB.widget.y == nil then TonguesOfAzerothDB.widget.y = -140 end
     if TonguesOfAzerothDB.outputFrame == nil then TonguesOfAzerothDB.outputFrame = 0 end
-    if TonguesOfAzerothDB.tagLanguage == nil then TonguesOfAzerothDB.tagLanguage = true end
+    TonguesOfAzerothDB.tagLanguage = true
     if TonguesOfAzerothDB.tagFluency == nil then TonguesOfAzerothDB.tagFluency = true end
     if not TonguesOfAzerothDB.accent then TonguesOfAzerothDB.accent = {} end
     if TonguesOfAzerothDB.accent.enabled == nil then TonguesOfAzerothDB.accent.enabled = false end
@@ -196,14 +196,14 @@ end
 -- under "Show floating language bar" so we don't leave a dead ~28px gap -- that
 -- reclaimed space keeps the whole panel inside the options safe zone.
 local function layoutMainWidgetLock()
-    if not (tagCheck and widgetCheck) then return end
+    if not (fluencyCheck and widgetCheck) then return end
     local d = db()
     local barOn = d.widget and d.widget.enabled and true or false
-    tagCheck:ClearAllPoints()
+    fluencyCheck:ClearAllPoints()
     if barOn and widgetLockCheck then
-        tagCheck:SetPoint("TOPLEFT", widgetLockCheck, "BOTTOMLEFT", -16, -6)
+        fluencyCheck:SetPoint("TOPLEFT", widgetLockCheck, "BOTTOMLEFT", -16, -6)
     else
-        tagCheck:SetPoint("TOPLEFT", widgetCheck, "BOTTOMLEFT", 0, -6)
+        fluencyCheck:SetPoint("TOPLEFT", widgetCheck, "BOTTOMLEFT", 0, -6)
     end
 end
 
@@ -218,7 +218,6 @@ local function RefreshMain()
         widgetLockCheck:SetShown(d.widget.enabled and true or false)
     end
     layoutMainWidgetLock()
-    if tagCheck then tagCheck:SetChecked(d.tagLanguage ~= false) end
     if fluencyCheck then fluencyCheck:SetChecked(d.tagFluency ~= false) end
     if nativeHideCheck then nativeHideCheck:SetChecked(d.hideNativeLanguages and true or false) end
     if autoDisableCheck then autoDisableCheck:SetChecked(d.autoDisableInInstances ~= false) end
@@ -804,21 +803,18 @@ local function BuildMainPanel()
         db().widget.locked = self:GetChecked() and true or false
     end)
 
-    tagCheck = Compat.CreateCheckbox(content, "Prefix messages with [Language]")
-    tagCheck:SetPoint("TOPLEFT", widgetLockCheck, "BOTTOMLEFT", -16, -8)
-    tagCheck:SetScript("OnClick", function(self)
-        db().tagLanguage = self:GetChecked() and true or false
-    end)
-
-    fluencyCheck = Compat.CreateCheckbox(content, "Show fluency in tag (Broken / Partial / Fluent / Perfect)")
-    fluencyCheck:SetPoint("TOPLEFT", tagCheck, "BOTTOMLEFT", 16, -6)
+    -- The [Language] tag itself is always on (it's what lets other players decode
+    -- your speech reliably), so it isn't exposed as a setting. Only the optional
+    -- fluency adjective prefix is configurable.
+    fluencyCheck = Compat.CreateCheckbox(content, "Show fluency in tag (e.g. [Broken Orcish])")
+    fluencyCheck:SetPoint("TOPLEFT", widgetLockCheck, "BOTTOMLEFT", -16, -8)
     fluencyCheck:SetScript("OnClick", function(self)
         db().tagFluency = self:GetChecked() and true or false
         refreshPreview()
     end)
 
     nativeHideCheck = Compat.CreateCheckbox(content, "Hide languages my race already speaks")
-    nativeHideCheck:SetPoint("TOPLEFT", fluencyCheck, "BOTTOMLEFT", -16, -8)
+    nativeHideCheck:SetPoint("TOPLEFT", fluencyCheck, "BOTTOMLEFT", 0, -8)
     nativeHideCheck:SetScript("OnClick", function(self)
         db().hideNativeLanguages = self:GetChecked() and true or false
         if ns.EnsureSpeakLanguageVisible then ns.EnsureSpeakLanguageVisible() end

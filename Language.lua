@@ -540,6 +540,13 @@ end
 --=========================================================================--
 local generateCache = {}
 
+-- Per-language memo of decoded words: DECODE_WORD_CACHE[langId][wordLower] =
+-- sourceLower | false. Chat repeats vocabulary constantly and resolving one word
+-- means re-encoding hundreds of candidates, so this turns the common case into a
+-- single hash hit. Invalidated for a language whenever its reverse map or its
+-- custom definition changes.
+local DECODE_WORD_CACHE = {}
+
 local function generateWord(lower, lang)
     -- Seed from the shared wordset id so sub-languages generate identically to
     -- their parent (and share the cache).
@@ -720,6 +727,7 @@ function Language.RegisterCustom(def)
     for k in pairs(generateCache) do
         if strsub(k, 1, #id + 1) == id .. ":" then generateCache[k] = nil end
     end
+    DECODE_WORD_CACHE[id] = nil
     return true, id
 end
 
@@ -733,6 +741,7 @@ function Language.UnregisterCustom(langId)
     for k in pairs(generateCache) do
         if strsub(k, 1, #langId + 1) == langId .. ":" then generateCache[k] = nil end
     end
+    DECODE_WORD_CACHE[langId] = nil
     return true
 end
 
@@ -1036,12 +1045,18 @@ local function addReverseEntry(langId, outputLower, sourceLower)
         map = {}
         REVERSE[langId] = map
     end
+    -- `changed` gates the decode-memo flush below. This runs for every word we
+    -- encode while speaking, so flushing unconditionally would keep throwing away
+    -- a cache we just built; only a genuinely new mapping can alter a decode.
+    local changed = false
     local existing = map[outputLower]
     if not existing then
         map[outputLower] = sourceLower
+        changed = true
     elseif type(existing) == "string" then
         if existing ~= sourceLower then
             map[outputLower] = { existing, sourceLower }
+            changed = true
         end
     else
         local found = false
@@ -1050,7 +1065,11 @@ local function addReverseEntry(langId, outputLower, sourceLower)
         end
         if not found then
             existing[#existing + 1] = sourceLower
+            changed = true
         end
+    end
+    if changed then
+        DECODE_WORD_CACHE[langId] = nil
     end
 end
 
@@ -1081,11 +1100,18 @@ local function buildReverseMaps(forwardFn)
     end
 end
 
-local function wordFrequencyScore(lower)
-    for i = 1, #COMMON_WORDS do
-        if COMMON_WORDS[i] == lower then return i end
+-- Frequency rank of each common word, built once. This used to linear-scan
+-- COMMON_WORDS on every call -- and it is called from inside sort comparators,
+-- which made candidate ranking quadratic and was a major source of chat lag.
+local COMMON_WORD_RANK = {}
+for i = 1, #COMMON_WORDS do
+    if COMMON_WORD_RANK[COMMON_WORDS[i]] == nil then
+        COMMON_WORD_RANK[COMMON_WORDS[i]] = i
     end
-    return 5000 + #lower
+end
+
+local function wordFrequencyScore(lower)
+    return COMMON_WORD_RANK[lower] or (5000 + #lower)
 end
 
 local origTranslateWord = Language.TranslateWord
@@ -1133,21 +1159,30 @@ local function getMappedCandidates(outputWord, langId)
         add(COMMON_WORDS[j])
     end
 
-    table.sort(list, function(a, b)
-        local function priority(src)
-            local score = wordFrequencyScore(src)
-            local entry = REVERSE[langId] and REVERSE[langId][lower]
-            if type(entry) == "table" then
-                for i = 1, #entry do
-                    if entry[i] == src then return score - i * 10000 end
-                end
-            elseif entry == src then
-                return score - 10000
-            end
-            return score
+    -- Words the reverse map actually maps to `lower` outrank generic candidates,
+    -- earlier entries most of all. Resolve that bonus ONCE up front: it used to be
+    -- recomputed (with a linear scan of the entry list) on every comparison.
+    local mapEntry = REVERSE[langId] and REVERSE[langId][lower]
+    local bonus
+    if type(mapEntry) == "table" then
+        bonus = {}
+        for i = 1, #mapEntry do
+            if bonus[mapEntry[i]] == nil then bonus[mapEntry[i]] = i * 10000 end
         end
-        return priority(a) < priority(b)
-    end)
+    end
+
+    local function priority(src)
+        local score = wordFrequencyScore(src)
+        if bonus then
+            local b = bonus[src]
+            if b then return score - b end
+        elseif mapEntry == src then
+            return score - 10000
+        end
+        return score
+    end
+
+    table.sort(list, function(a, b) return priority(a) < priority(b) end)
 
     return list
 end
@@ -1158,9 +1193,25 @@ local function findSourceWord(outputWord, langId)
 end
 
 function Language.DecodeWord(word, langId)
+    local key = strlower(word)
+    local cache = DECODE_WORD_CACHE[langId]
+    if not cache then
+        cache = {}
+        DECODE_WORD_CACHE[langId] = cache
+    end
+
+    local memo = cache[key]
+    if memo ~= nil then
+        if memo == false then return word end
+        return applyCase(word, memo)
+    end
+
     local source = findSourceWord(word, langId)
-    if not source then return word end
-    if strlower(origTranslateWord(source, langId)) ~= strlower(word) then return word end
+    if not source or strlower(origTranslateWord(source, langId)) ~= key then
+        cache[key] = false
+        return word
+    end
+    cache[key] = source
     return applyCase(word, source)
 end
 

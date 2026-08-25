@@ -246,12 +246,13 @@ local function migrateDB()
     if db.outputFrame == nil then
         db.outputFrame = 0
     end
-    -- Prepend "[Language] " to translated messages so everyone can see the tongue.
-    if db.tagLanguage == nil then
-        db.tagLanguage = true
-    end
+    -- The "[Language] " tag is always on (non-configurable): it's the signal
+    -- receivers rely on to decode without false-positiving on plain chat. Force it
+    -- true so a saved-var that previously had it off still behaves consistently.
+    db.tagLanguage = true
     -- Include a fluency adjective in that tag (Broken/Partial/Fluent) based on
-    -- your Language Trainer progress for the spoken language.
+    -- your Language Trainer progress for the spoken language. This prefix stays
+    -- optional (see the "Show fluency in tag" checkbox).
     if db.tagFluency == nil then
         db.tagFluency = true
     end
@@ -556,9 +557,11 @@ local function transformOutgoing(msg, sendType, channel)
         if out ~= msg then
             -- Cache/sync the UNTAGGED mapping so decoding still matches.
             sendDecodePayload(msg, out, langId, strength, sendType, channel)
-            if db.tagLanguage ~= false then
-                out = fit(languageTag(langId) .. out)
-            end
+            -- The "[Language]" tag is always applied: it's the signal receivers use
+            -- to know the line is encoded (and in which tongue) so they can decode
+            -- it without false-positiving on ordinary chat. Deliberately not
+            -- user-configurable; only the fluency adjective prefix is optional.
+            out = fit(languageTag(langId) .. out)
             return out, true
         end
         return out, false
@@ -718,9 +721,7 @@ local function speak(msg, chatType, channel)
     local out = translated
     if translated ~= msg then
         sendDecodePayload(msg, translated, langId, strength, chatType or "SAY", channel)
-        if TonguesOfAzerothDB and TonguesOfAzerothDB.tagLanguage ~= false then
-            out = fit(languageTag(langId) .. translated)
-        end
+        out = fit(languageTag(langId) .. translated)
     end
     if orig_SendChatMessage then
         orig_SendChatMessage(out, chatType or "SAY", nil, channel)
@@ -731,7 +732,18 @@ end
 --=========================================================================--
 --  Learned-language decode on incoming chat.
 --=========================================================================--
-local function tryDecodeMessage(message)
+-- Decode an incoming line. `taggedLangId` (optional) is the language resolved from
+-- a recognized "[Language]" tag on the line; `force` (optional) is set by the
+-- /ogt decode command to try every language regardless.
+--
+-- IMPORTANT: speculative word-by-word decoding CAN false-positive on ordinary
+-- English -- a plain word may coincidentally be a generated language's encoding of
+-- some other word -- which would rewrite and tag the chat of players who don't even
+-- run the addon. So the only thing we ever do to an untagged, uncached line is an
+-- exact cache lookup (whose keys are the exact garbled strings ToA produces, which
+-- plain English cannot hit). Word-by-word/partial decoding runs only when we have
+-- proof the line is encoded: a matching tag, or an explicit /ogt decode.
+local function tryDecodeMessage(message, taggedLangId, force)
     migrateDB()
     local learned = TonguesOfAzerothDB.learned or {}
     local trainerWords = (TonguesOfAzerothDB.trainer and TonguesOfAzerothDB.trainer.words) or {}
@@ -754,7 +766,9 @@ local function tryDecodeMessage(message)
 
     local langs = Language.GetLanguages()
 
-    -- 1) Fully-understood (checked) languages: exact cached mapping first...
+    -- 1) Exact cached mapping for fully-understood languages. This is the only
+    --    path allowed to run on untagged text: its keys are the exact garbled
+    --    strings ToA produces, so ordinary English never matches.
     local bestDecoded, bestScore, bestLangId, bestLangName
     for i = 1, #langs do
         if isChecked(langs[i]) then
@@ -765,40 +779,56 @@ local function tryDecodeMessage(message)
             end
         end
     end
-    -- ...then approximate word-by-word decode for generated languages (their
-    -- output is exotic enough not to false-positive on ordinary chat; authentic
-    -- word-list languages stay cache/sync-based to avoid collision guesses).
-    if not bestDecoded then
-        for i = 1, #langs do
-            if isChecked(langs[i]) and Language.IsGenerated(langs[i].id) then
-                local decoded, count = Language.DecodeWordwise(message, langs[i].id)
-                if decoded and (not bestScore or count > bestScore) then
-                    bestDecoded, bestScore = decoded, count
-                    bestLangId, bestLangName = langs[i].id, langs[i].name
-                end
-            end
-        end
-    end
     if bestDecoded then
         return bestDecoded, bestScore, bestLangId, bestLangName
     end
 
-    -- 2) Unchecked languages: only reveal the specific words you've unlocked in
-    --    the trainer. This works for every language (generated or word-list).
-    local bestCount
-    for i = 1, #langs do
-        if not isChecked(langs[i]) then
-            local allowed = unlockedSet(langs[i])
+    -- No exact match. Everything below is a guess, so it needs proof (see above).
+    if not (force or taggedLangId) then
+        return nil
+    end
+
+    -- Approximate word-by-word decode for a fully-understood generated language.
+    local function tryWordwise(entry)
+        if isChecked(entry) and Language.IsGenerated(entry.id) then
+            local decoded, count = Language.DecodeWordwise(message, entry.id)
+            if decoded and (not bestScore or count > bestScore) then
+                bestDecoded, bestScore = decoded, count
+                bestLangId, bestLangName = entry.id, entry.name
+            end
+        end
+    end
+
+    -- Reveal only the specific words you've unlocked for it in the trainer.
+    local function tryPartial(entry)
+        if not isChecked(entry) then
+            local allowed = unlockedSet(entry)
             if allowed then
-                local decoded, count = Language.DecodePartial(message, langs[i].id, allowed)
-                if decoded and (not bestCount or count > bestCount) then
-                    bestDecoded, bestCount = decoded, count
-                    bestLangId, bestLangName = langs[i].id, langs[i].name
+                local decoded, count = Language.DecodePartial(message, entry.id, allowed)
+                if decoded and (not bestScore or count > bestScore) then
+                    bestDecoded, bestScore = decoded, count
+                    bestLangId, bestLangName = entry.id, entry.name
                 end
             end
         end
     end
-    return bestDecoded, bestCount, bestLangId, bestLangName
+
+    if force then
+        for i = 1, #langs do tryWordwise(langs[i]) end
+        if not bestDecoded then
+            for i = 1, #langs do tryPartial(langs[i]) end
+        end
+    else -- taggedLangId: the tag tells us the tongue, so only try that one.
+        for i = 1, #langs do
+            if langs[i].id == taggedLangId then
+                tryWordwise(langs[i])
+                if not bestDecoded then tryPartial(langs[i]) end
+                break
+            end
+        end
+    end
+
+    return bestDecoded, bestScore, bestLangId, bestLangName
 end
 
 local function showDecode(sender, original, decoded, langId, langName)
@@ -877,9 +907,13 @@ local function onIncomingChat(event, message, sender)
 
     -- Strip a leading "[Language] " flavor tag (ours or another ToA user's) so
     -- decoding sees the raw encoded text that matches the cached mapping.
+    -- A tag naming a language we know is proof the line is encoded, which unlocks
+    -- speculative decoding for that language (see tryDecodeMessage).
+    local tag = message:match("^%[([^%]]+)%]%s+")
     local stripped = message:gsub("^%[[^%]]+%]%s+", "")
+    local taggedLangId = tag and passiveLangIdFromTag(tag) or nil
 
-    local bestDecoded, bestScore, bestLangId, bestLangName = tryDecodeMessage(stripped)
+    local bestDecoded, bestScore, bestLangId, bestLangName = tryDecodeMessage(stripped, taggedLangId)
     if bestDecoded then
         showDecode(sender, stripped, bestDecoded, bestLangId, bestLangName)
     end
@@ -951,8 +985,10 @@ local function inlineChatFilter(_, event, msg, sender, ...)
     local chatType = CHAT_EVENTS[event]
     if not chatType or not ns.IsChannelEnabled(chatType) then return false end
 
+    local tag = msg:match("^%[([^%]]+)%]%s+")
     local stripped = msg:gsub("^%[[^%]]+%]%s+", "")
-    local decoded, _, _, langName = tryDecodeMessage(stripped)
+    local taggedLangId = tag and passiveLangIdFromTag(tag) or nil
+    local decoded, _, _, langName = tryDecodeMessage(stripped, taggedLangId)
     if not decoded or decoded == stripped then return false end
 
     local marker = "|cff9a7cff[" .. (langName or "?") .. "]|r "
@@ -1308,7 +1344,7 @@ local function testDecode(input)
         return
     end
 
-    local decoded, inferredStrength, bestLangId, bestLangName = tryDecodeMessage(text)
+    local decoded, inferredStrength, bestLangId, bestLangName = tryDecodeMessage(text, nil, true)
     if decoded then
         showDecodeResult(text, decoded, bestLangId, bestLangName, inferredStrength)
     else
@@ -1443,7 +1479,7 @@ local function usage()
     Print("  |cffffff00/ogt fluency <0-100>|r  - set your fluency (= how you speak it) in the current language")
     Print("  |cffffff00/ogt minimap|r  - show/hide the minimap button")
     Print("  |cffffff00/ogt output <1-N|default>|r  - send translations to a chat window")
-    Print("  |cffffff00/ogt tag [on|off]|r  - prefix messages with [Language]")
+    Print("  |cffffff00/ogt tag [on|off]|r  - show fluency in the [Language] tag (e.g. [Broken Orcish])")
     Print("  |cffffff00/ogt game|r  - play the Decipher language trainer")
     Print("  |cffffff00/ogt accent [on|off|<id>|list]|r  - speak in a dialect accent")
     Print("  |cffffff00/ogt accentstrength <0-100>|r  - set accent thickness")
@@ -1566,19 +1602,22 @@ local function handleSlash(input)
             Print("Accent strength is |cffffff00" .. (TonguesOfAzerothDB.accent.strength or 100) .. "%|r. Use /ogt accentstrength <0-100>.")
         end
         if ns.OnSettingsChanged then ns.OnSettingsChanged() end
-    elseif cmd == "tag" or cmd == "langtag" then
+    elseif cmd == "tag" or cmd == "langtag" or cmd == "fluencytag" then
+        -- The [Language] tag itself is always on (not configurable); this only
+        -- toggles the optional fluency adjective prefix, e.g. [Broken Orcish].
         migrateDB()
         local arg = string.lower(rest or "")
         if arg == "on" then
-            TonguesOfAzerothDB.tagLanguage = true
+            TonguesOfAzerothDB.tagFluency = true
         elseif arg == "off" then
-            TonguesOfAzerothDB.tagLanguage = false
+            TonguesOfAzerothDB.tagFluency = false
         else
-            TonguesOfAzerothDB.tagLanguage = not TonguesOfAzerothDB.tagLanguage
+            TonguesOfAzerothDB.tagFluency = not TonguesOfAzerothDB.tagFluency
         end
-        Print("Language tag " .. (TonguesOfAzerothDB.tagLanguage
-            and "|cff00ff00ON|r (messages start with [Language])"
-            or "|cffff0000OFF|r") .. ".")
+        Print("Messages always start with [Language]. Fluency prefix "
+            .. (TonguesOfAzerothDB.tagFluency
+                and "|cff00ff00ON|r (e.g. [Broken Orcish])"
+                or "|cffff0000OFF|r") .. ".")
         if ns.OnSettingsChanged then ns.OnSettingsChanged() end
     elseif cmd == "game" or cmd == "learn" or cmd == "trainer" or cmd == "wordle" then
         if ns.OpenTrainer then ns.OpenTrainer() end

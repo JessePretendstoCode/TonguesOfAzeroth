@@ -2,6 +2,37 @@
 
 All notable changes to Tongues of Azeroth are documented here.
 
+## [0.2.21]
+- **Fixed plain English being rewritten and tagged as a language.** Chat from
+  players who don't even run ToA could be partially rewritten and stamped with a
+  tag like `[Gilnean (Codespeak)]`. The cause: for every incoming line ToA tried a
+  speculative word-by-word decode against each language you had learned, and an
+  ordinary English word can coincidentally be some generated language's encoding
+  of a *different* word -- so real sentences got "decoded" into nonsense. Using
+  "Learn all" made it far worse, since every extra learned tongue added more
+  chances to collide. Decoding now requires proof the line really is encoded:
+  either an exact cached mapping (delivered by the sender's addon-sync or your own
+  round-trip, whose keys plain English cannot match) or a recognized `[Language]`
+  tag -- and when there is a tag, only that one tongue is tried. Untagged,
+  uncached lines are left exactly as sent. `/ogt decode` still tries every
+  language on request.
+- **The `[Language]` tag is now always on.** It is the signal other players'
+  clients rely on to know a line is encoded and which tongue it is in, so it is no
+  longer a setting that can be switched off (turning it off silently stopped
+  others from decoding you). The "Prefix messages with [Language]" checkbox is
+  gone, and a saved setting that had it off is corrected on load. The **fluency
+  prefix** stays optional: keep "Show fluency in tag" ticked for
+  `[Broken Orcish]`, untick it for a plain `[Orcish]`. `/ogt tag on|off` now
+  toggles that prefix.
+- **Decoding performance.** Ranking candidate words used a linear scan of the
+  whole common-word list, and it was called from inside sort comparators -- so
+  ranking a single word was quadratic, which is what made busy chat lag once you
+  had languages learned. That lookup is now a prebuilt O(1) rank table, the
+  per-comparison bonus is resolved once up front instead of on every comparison,
+  and decoded words are memoized per language (invalidated only when that
+  language's reverse map actually gains a mapping). Decode results are unchanged.
+- **Options panel alignment.** Removing the tag checkbox left the checkboxes below
+  it indented a step too far left; they line up again.
 ## [0.2.20]
 - **Auto-disable during instances (and re-enable on leaving).** Blizzard blocks
   addons from reading chat during boss fights, so ToA can't translate or decode
