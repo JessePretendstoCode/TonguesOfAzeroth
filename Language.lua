@@ -40,11 +40,15 @@ local MAX_WORD_LEN = 18 -- Blizzard caps parser lookups at 18 letters.
 --=========================================================================--
 local LANGUAGES = {}
 local LANGUAGE_ORDER = {}
+-- Memoised result of GetLanguages(); rebuilt lazily and cleared whenever a new
+-- language is registered (including runtime custom/imported languages).
+local languageListCache = nil
 
 local function register(id, def)
     def.id = id
     LANGUAGES[id] = def
     LANGUAGE_ORDER[#LANGUAGE_ORDER + 1] = id
+    languageListCache = nil
 end
 
 --=========================================================================--
@@ -478,8 +482,10 @@ G("sylvan", "Sylvan", 0.05,
     { "a", "e", "i", "ae", "ia", "ee" },
     { "n", "l", "r", "th", "s", "ll", "dr" })
 
---  Sub-languages (aliases sharing their parent's word set).
-alias("troll",     "Troll (Zandali)",       "zandali")
+--  Sub-languages (aliases sharing their parent's word set). Note there is no
+--  generic "Troll" alias: Zandali *is* the trolls' racial tongue, so a separate
+--  "Troll (Zandali)" entry was just a redundant duplicate of "Zandali (Troll)".
+--  The tribe dialects below are distinct flavors that share Zandali's sound.
 alias("amani",     "Amani (Troll)",         "zandali")
 alias("gurubashi", "Gurubashi (Troll)",     "zandali")
 alias("drakkari",  "Drakkari (Troll)",      "zandali")
@@ -607,12 +613,14 @@ local function resolveLang(langId)
 end
 
 function Language.GetLanguages()
+    if languageListCache then return languageListCache end
     local out = {}
     for i = 1, #LANGUAGE_ORDER do
         local id = LANGUAGE_ORDER[i]
         local l = LANGUAGES[id]
         out[i] = { id = id, name = l.name, sub = l.sub or false, parent = l.parent }
     end
+    languageListCache = out
     return out
 end
 
@@ -863,6 +871,8 @@ local function protectSegments(text)
     local out = text:gsub("|c%x+|H.-|h.-|h|r", stash)
     -- Any remaining [bracketed] text (should not be translated).
     out = out:gsub("%b[]", stash)
+    -- (Parenthetical) OOC asides are left in plain speech, not translated.
+    out = out:gsub("%b()", stash)
     return out, saved
 end
 
@@ -927,6 +937,12 @@ function Language.TranslateText(text, strength, langId, remember)
     strength = strength or 100
     if strength <= 0 then return text end
     local lang = resolveLang(langId)
+    -- Common is the shared, universally-understood tongue: speaking it should
+    -- read as plain text to everyone, not a garbled substitution. So Common
+    -- (and any dialect built on it, e.g. Low Common) passes straight through.
+    if lang.id == "common" or lang.parent == "common" then
+        return text
+    end
     local protected, saved = protectSegments(text)
     local translated = protected:gsub(WORD_PATTERN, function(word)
         if Language.WordTranslates(word, strength) then

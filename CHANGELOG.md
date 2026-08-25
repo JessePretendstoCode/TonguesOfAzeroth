@@ -2,6 +2,66 @@
 
 All notable changes to Tongues of Azeroth are documented here.
 
+## [0.2.20]
+- **Auto-disable during instances (and re-enable on leaving).** Blizzard blocks
+  addons from reading chat during boss fights, so ToA can't translate or decode
+  there. New option **"Automatically disable during instances"** (on by default)
+  cleanly switches ToA off when you enter an instance and turns it back on when
+  you leave -- so you never send text others can't decode, and it's obvious this
+  is a game restriction, not a bug. You get a short on-screen + chat notice on
+  entry and exit. A persistent note at the top of the options panel explains the
+  boss-fight limitation. Toggle with the checkbox or `/toa autodisable on|off`.
+- **Fixed a Retail (Midnight, 12.0) error on incoming chat.** On modern retail,
+  chat text and sender names from other players can arrive as protected "secret"
+  values (notably inside instances) that addons aren't allowed to read -- ToA was
+  throwing `attempt to compare ... a secret string value` when it tried to decode
+  them. ToA now detects secret values (`issecretvalue`) and skips them cleanly:
+  such messages are shown exactly as the game delivers them (they can't be
+  decoded), and everything else works as before. No effect on older clients.
+- **Hide languages your race already speaks.** New option (on by default, under
+  the main panel) that removes the tongues your character natively knows in-game
+  from ToA's language lists -- the speak dropdown, the Learned Languages tab, and
+  the Language Trainer. A Human no longer sees Common, an Orc no longer sees
+  Orcish, a Zandalari Troll no longer sees Zandali (or Orcish), and so on for
+  every race. Speaking a language your race already knows is handled by WoW
+  itself, so ToA now focuses on the tongues you *can't* already speak. Detected
+  from WoW's own known-language list by locale-independent language ID, so it
+  works on every client language and every race. `/ogt lang` still knows every
+  language, and you can turn the option off if you'd rather see the full list.
+- **Removed the duplicate "Troll" language.** Zandali *is* the trolls' racial
+  tongue, so the separate "Troll (Zandali)" entry was just a redundant copy of
+  "Zandali (Troll)" and has been dropped for everyone. The tribal flavors --
+  Amani, Gurubashi and Drakkari -- remain, so trolls still get those but no
+  longer see Zandali twice (and, with race-hiding on, don't see Zandali at all).
+  Anyone previously speaking/learning the old "Troll" entry is moved to Zandali.
+- **Common now reads as plain speech.** Speaking the Common tongue no longer
+  substitutes words -- since everyone in Azeroth understands Common, it's sent
+  as your normal text instead of looking garbled to other players. (Low Common
+  behaves the same.)
+- **OOC text in (parentheses) is never transformed.** Anything inside `( ... )`
+  is left exactly as typed for both accents and language translation, so
+  out-of-character asides read normally.
+- **Per-channel accent toggles.** The Accents tab now has its own channel grid,
+  independent of the main panel's channels, so you can keep your accent on for
+  say/yell while turning it off for raid/party (or any other channel). The
+  Accents tab is scrollable so everything fits.
+- **Accent on emotes now covers `/e` *and* inline `*actions*`.** The **"Also
+  apply accent to emotes"** option (off by default) governs both `/emote` lines
+  and asterisk-wrapped `*actions*` in normal chat: off leaves them as plain
+  speech, on gives them the accent too. (The `/e` half of this option now
+  actually works -- previously it never fired.)
+- **Dwarven accent cleanup.** Removed the ill-fitting `", ye ken?"` sentence tail
+  (following `", lad."` and `", ah tell ye."` in earlier passes). The Dwarven
+  accent now only adds the natural, gender-neutral `", aye."` flourish.
+- **Performance.** The per-message database migration check now latches once it's
+  done instead of re-validating ~40 settings on every chat line, and the language
+  list used for decoding is cached instead of rebuilt for every message received.
+- **Main options panel now scrolls.** The main settings page is wrapped in a
+  scroll region with a slim scrollbar (mouse-wheel too), so the layout -- right
+  down to the live preview -- always stays inside the options window instead of
+  spilling past the bottom, and the spacing is roomier again. The scrollbar only
+  appears when the content is taller than the window.
+
 ## [0.2.19]
 - **Minimap button now uses LibDBIcon.** On modern clients the button is driven by
   the standard LibDBIcon library (bundled), so it's placed exactly like every other

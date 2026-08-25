@@ -507,11 +507,17 @@ local function build()
     local pickDD = Compat.CreateDropdown(f, 210)
     pickDD:SetPoint("LEFT", pickLabel, "RIGHT", 8, 0)
     local items = {}
-    local primaries = Language.GetPrimaryLanguages()
+    local primaries = (ns.GetSpeakablePrimaryLanguages and ns.GetSpeakablePrimaryLanguages())
+        or Language.GetPrimaryLanguages()
     for i = 1, #primaries do
         items[i] = { text = primaries[i].name, value = primaries[i].id }
     end
     pickDD:SetItems(items)
+    -- If the trainer was pointed at a language your race natively speaks (now
+    -- hidden), fall back to the first trainable tongue.
+    if ns.IsNativeLanguage and ns.IsNativeLanguage(DB().lang) and primaries[1] then
+        DB().lang = primaries[1].id
+    end
     pickDD:SetSelected(DB().lang, Language.GetLanguageName(DB().lang))
     pickDD.onSelect = function(value)
         DB().lang = value

@@ -16,6 +16,23 @@ local Compat = ns.Compat
 
 local MAX_MESSAGE = 255
 
+-- Retail 12.0 (Midnight) "secret values": chat text/sender from other players
+-- (e.g. inside instances) can arrive as opaque values that tainted addon code
+-- is forbidden to read, compare, gsub or even boolean-test -- doing so throws a
+-- hard Lua error. issecretvalue() is the sanctioned way to detect them (nil on
+-- older clients, where nothing is ever secret). We can't decode what we can't
+-- read, so callers bail cleanly when a value is secret.
+local _issecretvalue = issecretvalue
+local function isSecret(v)
+    return _issecretvalue ~= nil and _issecretvalue(v) == true
+end
+
+-- Set true while we're inside an instance and the "auto-disable in instances"
+-- option is on. When set, ToA leaves chat completely alone (no translate/accent
+-- outgoing, no decode incoming) and flips back off automatically on leaving.
+local instanceSuppressed = false
+function ns.IsInstanceSuppressed() return instanceSuppressed end
+
 local CHAT_TYPE_ALIASES = {
     PARTY_LEADER = "PARTY",
     RAID_LEADER  = "RAID",
@@ -162,7 +179,15 @@ local function Print(msg)
     addToChat(PREFIX .. msg, "system")
 end
 
+-- Latches true once migration is fully done. migrateDB() is called on the hot
+-- path (every incoming AND outgoing chat message), so after the one-time work is
+-- complete we skip the whole body instead of re-checking ~40 fields per message.
+-- We only latch once the *deferred* fluency migration has run (it needs the
+-- Trainer module, which loads after this file), so nothing is missed.
+local dbFullyMigrated = false
+
 local function migrateDB()
+    if dbFullyMigrated then return end
     if TonguesOfAzerothDB == nil and OldGodTonguesDB ~= nil then
         TonguesOfAzerothDB = OldGodTonguesDB
     end
@@ -178,6 +203,13 @@ local function migrateDB()
 
     if db.enabled == nil then
         db.enabled = false
+    end
+    -- The redundant generic "troll" language was merged into "zandali"; carry
+    -- over anyone who was speaking/learning it so nothing silently resets.
+    if db.language == "troll" then db.language = "zandali" end
+    if db.learned and db.learned["troll"] then
+        db.learned["zandali"] = true
+        db.learned["troll"] = nil
     end
     if db.language == nil or not Language.IsValid(db.language) then
         db.language = Language.DEFAULT
@@ -223,6 +255,23 @@ local function migrateDB()
     if db.tagFluency == nil then
         db.tagFluency = true
     end
+    -- Hide the tongues your race already speaks in-game (Common for a Human,
+    -- Orcish + Taur-ahe for a Tauren, ...) from the speak list. Display-only.
+    if db.hideNativeLanguages == nil then
+        db.hideNativeLanguages = true
+    end
+    -- Automatically switch ToA off while inside an instance (and back on when you
+    -- leave). Blizzard's "secret" chat protection blocks addons from reading chat
+    -- during boss fights, so translations can't be decoded there. On by default;
+    -- toggle with /toa autodisable or the options checkbox.
+    if db.autoDisableInInstances == nil then
+        -- Carry over the old warn-only flag if the player had turned it off.
+        if db.warnInstances == false then
+            db.autoDisableInInstances = false
+        else
+            db.autoDisableInInstances = true
+        end
+    end
     if not db.minimap then
         db.minimap = {}
     end
@@ -258,8 +307,18 @@ local function migrateDB()
     if not db.accent then db.accent = {} end
     if db.accent.enabled == nil then db.accent.enabled = false end
     if db.accent.strength == nil then db.accent.strength = 100 end
+    -- Emotes describe an action ("/e waves"), so accenting them reads oddly.
+    -- Off by default; players can opt in on the Accents tab.
+    if db.accent.emotes == nil then db.accent.emotes = false end
     if db.accent.id == nil or not (ns.Accent and ns.Accent.IsValid(db.accent.id)) then
         db.accent.id = (ns.Accent and ns.Accent.DEFAULT) or "dwarf"
+    end
+    -- Per-channel accent toggles, independent of the language channel list, so
+    -- you can (say) keep your accent out of raid/party while it stays on for
+    -- say/yell. Default on for every channel (matches how accents behaved before).
+    if not db.accent.channels then db.accent.channels = {} end
+    for _, ch in ipairs(CHANNEL_TYPES) do
+        if db.accent.channels[ch] == nil then db.accent.channels[ch] = true end
     end
 
     -- One-time: enable all channel toggles (older saves may have some off).
@@ -269,6 +328,10 @@ local function migrateDB()
         end
         db.channelDefaultsVersion = 2
     end
+
+    -- Only stop re-running once the Trainer-dependent fluency migration is done;
+    -- until then we keep re-entering so it can finish when Trainer is available.
+    if db.fluencyMigrated then dbFullyMigrated = true end
 end
 
 function ns.IsChannelEnabled(chatType)
@@ -276,6 +339,19 @@ function ns.IsChannelEnabled(chatType)
     chatType = normalizeChatType(chatType)
     if not TonguesOfAzerothDB or not TonguesOfAzerothDB.channels then return false end
     return TonguesOfAzerothDB.channels[chatType] and true or false
+end
+
+-- Whether the *accent* should apply on this channel. Independent of the language
+-- channel list. Missing entries default to on. (EMOTE is handled separately by
+-- the dedicated emote toggle, not here.)
+function ns.IsAccentChannelEnabled(chatType)
+    migrateDB()
+    chatType = normalizeChatType(chatType)
+    local db = TonguesOfAzerothDB
+    if not db or not db.accent or not db.accent.channels then return true end
+    local v = db.accent.channels[chatType]
+    if v == nil then return true end
+    return v and true or false
 end
 
 -- Speaking strength for the language you're speaking IS your fluency in it: a
@@ -296,6 +372,122 @@ local function getStrength()
     local pct = fluencyPercent(db.language)
     if pct ~= nil then return pct end
     return db.strength or 100
+end
+
+--=========================================================================--
+--  Native languages (hide the tongues your race already speaks in-game)
+--
+--  WoW reports the languages a character actually speaks via
+--  GetLanguageByIndex(), whose second return is a locale-independent numeric
+--  languageID (from Languages.db2). We map those IDs to our own language ids and
+--  hide them from the "speak" list -- speaking Common as a Human is just plain
+--  text, so ToA can focus on the tongues you *can't* already speak. This is
+--  display-only: /ogt lang, the Learned tab, and the Trainer keep every language.
+--=========================================================================--
+-- Blizzard languageID -> ToA language id. Matching on the number (not the
+-- localized name) means this works identically on every client locale.
+local NATIVE_LANG_IDS = {
+    [1]   = "orcish",     [2]   = "darnassian", [3]   = "taurahe",
+    [6]   = "dwarven",    [7]   = "common",     [8]   = "demonic",
+    [9]   = "titan",      [10]  = "thalassian", [11]  = "draconic",
+    [12]  = "kalimag",    [13]  = "gnomish",    [14]  = "zandali",
+    [33]  = "gutterspeak",[35]  = "draenei",    [39]  = "gilnean",
+    [40]  = "goblin",     [42]  = "pandaren",   [43]  = "pandaren",
+    [44]  = "pandaren",   [168] = "sprite",     [179] = "nerglish",
+    [180] = "moonkin",    [181] = "thalassian", [182] = "thalassian",
+    [303] = "furbolg",
+}
+-- Fallback for very old clients whose GetLanguageByIndex returns only a name
+-- (English clients only; every modern client returns the ID above).
+local NATIVE_LANG_NAMES = {
+    orcish = "orcish", darnassian = "darnassian", taurahe = "taurahe",
+    dwarvish = "dwarven", common = "common", demonic = "demonic",
+    thalassian = "thalassian", gnomish = "gnomish", zandali = "zandali",
+    forsaken = "gutterspeak", gutterspeak = "gutterspeak", draenei = "draenei",
+    gilnean = "gilnean", goblin = "goblin", pandaren = "pandaren",
+    draconic = "draconic", kalimag = "kalimag", titan = "titan",
+}
+
+-- { [toaId] = true } for the tongues this character natively speaks, or nil if
+-- we couldn't determine any -- in which case nothing is ever hidden (fail open).
+local nativeLangSet = nil
+local didNativeInit = false
+
+local function computeNativeLanguages()
+    nativeLangSet = nil
+    if type(GetNumLanguages) ~= "function" or type(GetLanguageByIndex) ~= "function" then
+        return
+    end
+    local n = GetNumLanguages()
+    if not n or n < 1 then return end
+    local set = {}
+    for i = 1, n do
+        local name, id = GetLanguageByIndex(i)
+        local toa = (type(id) == "number" and NATIVE_LANG_IDS[id])
+            or (type(name) == "string" and NATIVE_LANG_NAMES[string.lower(name)])
+        if toa then set[toa] = true end
+    end
+    if next(set) then nativeLangSet = set end
+end
+
+local function nativeHidingOn()
+    local db = TonguesOfAzerothDB
+    return (db and db.hideNativeLanguages and nativeLangSet ~= nil) and true or false
+end
+
+-- True only when `id` is a tongue the player natively speaks AND hiding is on.
+function ns.IsNativeLanguage(id)
+    if not nativeHidingOn() then return false end
+    return nativeLangSet[id] == true
+end
+
+-- GetLanguages() minus the native tongues (when the option is on). Never returns
+-- an empty list: if the filter would hide everything, the full list is returned.
+function ns.GetSpeakableLanguages()
+    local all = Language.GetLanguages()
+    if not nativeHidingOn() then return all end
+    local out = {}
+    for i = 1, #all do
+        if not nativeLangSet[all[i].id] then out[#out + 1] = all[i] end
+    end
+    if #out == 0 then return all end
+    return out
+end
+
+-- Primary languages minus the native tongues (when the option is on). Used by
+-- the Learned tab and the Trainer so they, too, drop what your race already
+-- speaks. Never returns an empty list (fail open, same as GetSpeakableLanguages).
+function ns.GetSpeakablePrimaryLanguages()
+    local all = (Language.GetPrimaryLanguages and Language.GetPrimaryLanguages()) or {}
+    if not nativeHidingOn() then return all end
+    local out = {}
+    for i = 1, #all do
+        if not nativeLangSet[all[i].id] then out[#out + 1] = all[i] end
+    end
+    if #out == 0 then return all end
+    return out
+end
+
+-- If the language you're set to speak just got hidden, fall back to the first
+-- visible one so the dropdown never shows a native/blank selection.
+function ns.EnsureSpeakLanguageVisible()
+    local db = TonguesOfAzerothDB
+    if not db then return end
+    if ns.IsNativeLanguage(db.language) then
+        local speak = ns.GetSpeakableLanguages()
+        if speak[1] then db.language = speak[1].id end
+    end
+end
+
+-- Refresh the native set (cheap) and, once only, drop off a hidden language.
+-- Called at login and on world entry (in case faction/allied-race unlocks it).
+ns.RefreshNativeLanguages = function()
+    computeNativeLanguages()
+    if not didNativeInit and nativeLangSet then
+        didNativeInit = true
+        ns.EnsureSpeakLanguageVisible()
+    end
+    if ns.OnSettingsChanged then ns.OnSettingsChanged() end
 end
 
 --=========================================================================--
@@ -348,13 +540,16 @@ end
 --     letting you drop Language strength to 0 to speak with a pure accent.
 local function transformOutgoing(msg, sendType, channel)
     if type(msg) ~= "string" or msg == "" then return msg, false end
-    local channelKey = normalizeChatType(sendType)
-    if not ns.IsChannelEnabled(channelKey) then return msg, false end
+    -- Auto-disabled for this instance: send exactly what the player typed.
+    if instanceSuppressed then return msg, false end
 
     local db = TonguesOfAzerothDB
     if not db then return msg, false end
+    local channelKey = normalizeChatType(sendType)
 
-    if db.enabled and getStrength() > 0 then
+    -- Language translation wins when it's on, you're actually speaking a tongue,
+    -- and this channel is enabled for translation.
+    if db.enabled and getStrength() > 0 and ns.IsChannelEnabled(channelKey) then
         local langId = db.language
         local strength = getStrength()
         local out = translateOutgoing(msg, langId, strength)
@@ -367,9 +562,19 @@ local function transformOutgoing(msg, sendType, channel)
             return out, true
         end
         return out, false
-    elseif ns.Accent and db.accent and db.accent.enabled then
+    end
+
+    -- Otherwise fall through to accents. Channel control here is independent of
+    -- the language channels: emotes (/e and inline *actions*) are gated by the
+    -- emote toggle, every other channel by its own accent toggle.
+    if ns.Accent and db.accent and db.accent.enabled then
         local a = db.accent
-        local ok, res = pcall(ns.Accent.Apply, msg, a.id, a.strength or 100)
+        if channelKey == "EMOTE" then
+            if not a.emotes then return msg, false end
+        elseif not ns.IsAccentChannelEnabled(channelKey) then
+            return msg, false
+        end
+        local ok, res = pcall(ns.Accent.Apply, msg, a.id, a.strength or 100, a.emotes)
         if ok and type(res) == "string" then return res, res ~= msg end
     end
     return msg, false
@@ -652,6 +857,10 @@ local function notePassiveExposure(message)
 end
 
 local function onIncomingChat(event, message, sender)
+    -- Secret (protected) chat text can't be read or decoded -- bail before we
+    -- touch it. Must be the very first thing we do with `message`/`sender`.
+    if isSecret(message) or isSecret(sender) then return end
+    if instanceSuppressed then return end
     if not message or message == "" then return end
     migrateDB()
     if sender == UnitName("player") then return end
@@ -707,6 +916,7 @@ chatFrame:RegisterEvent("CHAT_MSG_ADDON")
 chatFrame:SetScript("OnEvent", function(self, event, ...)
     if event == "CHAT_MSG_ADDON" then
         local prefix, message, _, sender = ...
+        if isSecret(prefix) or isSecret(message) then return end
         if prefix == ADDON_PREFIX then
             if type(message) == "string" and message:sub(1, #LANG_SHARE_TAG) == LANG_SHARE_TAG then
                 handleLangShare(message:sub(#LANG_SHARE_TAG + 1), sender)
@@ -729,6 +939,10 @@ end)
 -- their gibberish, preserving immersion for everyone. Partial (word-by-word)
 -- understanding shows here too -- exactly the "learning" experience.
 local function inlineChatFilter(_, event, msg, sender, ...)
+    -- Never touch a secret message: we can't read/rewrite it, so let the client
+    -- display it untouched (return false = don't filter).
+    if isSecret(msg) or isSecret(sender) then return false end
+    if instanceSuppressed then return false end
     if not msg or msg == "" then return false end
     migrateDB()
     if (TonguesOfAzerothDB.decodeStyle or "inline") ~= "inline" then return false end
@@ -826,7 +1040,9 @@ function ns.GetKnownLanguages()
             local ok, _, _, f = pcall(ns.Trainer.GetProgress, id)
             if ok and type(f) == "number" then frac = f end
         end
-        if isLearned or frac > 0 then add(id) end
+        -- Skip tongues your race natively speaks (when hiding is on) so cycling
+        -- and the floating bar never land on one you'd never RP with ToA.
+        if (isLearned or frac > 0) and not ns.IsNativeLanguage(id) then add(id) end
     end
     add(db.language) -- always include what you're currently speaking
     return list
@@ -938,7 +1154,8 @@ end
 -- the primary languages (sub-languages share a parent's fluency) and refresh once.
 function ns.MakeAllFluent()
     migrateDB()
-    local langs = Language.GetPrimaryLanguages and Language.GetPrimaryLanguages() or {}
+    local langs = (ns.GetSpeakablePrimaryLanguages and ns.GetSpeakablePrimaryLanguages())
+        or (Language.GetPrimaryLanguages and Language.GetPrimaryLanguages()) or {}
     TonguesOfAzerothDB.learned = TonguesOfAzerothDB.learned or {}
     for i = 1, #langs do
         local id = langs[i].id
@@ -950,7 +1167,8 @@ end
 
 function ns.ResetAllFluency()
     migrateDB()
-    local langs = Language.GetPrimaryLanguages and Language.GetPrimaryLanguages() or {}
+    local langs = (ns.GetSpeakablePrimaryLanguages and ns.GetSpeakablePrimaryLanguages())
+        or (Language.GetPrimaryLanguages and Language.GetPrimaryLanguages()) or {}
     for i = 1, #langs do
         local id = langs[i].id
         if ns.Trainer and ns.Trainer.ResetFluency then ns.Trainer.ResetFluency(id) end
@@ -1195,7 +1413,7 @@ local function debugReport()
     Print("translate: |cffcccccc\"" .. enc .. "\"|r "
         .. ((enc ~= sample) and "|cff00ff00(changed)|r" or "|cffff0000(unchanged)|r"))
     if ns.Accent then
-        local ok, acc = pcall(ns.Accent.Apply, sample, a.id, a.strength or 100)
+        local ok, acc = pcall(ns.Accent.Apply, sample, a.id, a.strength or 100, a.emotes)
         if ok then
             Print("accent:    |cffcccccc\"" .. tostring(acc) .. "\"|r "
                 .. ((acc ~= sample) and "|cff00ff00(changed)|r" or "|cffff0000(unchanged)|r"))
@@ -1232,6 +1450,7 @@ local function usage()
     Print("  |cffffff00/ogt say <text>|r  - say a translated line once")
     Print("  |cffffff00/ogt yell <text>|r  - yell a translated line once")
     Print("  |cffffff00/ogt p <text>|r  - preview a translation (only you see it)")
+    Print("  |cffffff00/ogt autodisable on|off|r  - auto-disable in instances (Blizzard blocks chat during boss fights)")
     Print("  |cffffff00/ogt debug|r  - diagnostics (hook status + live test)")
 end
 
@@ -1402,6 +1621,18 @@ local function handleSlash(input)
         speak(rest, "YELL")
     elseif (cmd == "p" or cmd == "preview") and rest ~= "" then
         Print("|cffccccff" .. Language.TranslateText(rest, getStrength(), TonguesOfAzerothDB.language) .. "|r")
+    elseif cmd == "autodisable" or cmd == "instances" or cmd == "instancewarning" or cmd == "instwarn" then
+        local arg = string.lower(rest)
+        if arg == "on" then
+            TonguesOfAzerothDB.autoDisableInInstances = true
+        elseif arg == "off" then
+            TonguesOfAzerothDB.autoDisableInInstances = false
+        else
+            TonguesOfAzerothDB.autoDisableInInstances = not (TonguesOfAzerothDB.autoDisableInInstances ~= false)
+        end
+        Print("Auto-disable in instances " ..
+            (TonguesOfAzerothDB.autoDisableInInstances ~= false and "|cff00ff00ON|r" or "|cffff0000OFF|r") .. ".")
+        if ns.RefreshInstanceState then ns.RefreshInstanceState() end
     elseif cmd == "debug" or cmd == "diag" then
         installSendHook()
         registerPreSendHook()
@@ -1427,9 +1658,49 @@ ns.DEFAULT_CHANNELS = DEFAULT_CHANNELS
 --=========================================================================--
 --  Init
 --=========================================================================--
+-- Inside instances (dungeons/raids/BGs/arenas) Blizzard delivers other players'
+-- chat as protected "secret" values during boss fights, so ToA can't translate
+-- or decode there. When "auto-disable in instances" is on we simply switch ToA
+-- off on entry and back on when leaving -- clearly a game restriction, not a bug.
+local function suppressionWanted()
+    local inInstance = IsInInstance and IsInInstance() and true or false
+    return inInstance
+        and (TonguesOfAzerothDB and TonguesOfAzerothDB.autoDisableInInstances ~= false)
+        and true or false
+end
+
+-- Turn suppression on/off, announcing the change. `left` distinguishes "you left
+-- the instance" from "you toggled the option off while still inside".
+local function applyInstanceSuppression(want, left)
+    if want and not instanceSuppressed then
+        instanceSuppressed = true
+        Print("|cffffd200paused inside this instance. Blizzard blocks addons from reading chat during boss fights, so translations can't be decoded here. It will resume automatically once you leave the instance.|r")
+        local line = "Tongues of Azeroth is paused in this instance (Blizzard chat restriction). It resumes when you leave."
+        if RaidNotice_AddMessage and RaidWarningFrame then
+            RaidNotice_AddMessage(RaidWarningFrame, line, { r = 1, g = 0.82, b = 0.2 })
+        elseif UIErrorsFrame and UIErrorsFrame.AddMessage then
+            UIErrorsFrame:AddMessage(line, 1, 0.82, 0.2, 1, 6)
+        end
+        if ns.OnSettingsChanged then ns.OnSettingsChanged() end
+    elseif (not want) and instanceSuppressed then
+        instanceSuppressed = false
+        Print(left and "|cff33ff33resumed|r now that you've left the instance."
+            or "|cff33ff33resumed.|r")
+        if ns.OnSettingsChanged then ns.OnSettingsChanged() end
+    end
+end
+
+-- Called on world-entry (loading screens) and when the option is toggled. Uses
+-- desired state (not just transitions) so flipping the option mid-instance works.
+local function checkInstanceRestriction(fromToggle)
+    applyInstanceSuppression(suppressionWanted(), not fromToggle)
+end
+ns.RefreshInstanceState = function() checkInstanceRestriction(true) end
+
 local f = CreateFrame("Frame")
 f:RegisterEvent("ADDON_LOADED")
 f:RegisterEvent("PLAYER_LOGIN")
+f:RegisterEvent("PLAYER_ENTERING_WORLD")
 f:SetScript("OnEvent", function(self, event, name)
     if event == "ADDON_LOADED" and name == ADDON then
         migrateDB()
@@ -1444,5 +1715,11 @@ f:SetScript("OnEvent", function(self, event, name)
         registerPreSendHook()
         -- Yapper (and other addons) finish loading by now, so _G.YapperAPI exists.
         registerYapperFilter()
+        -- Known languages are available now: compute which tongues to hide.
+        ns.RefreshNativeLanguages()
+    elseif event == "PLAYER_ENTERING_WORLD" then
+        -- Re-check in case a faction choice / allied-race unlock changed them.
+        ns.RefreshNativeLanguages()
+        checkInstanceRestriction()
     end
 end)

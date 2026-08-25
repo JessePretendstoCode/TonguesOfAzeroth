@@ -135,6 +135,88 @@ function Compat.CreateOptionsPanel(globalName)
     return f
 end
 
+-- Wrap a panel's contents in a vertical scroll region so a tall layout never
+-- spills outside the options window. Returns a `content` frame to parent/anchor
+-- everything to (instead of the panel itself). The content frame gets a
+-- :SetContentHeight(px) method; call it once the layout's total height is known.
+-- A slim scrollbar appears only when the content is taller than the viewport.
+function Compat.CreateScrollContent(panel, contentHeight)
+    local BARW = 16
+
+    local scroll = CreateFrame("ScrollFrame", nil, panel)
+    scroll:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, 0)
+    scroll:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -(BARW + 6), 0)
+    scroll:EnableMouseWheel(true)
+
+    local content = CreateFrame("Frame", nil, scroll)
+    content:SetSize(560, contentHeight or 600)
+    scroll:SetScrollChild(content)
+
+    -- Vertical scrollbar: a plain slider with a solid thumb (no template needed,
+    -- so it renders identically on modern and 3.3.5a clients).
+    local bar = CreateFrame("Slider", nil, panel)
+    bar:SetOrientation("VERTICAL")
+    bar:SetWidth(BARW)
+    bar:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -4, -4)
+    bar:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -4, 4)
+    bar:SetMinMaxValues(0, 1)
+    bar:SetValueStep(1)
+    if bar.SetObeyStepOnDrag then bar:SetObeyStepOnDrag(true) end
+    bar:SetValue(0)
+    local track = bar:CreateTexture(nil, "BACKGROUND")
+    track:SetAllPoints()
+    Compat.SolidTexture(track, 1, 1, 1, 0.06)
+    local thumb = bar:CreateTexture(nil, "ARTWORK")
+    thumb:SetSize(BARW, 48)
+    Compat.SolidTexture(thumb, 0.55, 0.5, 0.72, 0.9)
+    bar:SetThumbTexture(thumb)
+
+    local syncing = false
+    local function updateRange()
+        local vh = scroll:GetHeight() or 0
+        local ch = content:GetHeight() or 0
+        local range = ch - vh
+        if range < 1 then range = 0 end
+        bar:SetMinMaxValues(0, range)
+        bar:SetShown(range > 0)
+        local v = scroll:GetVerticalScroll()
+        if v > range then
+            syncing = true
+            scroll:SetVerticalScroll(range)
+            bar:SetValue(range)
+            syncing = false
+        end
+    end
+
+    bar:SetScript("OnValueChanged", function(self, value)
+        if syncing then return end
+        syncing = true
+        scroll:SetVerticalScroll(value)
+        syncing = false
+    end)
+    scroll:SetScript("OnSizeChanged", function(self, w)
+        if w and w > 0 then content:SetWidth(w) end
+        updateRange()
+    end)
+    scroll:SetScript("OnScrollRangeChanged", function() updateRange() end)
+    scroll:SetScript("OnMouseWheel", function(self, delta)
+        local _, maxv = bar:GetMinMaxValues()
+        local v = self:GetVerticalScroll() - delta * 32
+        if v < 0 then v = 0 elseif v > maxv then v = maxv end
+        syncing = true
+        self:SetVerticalScroll(v)
+        bar:SetValue(v)
+        syncing = false
+    end)
+
+    panel._scroll, panel._content, panel._scrollbar = scroll, content, bar
+    function content:SetContentHeight(h)
+        self:SetHeight(h)
+        updateRange()
+    end
+    return content
+end
+
 function Compat.RegisterOptionsPanel(frame, name, parentName)
     frame.name = name
     if parentName then frame.parent = parentName end
@@ -414,8 +496,11 @@ function Compat.CreateDropdown(parent, width)
 
     local function openMenu()
         if not menu then
-            menu = CreateFrame("Frame", nil, dd)
+            -- Parented to UIParent (not dd) so the popup is never clipped when the
+            -- dropdown lives inside a ScrollFrame; still anchored to dd below.
+            menu = CreateFrame("Frame", nil, UIParent)
             menu:SetFrameStrata("FULLSCREEN_DIALOG")
+            menu:SetToplevel(true)
             menu:EnableMouse(true)
             local mbg = menu:CreateTexture(nil, "BACKGROUND")
             mbg:SetAllPoints()

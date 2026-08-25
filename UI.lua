@@ -36,11 +36,14 @@ local DECODE_STYLES = {
 }
 
 local mainPanel, learnedPanel, accentPanel, customPanel
+local mainContent
 local langDropdown, slider, valueText, enableCheck, previewInput, previewOutput
-local minimapCheck, tagCheck, fluencyCheck
+local minimapCheck, tagCheck, fluencyCheck, nativeHideCheck, autoDisableCheck
 local widgetCheck, widgetLockCheck
 local accentEnableCheck, accentDropdown, accentSlider, accentValueText
-local accentPreviewInput, accentPreviewOutput
+local accentPreviewInput, accentPreviewOutput, accentEmotesCheck
+local accentContent
+local accentChannelChecks = {}
 local customEditDropdown, customNameInput, customApostSlider, customApostText
 local customOnsetInput, customNucleiInput, customCodaInput
 local customPreviewInput, customPreviewOutput, customStatus, customEditingId
@@ -48,6 +51,8 @@ local customShareInput
 local channelChecks = {}
 local learnedRows = {}
 local learnedBars = {}
+local learnedOrder = {}
+local learnedScroll, learnedChild, learnedRowH = nil, nil, 38
 local passiveCheck
 local decodeStyleDropdown
 local outputDropdown
@@ -84,6 +89,9 @@ local function db()
     if not TonguesOfAzerothDB.accent then TonguesOfAzerothDB.accent = {} end
     if TonguesOfAzerothDB.accent.enabled == nil then TonguesOfAzerothDB.accent.enabled = false end
     if TonguesOfAzerothDB.accent.strength == nil then TonguesOfAzerothDB.accent.strength = 100 end
+    if TonguesOfAzerothDB.accent.emotes == nil then TonguesOfAzerothDB.accent.emotes = false end
+    if TonguesOfAzerothDB.hideNativeLanguages == nil then TonguesOfAzerothDB.hideNativeLanguages = true end
+    if TonguesOfAzerothDB.autoDisableInInstances == nil then TonguesOfAzerothDB.autoDisableInInstances = true end
     if TonguesOfAzerothDB.accent.id == nil or not (Accent and Accent.IsValid(TonguesOfAzerothDB.accent.id)) then
         TonguesOfAzerothDB.accent.id = (Accent and Accent.DEFAULT) or "dwarf"
     end
@@ -113,10 +121,11 @@ local function refreshPreview()
 end
 
 local function langItems()
-    -- List every language. Sub-languages are grouped and indented under the
-    -- primary whose word set they share. The dropdown scrolls, so the full list
-    -- stays usable.
-    local all = Language.GetLanguages()
+    -- List the languages you can speak. Sub-languages are grouped and indented
+    -- under the primary whose word set they share. The dropdown scrolls, so the
+    -- full list stays usable. Tongues your race already knows in-game are hidden
+    -- here (unless that option is off) -- see ns.GetSpeakableLanguages.
+    local all = (ns.GetSpeakableLanguages and ns.GetSpeakableLanguages()) or Language.GetLanguages()
     local subsOf, primaries = {}, {}
     for i = 1, #all do
         local l = all[i]
@@ -129,14 +138,27 @@ local function langItems()
     end
 
     local items = {}
+    local emittedParent = {}
     for i = 1, #primaries do
         local p = primaries[i]
         items[#items + 1] = { text = p.name, value = p.id }
+        emittedParent[p.id] = true
         local subs = subsOf[p.id]
         if subs then
             for j = 1, #subs do
                 items[#items + 1] = { text = "    " .. subs[j].name, value = subs[j].id }
             end
+        end
+    end
+
+    -- Orphaned sub-languages: their parent primary is hidden (e.g. a Troll's
+    -- Zandali is hidden by the race filter, but the tribal dialects Amani,
+    -- Gurubashi and Drakkari should still be speakable). Emit them at the top
+    -- level, in LANGUAGE_ORDER, so they don't vanish along with their parent.
+    for i = 1, #all do
+        local l = all[i]
+        if l.sub and l.parent and not emittedParent[l.parent] then
+            items[#items + 1] = { text = l.name, value = l.id }
         end
     end
     return items
@@ -169,6 +191,22 @@ local function outputItems()
     return items
 end
 
+-- The "Lock the floating bar" checkbox only exists when the floating bar is on
+-- (default off). When it's hidden, re-anchor the checkboxes below it straight
+-- under "Show floating language bar" so we don't leave a dead ~28px gap -- that
+-- reclaimed space keeps the whole panel inside the options safe zone.
+local function layoutMainWidgetLock()
+    if not (tagCheck and widgetCheck) then return end
+    local d = db()
+    local barOn = d.widget and d.widget.enabled and true or false
+    tagCheck:ClearAllPoints()
+    if barOn and widgetLockCheck then
+        tagCheck:SetPoint("TOPLEFT", widgetLockCheck, "BOTTOMLEFT", -16, -6)
+    else
+        tagCheck:SetPoint("TOPLEFT", widgetCheck, "BOTTOMLEFT", 0, -6)
+    end
+end
+
 local function RefreshMain()
     if not mainPanel then return end
     local d = db()
@@ -179,8 +217,11 @@ local function RefreshMain()
         widgetLockCheck:SetChecked(d.widget.locked and true or false)
         widgetLockCheck:SetShown(d.widget.enabled and true or false)
     end
+    layoutMainWidgetLock()
     if tagCheck then tagCheck:SetChecked(d.tagLanguage ~= false) end
     if fluencyCheck then fluencyCheck:SetChecked(d.tagFluency ~= false) end
+    if nativeHideCheck then nativeHideCheck:SetChecked(d.hideNativeLanguages and true or false) end
+    if autoDisableCheck then autoDisableCheck:SetChecked(d.autoDisableInInstances ~= false) end
     langDropdown:SetSelected(d.language, Language.GetLanguageName(d.language))
     local fp = fluencyPct(d.language)
     settingSlider = true
@@ -191,11 +232,51 @@ local function RefreshMain()
         check:SetChecked(d.channels[ch] and true or false)
     end
     refreshPreview()
+
+    -- Size the scroll child to the actual bottom of the last element (accounts
+    -- for the floating-bar lock row appearing/disappearing). Falls back to the
+    -- generous default set at creation if geometry isn't ready yet.
+    if mainContent and mainContent.SetContentHeight and mainPanel._lastChild then
+        local top = mainContent:GetTop()
+        local bot = mainPanel._lastChild:GetBottom()
+        if top and bot and top > bot then
+            mainContent:SetContentHeight(top - bot + 20)
+        end
+    end
+end
+
+-- Show only the languages your race can't already speak (when the option is on)
+-- and re-flow the visible rows so there are no gaps, resizing the scroll child.
+local function reflowLearnedRows()
+    if not (learnedChild and #learnedOrder > 0) then return end
+    local visible = 0
+    for i = 1, #learnedOrder do
+        local id = learnedOrder[i]
+        local rowRef = learnedRows[id]
+        local rowF = rowRef and rowRef.row
+        if rowF then
+            if ns.IsNativeLanguage and ns.IsNativeLanguage(id) then
+                rowF:Hide()
+            else
+                rowF:ClearAllPoints()
+                rowF:SetPoint("TOPLEFT", learnedChild, "TOPLEFT", 0, -(visible * learnedRowH))
+                rowF:Show()
+                visible = visible + 1
+            end
+        end
+    end
+    learnedChild:SetHeight(visible * learnedRowH + 6)
+    if learnedScroll then
+        local v = learnedScroll:GetVerticalScroll()
+        local maxv = learnedScroll:GetVerticalScrollRange()
+        if v > maxv then learnedScroll:SetVerticalScroll(maxv) end
+    end
 end
 
 local function RefreshLearned()
     if not learnedPanel then return end
     local d = db()
+    reflowLearnedRows()
     for langId, rowRef in pairs(learnedRows) do
         local base = Language.GetLanguageName(langId)
         local frac = 0
@@ -627,18 +708,33 @@ local function BuildMainPanel()
     mainPanel = Compat.CreateOptionsPanel("TonguesOfAzerothOptions")
     mainPanel.name = "Tongues of Azeroth"
 
-    local title = mainPanel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+    -- Everything lives inside a scroll region so the panel never spills outside
+    -- the options window, no matter how tall the layout gets. Anchor children to
+    -- `content` (the scroll child), not to mainPanel.
+    local content = Compat.CreateScrollContent(mainPanel, 760)
+    mainContent = content
+
+    local title = content:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
     title:SetPoint("TOPLEFT", 16, -16)
     title:SetText("Tongues of Azeroth")
 
-    local subtitle = mainPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    local subtitle = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -8)
-    subtitle:SetPoint("RIGHT", mainPanel, "RIGHT", -32, 0)
+    subtitle:SetPoint("RIGHT", content, "RIGHT", -24, 0)
     subtitle:SetJustifyH("LEFT")
     subtitle:SetText("Speak the languages of Azeroth in chat, Tongues-style.")
 
+    -- Persistent heads-up: the instance chat restriction is a Blizzard limitation,
+    -- not an addon bug. Kept near the top so it's the first thing players see.
+    local instanceNote = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    instanceNote:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -10)
+    instanceNote:SetPoint("RIGHT", content, "RIGHT", -170, 0)
+    instanceNote:SetJustifyH("LEFT")
+    if instanceNote.SetWordWrap then instanceNote:SetWordWrap(true) end
+    instanceNote:SetText("|cffffd200Heads-up:|r During boss fights, Blizzard blocks addons from reading chat, so ToA can't translate or decode there. This is a game restriction, not a bug -- see the auto-disable option below.")
+
     local function makeNavButton(label, onClick)
-        local btn = CreateFrame("Button", nil, mainPanel)
+        local btn = CreateFrame("Button", nil, content)
         btn:SetSize(150, 24)
         local bg = btn:CreateTexture(nil, "BACKGROUND")
         bg:SetAllPoints()
@@ -659,7 +755,7 @@ local function BuildMainPanel()
     local trainerBtn = makeNavButton("Language Trainer", function()
         if ns.OpenTrainer then ns.OpenTrainer() end
     end)
-    trainerBtn:SetPoint("TOPRIGHT", mainPanel, "TOPRIGHT", -16, -16)
+    trainerBtn:SetPoint("TOPRIGHT", content, "TOPRIGHT", -16, -16)
 
     -- Opens the Learned Languages panel. On legacy/custom clients (Ascension)
     -- the config is a standalone window with no options tree, so this button is
@@ -679,52 +775,71 @@ local function BuildMainPanel()
     end)
     customBtn:SetPoint("TOPRIGHT", accentBtn, "BOTTOMRIGHT", 0, -4)
 
-    enableCheck = Compat.CreateCheckbox(mainPanel, "Enable auto-translate in chat")
-    enableCheck:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -16)
+    enableCheck = Compat.CreateCheckbox(content, "Enable auto-translate in chat")
+    enableCheck:SetPoint("TOPLEFT", instanceNote, "BOTTOMLEFT", 0, -16)
     enableCheck:SetScript("OnClick", function(self)
         db().enabled = self:GetChecked() and true or false
     end)
 
-    minimapCheck = Compat.CreateCheckbox(mainPanel, "Show minimap button")
-    minimapCheck:SetPoint("TOPLEFT", enableCheck, "BOTTOMLEFT", 0, -6)
+    minimapCheck = Compat.CreateCheckbox(content, "Show minimap button")
+    minimapCheck:SetPoint("TOPLEFT", enableCheck, "BOTTOMLEFT", 0, -8)
     minimapCheck:SetScript("OnClick", function(self)
         db().minimap.hide = not self:GetChecked()
         ApplyMinimapShown()
     end)
 
-    widgetCheck = Compat.CreateCheckbox(mainPanel, "Show floating language bar")
-    widgetCheck:SetPoint("TOPLEFT", minimapCheck, "BOTTOMLEFT", 0, -6)
+    widgetCheck = Compat.CreateCheckbox(content, "Show floating language bar")
+    widgetCheck:SetPoint("TOPLEFT", minimapCheck, "BOTTOMLEFT", 0, -8)
     widgetCheck:SetScript("OnClick", function(self)
         db().widget.enabled = self:GetChecked() and true or false
         if not db().widget.enabled then closeWidgetMenu() end
         SetupLanguageWidget()
         if widgetLockCheck then widgetLockCheck:SetShown(db().widget.enabled) end
+        layoutMainWidgetLock()
     end)
 
-    widgetLockCheck = Compat.CreateCheckbox(mainPanel, "Lock the floating bar in place")
-    widgetLockCheck:SetPoint("TOPLEFT", widgetCheck, "BOTTOMLEFT", 16, -4)
+    widgetLockCheck = Compat.CreateCheckbox(content, "Lock the floating bar in place")
+    widgetLockCheck:SetPoint("TOPLEFT", widgetCheck, "BOTTOMLEFT", 16, -6)
     widgetLockCheck:SetScript("OnClick", function(self)
         db().widget.locked = self:GetChecked() and true or false
     end)
 
-    tagCheck = Compat.CreateCheckbox(mainPanel, "Prefix messages with [Language]")
-    tagCheck:SetPoint("TOPLEFT", widgetLockCheck, "BOTTOMLEFT", -16, -6)
+    tagCheck = Compat.CreateCheckbox(content, "Prefix messages with [Language]")
+    tagCheck:SetPoint("TOPLEFT", widgetLockCheck, "BOTTOMLEFT", -16, -8)
     tagCheck:SetScript("OnClick", function(self)
         db().tagLanguage = self:GetChecked() and true or false
     end)
 
-    fluencyCheck = Compat.CreateCheckbox(mainPanel, "Show fluency in tag (Broken / Partial / Fluent / Perfect)")
-    fluencyCheck:SetPoint("TOPLEFT", tagCheck, "BOTTOMLEFT", 16, -4)
+    fluencyCheck = Compat.CreateCheckbox(content, "Show fluency in tag (Broken / Partial / Fluent / Perfect)")
+    fluencyCheck:SetPoint("TOPLEFT", tagCheck, "BOTTOMLEFT", 16, -6)
     fluencyCheck:SetScript("OnClick", function(self)
         db().tagFluency = self:GetChecked() and true or false
         refreshPreview()
     end)
 
-    local langLabel = mainPanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    langLabel:SetPoint("TOPLEFT", fluencyCheck, "BOTTOMLEFT", -16, -18)
+    nativeHideCheck = Compat.CreateCheckbox(content, "Hide languages my race already speaks")
+    nativeHideCheck:SetPoint("TOPLEFT", fluencyCheck, "BOTTOMLEFT", -16, -8)
+    nativeHideCheck:SetScript("OnClick", function(self)
+        db().hideNativeLanguages = self:GetChecked() and true or false
+        if ns.EnsureSpeakLanguageVisible then ns.EnsureSpeakLanguageVisible() end
+        -- Rebuilds the dropdown item list (and refreshes the panel) so the change
+        -- shows immediately.
+        if ns.OnSettingsChanged then ns.OnSettingsChanged() else RefreshMain() end
+    end)
+
+    autoDisableCheck = Compat.CreateCheckbox(content, "Automatically disable during instances")
+    autoDisableCheck:SetPoint("TOPLEFT", nativeHideCheck, "BOTTOMLEFT", 0, -8)
+    autoDisableCheck:SetScript("OnClick", function(self)
+        db().autoDisableInInstances = self:GetChecked() and true or false
+        -- Apply immediately if we're already inside an instance.
+        if ns.RefreshInstanceState then ns.RefreshInstanceState() end
+    end)
+
+    local langLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    langLabel:SetPoint("TOPLEFT", autoDisableCheck, "BOTTOMLEFT", 0, -16)
     langLabel:SetText("Language")
 
-    langDropdown = Compat.CreateDropdown(mainPanel, 260)
+    langDropdown = Compat.CreateDropdown(content, 260)
     langDropdown:SetPoint("TOPLEFT", langLabel, "BOTTOMLEFT", 0, -6)
     langDropdown:SetItems(langItems())
     langDropdown.onSelect = function(value)
@@ -736,7 +851,7 @@ local function BuildMainPanel()
 
     -- Quick-cycle button through your learned languages (also on the minimap
     -- scroll wheel and via /toa next|prev).
-    local cycleBtn = CreateFrame("Button", nil, mainPanel)
+    local cycleBtn = CreateFrame("Button", nil, content)
     cycleBtn:SetSize(92, 24)
     cycleBtn:SetPoint("LEFT", langDropdown, "RIGHT", 8, 0)
     local cbg = cycleBtn:CreateTexture(nil, "BACKGROUND")
@@ -754,8 +869,8 @@ local function BuildMainPanel()
         RefreshMain()
     end)
 
-    slider = Compat.CreateSlider(mainPanel, 0, 100, 1, "Fluency", "0 - None", "100 - Fluent")
-    slider:SetPoint("TOPLEFT", langDropdown, "BOTTOMLEFT", 0, -34)
+    slider = Compat.CreateSlider(content, 0, 100, 1, "Fluency", "0 - None", "100 - Fluent")
+    slider:SetPoint("TOPLEFT", langDropdown, "BOTTOMLEFT", 0, -28)
     slider:SetWidth(320)
     valueText = slider.valueText
     slider:SetScript("OnValueChanged", function(self, value)
@@ -770,31 +885,31 @@ local function BuildMainPanel()
 
     -- Anchored well below the slider so it clears the slider's own min/max and
     -- value labels (which sit just under the track).
-    local fluencyHint = mainPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-    fluencyHint:SetPoint("TOPLEFT", slider, "BOTTOMLEFT", 0, -26)
-    fluencyHint:SetPoint("RIGHT", mainPanel, "RIGHT", -32, 0)
+    local fluencyHint = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    fluencyHint:SetPoint("TOPLEFT", slider, "BOTTOMLEFT", 0, -20)
+    fluencyHint:SetPoint("RIGHT", content, "RIGHT", -24, 0)
     fluencyHint:SetJustifyH("LEFT")
     if fluencyHint.SetWordWrap then fluencyHint:SetWordWrap(true) end
     fluencyHint:SetText("How well you speak this tongue -- higher fluency = more of it comes through. Build it by hearing it, in the Trainer, or per-language under Learned Languages.")
 
-    local channelLabel = mainPanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    channelLabel:SetPoint("TOPLEFT", fluencyHint, "BOTTOMLEFT", 0, -16)
+    local channelLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    channelLabel:SetPoint("TOPLEFT", fluencyHint, "BOTTOMLEFT", 0, -14)
     channelLabel:SetText("Channels")
 
-    local channelHint = mainPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    local channelHint = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     channelHint:SetPoint("TOPLEFT", channelLabel, "BOTTOMLEFT", 0, -2)
-    channelHint:SetPoint("RIGHT", mainPanel, "RIGHT", -32, 0)
+    channelHint:SetPoint("RIGHT", content, "RIGHT", -24, 0)
     channelHint:SetJustifyH("LEFT")
     channelHint:SetText("Applies when you speak and when you listen.")
 
     local channelList = ns.CHANNEL_TYPES or {}
-    local ROW_H = 22
+    local ROW_H = 24
     local COL2_X = 210
     local half = math.ceil(#channelList / 2)
 
     for i = 1, #channelList do
         local ch = channelList[i]
-        local check = Compat.CreateCheckbox(mainPanel, CHANNEL_LABELS[ch] or ch)
+        local check = Compat.CreateCheckbox(content, CHANNEL_LABELS[ch] or ch)
         local row, col
         if i <= half then
             row = i - 1
@@ -803,7 +918,7 @@ local function BuildMainPanel()
             row = i - half - 1
             col = COL2_X
         end
-        check:SetPoint("TOPLEFT", channelHint, "BOTTOMLEFT", col, -4 - row * ROW_H)
+        check:SetPoint("TOPLEFT", channelHint, "BOTTOMLEFT", col, -6 - row * ROW_H)
         check:SetScript("OnClick", function(self)
             db().channels[ch] = self:GetChecked() and true or false
         end)
@@ -811,11 +926,11 @@ local function BuildMainPanel()
     end
 
     local channelRows = half
-    local previewLabel = mainPanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    local previewLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     previewLabel:SetPoint("TOPLEFT", channelHint, "BOTTOMLEFT", 0, -12 - channelRows * ROW_H)
     previewLabel:SetText("Preview (type to test):")
 
-    previewInput = CreateFrame("EditBox", "TonguesOfAzerothPreviewInput", mainPanel, "InputBoxTemplate")
+    previewInput = CreateFrame("EditBox", "TonguesOfAzerothPreviewInput", content, "InputBoxTemplate")
     previewInput:SetPoint("TOPLEFT", previewLabel, "BOTTOMLEFT", 6, -8)
     previewInput:SetSize(320, 20)
     previewInput:SetAutoFocus(false)
@@ -824,12 +939,14 @@ local function BuildMainPanel()
     previewInput:SetScript("OnEnterPressed", previewInput.ClearFocus)
     previewInput:SetScript("OnEscapePressed", previewInput.ClearFocus)
 
-    previewOutput = mainPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-    previewOutput:SetPoint("TOPLEFT", previewInput, "BOTTOMLEFT", -6, -12)
-    previewOutput:SetPoint("RIGHT", mainPanel, "RIGHT", -32, 0)
+    previewOutput = content:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+    previewOutput:SetPoint("TOPLEFT", previewInput, "BOTTOMLEFT", -6, -8)
+    previewOutput:SetPoint("RIGHT", content, "RIGHT", -24, 0)
     previewOutput:SetJustifyH("LEFT")
     previewOutput:SetHeight(36)
     previewOutput:SetSpacing(2)
+    -- Remember the last element so the scroll height can be sized to it exactly.
+    mainPanel._lastChild = previewOutput
 
     mainPanel.refresh = RefreshMain
     mainPanel:SetScript("OnShow", RefreshMain)
@@ -966,13 +1083,17 @@ local function BuildLearnedPanel()
 
     local child = CreateFrame("Frame", nil, scroll)
     scroll:SetScrollChild(child)
+    learnedScroll, learnedChild = scroll, child
 
-    -- Primary languages only; sub-languages share their parent's word set (and
-    -- fluency), so learning/showing the parent covers them.
+    -- Build a row for every primary language once; sub-languages share their
+    -- parent's word set (and fluency), so the parent covers them. Rows for
+    -- tongues your race natively speaks are hidden/re-flowed in RefreshLearned.
     local langs = Language.GetPrimaryLanguages()
     local ROW_H = 38
+    learnedRowH = ROW_H
     local CHILD_W = 560
     child:SetSize(CHILD_W, #langs * ROW_H + 6)
+    wipe(learnedOrder)
 
     for i = 1, #langs do
         local entry = langs[i]
@@ -1023,7 +1144,8 @@ local function BuildLearnedPanel()
         bar.barW = barW
         learnedBars[entry.id] = bar
 
-        learnedRows[entry.id] = { name = name, bar = bar, fluentBtn = fluentBtn }
+        learnedRows[entry.id] = { name = name, bar = bar, fluentBtn = fluentBtn, row = rowF }
+        learnedOrder[#learnedOrder + 1] = entry.id
     end
 
     scroll:SetScript("OnMouseWheel", function(self, delta)
@@ -1045,7 +1167,7 @@ local function refreshAccentPreview()
     local d = db()
     local src = accentPreviewInput:GetText()
     if src == "" then src = ACCENT_SAMPLE end
-    accentPreviewOutput:SetText(Accent.Apply(src, d.accent.id, d.accent.strength))
+    accentPreviewOutput:SetText(Accent.Apply(src, d.accent.id, d.accent.strength, d.accent.emotes))
 end
 
 local function accentItems()
@@ -1065,7 +1187,21 @@ local function RefreshAccent()
     if accentDropdown then accentDropdown:SetSelected(d.accent.id, Accent.GetAccentName(d.accent.id)) end
     if accentSlider then accentSlider:SetValue(d.accent.strength) end
     if accentValueText then accentValueText:SetText(d.accent.strength .. "%") end
+    if accentEmotesCheck then accentEmotesCheck:SetChecked(d.accent.emotes) end
+    local chans = d.accent.channels or {}
+    for ch, check in pairs(accentChannelChecks) do
+        check:SetChecked(chans[ch] ~= false)
+    end
     refreshAccentPreview()
+
+    -- Size the scroll child to the last element so the panel fits its window.
+    if accentContent and accentContent.SetContentHeight and accentPanel._lastChild then
+        local top = accentContent:GetTop()
+        local bot = accentPanel._lastChild:GetBottom()
+        if top and bot and top > bot then
+            accentContent:SetContentHeight(top - bot + 20)
+        end
+    end
 end
 
 local function BuildAccentPanel()
@@ -1073,34 +1209,38 @@ local function BuildAccentPanel()
     accentPanel.name = "Accents"
     accentPanel.parent = mainPanel.name
 
-    local title = accentPanel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+    -- Scrollable so the channel grid + preview always fit the options window.
+    local content = Compat.CreateScrollContent(accentPanel, 700)
+    accentContent = content
+
+    local title = content:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
     title:SetPoint("TOPLEFT", 16, -16)
     title:SetText("Accents")
 
-    local subtitle = accentPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    local subtitle = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -8)
-    subtitle:SetPoint("RIGHT", accentPanel, "RIGHT", -32, 0)
+    subtitle:SetPoint("RIGHT", content, "RIGHT", -24, 0)
     subtitle:SetJustifyH("LEFT")
     subtitle:SetText("Flavor your English with a spoken dialect, e.g. Dwarven \"I cannae do this, aye!\" or Troll \"da voodoo, mon.\"")
 
-    accentEnableCheck = Compat.CreateCheckbox(accentPanel, "Speak with an accent")
+    accentEnableCheck = Compat.CreateCheckbox(content, "Speak with an accent")
     accentEnableCheck:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -16)
     accentEnableCheck:SetScript("OnClick", function(self)
         db().accent.enabled = self:GetChecked() and true or false
     end)
 
-    local hint = accentPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    local hint = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     hint:SetPoint("TOPLEFT", accentEnableCheck, "BOTTOMLEFT", 0, -6)
-    hint:SetPoint("RIGHT", accentPanel, "RIGHT", -32, 0)
+    hint:SetPoint("RIGHT", content, "RIGHT", -24, 0)
     hint:SetJustifyH("LEFT")
     if hint.SetWordWrap then hint:SetWordWrap(true) end
-    hint:SetText("Uses the same channels as the main panel. Auto-translate overrides accents whenever you have any fluency in the spoken tongue, so turn auto-translate off (or speak a language you're 0% fluent in) to hear your accent.")
+    hint:SetText("Auto-translate overrides accents whenever you have any fluency in the spoken tongue, so turn auto-translate off (or speak a language you're 0% fluent in) to hear your accent. Text in (parentheses) is always left as plain speech.")
 
-    local accentLabel = accentPanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    local accentLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     accentLabel:SetPoint("TOPLEFT", hint, "BOTTOMLEFT", 0, -16)
     accentLabel:SetText("Accent")
 
-    accentDropdown = Compat.CreateDropdown(accentPanel, 260)
+    accentDropdown = Compat.CreateDropdown(content, 260)
     accentDropdown:SetPoint("TOPLEFT", accentLabel, "BOTTOMLEFT", 0, -6)
     accentDropdown:SetItems(accentItems())
     accentDropdown.onSelect = function(value)
@@ -1109,7 +1249,7 @@ local function BuildAccentPanel()
         refreshAccentPreview()
     end
 
-    accentSlider = Compat.CreateSlider(accentPanel, 0, 100, 1, "Strength", "0 - Subtle", "100 - Thick")
+    accentSlider = Compat.CreateSlider(content, 0, 100, 1, "Strength", "0 - Subtle", "100 - Thick")
     accentSlider:SetPoint("TOPLEFT", accentDropdown, "BOTTOMLEFT", 0, -34)
     accentSlider:SetWidth(320)
     accentValueText = accentSlider.valueText
@@ -1120,11 +1260,49 @@ local function BuildAccentPanel()
         refreshAccentPreview()
     end)
 
-    local previewLabel = accentPanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    previewLabel:SetPoint("TOPLEFT", accentSlider, "BOTTOMLEFT", 0, -28)
+    accentEmotesCheck = Compat.CreateCheckbox(content, "Also apply accent to emotes (/e and inline *actions*)")
+    accentEmotesCheck:SetPoint("TOPLEFT", accentSlider, "BOTTOMLEFT", 0, -34)
+    accentEmotesCheck:SetScript("OnClick", function(self)
+        db().accent.emotes = self:GetChecked() and true or false
+        refreshAccentPreview()
+    end)
+
+    -- Per-channel accent toggles (independent of the main panel's channels).
+    local channelLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    channelLabel:SetPoint("TOPLEFT", accentEmotesCheck, "BOTTOMLEFT", 0, -14)
+    channelLabel:SetText("Accent channels")
+
+    local channelHint = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    channelHint:SetPoint("TOPLEFT", channelLabel, "BOTTOMLEFT", 0, -2)
+    channelHint:SetPoint("RIGHT", content, "RIGHT", -24, 0)
+    channelHint:SetJustifyH("LEFT")
+    channelHint:SetText("Which chat channels your accent applies to (e.g. turn it off for raid/party).")
+
+    local channelList = ns.CHANNEL_TYPES or {}
+    local ROW_H = 24
+    local COL2_X = 210
+    local half = math.ceil(#channelList / 2)
+    wipe(accentChannelChecks)
+    for i = 1, #channelList do
+        local ch = channelList[i]
+        local check = Compat.CreateCheckbox(content, CHANNEL_LABELS[ch] or ch)
+        local row, col
+        if i <= half then row, col = i - 1, 0 else row, col = i - half - 1, COL2_X end
+        check:SetPoint("TOPLEFT", channelHint, "BOTTOMLEFT", col, -6 - row * ROW_H)
+        check:SetScript("OnClick", function(self)
+            local d = db()
+            d.accent.channels = d.accent.channels or {}
+            d.accent.channels[ch] = self:GetChecked() and true or false
+        end)
+        accentChannelChecks[ch] = check
+    end
+
+    local channelRows = half
+    local previewLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    previewLabel:SetPoint("TOPLEFT", channelHint, "BOTTOMLEFT", 0, -12 - channelRows * ROW_H)
     previewLabel:SetText("Preview (type to test):")
 
-    accentPreviewInput = CreateFrame("EditBox", "TonguesOfAzerothAccentPreviewInput", accentPanel, "InputBoxTemplate")
+    accentPreviewInput = CreateFrame("EditBox", "TonguesOfAzerothAccentPreviewInput", content, "InputBoxTemplate")
     accentPreviewInput:SetPoint("TOPLEFT", previewLabel, "BOTTOMLEFT", 6, -8)
     accentPreviewInput:SetSize(320, 20)
     accentPreviewInput:SetAutoFocus(false)
@@ -1133,12 +1311,13 @@ local function BuildAccentPanel()
     accentPreviewInput:SetScript("OnEnterPressed", accentPreviewInput.ClearFocus)
     accentPreviewInput:SetScript("OnEscapePressed", accentPreviewInput.ClearFocus)
 
-    accentPreviewOutput = accentPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+    accentPreviewOutput = content:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
     accentPreviewOutput:SetPoint("TOPLEFT", accentPreviewInput, "BOTTOMLEFT", -6, -12)
-    accentPreviewOutput:SetPoint("RIGHT", accentPanel, "RIGHT", -32, 0)
+    accentPreviewOutput:SetPoint("RIGHT", content, "RIGHT", -24, 0)
     accentPreviewOutput:SetJustifyH("LEFT")
     accentPreviewOutput:SetHeight(36)
     accentPreviewOutput:SetSpacing(2)
+    accentPanel._lastChild = accentPreviewOutput
 
     accentPanel.refresh = RefreshAccent
     accentPanel:SetScript("OnShow", RefreshAccent)

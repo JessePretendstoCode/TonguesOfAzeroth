@@ -40,6 +40,39 @@ end
 
 local function isUpper(ch) return ch >= "A" and ch <= "Z" end
 
+-- Spans that must survive an accent untouched: WoW hyperlinks, [bracketed] text,
+-- and (parenthetical) OOC asides. We stash them behind a placeholder that the
+-- word matcher can't touch, then restore them afterwards. \002 + digits is safe:
+-- the WORD pattern below only matches letters, so placeholders pass straight
+-- through the swap/pattern pass.
+local ACCENT_PLACEHOLDER = "\002"
+
+local function protectSpans(text, protectStars)
+    local saved = {}
+    local n = 0
+    local function stash(seg)
+        n = n + 1
+        saved[n] = seg
+        return ACCENT_PLACEHOLDER .. n .. ACCENT_PLACEHOLDER
+    end
+    local out = text:gsub("|c%x+|H.-|h.-|h|r", stash)  -- item/spell/player links
+    out = out:gsub("%b[]", stash)                       -- [bracketed] labels
+    out = out:gsub("%b()", stash)                       -- (OOC asides)
+    -- Inline *emote* actions are treated like emotes: only accented when the
+    -- player has opted into emote accents (otherwise stashed = left as plain).
+    if protectStars then
+        out = out:gsub("%*[^%*]+%*", stash)
+    end
+    return out, saved, n
+end
+
+local function restoreSpans(text, saved, n)
+    if n == 0 then return text end
+    return (text:gsub(ACCENT_PLACEHOLDER .. "(%d+)" .. ACCENT_PLACEHOLDER, function(i)
+        return saved[tonumber(i)] or ""
+    end))
+end
+
 local function applyCase(original, out)
     if strlen(original) == 0 or strlen(out) == 0 then return out end
     if strlen(original) > 1 and strupper(original) == original then
@@ -135,7 +168,10 @@ reg("dwarf", {
         },
     },
     patterns = { { "ing$", "in'", 20 }, { "old$", "auld", 55 }, { "ight", "icht", 72 } },
-    tails = { ", aye.", ", lad.", ", ye ken?", ", ah tell ye." },
+    -- Only ", aye." remains: it always sits naturally. "lad" (assumes the
+    -- listener's gender), "ah tell ye", and "ye ken" (often ill-fitting) were
+    -- all removed after feedback.
+    tails = { ", aye." },
 })
 
 -- Troll == Jamaican Patois. Voiced th->d (the->da), voiceless th->t
@@ -403,16 +439,23 @@ local function appendTail(out, tail)
     return out .. " " .. phrase
 end
 
-function Accent.Apply(text, id, strength)
+-- `emotesOn` mirrors the "apply accent to emotes" option: when false, inline
+-- *emote* actions are left as plain speech (like /e emotes); when true they get
+-- the accent too.
+function Accent.Apply(text, id, strength, emotesOn)
     if not text or text == "" then return text end
     strength = strength or 100
     if strength <= 0 then return text end
     local acc = ACCENTS[id or Accent.DEFAULT] or ACCENTS[Accent.DEFAULT]
 
+    -- Keep links, [brackets] and (OOC asides) out of the accent entirely; also
+    -- keep *emote* actions out unless emote accents are enabled.
+    local protected, saved, spanCount = protectSpans(text, not emotesOn)
+
     -- Strength is the "garble level": every swap/pattern whose threshold is at or
     -- below the current strength fires, on EVERY eligible word. Raising strength
     -- switches on more (and heavier) transforms, so the accent thickens smoothly.
-    local out = text:gsub(WORD, function(word)
+    local out = protected:gsub(WORD, function(word)
         local lower = strlower(word)
 
         -- Lexical/phonetic word swap (terminal: slang words aren't re-spelled).
@@ -432,6 +475,8 @@ function Accent.Apply(text, id, strength)
         if w ~= lower then return applyCase(word, w) end
         return word
     end)
+
+    out = restoreSpans(out, saved, spanCount)
 
     -- If this accent drops words, tidy the double spaces / space-before-comma
     -- it leaves behind (e.g. "go to  meeting ." -> "go to meeting.").
