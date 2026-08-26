@@ -2,6 +2,28 @@
 
 All notable changes to Tongues of Azeroth are documented here.
 
+## [0.2.22]
+- **Accents now keep working inside instances.** The instance auto-disable added
+  in 0.2.20 switched off *everything*, accents included -- so an accent simply did
+  nothing in a raid or dungeon. Translation genuinely has to pause there, because
+  Blizzard blocks addons from reading incoming chat and nobody's client can decode
+  encoded speech; but an accent is ordinary English that needs no decoding and
+  works fine in an instance, so it was being suppressed as collateral damage. The
+  pause is now scoped to translation only. The wording follows suit: the entry
+  notice and the options heads-up both say translation is paused and accents still
+  work, and the checkbox now reads "Pause translation during instances".
+- **Accents now work while speaking Common.** 0.2.20 made Common (and Low Common)
+  read as plain speech, but the outgoing pipeline still treated "translation is
+  switched on" as translation having claimed the line -- so with Common selected it
+  translated the message into exactly itself and returned, and the accent never
+  ran. A translation that changes nothing now falls through to the accent. This
+  also covers the other no-op case: a short line where no word had a mapping yet at
+  low fluency. Picking a real tongue still takes precedence over the accent, as
+  before, since accents are meant to flavor English.
+- **`/ogt debug` now reports which branch handles your chat.** A new `SAY path=`
+  line reads `language`, `accent`, or `none (sent exactly as typed)`, so "it's
+  switched on but nothing happens" takes one command to pin down instead of
+  guesswork.
 ## [0.2.21]
 - **Fixed plain English being rewritten and tagged as a language.** Chat from
   players who don't even run ToA could be partially rewritten and stamped with a

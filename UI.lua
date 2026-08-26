@@ -730,7 +730,7 @@ local function BuildMainPanel()
     instanceNote:SetPoint("RIGHT", content, "RIGHT", -170, 0)
     instanceNote:SetJustifyH("LEFT")
     if instanceNote.SetWordWrap then instanceNote:SetWordWrap(true) end
-    instanceNote:SetText("|cffffd200Heads-up:|r During boss fights, Blizzard blocks addons from reading chat, so ToA can't translate or decode there. This is a game restriction, not a bug -- see the auto-disable option below.")
+    instanceNote:SetText("|cffffd200Heads-up:|r During boss fights, Blizzard blocks addons from reading chat, so ToA can't translate or decode inside instances. This is a game restriction, not a bug -- see the option below. Accents are unaffected and keep working there.")
 
     local function makeNavButton(label, onClick)
         local btn = CreateFrame("Button", nil, content)
@@ -823,7 +823,7 @@ local function BuildMainPanel()
         if ns.OnSettingsChanged then ns.OnSettingsChanged() else RefreshMain() end
     end)
 
-    autoDisableCheck = Compat.CreateCheckbox(content, "Automatically disable during instances")
+    autoDisableCheck = Compat.CreateCheckbox(content, "Pause translation during instances")
     autoDisableCheck:SetPoint("TOPLEFT", nativeHideCheck, "BOTTOMLEFT", 0, -8)
     autoDisableCheck:SetScript("OnClick", function(self)
         db().autoDisableInInstances = self:GetChecked() and true or false

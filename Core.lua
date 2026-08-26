@@ -536,21 +536,24 @@ end
 -- Shared outgoing transform. Given a raw message and its chat type, return
 -- (outgoingText, changed). Also fires the decode payload for grouped ToA users
 -- when a translation actually changed the text.
---   * Language translation "wins" only when it's on AND doing something
---     (strength > 0). At 0% strength it's a no-op, so accents can take over --
---     letting you drop Language strength to 0 to speak with a pure accent.
+--   * Language translation "wins" only when it actually rewrites the line. At 0%
+--     strength, or when the tongue reads as plain speech (Common and Low Common),
+--     translating is a no-op, so the accent takes the line instead -- letting you
+--     drop Language strength to 0, or speak Common, and still have a pure accent.
 local function transformOutgoing(msg, sendType, channel)
     if type(msg) ~= "string" or msg == "" then return msg, false end
-    -- Auto-disabled for this instance: send exactly what the player typed.
-    if instanceSuppressed then return msg, false end
 
     local db = TonguesOfAzerothDB
     if not db then return msg, false end
     local channelKey = normalizeChatType(sendType)
 
     -- Language translation wins when it's on, you're actually speaking a tongue,
-    -- and this channel is enabled for translation.
-    if db.enabled and getStrength() > 0 and ns.IsChannelEnabled(channelKey) then
+    -- and this channel is enabled for translation. Paused inside instances:
+    -- encoded text is only readable if the receiver's addon can read chat, which
+    -- Blizzard blocks there. Accents are exempt -- they're plain English that
+    -- needs no decoding, so they keep working (see the accent branch below).
+    if not instanceSuppressed and db.enabled and getStrength() > 0
+        and ns.IsChannelEnabled(channelKey) then
         local langId = db.language
         local strength = getStrength()
         local out = translateOutgoing(msg, langId, strength)
@@ -564,7 +567,9 @@ local function transformOutgoing(msg, sendType, channel)
             out = fit(languageTag(langId) .. out)
             return out, true
         end
-        return out, false
+        -- Translating changed nothing: Common and Low Common read as plain speech,
+        -- and a line can have no mapped words at low fluency. Fall through rather
+        -- than returning here, so the accent still gets its shot at the line.
     end
 
     -- Otherwise fall through to accents. Channel control here is independent of
@@ -1457,6 +1462,17 @@ local function debugReport()
             Print("accent:    |cffff0000error: " .. tostring(acc) .. "|r")
         end
     end
+    -- Which branch actually gets a SAY line. "Accent is on but nothing happens" is
+    -- almost always the language branch winning with a no-op translation.
+    do
+        local langWins = (db.enabled and getStrength() > 0
+            and ns.IsChannelEnabled("SAY") and enc ~= sample) and true or false
+        local accentWins = ((not langWins) and a.enabled
+            and ns.IsAccentChannelEnabled("SAY")) and true or false
+        Print("SAY path=" .. (langWins and "|cff00ff00language|r"
+            or (accentWins and "|cff00ff00accent|r"
+            or "|cffff0000none (sent exactly as typed)|r")))
+    end
     Print("On Retail 12.0+, typed chat uses the pre-send hook (not SendChatMessage,")
     Print("so seen=0 is normal there). Chat edits pause in combat by design.")
 end
@@ -1486,7 +1502,7 @@ local function usage()
     Print("  |cffffff00/ogt say <text>|r  - say a translated line once")
     Print("  |cffffff00/ogt yell <text>|r  - yell a translated line once")
     Print("  |cffffff00/ogt p <text>|r  - preview a translation (only you see it)")
-    Print("  |cffffff00/ogt autodisable on|off|r  - auto-disable in instances (Blizzard blocks chat during boss fights)")
+    Print("  |cffffff00/ogt autodisable on|off|r  - pause translation in instances (accents keep working)")
     Print("  |cffffff00/ogt debug|r  - diagnostics (hook status + live test)")
 end
 
@@ -1713,8 +1729,8 @@ end
 local function applyInstanceSuppression(want, left)
     if want and not instanceSuppressed then
         instanceSuppressed = true
-        Print("|cffffd200paused inside this instance. Blizzard blocks addons from reading chat during boss fights, so translations can't be decoded here. It will resume automatically once you leave the instance.|r")
-        local line = "Tongues of Azeroth is paused in this instance (Blizzard chat restriction). It resumes when you leave."
+        Print("|cffffd200translation paused inside this instance. Blizzard blocks addons from reading chat during boss fights, so encoded speech can't be decoded here. Accents keep working -- they're plain speech. Translation resumes automatically once you leave.|r")
+        local line = "Tongues of Azeroth: translation paused in this instance (Blizzard chat restriction). Accents still work. Resumes when you leave."
         if RaidNotice_AddMessage and RaidWarningFrame then
             RaidNotice_AddMessage(RaidWarningFrame, line, { r = 1, g = 0.82, b = 0.2 })
         elseif UIErrorsFrame and UIErrorsFrame.AddMessage then
@@ -1723,8 +1739,8 @@ local function applyInstanceSuppression(want, left)
         if ns.OnSettingsChanged then ns.OnSettingsChanged() end
     elseif (not want) and instanceSuppressed then
         instanceSuppressed = false
-        Print(left and "|cff33ff33resumed|r now that you've left the instance."
-            or "|cff33ff33resumed.|r")
+        Print(left and "|cff33ff33translation resumed|r now that you've left the instance."
+            or "|cff33ff33translation resumed.|r")
         if ns.OnSettingsChanged then ns.OnSettingsChanged() end
     end
 end
