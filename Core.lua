@@ -606,17 +606,20 @@ local function sendHookBody(msg, chatType, language, channel)
     return orig_SendChatMessage(outMsg, sendType, language, channel)
 end
 
--- Midnight (Retail 12.0+) folded SendChatMessage into the secure chat pipeline:
--- OVERWRITING the global now spreads taint into unrelated protected UI, so simply
--- opening the Character frame or Game Menu throws "attempt to compare a secret
--- number value (execution tainted by 'TonguesOfAzeroth')". Blizzard's sanctioned
--- replacement is the OnEditBoxPreSendText event (see onEditBoxPreSend), which we
--- already register. So on 12.0+ we must NEVER clobber the global.
--- GetBuildInfo's 4th return (interface number) is nil on very old clients
--- (e.g. 3.3.5a), which correctly falls through to the legacy hook path.
+-- Midnight folded SendChatMessage into the secure chat pipeline: OVERWRITING the
+-- global now spreads taint into unrelated protected UI, so simply opening the
+-- Character frame or Game Menu throws "attempt to compare a secret number value
+-- (execution tainted by 'TonguesOfAzeroth')". Blizzard's sanctioned replacement is
+-- the OnEditBoxPreSendText event (see onEditBoxPreSend), which we already register.
+-- On those clients we must NEVER clobber the global.
+--
+-- Probed via issecretvalue rather than an interface number, because the secure chat
+-- pipeline and "secrets" shipped as one change: WoW: Forever carries both yet reports
+-- a 1.60.x interface (16001), so any ">= 120000" test would take the legacy path and
+-- taint the UI. issecretvalue is absent on 3.3.5a and the Classic flavors, which do
+-- still need the global hook.
 local function usesPreSendPipeline()
-    local v = select(4, GetBuildInfo())
-    return type(v) == "number" and v >= 120000
+    return _issecretvalue ~= nil
 end
 
 -- Installs our SendChatMessage wrapper exactly once. We deliberately do NOT
@@ -1421,8 +1424,8 @@ local function debugReport()
     Print(("version |cffffff00%s|r  modules: Language=%s Accent=%s Compat=%s")
         :format(ver, tostring(ns.Language ~= nil), tostring(ns.Accent ~= nil), tostring(ns.Compat ~= nil)))
     if usesPreSendPipeline() then
-        -- On Midnight retail we intentionally do NOT overwrite the global (doing so
-        -- taints protected UI); typed chat is handled by the pre-send event below.
+        -- On Midnight and Forever we intentionally do NOT overwrite the global (doing
+        -- so taints protected UI); typed chat is handled by the pre-send event below.
         Print("send path=|cff00ff00pre-send event|r (global SendChatMessage left untouched -- taint-safe)")
     else
         Print(("hook installed=|cffffff00%s|r  global is ours=%s")
@@ -1473,8 +1476,8 @@ local function debugReport()
             or (accentWins and "|cff00ff00accent|r"
             or "|cffff0000none (sent exactly as typed)|r")))
     end
-    Print("On Retail 12.0+, typed chat uses the pre-send hook (not SendChatMessage,")
-    Print("so seen=0 is normal there). Chat edits pause in combat by design.")
+    Print("On Midnight and Forever, typed chat uses the pre-send hook (not")
+    Print("SendChatMessage, so seen=0 is normal). Chat edits pause in combat by design.")
 end
 
 local function usage()

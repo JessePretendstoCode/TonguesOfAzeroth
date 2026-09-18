@@ -2,6 +2,22 @@
 
 All notable changes to Tongues of Azeroth are documented here.
 
+## [0.2.23]
+- **Support for World of Warcraft: Forever.** Forever is its own game type
+  (`camelot`) rather than a retail patch, so the addon now ships a
+  `TonguesOfAzeroth_Camelot.toc` built for interface `16001`. Without it a Forever
+  client fell back to the retail TOC and flagged the addon as far out of date,
+  because Forever numbers its builds `1.60.x` even though it runs Midnight's API.
+- **Fixed UI taint on Forever.** The check for "does this client use the secure
+  chat pipeline?" compared the interface number against `120000`. Forever reports
+  `16001`, so it failed that test, took the legacy path and overwrote the global
+  `SendChatMessage` -- reintroducing exactly the taint fixed in 0.2.16, where
+  opening the Character frame or Game Menu throws "attempt to compare a secret
+  number value". The check now detects `issecretvalue` instead, which ships with
+  the secure chat pipeline itself, so Forever is handled correctly and 3.3.5a and
+  the Classic flavors keep the hook they still need.
+- Corrected the author name in the TOC files, which still read a placeholder.
+
 ## [0.2.22]
 - **Accents now keep working inside instances.** The instance auto-disable added
   in 0.2.20 switched off *everything*, accents included -- so an accent simply did

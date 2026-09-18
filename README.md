@@ -8,7 +8,7 @@ a **spoken accent** (Dwarven, Troll, Pirate, and more). There's even a **Wordle-
 language trainer** to earn fluency and decode what others say.
 
 **Runs on every client** — 3.3.5a (Wrath, incl. Project Ascension), Classic (Vanilla /
-Cata / Mists), and Retail — from a single install. A feature-detected compatibility layer
+Cata / Mists), Retail and Forever — from a single install. A feature-detected compatibility layer
 (`Compat.lua`) adapts the UI and chat APIs to whichever client it loads on.
 
 The playable-race languages use **Blizzard's own in-game language parser word lists**
@@ -256,7 +256,8 @@ One download runs on all current clients via version-suffixed TOCs + `Compat.lua
 | Cataclysm Classic | `40402` | `TonguesOfAzeroth_Cata.toc` |
 | Mists of Pandaria Classic | `50504` | `TonguesOfAzeroth_Mists.toc` |
 | Classic Era (Vanilla) | `11509` | `TonguesOfAzeroth_Vanilla.toc` |
-| Retail (Midnight) | `120007` | `TonguesOfAzeroth_Mainline.toc` |
+| Retail (Midnight) | `120100` | `TonguesOfAzeroth_Mainline.toc` |
+| Forever | `16001` | `TonguesOfAzeroth_Camelot.toc` |
 
 Modern interface numbers only affect the "out of date" flag and are easy to bump; the base
 `30300` TOC is what the old 3.3.5a client loads.
