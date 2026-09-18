@@ -19,6 +19,7 @@ One install runs on **Retail** (Midnight), **WoW: Forever**, and **Classic** (Va
 - **Per-channel filters** — choose exactly which chat types are affected (Say, Yell, Party, Raid, Guild, Whisper, and more)
 - **Learned Languages** — mark tongues your character understands; when another Tongues of Azeroth user speaks one, you'll see the decoded meaning in your own chat, with per-language fluency shown on progress bars
 - **Favorites** — click the star on any language and it floats up to a Favorites section at the top of the dropdown instead of sitting seventy rows down; the star on the floating language bar toggles whether scrolling cycles only your favorites
+- **Cast Phrases** — speak when a spell lands: *Corvin roars "Nuk'luk!"*. Words in `"quotes"` are spoken aloud and get translated into your current tongue, while the rest stays plain narration. **16 opt-in phrase packs** ship with it (one per class, plus pets, professions and battle cries — 144 spells, 180 lines), or write your own with tokens for the spell, your pet and your target. Per-phrase weights decide how often each comes up, and a keybinding opens a spell's phrase list while you hover it on your bars. Your pet's abilities can speak too.
 - **Minimap button** and a draggable standalone window for one-click access (with Back/Close navigation on clients without a native options tree)
 - **Live options panel** with a real-time preview
 - **Deterministic** — the same words always translate the same way, so speech stays consistent between everyone running the addon
@@ -68,12 +69,14 @@ Handy commands:
 - `/ogt accent <id>` — speak with an accent (`/ogt accent list`)
 - `/ogt game` — open the "Decipher" language trainer
 - `/ogt say <text>` — say one translated line
+- `/ogt cast` — set up phrases spoken when you cast
 
 ## ℹ️ Good to know
 
 - Chat has a 255-character limit, so translated text is trimmed to fit.
 - This transforms your text **client-side** — it does not touch WoW's real server-side language system.
 - Settings are stored per character.
+- Cast Phrases go out as **emotes**. `/say` and `/yell` have needed a real keypress since patch 8.2.5, so no addon can send those from a spell cast. During raid encounters, Mythic+ and rated PvP the game blocks addon chat altogether, and the line is shown to you alone instead.
 
 ---
 

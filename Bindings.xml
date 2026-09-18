@@ -1,0 +1,9 @@
+<Bindings>
+    <!-- Hover a spell on your action bars or in the spellbook and press this to
+         jump straight to its phrase list. Deliberately NOT listed in the .toc:
+         the client loads Bindings.xml by name, and listing it as well throws
+         "Unrecognized XML: Binding". -->
+    <Binding name="TONGUESOFAZEROTH_CASTPHRASES" category="ADDONS" header="TONGUESOFAZEROTH">
+        TonguesOfAzeroth_OpenCastPhrases();
+    </Binding>
+</Bindings>

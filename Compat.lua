@@ -49,6 +49,221 @@ function Compat.GetAddOnMetadata(name, field)
 end
 
 --=========================================================================--
+--  Spell info.
+--=========================================================================--
+-- GetSpellInfo moved into C_Spell in 11.0 (returning a table instead of a
+-- tuple) and the bare global is gone on Midnight, while the Classic flavors
+-- still only have the global. Returns name, icon -- or nil for an unknown id.
+local rawSpellInfo = C_Spell and C_Spell.GetSpellInfo
+function Compat.GetSpellInfo(spellID)
+    if not spellID then return nil end
+    if rawSpellInfo then
+        local ok, info = pcall(rawSpellInfo, spellID)
+        if ok and type(info) == "table" and info.name then
+            return info.name, info.iconID
+        end
+        return nil
+    end
+    if type(GetSpellInfo) == "function" then
+        local ok, name, _, icon = pcall(GetSpellInfo, spellID)
+        if ok and name then return name, icon end
+    end
+    return nil
+end
+
+--=========================================================================--
+--  Spellbook enumeration (castable spell names for the player + pet).
+--=========================================================================--
+-- Modern clients (11.0+) expose C_SpellBook.*; Classic flavors still use the
+-- GetNumSpellTabs / GetSpellBookItem* globals. Feature-detected, never gated on
+-- interface number (Forever reports 16001 but needs the modern path).
+
+local modernNumSkillLines = C_SpellBook and C_SpellBook.GetNumSpellBookSkillLines
+local modernSkillLineInfo = C_SpellBook and C_SpellBook.GetSpellBookSkillLineInfo
+local modernItemInfo = C_SpellBook and C_SpellBook.GetSpellBookItemInfo
+local modernHasPetSpells = C_SpellBook and C_SpellBook.HasPetSpells
+
+local classicNumTabs = type(GetNumSpellTabs) == "function" and GetNumSpellTabs
+local classicTabInfo = type(GetSpellTabInfo) == "function" and GetSpellTabInfo
+local classicItemInfo = type(GetSpellBookItemInfo) == "function" and GetSpellBookItemInfo
+local classicItemName = type(GetSpellBookItemName) == "function" and GetSpellBookItemName
+local classicHasPetSpells = type(HasPetSpells) == "function" and HasPetSpells
+
+local hasModernSpellbook = (
+    type(modernNumSkillLines) == "function"
+    and type(modernSkillLineInfo) == "function"
+    and type(modernItemInfo) == "function"
+)
+local hasClassicSpellbook = (
+    type(classicNumTabs) == "function"
+    and type(classicTabInfo) == "function"
+    and type(classicItemInfo) == "function"
+    and type(classicItemName) == "function"
+)
+
+function Compat.HasSpellbookAPI()
+    return hasModernSpellbook or hasClassicSpellbook
+end
+
+local function trimSpellName(name)
+    if type(name) ~= "string" then return nil end
+    name = name:match("^%s*(.-)%s*$")
+    if not name or name == "" then return nil end
+    return name
+end
+
+local function collectModernSpellNames(seen, out)
+    local bankPlayer, bankPet
+    local typeFuture, typeFlyout
+    if type(Enum) == "table" then
+        if type(Enum.SpellBookSpellBank) == "table" then
+            bankPlayer = Enum.SpellBookSpellBank.Player
+            bankPet = Enum.SpellBookSpellBank.Pet
+        end
+        if type(Enum.SpellBookItemType) == "table" then
+            typeFuture = Enum.SpellBookItemType.FutureSpell
+            typeFlyout = Enum.SpellBookItemType.Flyout
+        end
+    end
+    if bankPlayer == nil then return false end
+
+    local okNum, numLines = pcall(modernNumSkillLines)
+    if not okNum or type(numLines) ~= "number" or numLines < 1 then return false end
+
+    local counted = 0
+    for i = 1, numLines do
+        local okLine, info = pcall(modernSkillLineInfo, i)
+        if okLine and type(info) == "table" then
+            local offset = info.itemIndexOffset
+            local count = info.numSpellBookItems
+            if type(offset) == "number" and type(count) == "number" and count > 0 then
+                for j = offset + 1, offset + count do
+                    local okItem, item = pcall(modernItemInfo, j, bankPlayer)
+                    if okItem and type(item) == "table" and type(item.name) == "string" then
+                        if item.isPassive then
+                            -- passive; never fires a cast event
+                        elseif item.isOffSpec then
+                            -- off-spec placeholder
+                        elseif typeFuture and item.itemType == typeFuture then
+                            -- unlearned future rank
+                        elseif typeFlyout and item.itemType == typeFlyout then
+                            -- flyout names are truncated ("Call " for Call Pet) -- useless
+                        else
+                            local name = trimSpellName(item.name)
+                            if name and not seen[name] then
+                                seen[name] = true
+                                out[#out + 1] = name
+                                counted = counted + 1
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    if bankPet and type(modernHasPetSpells) == "function" then
+        local okPet, numPet = pcall(modernHasPetSpells)
+        if okPet and type(numPet) == "number" and numPet > 0 then
+            for j = 1, numPet do
+                local okItem, item = pcall(modernItemInfo, j, bankPet)
+                if okItem and type(item) == "table" and type(item.name) == "string" then
+                    if item.isPassive then
+                    elseif typeFuture and item.itemType == typeFuture then
+                    elseif typeFlyout and item.itemType == typeFlyout then
+                    else
+                        local name = trimSpellName(item.name)
+                        if name and not seen[name] then
+                            seen[name] = true
+                            out[#out + 1] = name
+                            counted = counted + 1
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    return true, counted
+end
+
+local function collectClassicSpellNames(seen, out)
+    local okTabs, numTabs = pcall(classicNumTabs)
+    if not okTabs or type(numTabs) ~= "number" or numTabs < 1 then return false end
+
+    local counted = 0
+    for i = 1, numTabs do
+        local okTab, _, _, offset, numSlots = pcall(classicTabInfo, i)
+        if okTab and type(offset) == "number" and type(numSlots) == "number" and numSlots > 0 then
+            for j = offset + 1, offset + numSlots do
+                local okInfo, spellType = pcall(classicItemInfo, j, "spell")
+                if okInfo and spellType ~= "FUTURESPELL" and spellType ~= "FLYOUT" then
+                    local okName, name = pcall(classicItemName, j, "spell")
+                    if okName then
+                        name = trimSpellName(name)
+                        if name and not seen[name] then
+                            seen[name] = true
+                            out[#out + 1] = name
+                            counted = counted + 1
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    if type(classicHasPetSpells) == "function" then
+        local okPet, numPet = pcall(classicHasPetSpells)
+        if okPet and type(numPet) == "number" and numPet > 0 then
+            for j = 1, numPet do
+                local okInfo, spellType = pcall(classicItemInfo, j, "pet")
+                if okInfo and spellType ~= "FUTURESPELL" and spellType ~= "FLYOUT" then
+                    local okName, name = pcall(classicItemName, j, "pet")
+                    if okName then
+                        name = trimSpellName(name)
+                        if name and not seen[name] then
+                            seen[name] = true
+                            out[#out + 1] = name
+                            counted = counted + 1
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    return true, counted
+end
+
+function Compat.GetSpellbookNames()
+    if not Compat.HasSpellbookAPI() then return nil end
+
+    local seen = {}
+    local names = {}
+
+    if hasModernSpellbook then
+        local ok = collectModernSpellNames(seen, names)
+        if not ok then return nil end
+        if #names > 0 then
+            table.sort(names)
+            return names
+        end
+        -- Modern scan succeeded but found nothing; without a classic fallback the
+        -- caller cannot tell "no spells" from "API mismatch", so return nil.
+        if not hasClassicSpellbook then return nil end
+    end
+
+    if hasClassicSpellbook then
+        local ok = collectClassicSpellNames(seen, names)
+        if not ok then return nil end
+        table.sort(names)
+        return names
+    end
+
+    return nil
+end
+
+--=========================================================================--
 --  Addon messaging (whisper/party/raid decode payloads).
 --=========================================================================--
 local rawSendAddon = (C_ChatInfo and C_ChatInfo.SendAddonMessage) or SendAddonMessage
@@ -69,6 +284,22 @@ function Compat.RegisterAddonMessagePrefix(prefix)
     if type(rawRegPrefix) == "function" then
         pcall(rawRegPrefix, prefix)
     end
+end
+
+--=========================================================================--
+--  Chat messaging lockdown (Midnight).
+--=========================================================================--
+-- Midnight refuses chat sent from addon code during raid encounters, Mythic+
+-- and rated PvP -- the point being that a keypress may talk but a script may
+-- not. Anything we generate ourselves (cast phrases, /ogt say) has to ask first
+-- and fall back to a local-only print, or the send is simply swallowed.
+-- Absent on the older Classic flavors, where no such lockdown exists.
+local rawChatLockdown = C_ChatInfo and C_ChatInfo.InChatMessagingLockdown
+
+function Compat.InChatLockdown()
+    if type(rawChatLockdown) ~= "function" then return false end
+    local ok, restricted = pcall(rawChatLockdown)
+    return ok and restricted == true
 end
 
 --=========================================================================--
@@ -432,6 +663,11 @@ function Compat.CreateSlider(parent, minV, maxV, step, titleText, lowText, highT
     local val = s:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     val:SetPoint("TOP", s, "BOTTOM", 0, -2)
     s.valueText = val
+
+    -- NOTE for callers: the frame itself is only 16px tall, but the title sits
+    -- above it and the low/value/high labels hang ~16px BELOW it, outside the
+    -- frame's bounds. Anything anchored to the slider's BOTTOM needs roughly
+    -- -30 or more of clearance or it will render on top of those labels.
     return s
 end
 

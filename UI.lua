@@ -49,6 +49,19 @@ local customEditDropdown, customNameInput, customApostSlider, customApostText
 local customOnsetInput, customNucleiInput, customCodaInput
 local customPreviewInput, customPreviewOutput, customStatus, customEditingId
 local customShareInput
+local castPanel, castContent
+local castEnableCheck, castPetCheck, castChanceSlider, castGapSlider, castSpellGapSlider
+local castSpellDropdown, castMuteCheck, castNewInput, castNewLabel
+local castPreviewText, castStatus, castAddRow, castEmptyNote
+local castPackChecks = {}
+local castPackBottom
+local castCreedHeader, castCreedHint, castPackAnchor
+local castBearingDropdown, castStreakDropdown, castWordingDropdown, castTalkDropdown
+local castToneSummary
+local castFilterSpellbookCheck, castShowOtherPacksCheck
+local castRows = {}
+local castSelectedKey
+local castSpellEventsRegistered
 local channelChecks = {}
 local learnedRows = {}
 local learnedBars = {}
@@ -869,6 +882,11 @@ local function BuildMainPanel()
     end)
     customBtn:SetPoint("TOPRIGHT", accentBtn, "BOTTOMRIGHT", 0, -4)
 
+    local castBtn = makeNavButton("Cast Phrases", function()
+        if ns.OpenCastConfig then ns.OpenCastConfig() end
+    end)
+    castBtn:SetPoint("TOPRIGHT", customBtn, "BOTTOMRIGHT", 0, -4)
+
     enableCheck = Compat.CreateCheckbox(content, "Enable auto-translate in chat")
     enableCheck:SetPoint("TOPLEFT", instanceNote, "BOTTOMLEFT", 0, -16)
     enableCheck:SetScript("OnClick", function(self)
@@ -1360,7 +1378,10 @@ local function BuildAccentPanel()
     end)
 
     local tailHint = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-    tailHint:SetPoint("TOPLEFT", accentTailSlider, "BOTTOMLEFT", 0, -6)
+    -- -34, the same gap used between the two sliders above: a slider's
+    -- Off/value/Often labels hang below its frame rather than inside it, so a
+    -- smaller offset lands this text on top of them.
+    tailHint:SetPoint("TOPLEFT", accentTailSlider, "BOTTOMLEFT", 0, -34)
     tailHint:SetPoint("RIGHT", content, "RIGHT", -24, 0)
     tailHint:SetJustifyH("LEFT")
     tailHint:SetText("How often a line ends with a flourish like \", aye.\" They are also "
@@ -1753,6 +1774,866 @@ local function BuildCustomPanel()
     customPanel:SetScript("OnShow", RefreshCustom)
 end
 
+--=========================================================================--
+--  Cast Phrases
+--=========================================================================--
+-- One spell at a time: pick it from the list (or press the keybind while
+-- hovering it on your bars), then edit the lines it can speak. Phrases from an
+-- opted-in library pack sit in the same list as your own, because from the
+-- player's side there's no difference worth showing -- they differ only in that
+-- a pack line can be retired to weight 0 but not deleted.
+
+local Casts = ns.Casts
+
+local function castDB()
+    local d = db()
+    return d and d.casts
+end
+
+local function castStatusMsg(msg, isError)
+    if not castStatus then return end
+    castStatus:SetText(msg or "")
+    if isError then
+        castStatus:SetTextColor(1, 0.4, 0.4)
+    else
+        castStatus:SetTextColor(0.6, 1, 0.6)
+    end
+end
+
+local function toneOptionName(list, id)
+    if id == "" then return "None" end
+    for _, opt in ipairs(list) do
+        if opt.id == id then return opt.name end
+    end
+    return id
+end
+
+local function toneDropdownItems(list, includeNone)
+    local items = {}
+    if includeNone then
+        items[#items + 1] = {
+            text = "None",
+            value = "",
+            desc = "No secondary streak -- one Bearing is enough.",
+        }
+    end
+    for _, opt in ipairs(list) do
+        items[#items + 1] = { text = opt.name, value = opt.id, desc = opt.desc }
+    end
+    return items
+end
+
+local function bindDropdownDesc(dd, items)
+    dd:HookScript("OnEnter", function()
+        local val = dd:GetValue()
+        for _, it in ipairs(items) do
+            if it.value == val and it.desc then
+                GameTooltip:SetOwner(dd, "ANCHOR_RIGHT")
+                GameTooltip:AddLine(it.desc, 1, 1, 1, true)
+                GameTooltip:Show()
+                return
+            end
+        end
+    end)
+    dd:HookScript("OnLeave", function() GameTooltip:Hide() end)
+end
+
+local function castSpellbookSet()
+    local names = Compat.GetSpellbookNames()
+    if not names then return nil, {} end
+    local set = {}
+    for _, name in ipairs(names) do
+        local key = Casts.Key(name)
+        if key then set[key] = name end
+    end
+    return names, set
+end
+
+local function castSpellItems()
+    local items = {}
+    if not Casts then return items end
+
+    local c = castDB()
+    local _, spellbookSet = castSpellbookSet()
+    local canFilter = spellbookSet and next(spellbookSet) ~= nil
+        and c and c.filterSpellbook ~= false
+
+    local configuredSet = {}
+    local configured = {}
+    for _, key in ipairs(Casts.GetKeys()) do
+        local keep = true
+        if canFilter and not c.spells[key] and not spellbookSet[key] then
+            keep = false
+        end
+        if keep then
+            configured[#configured + 1] = key
+            configuredSet[key] = true
+        end
+    end
+
+    if #configured > 0 then
+        items[#items + 1] = { text = "Configured", header = true }
+        for _, key in ipairs(configured) do
+            local label = Casts.DisplayName(key)
+            if Casts.IsMuted(key) then
+                label = label .. " |cff808080(muted)|r"
+            end
+            items[#items + 1] = { text = label, value = key }
+        end
+    end
+
+    local spellbook = select(1, castSpellbookSet())
+    if spellbook then
+        local yours = {}
+        for _, name in ipairs(spellbook) do
+            local key = Casts.Key(name)
+            if key and not configuredSet[key] then
+                yours[#yours + 1] = { name = name, key = key }
+            end
+        end
+        if #yours > 0 then
+            items[#items + 1] = { text = "Your spells", header = true }
+            for _, entry in ipairs(yours) do
+                items[#items + 1] = { text = entry.name, value = entry.key }
+            end
+        end
+    end
+
+    if #items == 0 then
+        items[1] = { text = "|cff808080No spells yet|r", value = nil, header = true }
+    end
+    return items
+end
+
+local function noteSpellKey(key)
+    if not key then return end
+    local _, spellbookSet = castSpellbookSet()
+    if spellbookSet and spellbookSet[key] then
+        Casts.NoteSpellName(spellbookSet[key])
+    else
+        Casts.NoteSpellName(Casts.DisplayName(key))
+    end
+end
+
+local function phraseToneLabel(phrase)
+    if phrase.user then return "" end
+    local parts = {}
+    if phrase.bearing then
+        parts[#parts + 1] = toneOptionName(Casts.BEARINGS, phrase.bearing)
+    end
+    if phrase.wording then
+        parts[#parts + 1] = toneOptionName(Casts.WORDINGS, phrase.wording)
+    end
+    if #parts == 0 then return "" end
+    return table.concat(parts, " · ")
+end
+
+local function layoutCastPacks()
+    if not (castPackAnchor and castPackBottom) then return end
+    local c = castDB()
+    local showOther = c and c.showOtherPacks
+    local mine = ns.CastLibrary and ns.CastLibrary.PackForPlayer()
+    local packs = (ns.CastLibrary and ns.CastLibrary.GetPacks()) or {}
+
+    local mainList, creedList = {}, {}
+    for _, pack in ipairs(packs) do
+        local check = castPackChecks[pack.id]
+        if check then
+            if pack.kind == "creed" then
+                creedList[#creedList + 1] = check
+            elseif pack.kind == "universal" or pack.id == mine
+                or (pack.kind == "class" and showOther) then
+                mainList[#mainList + 1] = check
+                check:Show()
+            else
+                check:Hide()
+            end
+        end
+    end
+
+    local colAnchor = castPackAnchor
+    local bottom = castPackAnchor
+    for i, check in ipairs(mainList) do
+        check:ClearAllPoints()
+        if i == 1 then
+            check:SetPoint("TOPLEFT", castPackAnchor, "BOTTOMLEFT", 0, -8)
+        elseif i % 2 == 1 then
+            check:SetPoint("TOPLEFT", colAnchor, "BOTTOMLEFT", 0, -2)
+        else
+            check:SetPoint("TOPLEFT", colAnchor, "TOPLEFT", 240, 0)
+        end
+        if i % 2 == 1 then colAnchor = check end
+        bottom = check
+    end
+    if castCreedHeader and #creedList > 0 then
+        castCreedHeader:ClearAllPoints()
+        castCreedHeader:SetPoint("TOPLEFT", bottom, "BOTTOMLEFT", 0, -16)
+        castCreedHeader:Show()
+        castCreedHint:ClearAllPoints()
+        castCreedHint:SetPoint("TOPLEFT", castCreedHeader, "BOTTOMLEFT", 0, -4)
+        castCreedHint:Show()
+        bottom = castCreedHint
+        colAnchor = castCreedHint
+        for i, check in ipairs(creedList) do
+            check:Show()
+            check:ClearAllPoints()
+            if i == 1 then
+                check:SetPoint("TOPLEFT", castCreedHint, "BOTTOMLEFT", 0, -8)
+            elseif i % 2 == 1 then
+                check:SetPoint("TOPLEFT", colAnchor, "BOTTOMLEFT", 0, -2)
+            else
+                check:SetPoint("TOPLEFT", colAnchor, "TOPLEFT", 240, 0)
+            end
+            if i % 2 == 1 then colAnchor = check end
+            bottom = check
+        end
+    elseif castCreedHeader then
+        castCreedHeader:Hide()
+        castCreedHint:Hide()
+        for _, check in ipairs(creedList) do check:Hide() end
+    end
+
+    castPackBottom:ClearAllPoints()
+    castPackBottom:SetPoint("TOPLEFT", bottom, "BOTTOMLEFT", 0, 0)
+end
+
+-- Rows are created once and reused, so switching between a spell with two
+-- phrases and one with twelve doesn't leak frames.
+local function castRow(index, parent)
+    if castRows[index] then return castRows[index] end
+
+    local row = CreateFrame("Frame", nil, parent)
+    row:SetHeight(22)
+
+    local function tinyButton(label, width)
+        local btn = CreateFrame("Button", nil, row)
+        btn:SetSize(width or 18, 18)
+        local bg = btn:CreateTexture(nil, "BACKGROUND")
+        bg:SetAllPoints()
+        Compat.SolidTexture(bg, 0.18, 0.16, 0.24, 1)
+        Compat.AddBorder(btn, 0.5, 0.45, 0.7, 0.9)
+        local t = btn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        t:SetPoint("CENTER", 0, 0)
+        t:SetText(label)
+        local hl = btn:CreateTexture(nil, "HIGHLIGHT")
+        hl:SetAllPoints()
+        Compat.SolidTexture(hl, 1, 1, 1, 0.12)
+        btn.label = t
+        return btn
+    end
+
+    -- A pair of nudge buttons rather than a slider: at 22px tall there's no
+    -- room for a slider's labels, and the whole range is six steps.
+    row.down = tinyButton("-")
+    row.down:SetPoint("LEFT", row, "LEFT", 0, 0)
+    row.up = tinyButton("+")
+    row.up:SetPoint("LEFT", row.down, "RIGHT", 24, 0)
+
+    row.weight = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    row.weight:SetPoint("LEFT", row.down, "RIGHT", 0, 0)
+    row.weight:SetWidth(24)
+    row.weight:SetJustifyH("CENTER")
+
+    row.meta = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    row.meta:SetPoint("LEFT", row.up, "RIGHT", 6, 0)
+    row.meta:SetWidth(88)
+    row.meta:SetJustifyH("LEFT")
+
+    row.text = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    row.text:SetPoint("LEFT", row.meta, "RIGHT", 4, 0)
+    row.text:SetJustifyH("LEFT")
+    if row.text.SetWordWrap then row.text:SetWordWrap(false) end
+
+    row:EnableMouse(true)
+
+    row.action = tinyButton("Delete", 56)
+    row.action:SetPoint("RIGHT", row, "RIGHT", 0, 0)
+    row.text:SetPoint("RIGHT", row.action, "LEFT", -8, 0)
+
+    -- Names the pack a library line came from, where the Delete button would be.
+    row.source = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    row.source:SetPoint("RIGHT", row, "RIGHT", 0, 0)
+    row.source:SetWidth(56)
+    row.source:SetJustifyH("RIGHT")
+
+    castRows[index] = row
+    return row
+end
+
+local function RefreshCasts()
+    if not (castPanel and Casts) then return end
+    local c = castDB()
+    if not c then return end
+
+    local tone = Casts.GetTone()
+    if castBearingDropdown then
+        castBearingDropdown:SetSelected(tone.bearing, toneOptionName(Casts.BEARINGS, tone.bearing))
+    end
+    if castStreakDropdown then
+        castStreakDropdown:SetSelected(tone.second, toneOptionName(Casts.BEARINGS, tone.second))
+    end
+    if castWordingDropdown then
+        castWordingDropdown:SetSelected(tone.wording, toneOptionName(Casts.WORDINGS, tone.wording))
+    end
+    if castTalkDropdown then
+        castTalkDropdown:SetSelected(tone.talk, toneOptionName(Casts.TALK, tone.talk))
+    end
+    if castToneSummary then castToneSummary:SetText(Casts.DescribeTone()) end
+
+    if castEnableCheck then castEnableCheck:SetChecked(c.enabled) end
+    if castPetCheck then castPetCheck:SetChecked(c.pets) end
+
+    local hasSpellbook = Compat.HasSpellbookAPI() and Compat.GetSpellbookNames() ~= nil
+    if castFilterSpellbookCheck then
+        if hasSpellbook then
+            castFilterSpellbookCheck:Enable()
+            castFilterSpellbookCheck:SetChecked(c.filterSpellbook ~= false)
+        else
+            c.filterSpellbook = false
+            castFilterSpellbookCheck:SetChecked(false)
+            castFilterSpellbookCheck:Disable()
+        end
+    end
+    if castShowOtherPacksCheck then
+        castShowOtherPacksCheck:SetChecked(c.showOtherPacks and true or false)
+    end
+
+    -- The captions are set here rather than left to OnValueChanged, which
+    -- doesn't fire when the value is already what we're setting -- a slider
+    -- sitting at its saved value would otherwise show no caption at all.
+    local function setSlider(slider, value, caption)
+        if not slider then return end
+        slider:SetValue(value)
+        if slider.valueText then slider.valueText:SetText(caption) end
+    end
+    local function seconds(value)
+        return value == 0 and "No pause" or (value .. " seconds")
+    end
+    setSlider(castChanceSlider, c.chance or 35, (c.chance or 35) .. "%")
+    setSlider(castGapSlider, c.gap or 20, seconds(c.gap or 20))
+    setSlider(castSpellGapSlider, c.spellGap or 60, seconds(c.spellGap or 60))
+
+    for packId, check in pairs(castPackChecks) do
+        check:SetChecked(Casts.IsPackEnabled(packId))
+    end
+    layoutCastPacks()
+
+    -- A selection is never taken away: a spell picked by name, or by the
+    -- keybind, has no phrases yet by definition, and dropping it would undo the
+    -- click that got you here. Only an empty selection falls back to the list.
+    local keys = Casts.GetKeys()
+    if not castSelectedKey then castSelectedKey = keys[1] end
+
+    if castSpellDropdown then
+        castSpellDropdown:SetItems(castSpellItems())
+        if castSelectedKey then
+            castSpellDropdown:SetSelected(castSelectedKey, Casts.DisplayName(castSelectedKey))
+        else
+            castSpellDropdown:SetSelected(nil, "Pick a spell")
+        end
+    end
+    if castMuteCheck then
+        castMuteCheck:SetChecked(castSelectedKey and Casts.IsMuted(castSelectedKey) or false)
+    end
+    if castNewLabel then
+        castNewLabel:SetText(castSelectedKey
+            and ("New phrase for " .. Casts.DisplayName(castSelectedKey))
+            or "New phrase")
+    end
+
+    -- Lay the phrase rows out under the spell selector.
+    local phrases = castSelectedKey and Casts.GetPhrases(castSelectedKey) or {}
+    local anchor = castMuteCheck
+    for i, phrase in ipairs(phrases) do
+        local row = castRow(i, castContent)
+        row:ClearAllPoints()
+        row:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", i == 1 and 4 or 0, i == 1 and -10 or -2)
+        row:SetPoint("RIGHT", castContent, "RIGHT", -24, 0)
+
+        local step = phrase.step or 0
+        row.weight:SetText(tostring(step))
+        local grey = phrase.offTone or step == 0
+        if grey then
+            row.weight:SetTextColor(0.5, 0.5, 0.5)
+            row.text:SetTextColor(0.5, 0.5, 0.5)
+            row.meta:SetTextColor(0.4, 0.4, 0.4)
+        else
+            row.weight:SetTextColor(1, 0.82, 0)
+            row.text:SetTextColor(1, 1, 1)
+            row.meta:SetTextColor(0.55, 0.55, 0.55)
+        end
+        row.meta:SetText(phraseToneLabel(phrase))
+        row.text:SetText(phrase.text)
+
+        row:SetScript("OnEnter", function(self)
+            if phrase.offTone then
+                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+                GameTooltip:AddLine("Off character", 1, 0.82, 0)
+                GameTooltip:AddLine(
+                    "This line doesn't match your Bearing. Give it a weight to use it anyway.",
+                    0.8, 0.8, 0.8, true)
+                GameTooltip:Show()
+            end
+        end)
+        row:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+        local key, text = castSelectedKey, phrase.text
+        row.down:SetScript("OnClick", function()
+            Casts.SetWeight(key, text, step - 1)
+            RefreshCasts()
+        end)
+        row.up:SetScript("OnClick", function()
+            Casts.SetWeight(key, text, step + 1)
+            RefreshCasts()
+        end)
+
+        if phrase.user then
+            row.action:Show()
+            row.source:Hide()
+            row.action:SetScript("OnClick", function()
+                Casts.RemovePhrase(key, text)
+                castStatusMsg("Removed that phrase.", false)
+                RefreshCasts()
+            end)
+        else
+            -- Library lines can't be deleted (the pack owns them), so weight 0
+            -- is how you retire one. The pack name doubles as the explanation.
+            row.action:Hide()
+            row.source:Show()
+            row.source:SetText(phrase.pack or "pack")
+        end
+
+        row:Show()
+        anchor = row
+    end
+    for i = #phrases + 1, #castRows do
+        castRows[i]:Hide()
+    end
+
+    if castEmptyNote then
+        if #phrases == 0 then
+            castEmptyNote:ClearAllPoints()
+            castEmptyNote:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 4, -10)
+            castEmptyNote:SetPoint("RIGHT", castContent, "RIGHT", -24, 0)
+            castEmptyNote:Show()
+            anchor = castEmptyNote
+        else
+            castEmptyNote:Hide()
+        end
+    end
+
+    if castAddRow then
+        castAddRow:ClearAllPoints()
+        castAddRow:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", #phrases > 0 and 0 or 0, -14)
+        castAddRow:SetPoint("RIGHT", castContent, "RIGHT", -24, 0)
+    end
+
+    -- Preview whatever is being typed, so a phrase can be checked before it's
+    -- saved; falls back to rolling one of the existing lines.
+    if castPreviewText then
+        local typed = castNewInput and castNewInput:GetText() or ""
+        local spellName = castSelectedKey and Casts.DisplayName(castSelectedKey) or nil
+        local line
+        if typed:gsub("%s", "") ~= "" then
+            line = Casts.Preview(typed, spellName)
+        elseif phrases[1] then
+            line = Casts.Preview(phrases[1].text, spellName)
+        end
+        castPreviewText:SetText(line or "|cff808080Add a phrase to see how it will read.|r")
+    end
+
+    if castContent and castContent.SetContentHeight and castPanel._lastChild then
+        local top = castContent:GetTop()
+        local bot = castPanel._lastChild:GetBottom()
+        if top and bot and top > bot then
+            castContent:SetContentHeight(top - bot + 24)
+        end
+    end
+end
+
+local function BuildCastPanel()
+    castPanel = Compat.CreateOptionsPanel("TonguesOfAzerothCastOptions")
+    castPanel.name = "Cast Phrases"
+    castPanel.parent = mainPanel.name
+
+    local content = Compat.CreateScrollContent(castPanel, 900)
+    castContent = content
+
+    local title = content:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+    title:SetPoint("TOPLEFT", 16, -16)
+    title:SetText("Cast Phrases")
+
+    local subtitle = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -8)
+    subtitle:SetPoint("RIGHT", content, "RIGHT", -24, 0)
+    subtitle:SetJustifyH("LEFT")
+    if subtitle.SetWordWrap then subtitle:SetWordWrap(true) end
+    subtitle:SetText("Speak a line of your own when a spell lands -- Corvin roars \"Nuk'luk!\" -- in whatever tongue you're currently speaking. Words in \"quotes\" are spoken aloud and get translated; the rest is narration and stays in English.")
+
+    local limits = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    limits:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -10)
+    limits:SetPoint("RIGHT", content, "RIGHT", -24, 0)
+    limits:SetJustifyH("LEFT")
+    if limits.SetWordWrap then limits:SetWordWrap(true) end
+    limits:SetText("|cffffd200Heads-up:|r lines go out as emotes. /say and /yell need a real keypress, so no addon can send them from a cast -- and during raid encounters, Mythic+ and rated PvP Blizzard blocks addon chat entirely, where the line is shown to you alone instead.")
+
+    --  Character sheet ---------------------------------------------------
+    local sheetLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    sheetLabel:SetPoint("TOPLEFT", limits, "BOTTOMLEFT", 0, -16)
+    sheetLabel:SetText("This character")
+
+    local bearingLabel = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    bearingLabel:SetPoint("TOPLEFT", sheetLabel, "BOTTOMLEFT", 0, -10)
+    bearingLabel:SetText("Bearing")
+
+    local bearingItems = toneDropdownItems(Casts.BEARINGS)
+    castBearingDropdown = Compat.CreateDropdown(content, 220)
+    castBearingDropdown:SetPoint("TOPLEFT", bearingLabel, "BOTTOMLEFT", 0, -6)
+    castBearingDropdown:SetItems(bearingItems)
+    bindDropdownDesc(castBearingDropdown, bearingItems)
+    castBearingDropdown.onSelect = function(value)
+        Casts.SetTone("bearing", value)
+        RefreshCasts()
+    end
+
+    local streakLabel = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    streakLabel:SetPoint("TOPLEFT", bearingLabel, "TOPLEFT", 260, 0)
+    streakLabel:SetText("Streak")
+
+    local streakItems = toneDropdownItems(Casts.BEARINGS, true)
+    castStreakDropdown = Compat.CreateDropdown(content, 220)
+    castStreakDropdown:SetPoint("TOPLEFT", streakLabel, "BOTTOMLEFT", 0, -6)
+    castStreakDropdown:SetItems(streakItems)
+    bindDropdownDesc(castStreakDropdown, streakItems)
+    castStreakDropdown.onSelect = function(value)
+        Casts.SetTone("second", value)
+        RefreshCasts()
+    end
+
+    local wordingLabel = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    wordingLabel:SetPoint("TOPLEFT", castBearingDropdown, "BOTTOMLEFT", 0, -20)
+    wordingLabel:SetText("Wording")
+
+    local wordingItems = toneDropdownItems(Casts.WORDINGS)
+    castWordingDropdown = Compat.CreateDropdown(content, 220)
+    castWordingDropdown:SetPoint("TOPLEFT", wordingLabel, "BOTTOMLEFT", 0, -6)
+    castWordingDropdown:SetItems(wordingItems)
+    bindDropdownDesc(castWordingDropdown, wordingItems)
+    castWordingDropdown.onSelect = function(value)
+        Casts.SetTone("wording", value)
+        RefreshCasts()
+    end
+
+    local talkLabel = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    talkLabel:SetPoint("TOPLEFT", wordingLabel, "TOPLEFT", 260, 0)
+    talkLabel:SetText("Talkativeness")
+
+    local talkItems = toneDropdownItems(Casts.TALK)
+    castTalkDropdown = Compat.CreateDropdown(content, 220)
+    castTalkDropdown:SetPoint("TOPLEFT", talkLabel, "BOTTOMLEFT", 0, -6)
+    castTalkDropdown:SetItems(talkItems)
+    bindDropdownDesc(castTalkDropdown, talkItems)
+    castTalkDropdown.onSelect = function(value)
+        Casts.SetTone("talk", value)
+        RefreshCasts()
+    end
+
+    castToneSummary = content:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+    castToneSummary:SetPoint("TOPLEFT", castWordingDropdown, "BOTTOMLEFT", 0, -20)
+    castToneSummary:SetPoint("RIGHT", content, "RIGHT", -24, 0)
+    castToneSummary:SetJustifyH("LEFT")
+
+    local sheetHint = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    sheetHint:SetPoint("TOPLEFT", castToneSummary, "BOTTOMLEFT", 0, -6)
+    sheetHint:SetPoint("RIGHT", content, "RIGHT", -24, 0)
+    sheetHint:SetJustifyH("LEFT")
+    if sheetHint.SetWordWrap then sheetHint:SetWordWrap(true) end
+    sheetHint:SetText("The sheet decides which shipped lines suit this character; lines you write yourself are always used.")
+
+    castEnableCheck = Compat.CreateCheckbox(content, "Speak a phrase when I cast something")
+    castEnableCheck:SetPoint("TOPLEFT", sheetHint, "BOTTOMLEFT", 0, -14)
+    castEnableCheck:SetScript("OnClick", function(self)
+        local enabled = self:GetChecked() and true or false
+        castDB().enabled = enabled
+        if enabled then Casts.SeedDefaultPacks() end
+        RefreshCasts()
+    end)
+
+    castPetCheck = Compat.CreateCheckbox(content, "Also speak for my pet's abilities")
+    castPetCheck:SetPoint("TOPLEFT", castEnableCheck, "BOTTOMLEFT", 0, -6)
+    castPetCheck:SetScript("OnClick", function(self)
+        castDB().pets = self:GetChecked() and true or false
+    end)
+
+    castChanceSlider = Compat.CreateSlider(content, 0, 100, 5, "How often", "0 - Never", "100 - Every cast")
+    castChanceSlider:SetPoint("TOPLEFT", castPetCheck, "BOTTOMLEFT", 4, -34)
+    castChanceSlider:SetWidth(320)
+    castChanceSlider:SetScript("OnValueChanged", function(self, value)
+        value = math.floor(value / 5 + 0.5) * 5
+        castDB().chance = value
+        self.valueText:SetText(value .. "%")
+    end)
+
+    castGapSlider = Compat.CreateSlider(content, 0, 120, 5, "Quiet time after a line", "0s", "2 min")
+    castGapSlider:SetPoint("TOPLEFT", castChanceSlider, "BOTTOMLEFT", 0, -40)
+    castGapSlider:SetWidth(320)
+    castGapSlider:SetScript("OnValueChanged", function(self, value)
+        value = math.floor(value / 5 + 0.5) * 5
+        castDB().gap = value
+        self.valueText:SetText(value == 0 and "No pause" or (value .. " seconds"))
+    end)
+
+    castSpellGapSlider = Compat.CreateSlider(content, 0, 300, 15, "...and for the same spell", "0s", "5 min")
+    castSpellGapSlider:SetPoint("TOPLEFT", castGapSlider, "BOTTOMLEFT", 0, -40)
+    castSpellGapSlider:SetWidth(320)
+    castSpellGapSlider:SetScript("OnValueChanged", function(self, value)
+        value = math.floor(value / 15 + 0.5) * 15
+        castDB().spellGap = value
+        self.valueText:SetText(value == 0 and "No pause" or (value .. " seconds"))
+    end)
+
+    local throttleHint = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    throttleHint:SetPoint("TOPLEFT", castSpellGapSlider, "BOTTOMLEFT", -4, -34)
+    throttleHint:SetPoint("RIGHT", content, "RIGHT", -24, 0)
+    throttleHint:SetJustifyH("LEFT")
+    if throttleHint.SetWordWrap then throttleHint:SetWordWrap(true) end
+    throttleHint:SetText("The two pauses are what keep a spammable spell from turning your emotes into a wall of text. A cast that rolls a phrase while either pause is running simply stays quiet.")
+
+    --  Packs -------------------------------------------------------------
+    local packLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    packLabel:SetPoint("TOPLEFT", throttleHint, "BOTTOMLEFT", 0, -16)
+    packLabel:SetText("Phrase packs")
+
+    local packHint = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    packHint:SetPoint("TOPLEFT", packLabel, "BOTTOMLEFT", 0, -4)
+    packHint:SetPoint("RIGHT", content, "RIGHT", -24, 0)
+    packHint:SetJustifyH("LEFT")
+    if packHint.SetWordWrap then packHint:SetWordWrap(true) end
+    packHint:SetText("Ready-made lines for spells you already cast. Tick one and its spells appear in the list below, where you can reword, reweight or retire any line. Packs match spells by English name.")
+
+    castShowOtherPacksCheck = Compat.CreateCheckbox(content, "Show other classes")
+    castShowOtherPacksCheck:SetPoint("TOPLEFT", packHint, "BOTTOMLEFT", 0, -8)
+    castShowOtherPacksCheck:SetScript("OnClick", function(self)
+        castDB().showOtherPacks = self:GetChecked() and true or false
+        RefreshCasts()
+    end)
+
+    castPackAnchor = castShowOtherPacksCheck
+
+    local packs = (ns.CastLibrary and ns.CastLibrary.GetPacks()) or {}
+    local mine = ns.CastLibrary and ns.CastLibrary.PackForPlayer()
+    local function addPackCheck(pack, label)
+        local check = Compat.CreateCheckbox(content, label or pack.name)
+        check:Hide()
+        local packId = pack.id
+        check:SetScript("OnClick", function(self)
+            Casts.SetPackEnabled(packId, self:GetChecked() and true or false)
+            RefreshCasts()
+        end)
+        if check.SetScript and pack.note then
+            check:HookScript("OnEnter", function(self)
+                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+                GameTooltip:AddLine(pack.name, 1, 1, 1)
+                GameTooltip:AddLine(pack.note, 0.8, 0.8, 0.8, true)
+                GameTooltip:AddLine(string.format("%d spells, %d phrases", pack.spells, pack.phrases),
+                    0.6, 0.6, 0.6)
+                GameTooltip:Show()
+            end)
+            check:HookScript("OnLeave", function() GameTooltip:Hide() end)
+        end
+        castPackChecks[pack.id] = check
+    end
+
+    for _, pack in ipairs(packs) do
+        if pack.kind ~= "creed" then
+            local label = pack.name
+            if pack.id == mine then label = label .. " |cff00ff00(yours)|r" end
+            addPackCheck(pack, label)
+        end
+    end
+    for _, pack in ipairs(packs) do
+        if pack.kind == "creed" then addPackCheck(pack) end
+    end
+
+    castCreedHeader = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    castCreedHeader:SetPoint("TOPLEFT", castPackAnchor, "BOTTOMLEFT", 0, -8)
+    castCreedHeader:SetText("Creed packs")
+    castCreedHeader:Hide()
+
+    castCreedHint = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    castCreedHint:SetPoint("TOPLEFT", castCreedHeader, "BOTTOMLEFT", 0, -4)
+    castCreedHint:SetPoint("RIGHT", content, "RIGHT", -24, 0)
+    castCreedHint:SetJustifyH("LEFT")
+    if castCreedHint.SetWordWrap then castCreedHint:SetWordWrap(true) end
+    castCreedHint:SetText("Creed lines are not tied to a spell -- they ride along on whichever spells you already have set up.")
+    castCreedHint:Hide()
+
+    castPackBottom = CreateFrame("Frame", nil, content)
+    castPackBottom:SetSize(1, 1)
+    castPackBottom:SetPoint("TOPLEFT", castPackAnchor, "BOTTOMLEFT", 0, 0)
+
+    --  The spell being edited --------------------------------------------
+    local spellLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    spellLabel:SetPoint("TOPLEFT", castPackBottom, "BOTTOMLEFT", 0, -20)
+    spellLabel:SetText("Spell")
+
+    castFilterSpellbookCheck = Compat.CreateCheckbox(content, "Only show spells I can cast")
+    castFilterSpellbookCheck:SetPoint("TOPLEFT", spellLabel, "BOTTOMLEFT", 0, -4)
+    castFilterSpellbookCheck:SetScript("OnClick", function(self)
+        castDB().filterSpellbook = self:GetChecked() and true or false
+        RefreshCasts()
+    end)
+
+    castSpellDropdown = Compat.CreateDropdown(content, 240)
+    castSpellDropdown:SetPoint("TOPLEFT", castFilterSpellbookCheck, "BOTTOMLEFT", 0, -6)
+    castSpellDropdown.onSelect = function(value)
+        if value then noteSpellKey(value) end
+        castSelectedKey = value
+        castStatusMsg("", false)
+        RefreshCasts()
+    end
+
+    -- Adding a spell the library doesn't cover. The keybind is the fast way in
+    -- (hover it on your bars and press it); this is the way that works when
+    -- you'd rather type, or the spell isn't on a bar at all.
+    local addSpellInput = CreateFrame("EditBox", "TonguesOfAzerothCastSpell", content, "InputBoxTemplate")
+    addSpellInput:SetPoint("LEFT", castSpellDropdown, "RIGHT", 16, 0)
+    addSpellInput:SetSize(180, 20)
+    addSpellInput:SetAutoFocus(false)
+    addSpellInput:SetScript("OnEscapePressed", addSpellInput.ClearFocus)
+
+    local function pickTypedSpell()
+        local typed = addSpellInput:GetText() or ""
+        local key = Casts.Key(typed)
+        if not key then
+            castStatusMsg("Type a spell's name first.", true)
+            return
+        end
+        Casts.NoteSpellName((typed:gsub("^%s+", ""):gsub("%s+$", "")))
+        castSelectedKey = key
+        addSpellInput:SetText("")
+        addSpellInput:ClearFocus()
+        castStatusMsg("Editing " .. Casts.DisplayName(key) .. " -- add a phrase below.", false)
+        RefreshCasts()
+    end
+    addSpellInput:SetScript("OnEnterPressed", pickTypedSpell)
+
+    local addSpellHint = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+    addSpellHint:SetPoint("TOPLEFT", addSpellInput, "BOTTOMLEFT", 0, -3)
+    addSpellHint:SetText("or type a spell name and press Enter")
+
+    castMuteCheck = Compat.CreateCheckbox(content, "Never speak for this spell")
+    castMuteCheck:SetPoint("TOPLEFT", castSpellDropdown, "BOTTOMLEFT", 0, -10)
+    castMuteCheck:SetScript("OnClick", function(self)
+        if not castSelectedKey then return end
+        Casts.SetMuted(castSelectedKey, self:GetChecked() and true or false)
+        RefreshCasts()
+    end)
+
+    castEmptyNote = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+    castEmptyNote:SetJustifyH("LEFT")
+    if castEmptyNote.SetWordWrap then castEmptyNote:SetWordWrap(true) end
+    castEmptyNote:SetText("No phrases for this spell yet. Tick a pack above, or write one below.")
+    castEmptyNote:Hide()
+
+    --  Adding a phrase ---------------------------------------------------
+    castAddRow = CreateFrame("Frame", nil, content)
+    castAddRow:SetHeight(46)
+
+    castNewLabel = castAddRow:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    castNewLabel:SetPoint("TOPLEFT", castAddRow, "TOPLEFT", 0, 0)
+    castNewLabel:SetText("New phrase")
+
+    castNewInput = CreateFrame("EditBox", "TonguesOfAzerothCastPhrase", castAddRow, "InputBoxTemplate")
+    castNewInput:SetPoint("TOPLEFT", castNewLabel, "BOTTOMLEFT", 6, -6)
+    castNewInput:SetSize(440, 20)
+    castNewInput:SetAutoFocus(false)
+    castNewInput:SetScript("OnTextChanged", function() RefreshCasts() end)
+    castNewInput:SetScript("OnEscapePressed", castNewInput.ClearFocus)
+
+    local function addTypedPhrase()
+        if not castSelectedKey then
+            castStatusMsg("Pick a spell first.", true)
+            return
+        end
+        local text = castNewInput:GetText() or ""
+        local ok, err = Casts.AddPhrase(castSelectedKey, text)
+        if ok then
+            castNewInput:SetText("")
+            castStatusMsg("Added.", false)
+        else
+            castStatusMsg("Not added: " .. tostring(err) .. ".", true)
+        end
+        RefreshCasts()
+    end
+    castNewInput:SetScript("OnEnterPressed", addTypedPhrase)
+
+    local addBtn = CreateFrame("Button", nil, castAddRow)
+    addBtn:SetPoint("LEFT", castNewInput, "RIGHT", 10, 0)
+    addBtn:SetSize(70, 22)
+    do
+        local bg = addBtn:CreateTexture(nil, "BACKGROUND")
+        bg:SetAllPoints()
+        Compat.SolidTexture(bg, 0.18, 0.16, 0.24, 1)
+        Compat.AddBorder(addBtn, 0.5, 0.45, 0.7, 0.9)
+        local t = addBtn:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        t:SetPoint("CENTER", 0, 0)
+        t:SetText("Add")
+        local hl = addBtn:CreateTexture(nil, "HIGHLIGHT")
+        hl:SetAllPoints()
+        Compat.SolidTexture(hl, 1, 1, 1, 0.12)
+    end
+    addBtn:SetScript("OnClick", addTypedPhrase)
+
+    local tokenHint = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+    tokenHint:SetPoint("TOPLEFT", castAddRow, "BOTTOMLEFT", 6, -2)
+    tokenHint:SetPoint("RIGHT", content, "RIGHT", -24, 0)
+    tokenHint:SetJustifyH("LEFT")
+    if tokenHint.SetWordWrap then tokenHint:SetWordWrap(true) end
+    do
+        local parts = {}
+        for _, entry in ipairs(Casts and Casts.TOKEN_HELP or {}) do
+            parts[#parts + 1] = entry.token .. " = " .. entry.desc
+        end
+        tokenHint:SetText("A phrase continues the sentence \"" ..
+            (UnitName("player") or "You") .. " ...\", so start with a verb.  " ..
+            table.concat(parts, "   "))
+    end
+
+    local previewLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    previewLabel:SetPoint("TOPLEFT", tokenHint, "BOTTOMLEFT", -6, -14)
+    previewLabel:SetText("Preview")
+
+    castPreviewText = content:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+    castPreviewText:SetPoint("TOPLEFT", previewLabel, "BOTTOMLEFT", 6, -8)
+    castPreviewText:SetPoint("RIGHT", content, "RIGHT", -24, 0)
+    castPreviewText:SetJustifyH("LEFT")
+    castPreviewText:SetHeight(32)
+    castPreviewText:SetSpacing(2)
+
+    castStatus = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    castStatus:SetPoint("TOPLEFT", castPreviewText, "BOTTOMLEFT", 0, -6)
+    castStatus:SetPoint("RIGHT", content, "RIGHT", -24, 0)
+    castStatus:SetJustifyH("LEFT")
+    castStatus:SetText("")
+
+    castPanel._lastChild = castStatus
+    castPanel.refresh = RefreshCasts
+    castPanel:SetScript("OnShow", RefreshCasts)
+
+    if not castSpellEventsRegistered and Compat.HasSpellbookAPI() then
+        local spellFrame = CreateFrame("Frame")
+        spellFrame:RegisterEvent("SPELLS_CHANGED")
+        if C_SpellBook and type(C_SpellBook.GetNumSpellBookSkillLines) == "function" then
+            pcall(spellFrame.RegisterEvent, spellFrame, "LEARNED_SPELL_IN_TAB")
+        end
+        spellFrame:SetScript("OnEvent", function()
+            if castPanel and castPanel:IsVisible() then RefreshCasts() end
+        end)
+        castSpellEventsRegistered = true
+    end
+end
+
 local function BuildPanels()
     if panelsBuilt then return end
 
@@ -1768,11 +2649,15 @@ local function BuildPanels()
     BuildCustomPanel()
     Compat.RegisterOptionsPanel(customPanel, customPanel.name, mainPanel.name)
 
+    BuildCastPanel()
+    Compat.RegisterOptionsPanel(castPanel, castPanel.name, mainPanel.name)
+
     -- In the shared standalone window the sub-panels show a Back button (to the
     -- main panel) instead of their own close button.
     learnedPanel._backAction = function() ns.OpenConfig() end
     accentPanel._backAction = function() ns.OpenConfig() end
     customPanel._backAction = function() ns.OpenConfig() end
+    castPanel._backAction = function() ns.OpenConfig() end
 
     panelsBuilt = true
 end
@@ -1796,6 +2681,7 @@ ns.OnSettingsChanged = function()
     if learnedPanel and learnedPanel:IsVisible() then RefreshLearned() end
     if accentPanel and accentPanel:IsVisible() then RefreshAccent() end
     if customPanel and customPanel:IsVisible() then RefreshCustom() end
+    if castPanel and castPanel:IsVisible() then RefreshCasts() end
     -- Keep the main language dropdown in sync when custom languages change.
     if langDropdown then langDropdown:SetItems(langItems()) end
     RefreshLanguageWidget()
@@ -1834,4 +2720,13 @@ end
 function ns.OpenCustomConfig()
     BuildPanels()
     Compat.OpenOptionsPanel(customPanel)
+end
+
+-- `key` comes from the keybinding (the spell that was under the cursor), so the
+-- panel opens already showing that spell's phrases.
+function ns.OpenCastConfig(key)
+    BuildPanels()
+    if key then castSelectedKey = key end
+    Compat.OpenOptionsPanel(castPanel)
+    RefreshCasts()
 end

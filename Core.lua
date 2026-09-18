@@ -28,6 +28,7 @@ local _issecretvalue = issecretvalue
 local function isSecret(v)
     return _issecretvalue ~= nil and _issecretvalue(v) == true
 end
+ns.IsSecret = isSecret
 
 -- Set true while we're inside an instance and the "auto-disable in instances"
 -- option is on. When set, ToA leaves chat completely alone (no translate/accent
@@ -85,6 +86,10 @@ local DEFAULT_CHANNELS = {
 local CHAT_EVENTS = {
     CHAT_MSG_SAY             = "SAY",
     CHAT_MSG_YELL            = "YELL",
+    -- Emotes are translated on the way out (a typed /e goes through the same
+    -- transform as a /say), so they have to be decoded on the way in too --
+    -- and cast phrases put spoken words inside an emote by design.
+    CHAT_MSG_EMOTE           = "EMOTE",
     CHAT_MSG_WHISPER         = "WHISPER",
     CHAT_MSG_PARTY           = "PARTY",
     CHAT_MSG_PARTY_LEADER    = "PARTY",
@@ -130,9 +135,11 @@ local function sendDecodePayload(original, encoded, langId, strength, chatType, 
     local dist, target = addonDistribution(chatType, channel)
     send(dist, target)
 
-    -- Say/Yell have no addon channel; mirror payload to party/raid so grouped friends can decode.
+    -- Say/Yell/Emote have no addon channel; mirror payload to party/raid so
+    -- grouped friends can decode. Emote is here for the cast phrases in
+    -- Casts.lua, whose spoken parts ride inside an emote.
     local sayType = normalizeChatType(chatType)
-    if sayType == "SAY" or sayType == "YELL" then
+    if sayType == "SAY" or sayType == "YELL" or sayType == "EMOTE" then
         if Compat.InRaid() then
             send("RAID")
         elseif Compat.InParty() then
@@ -339,6 +346,31 @@ local function migrateDB()
         if db.accent.channels[ch] == nil then db.accent.channels[ch] = true end
     end
 
+    -- Cast phrases: emote a line when one of your spells lands. Off until asked
+    -- for -- it puts text in other people's chat, so it should never be a
+    -- surprise. See Casts.lua for why phrases are keyed by spell *name*.
+    if not db.casts then db.casts = {} end
+    local casts = db.casts
+    if casts.enabled == nil then casts.enabled = false end
+    if casts.chance == nil then casts.chance = 35 end
+    if casts.gap == nil then casts.gap = 20 end
+    if casts.spellGap == nil then casts.spellGap = 60 end
+    if casts.pets == nil then casts.pets = true end
+    -- Which library packs are opted in: { [packId] = true }.
+    if type(casts.packs) ~= "table" then casts.packs = {} end
+    -- Your own phrases: { [spellKey] = { { text = "...", weight = 3 }, ... } }.
+    if type(casts.spells) ~= "table" then casts.spells = {} end
+    -- Spells silenced even though an enabled pack covers them.
+    if type(casts.muted) ~= "table" then casts.muted = {} end
+    -- The character sheet: which of the library's voices this character uses.
+    -- Per-character like the rest of the DB, which is the whole point -- your
+    -- warrior and your priest should not have to sound the same. Left empty
+    -- here; Casts.GetTone fills in its own defaults.
+    if type(casts.tone) ~= "table" then casts.tone = {} end
+    if casts.packsSeeded == nil then casts.packsSeeded = false end
+    if casts.filterSpellbook == nil then casts.filterSpellbook = true end
+    if casts.showOtherPacks == nil then casts.showOtherPacks = false end
+
     -- One-time: enable all channel toggles (older saves may have some off).
     if not db.channelDefaultsVersion or db.channelDefaultsVersion < 2 then
         for ch, enabled in pairs(DEFAULT_CHANNELS) do
@@ -540,14 +572,21 @@ local function fluencyAdjective(langId)
     else return "Broken" end
 end
 
-local function languageTag(langId)
+-- The tongue's name as the player would say it, fluency adjective and all:
+-- "Broken Demonic (Eredun)". Split out from languageTag because cast phrases
+-- name their language in prose rather than wearing a bracket (see Casts.Render).
+local function languageName(langId)
     local name = Language.GetLanguageName(langId)
     local db = TonguesOfAzerothDB
     if db and db.tagFluency ~= false then
         local adj = fluencyAdjective(langId)
         if adj then name = adj .. " " .. name end
     end
-    return "[" .. name .. "] "
+    return name
+end
+
+local function languageTag(langId)
+    return "[" .. languageName(langId) .. "] "
 end
 
 -- Shared outgoing transform. Given a raw message and its chat type, return
@@ -757,6 +796,77 @@ local function speak(msg, chatType, channel)
 end
 
 --=========================================================================--
+--  Speech pipeline for other modules.
+--=========================================================================--
+-- Casts.lua composes an emote out of narration plus quoted speech ('roars
+-- "Burn!"'), so it needs the translate/accent steps applied to a *fragment* of
+-- a line rather than to a whole outgoing message the way transformOutgoing
+-- does. The steps are exposed separately and the caller assembles the result.
+
+-- Run one span of spoken words through the current language and accent, with
+-- the same precedence chat uses: the tongue takes the words if it actually
+-- rewrites them, otherwise the accent gets them. Returns (out, langId,
+-- encoded); `encoded` is true only when the tongue rewrote the words, and so
+-- only then does the line need a [Language] tag and a decode payload.
+-- `live` false marks a preview, which must not advance the accent's
+-- interjection spacing -- otherwise looking at the options panel would change
+-- how your next real line reads.
+function ns.EncodeSpeech(text, live)
+    migrateDB()
+    if type(text) ~= "string" or text == "" then return text, nil, false end
+    local db = TonguesOfAzerothDB
+    local langId, strength = db.language, getStrength()
+
+    if db.enabled and strength > 0 then
+        local out = translateOutgoing(text, langId, strength)
+        if out ~= text then return out, langId, true end
+    end
+
+    if ns.Accent and db.accent and db.accent.enabled then
+        local a = db.accent
+        -- Not the emote path despite riding inside an emote: these are spoken
+        -- words, so they take the accent's own strength, and the `false` keeps
+        -- the emote-specific handling out of it.
+        local ok, res = pcall(ns.Accent.Apply, text, a.id, a.strength or 100, false, live and true or false)
+        if ok and type(res) == "string" then return res, langId, false end
+    end
+    return text, langId, false
+end
+
+-- Tell grouped ToA users what a garbled span means, so their Learned Languages
+-- decode can read it. Same payload chat translation sends.
+function ns.BroadcastSpeech(original, encoded, langId, chatType, channel)
+    sendDecodePayload(original, encoded, langId, getStrength(), chatType, channel)
+end
+
+function ns.LanguageTag(langId) return languageTag(langId) end
+function ns.LanguageName(langId) return languageName(langId) end
+function ns.FitMessage(text, maxLen) return fit(text, maxLen) end
+function ns.MaxMessageLength() return MAX_MESSAGE end
+function ns.PrintToChat(msg, style) addToChat(msg, style, getDecodeFrame()) end
+
+-- Send a line we generated ourselves, already through the pipeline above.
+-- Prefers the C_ChatInfo call: the global was deprecated in 11.2.0, and on the
+-- Classic flavors -- the ones where we really do wrap that global -- the
+-- namespaced call keeps our own outgoing transform out of the path, so text
+-- that has already been translated cannot be translated a second time.
+function ns.RawSend(msg, chatType, channel)
+    if type(msg) ~= "string" or msg == "" then return end
+    local modern = C_ChatInfo and C_ChatInfo.SendChatMessage
+    if modern then
+        pcall(modern, msg, chatType or "SAY", nil, channel)
+        return
+    end
+    installSendHook()
+    if not orig_SendChatMessage then return end
+    -- Belt and braces: if anything still routes back through our hook, this
+    -- makes it a pass-through rather than a second translation.
+    suppress = true
+    pcall(orig_SendChatMessage, msg, chatType or "SAY", nil, channel)
+    suppress = false
+end
+
+--=========================================================================--
 --  Learned-language decode on incoming chat.
 --=========================================================================--
 -- Decode an incoming line. `taggedLangId` (optional) is the language resolved from
@@ -895,17 +1005,63 @@ local function passiveLangIdFromTag(tag)
 end
 ns.InvalidatePassiveNames = function() passiveNameToId = nil end
 
+-- Cast phrases name their tongue in prose after the speech -- `snarls "Aman!"
+-- in Broken Demonic` -- instead of wearing a leading [tag], because a bracket
+-- between your name and your verb wrecks the sentence (see Casts.Render).
+-- Receivers still have to find it, or anyone part-way through learning the
+-- tongue would lose the proof that unlocks speculative decoding.
+--
+-- Anchored on the closing quote rather than on a bare "in": the marker always
+-- directly follows the speech it describes, so `" in ` is an exact and cheap
+-- needle, and narration like "steps in front of %t" can't trip it. The name
+-- itself is then matched against the known languages rather than pulled out
+-- with a pattern, because a name may contain spaces, apostrophes and
+-- parentheses -- "Broken Demonic (Eredun)" -- which no pattern separates from
+-- the narration that follows it. Longest candidate wins, so the full
+-- "Demonic (Eredun)" beats a bare "Demonic".
+local function inlineLangIdFromProse(message)
+    local pos = 1
+    while true do
+        local _, e = message:find('" in ', pos, true)
+        if not e then return nil end
+        local words = {}
+        for word in message:sub(e + 1):gmatch("%S+") do
+            words[#words + 1] = word
+            if #words >= 5 then break end
+        end
+        for n = #words, 1, -1 do
+            local candidate = table.concat(words, " ", 1, n):gsub("[%.,;:!%?]+$", "")
+            local langId = passiveLangIdFromTag(candidate)
+            if langId then return langId end
+        end
+        pos = e + 1
+    end
+end
+
 local function notePassiveExposure(message)
     local db = TonguesOfAzerothDB
     if not (db and db.passiveLearning) then return end
     if not (ns.Trainer and ns.Trainer.AddFluency and ns.Trainer.GetProgress) then return end
+
     local tag = message:match("^%[([^%]]+)%]")
-    if not tag then return end
-    local langId = passiveLangIdFromTag(tag)
-    if not langId then return end
+    local langId = tag and passiveLangIdFromTag(tag) or nil
+    -- A cast phrase carries its language in prose instead of a tag, and only
+    -- the quoted span is in that tongue -- the rest is English narration. So
+    -- credit the spoken words alone, or overhearing one emote would teach as
+    -- much as a whole sentence of actual speech.
+    local body
+    if langId then
+        body = message:gsub("^%[[^%]]+%]%s*", "")
+    else
+        langId = inlineLangIdFromProse(message)
+        if not langId then return end
+        local spoken = {}
+        for speech in message:gmatch('"([^"]*)"') do spoken[#spoken + 1] = speech end
+        body = table.concat(spoken, " ")
+    end
+
     local _, _, frac = ns.Trainer.GetProgress(langId)
     if type(frac) == "number" and frac >= 1 then return end
-    local body = message:gsub("^%[[^%]]+%]%s*", "")
     local words = 0
     for _ in body:gmatch("%S+") do words = words + 1 end
     if words <= 0 then return end
@@ -938,7 +1094,8 @@ local function onIncomingChat(event, message, sender)
     -- speculative decoding for that language (see tryDecodeMessage).
     local tag = message:match("^%[([^%]]+)%]%s+")
     local stripped = message:gsub("^%[[^%]]+%]%s+", "")
-    local taggedLangId = tag and passiveLangIdFromTag(tag) or nil
+    local taggedLangId = (tag and passiveLangIdFromTag(tag))
+        or inlineLangIdFromProse(message)
 
     local bestDecoded, bestScore, bestLangId, bestLangName = tryDecodeMessage(stripped, taggedLangId)
     if bestDecoded then
@@ -1014,9 +1171,16 @@ local function inlineChatFilter(_, event, msg, sender, ...)
 
     local tag = msg:match("^%[([^%]]+)%]%s+")
     local stripped = msg:gsub("^%[[^%]]+%]%s+", "")
-    local taggedLangId = tag and passiveLangIdFromTag(tag) or nil
+    -- A cast phrase carries its tongue in prose instead of a leading tag.
+    local proseLangId = (not tag) and inlineLangIdFromProse(msg) or nil
+    local taggedLangId = (tag and passiveLangIdFromTag(tag)) or proseLangId
     local decoded, _, _, langName = tryDecodeMessage(stripped, taggedLangId)
     if not decoded or decoded == stripped then return false end
+
+    -- When the line already says which tongue it was in, prefixing "[Demonic]"
+    -- would both repeat that and drop a bracket between the emoter's name and
+    -- their verb -- the very thing the prose form exists to avoid.
+    if proseLangId then return false, decoded, sender, ... end
 
     local marker = "|cff9a7cff[" .. (langName or "?") .. "]|r "
     return false, marker .. decoded, sender, ...
@@ -1428,6 +1592,90 @@ local function favoriteCommand(rest)
     end
 end
 
+-- /ogt cast ...  The panel is where this feature is really driven from (and the
+-- keybinding is the quickest route into it), so these cover the things worth
+-- having without one: the on/off switch, a look at what a spell will say, and
+-- an answer to "why did nothing happen just now".
+local function castCommand(rest)
+    local Casts = ns.Casts
+    if not Casts then
+        Print("cast phrases are unavailable (Casts.lua did not load).")
+        return
+    end
+    migrateDB()
+    local c = TonguesOfAzerothDB.casts
+    local sub, arg = (rest or ""):match("^(%S*)%s*(.-)$")
+    sub = string.lower(sub or "")
+
+    if sub == "on" or sub == "off" then
+        c.enabled = (sub == "on")
+        if c.enabled and Casts.SeedDefaultPacks then Casts.SeedDefaultPacks() end
+        Print("cast phrases: " .. (c.enabled and "|cff00ff00on|r" or "|cffff0000off|r"))
+    elseif sub == "" or sub == "config" or sub == "ui" then
+        if ns.OpenCastConfig then ns.OpenCastConfig() end
+    elseif sub == "pets" then
+        c.pets = not c.pets
+        Print("pet phrases: " .. (c.pets and "|cff00ff00on|r" or "|cffff0000off|r"))
+    elseif sub == "chance" then
+        local n = tonumber(arg)
+        if n then
+            c.chance = math.max(0, math.min(100, math.floor(n + 0.5)))
+            Print("cast phrase chance: |cffffff00" .. c.chance .. "%|r")
+        else
+            Print("cast phrase chance is |cffffff00" .. (c.chance or 35) .. "%|r (usage: /ogt cast chance 0-100)")
+        end
+    elseif sub == "list" then
+        local keys = Casts.GetKeys()
+        if #keys == 0 then
+            Print("no spells have phrases yet -- tick a pack in Cast Phrases, or add one.")
+            return
+        end
+        Print("spells with phrases:")
+        for _, key in ipairs(keys) do
+            local n = #Casts.GetPhrases(key)
+            Print(string.format("  |cffffff00%s|r - %d phrase%s%s",
+                Casts.DisplayName(key), n, n == 1 and "" or "s",
+                Casts.IsMuted(key) and " |cff808080(muted)|r" or ""))
+        end
+    elseif sub == "test" then
+        -- Shows what a spell would say, without sending anything. Defaults to
+        -- the spell under the cursor, so hovering a bar and typing this works.
+        local name = arg
+        if name == "" then
+            name = Casts.SpellUnderMouse()
+            if not name then
+                Print("usage: /ogt cast test <spell name>  (or hover it on your bars first)")
+                return
+            end
+        end
+        local key = Casts.Key(name)
+        local phrases = key and Casts.GetPhrases(key) or {}
+        if #phrases == 0 then
+            Print("no phrases for |cffffff00" .. tostring(name) .. "|r.")
+            return
+        end
+        Print("|cffffff00" .. Casts.DisplayName(key) .. "|r would say one of:")
+        for _, phrase in ipairs(phrases) do
+            local line = Casts.Preview(phrase.text, Casts.DisplayName(key))
+            Print(string.format("  [%d] %s", phrase.weight, line or phrase.text))
+        end
+    elseif sub == "status" then
+        Print("cast phrases: " .. (c.enabled and "|cff00ff00on|r" or "|cffff0000off|r")
+            .. ", pets " .. (c.pets and "on" or "off")
+            .. ", chance " .. (c.chance or 35) .. "%"
+            .. ", pauses " .. (c.gap or 20) .. "s / " .. (c.spellGap or 60) .. "s")
+        local blocked = Casts.BlockedReason()
+        if blocked then
+            Print("right now lines stay with you: " .. blocked .. ".")
+        else
+            Print("right now lines would go out as emotes.")
+        end
+        Print(string.format("%d spell(s) have phrases.", #Casts.GetKeys()))
+    else
+        Print("usage: /ogt cast [on|off|pets|chance <0-100>|list|test [spell]|status]")
+    end
+end
+
 local function parseLangStrengthText(input, defaultLang, defaultStrength)
     input = input or ""
     if input == "" then return defaultLang, defaultStrength, "" end
@@ -1637,6 +1885,10 @@ local function usage()
     Print("  |cffffff00/ogt accent [on|off|<id>|list]|r  - speak in a dialect accent")
     Print("  |cffffff00/ogt accentstrength <0-100>|r  - set accent thickness")
     Print("  |cffffff00/ogt accenttails <0-100>|r  - how often lines end with a flourish (0 = never)")
+    Print("  |cffffff00/ogt cast|r  - phrases spoken when you cast (panel)")
+    Print("  |cffffff00/ogt cast on|off|r  - toggle cast phrases")
+    Print("  |cffffff00/ogt cast test [spell]|r  - show what a spell would say (sends nothing)")
+    Print("  |cffffff00/ogt cast status|r  - settings, plus whether chat is blocked right now")
     Print("  |cffffff00/ogt say <text>|r  - say a translated line once")
     Print("  |cffffff00/ogt yell <text>|r  - yell a translated line once")
     Print("  |cffffff00/ogt p <text>|r  - preview a translation (only you see it)")
@@ -1666,6 +1918,8 @@ local function handleSlash(input)
         ns.CycleLanguage(-1)
     elseif cmd == "fav" or cmd == "favorite" or cmd == "favourite" then
         favoriteCommand(rest)
+    elseif cmd == "cast" or cmd == "casts" or cmd == "phrases" then
+        castCommand(rest)
     elseif cmd == "favonly" then
         migrateDB()
         local db = TonguesOfAzerothDB

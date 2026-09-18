@@ -5,5 +5,6 @@ ignore:
   - "*.ps1"
   - "UI_*.png"
   - "DESCRIPTION.md"
+  - "PHRASES.md"
 
 manual-changelog: CHANGELOG.md

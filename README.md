@@ -51,6 +51,14 @@ generate identical text.
   seventy-odd below. It's Blizzard's own favorite star, the one on Auction House searches
   and profession recipes. The star on the floating language bar toggles whether scrolling
   and `/ogt next` walk only your favorites or everything you've learned.
+- **Cast Phrases** — speak when a spell lands: *Corvin roars "Nuk'luk!"*. Words in
+  `"quotes"` are spoken aloud and get translated into your current tongue; the rest is
+  narration and stays in English. Sixteen opt-in phrase packs ship with it (one per class,
+  plus pets, professions and battle cries — 144 spells, 180 lines), or write your own with
+  `%s` spell, `%p` pet, `%f` pet family and `%t` target. Per-phrase weights decide how
+  often each comes up, and a keybinding opens a spell's phrase list while you hover it on
+  your action bars. Lines go out as emotes — see [Notes & limitations](#notes--limitations)
+  for why that isn't a choice.
 - **Minimap button** for one-click access, plus a standalone draggable window (with
   Back/Close navigation) that hosts the Language Trainer.
 - **In-game configuration** via Settings → AddOns, with a live preview.
@@ -142,6 +150,11 @@ All of them appear in the config dropdown and in `/ogt list`.
 | `/ogt accentstrength <0-100>` | Set accent thickness                                  |
 | `/ogt game`                 | Open the "Decipher" language trainer minigame           |
 | `/ogt minimap`              | Show / hide the minimap button                          |
+| `/ogt cast`                 | Open the Cast Phrases panel                             |
+| `/ogt cast on` / `off`      | Toggle speaking when you cast                           |
+| `/ogt cast list`            | List spells that have phrases                           |
+| `/ogt cast test [spell]`    | Show what a spell would say (sends nothing)             |
+| `/ogt cast status`          | Settings, plus whether chat is blocked right now        |
 | `/ogt say <text>`           | Say one translated line (ignores the on/off toggle)     |
 | `/ogt yell <text>`          | Yell one translated line                                |
 | `/ogt p <text>`             | Preview a translation (only you see it)                 |
@@ -259,6 +272,20 @@ takes priority over the parser/generator).
   output is trimmed to fit.
 - This does **not** hook WoW's real in-game language system (Orcish/Common are server-side);
   it substitutes your text client-side, exactly like the original *Tongues* addon.
+- **Cast Phrases send emotes, and can't send anything else.** `/say`, `/yell` and numbered
+  channels have required a hardware event — a real keypress — since patch 8.2.5, so no addon
+  on any client can send them from a cast handler. Emote carries no such requirement, which
+  is what makes automatic RP possible at all. If you want a shout on `/say`, put it in a
+  macro next to the spell; a line inside a macro leaves as *your* input, not an addon's.
+- **During raid encounters, Mythic+ and rated PvP, Midnight blocks addon chat entirely.**
+  Nothing gets around that, so a cast phrase is printed for you alone there instead, exactly
+  as the emote would have read. `/ogt cast status` tells you which state you're in.
+- The client renders an emote as `"Name "` + your text, with that space baked in, so no
+  phrase can produce *"Corvin's Felhunter snarls"* — it would come out *"Corvin 's
+  Felhunter snarls"*. The shipped pet lines are phrased around it instead.
+- Cast phrases only ever see **your own casts and your pet's**. Those are the two cases
+  Blizzard exempted from Midnight's secret values; another player's spell IDs are opaque to
+  addons, so "react to what someone else cast" isn't possible.
 
 ---
 

@@ -2,7 +2,133 @@
 
 All notable changes to Tongues of Azeroth are documented here.
 
-## [Unreleased]
+## [0.3.0]
+- **New: Cast Phrases.** Your character can now speak when a spell lands --
+  *Corvin roars "Nuk'luk!"* -- in whatever tongue you're currently speaking.
+  Words in "quotes" inside a phrase are spoken aloud and go through your
+  language and accent exactly as chat does; everything outside the quotes is
+  narration and stays in plain English, since that's the part onlookers are
+  meant to follow. Off until you turn it on, because it puts text in other
+  people's chat.
+- **Fifteen opt-in phrase packs** ship with it -- one per class, plus pets and
+  professions -- covering 143 spells with 783 lines, a little over half of
+  which have something spoken aloud. Tick a pack and its spells appear in the
+  list, where any line can be reworded, reweighted, or retired. Packs are
+  matched by spell *name* rather than id, so a single entry covers every rank
+  of a Classic spell and the retail version at once; the trade-off is that the
+  shipped packs only match an English client. Phrases you write yourself are
+  captured from your own client and work on any locale.
+- **The lines read like a DM narrating the action**, which took a second pass
+  over all 783 of them. The first draft was flat in a specific way: "gathers
+  the dark into one point and lets it go" states the action twice and never
+  says what it was like. The fix was density rather than length -- one concrete
+  detail beyond the action, drawn from movement, sensation, sound or
+  consequence, and rotated so consecutive casts don't come out the same shape.
+  So the same line is now "gathers the dark into one point and lets it go with
+  a thump of cold air." Length is tiered by how often a spell is cast, on the
+  principle every DM guide repeats: a filler gets one tight detail, while a
+  long cooldown earns the fuller clause. About a quarter of the library was
+  deliberately left alone, mostly the dry lines, where understatement was
+  already doing the work.
+  Two rules came out of that pass and are now enforced by the suite. A line may
+  not claim a mechanical effect that did not happen -- the addon fires on cast
+  and knows nothing about the outcome, so nothing may be described as knocked
+  down, silenced or killed. And no line may run past 110 characters, since the
+  emote shares one 255-character message with your name, the language
+  attribution and a translation longer than the English it replaced.
+- **A character sheet decides how your character sounds.** Rather than one
+  house voice, every shipped line is written for a **Bearing** -- Plain, Dry,
+  Fierce, Solemn or Warm -- and may carry a **Wording** of courtly or blunt.
+  Pick a Bearing, optionally a second as a streak that cuts against the first,
+  a Wording, and how much your character talks, and those groups rise in the
+  roll while the rest drop out. "Solemn, courtly, measured" and "Dry, blunt,
+  quiet" are recognisably different characters drawing on the same library.
+  Nothing you write yourself is ever filtered by the sheet -- you wrote it, so
+  it is your character's voice by definition -- and putting a weight on a
+  library line by hand overrides the filter for that line.
+  Talkativeness needs no separate content: whether a line speaks is visible in
+  the line itself, so the dial simply reweights what is already there.
+- **Creeds are separate, opt-in, and not tied to any spell.** What a character
+  believes belongs to the character, so "For the Horde!" cannot sensibly be
+  attached to Immolate. Tick any of eight creeds -- the Horde, the Alliance,
+  the Light, Elune, the ancestors, the elements, the fel, the shadow -- and
+  their lines ride along on whichever spells you have already set up, at a
+  third of the weight of a spell's own lines. This replaces a "Battle cries"
+  pack that, as first written, was keyed to a spell name nothing casts and so
+  could never fire at all.
+- Consequently the **class packs name no faction or faith**, which they
+  previously did throughout: a Blood Elf paladin does not serve the Light, and
+  a shaman who venerates the elements now gets that from the creed instead.
+  Nor do any of the 783 lines use a gendered pronoun for the caster -- "sets
+  his feet" only ever suited half the people reading it. Both rules are
+  enforced by the test suite rather than by good intentions.
+- **The spell list is built from your spellbook.** It previously listed only
+  spells that already had phrases, which made it look nearly empty and gave no
+  way to find a spell other than typing its name exactly. It now has a
+  Configured section and a "Your spells" section drawn from the live
+  spellbook, including your pet's, and can hide library spells you have no way
+  to cast -- so a retail character stops being offered Classic's First Aid. It
+  refreshes when you learn a spell or change spec.
+- **You only see your own class's pack.** Fourteen irrelevant class packs were
+  noise, and an Evoker pack is meaningless on Classic Era. Yours, the universal
+  packs and the creeds are shown; "Show other classes" reveals the rest, since
+  a warlock may well want a hunter's pet lines. Turning the feature on for the
+  first time also ticks your class pack, and Pets if you have one, so that
+  something actually happens.
+- **Weights decide how often each line comes up**, 0 to 5, and 0 retires a line
+  without deleting it -- which is how you drop a library phrase you don't like,
+  since a pack owns its own lines. Alongside that there's a single "how often"
+  chance for whether a cast speaks at all, and two pauses (one global, one
+  per-spell) that stop a spammable spell turning your emotes into a wall of
+  text.
+- **Pets speak too**, on any class: `%p` and `%f` fill in your pet's name and
+  family. Your own casts and your pet's are the two Blizzard explicitly exempts
+  from Midnight's secret values, so these are the only casts an addon can still
+  read -- another player's are opaque.
+- **A keybinding opens a spell's phrase list from the spell itself.** Hover it
+  on your action bars or in the spellbook and press the bind (Key Bindings ->
+  AddOns -> Tongues of Azeroth); the panel opens on that spell, ready for a new
+  line. Macros are followed to the spell they cast. Also on `/ogt cast`, with
+  `on|off`, `list`, `test [spell]` and `status`.
+- Lines go out as **emotes**, and that isn't a preference. `/say`, `/yell` and
+  numbered channels have needed a hardware event -- an actual keypress -- since
+  8.2.5, so no addon on any client can send them from a cast handler. Emote
+  carries no such requirement, which is the whole reason this can work at all.
+- During raid encounters, Mythic+ and rated PvP, Midnight blocks addon chat
+  outright. There's no way around it, so the line is **printed for you alone**
+  instead, formatted as the emote would have read. The same happens when you've
+  asked ToA to stand down inside instances. `/ogt cast status` says which of
+  those is in effect.
+- **A cast phrase names its tongue in prose, not in a leading tag.** Ordinary
+  chat wears `[Broken Demonic] ` at the front, but an emote is rendered as your
+  name plus the text, so the tag landed between the name and the verb and the
+  sentence came apart: *Corvin [Broken Demonic (Eredun)] snarls "Aman!" and the
+  fire takes hold.* The tongue is now named where a reader expects it, directly
+  after the speech it describes -- *Corvin snarls "Aman!" in Broken Demonic and
+  the fire takes hold.* -- once per line however many spans it has, and the
+  sentence gets its full stop back when the speech ran to the end.
+  Receivers find the tongue by name instead of by position, so a line still
+  proves which language it is in: partial decoding for a tongue you are part
+  way through learning keeps working, and so does passive learning by
+  overhearing -- though that now counts only the spoken words, not the English
+  narration around them, which was over-generous. When you do understand the
+  line, the decoded version no longer gets a `[Language]` marker stapled to the
+  front either, since the sentence already says it.
+- **Incoming emotes are now decoded.** ToA has always translated a typed `/e`
+  on the way out but never read one on the way in, so a translated emote was
+  permanently gibberish to every recipient. Emote joins say and yell in the
+  decode path, which is also what lets other ToA users understand the spoken
+  part of a cast phrase.
+- Added `tools/test_casts.lua`, an offline test (123 checks) that drives the
+  cast engine against a stub of the WoW API -- token substitution, quoted
+  speech, weighting, the throttles, pack opt-in, the lockdown fallback, the
+  tone weighting, and a render of every shipped phrase to catch a typo'd token
+  or an unbalanced quote. It also holds the library to its own writing rules,
+  failing the run on a gendered pronoun, a faction reference in a class pack,
+  a stray non-ASCII character, or a spoken-line ratio that has drifted away
+  from half.
+- Fixed the help text under the Accents panel's Interjections slider rendering
+  on top of the slider's own Off/Occasional/Often labels.
 
 ## [0.2.25]
 - **New: Favorites.** Seventy-odd tongues ship with the addon and a character

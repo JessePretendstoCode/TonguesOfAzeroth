@@ -3,7 +3,7 @@
 ## Notes: Speak the languages of Azeroth (Orcish, Darnassian, Old God, and more), similar to Tongues.
 ## IconTexture: Interface\Icons\INV_Scroll_03
 ## Author: JessePretendstoCode
-## Version: 0.2.25
+## Version: 0.3.0
 ## SavedVariablesPerCharacter: TonguesOfAzerothDB
 ## X-Curse-Project-ID: 1641225
 ## X-WoWI-ID:
@@ -17,6 +17,8 @@ Compat.lua
 Language.lua
 Accent.lua
 Core.lua
+CastLibrary.lua
+Casts.lua
 Whispers.lua
 Game.lua
 UI.lua
