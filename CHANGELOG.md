@@ -3,6 +3,24 @@
 All notable changes to Tongues of Azeroth are documented here.
 
 ## [Unreleased]
+- **New: Favorites.** Seventy-odd tongues ship with the addon and a character
+  typically speaks a handful, so the dropdown had become a haystack. Star the
+  ones you use and they get their own section at the top of the list, in the
+  order you added them, while still appearing (starred) in the full list below.
+  Two ways in: the `*` button beside the language dropdown stars whatever is
+  selected, and right-clicking any row in the dropdown stars it without
+  selecting it or closing the menu, so a shortlist can be built in one pass.
+  There's also `/ogt fav [id]`, `/ogt fav list` and `/ogt fav off`.
+- **Favorites take over cycling.** Once you've starred anything, `/ogt next`,
+  `/ogt prev`, the Next button and the minimap scroll wheel walk your favorites
+  instead of everything you've learned; with none starred, nothing changes.
+  Unlike the learned-language fallback, favorites aren't filtered by trainer
+  progress -- you picked them deliberately. Tongues your race natively speaks
+  are still skipped either way.
+- The dropdown widget grew two general-purpose features to support this: inert
+  section headers, and a right-click action per row that leaves the menu open
+  and holds its scroll position.
+
 - **Accent tails are far less frequent, and no longer arrive in clusters.** They
   fired on roughly 26% of messages with nothing stopping two in a row, which is
   what made them feel constant; it's now about 5%, and never twice in a row. The

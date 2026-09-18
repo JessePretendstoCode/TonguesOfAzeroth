@@ -436,10 +436,14 @@ function Compat.CreateSlider(parent, minV, maxV, step, titleText, lowText, highT
 end
 
 -- Portable dropdown. API:
---   dd:SetItems({ {text=, value=}, ... })
+--   dd:SetItems({ {text=, value=}, ... })   (an item with header=true is an
+--                                            inert section label)
 --   dd:SetSelected(value, text)
 --   dd:GetValue()
---   dd.onSelect = function(value) ... end   (called on pick)
+--   dd:Reopen()                             (redraw an open menu in place)
+--   dd.onSelect  = function(value) ... end  (called on left-click)
+--   dd.onAltClick = function(value) ... end (right-click; leaves the menu open
+--                                            and the selection alone)
 function Compat.CreateDropdown(parent, width)
     local dd = CreateFrame("Button", nil, parent)
     dd:SetSize(width or 200, 26)
@@ -484,7 +488,10 @@ function Compat.CreateDropdown(parent, width)
         if menu then menu:Hide() end
     end
 
-    local function openMenu()
+    -- `keepOffset` reopens at a given scroll position instead of jumping to the
+    -- selection, so a right-click that rewrites the list (see dd:Reopen) doesn't
+    -- yank the menu out from under the cursor.
+    local function openMenu(keepOffset)
         if not menu then
             -- Parented to UIParent (not dd) so the popup is never clipped when the
             -- dropdown lives inside a ScrollFrame; still anchored to dd below.
@@ -512,16 +519,19 @@ function Compat.CreateDropdown(parent, width)
         menu:SetPoint("TOPLEFT", dd, "BOTTOMLEFT", 0, -2)
 
         -- Open scrolled so the current selection is visible.
-        local offset = 0
-        for i = 1, total do
-            if items[i].value == dd.selectedValue then
-                offset = i - math.floor(visible / 2) - 1
-                break
+        local offset = keepOffset or 0
+        if not keepOffset then
+            for i = 1, total do
+                if items[i].value == dd.selectedValue then
+                    offset = i - math.floor(visible / 2) - 1
+                    break
+                end
             end
         end
         if offset < 0 then offset = 0 end
         if offset > maxOffset then offset = maxOffset end
         menu.offset = offset
+        menu.total = total -- so Reopen can tell how much the list grew
 
         local function render()
             for i = 1, #menu.buttons do menu.buttons[i]:Hide() end
@@ -533,6 +543,7 @@ function Compat.CreateDropdown(parent, width)
                         b = CreateFrame("Button", nil, menu)
                         b:SetHeight(rowH)
                         b:EnableMouseWheel(true)
+                        b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
                         local t = b:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
                         t:SetPoint("LEFT", 8, 0)
                         t:SetPoint("RIGHT", -8, 0)
@@ -541,6 +552,7 @@ function Compat.CreateDropdown(parent, width)
                         local h = b:CreateTexture(nil, "HIGHLIGHT")
                         h:SetAllPoints()
                         Compat.SolidTexture(h, 1, 1, 1, 0.20)
+                        b.highlight = h
                         b:SetScript("OnMouseWheel", function(_, d) menu:Scroll(d) end)
                         menu.buttons[slot] = b
                     end
@@ -548,11 +560,31 @@ function Compat.CreateDropdown(parent, width)
                     b:SetPoint("TOPLEFT", 4, -4 - (slot - 1) * rowH)
                     b:SetPoint("RIGHT", menu, "RIGHT", -4, 0)
                     b.text:SetText(item.text)
-                    b:SetScript("OnClick", function()
-                        dd:SetSelected(item.value, item.text)
-                        closeMenu()
-                        if dd.onSelect then dd.onSelect(item.value) end
-                    end)
+                    -- A header labels a section (e.g. "Favorites"). It is inert:
+                    -- no selection, and no hover highlight to imply otherwise.
+                    if item.header then
+                        b.text:SetTextColor(0.7, 0.7, 0.7)
+                        b.highlight:SetAlpha(0)
+                        b:SetScript("OnClick", nil)
+                    else
+                        b.text:SetTextColor(1, 1, 1)
+                        b.highlight:SetAlpha(1)
+                        b:SetScript("OnClick", function(_, button)
+                            -- Right-click is a secondary action on the row
+                            -- (favoriting, in the language list) and deliberately
+                            -- does not change the selection or close the menu.
+                            if button == "RightButton" then
+                                if dd.onAltClick then
+                                    dd.onAltClick(item.value)
+                                    dd:Reopen()
+                                end
+                                return
+                            end
+                            dd:SetSelected(item.value, item.text)
+                            closeMenu()
+                            if dd.onSelect then dd.onSelect(item.value) end
+                        end)
+                    end
                     b:Show()
                 end
             end
@@ -589,6 +621,20 @@ function Compat.CreateDropdown(parent, width)
         return self.selectedValue
     end
     dd.Close = closeMenu
+
+    -- Redraw an open menu from freshly-set items, holding the scroll position.
+    -- Used after onAltClick so the row you right-clicked stays where it was.
+    function dd:Reopen()
+        if not (menu and menu:IsShown()) then return end
+        local keep = menu.offset
+        -- The rows an alt-click adds go in at the top (a Favorites section, in
+        -- the language list), which would slide everything below it down under
+        -- the cursor. Absorb that shift so the row you clicked stays put --
+        -- except at the very top, where staying at the top is what you want.
+        if keep > 0 then keep = keep + (#self.items - (menu.total or #self.items)) end
+        closeMenu()
+        openMenu(keep)
+    end
 
     return dd
 end

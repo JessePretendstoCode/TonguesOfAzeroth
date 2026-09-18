@@ -217,6 +217,10 @@ local function migrateDB()
         db.language = Language.DEFAULT
     end
 
+    -- Hand-curated shortlist of languages. An ordered array rather than a set,
+    -- so it stays in the order you built it.
+    if type(db.favorites) ~= "table" then db.favorites = {} end
+
     if not db.channels then
         db.channels = {}
     end
@@ -1074,9 +1078,64 @@ local function setLanguage(id, silent)
     end
 end
 
--- The languages you can quickly cycle between: any you've marked Learned or made
--- trainer progress in, in registration order, with your current one guaranteed
--- present. Returned as an ordered list of language ids.
+--=========================================================================--
+--  Favorites
+--  A shortlist you curate yourself. It floats to the top of the language
+--  dropdown and, once you've put anything in it, becomes what cycling walks
+--  through. Seventy-odd tongues ship with the addon and most characters use a
+--  handful, so this is the difference between the dropdown being a menu and
+--  being a haystack.
+--=========================================================================--
+
+-- Favorites in the order you added them, minus any that no longer exist (a
+-- custom language can be deleted while it is still in the list).
+function ns.GetFavorites()
+    migrateDB()
+    local favs, out = TonguesOfAzerothDB.favorites, {}
+    for i = 1, #favs do
+        if Language.IsValid(favs[i]) then out[#out + 1] = favs[i] end
+    end
+    return out
+end
+
+function ns.IsFavorite(id)
+    migrateDB()
+    local favs = TonguesOfAzerothDB.favorites
+    for i = 1, #favs do
+        if favs[i] == id then return true end
+    end
+    return false
+end
+
+-- Returns the new state (true = now a favorite), or nil if `id` isn't a language.
+function ns.ToggleFavorite(id)
+    migrateDB()
+    if not Language.IsValid(id) then return nil end
+    local favs = TonguesOfAzerothDB.favorites
+    for i = 1, #favs do
+        if favs[i] == id then
+            table.remove(favs, i)
+            if ns.OnSettingsChanged then ns.OnSettingsChanged() end
+            return false
+        end
+    end
+    favs[#favs + 1] = id
+    if ns.OnSettingsChanged then ns.OnSettingsChanged() end
+    return true
+end
+
+function ns.ClearFavorites()
+    migrateDB()
+    local n = #TonguesOfAzerothDB.favorites
+    wipe(TonguesOfAzerothDB.favorites)
+    if ns.OnSettingsChanged then ns.OnSettingsChanged() end
+    return n
+end
+
+-- The languages you can quickly cycle between, as an ordered list of ids, with
+-- whatever you're speaking now guaranteed present. That's your favorites if you
+-- have any; otherwise anything you've marked Learned or made trainer progress
+-- in, in registration order.
 function ns.GetKnownLanguages()
     migrateDB()
     local db = TonguesOfAzerothDB
@@ -1087,6 +1146,20 @@ function ns.GetKnownLanguages()
             list[#list + 1] = id
         end
     end
+
+    -- A curated list takes cycling over completely -- that is the point of
+    -- curating one -- so favorites are not filtered by what you've learned the
+    -- way the fallback below is. Tongues your race natively speaks are still
+    -- skipped, since cycling onto one is never useful.
+    local favs = ns.GetFavorites()
+    if #favs > 0 then
+        for i = 1, #favs do
+            if not ns.IsNativeLanguage(favs[i]) then add(favs[i]) end
+        end
+        add(db.language)
+        return list
+    end
+
     local langs = Language.GetLanguages()
     for i = 1, #langs do
         local id = langs[i].id
@@ -1309,6 +1382,49 @@ local function listLearned()
     end
 end
 
+local function listFavorites()
+    local favs = ns.GetFavorites()
+    if #favs == 0 then
+        Print("no favorites yet. |cffffff00/ogt fav|r stars the language you're speaking,")
+        Print("or right-click any row in the language dropdown.")
+        return
+    end
+    Print("favorites (what |cffffff00/ogt next|r cycles through):")
+    for i = 1, #favs do
+        Print("  |cffffd100*|r " .. Language.GetLanguageName(favs[i]) .. " |cff808080(" .. favs[i] .. ")|r")
+    end
+end
+
+-- /ogt fav            -> toggle the language you're currently speaking
+-- /ogt fav <id>       -> toggle that language
+-- /ogt fav list       -> show the list
+-- /ogt fav off|clear  -> empty the list
+local function favoriteCommand(rest)
+    migrateDB()
+    rest = string.lower(rest or ""):gsub("^%s+", ""):gsub("%s+$", "")
+
+    if rest == "list" then
+        listFavorites()
+        return
+    end
+    if rest == "off" or rest == "clear" or rest == "none" then
+        local n = ns.ClearFavorites()
+        Print("cleared " .. n .. " favorite" .. (n == 1 and "" or "s") ..
+            ". |cffffff00/ogt next|r is back to cycling your learned languages.")
+        return
+    end
+
+    local id = (rest ~= "" and rest) or TonguesOfAzerothDB.language
+    local state = ns.ToggleFavorite(id)
+    if state == nil then
+        Print("Unknown language '|cffff0000" .. id .. "|r'. Use |cffffff00/ogt list|r.")
+    elseif state then
+        Print("|cffffd100*|r " .. Language.GetLanguageName(id) .. " added to favorites.")
+    else
+        Print(Language.GetLanguageName(id) .. " removed from favorites.")
+    end
+end
+
 local function parseLangStrengthText(input, defaultLang, defaultStrength)
     input = input or ""
     if input == "" then return defaultLang, defaultStrength, "" end
@@ -1497,7 +1613,9 @@ local function usage()
     Print("  |cffffff00/toa|r  - open the config panel")
     Print("  |cffffff00/ogt on|off|r  - toggle auto-translate")
     Print("  |cffffff00/ogt lang <id>|r  - set language (see /ogt list)")
-    Print("  |cffffff00/ogt next|r / |cffffff00prev|r  - cycle your learned languages")
+    Print("  |cffffff00/ogt next|r / |cffffff00prev|r  - cycle your favorites (or learned languages)")
+    Print("  |cffffff00/ogt fav [id]|r  - favorite/unfavorite a language (no id = the current one)")
+    Print("  |cffffff00/ogt fav list|off|r  - show or clear your favorites")
     Print("  |cffffff00/ogt list|r  - list available languages")
     Print("  |cffffff00/ogt learned|r  - list languages you understand")
     Print("  |cffffff00/ogt custom|r  - create your own language")
@@ -1542,6 +1660,8 @@ local function handleSlash(input)
         ns.CycleLanguage(1)
     elseif cmd == "prev" or cmd == "previous" then
         ns.CycleLanguage(-1)
+    elseif cmd == "fav" or cmd == "favorite" or cmd == "favourite" then
+        favoriteCommand(rest)
     elseif cmd == "list" or cmd == "langs" then
         listLanguages()
     elseif cmd == "learned" then
