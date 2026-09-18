@@ -325,6 +325,9 @@ end
 -- auto-hideable by minimap-button managers (SexyMap, etc.).
 local ldbIcon
 local LDB_NAME = "TonguesOfAzeroth"
+-- Keep in step with `## IconTexture:` in the TOCs so the minimap button and the
+-- addon list show the same scroll.
+local ICON = "Interface\\Icons\\INV_Scroll_03"
 
 local function ApplyMinimapShown()
     local hide = db().minimap.hide and true or false
@@ -358,7 +361,7 @@ local function setupLDBButton()
         local okObj, made = pcall(function()
             return ldb:NewDataObject(LDB_NAME, {
                 type = "launcher",
-                icon = "Interface\\Icons\\INV_Misc_Orb_04",
+                icon = ICON,
                 OnClick = function(_, mouseButton)
                     if mouseButton == "RightButton" then
                         local d = db(); d.enabled = not d.enabled
@@ -402,7 +405,7 @@ local function SetupMinimapButton()
     -- using a built-in Blizzard icon so it renders without loose texture files.
     if minimapButton then ApplyMinimapShown(); return end
     minimapButton = Compat.CreateMinimapButton("TonguesOfAzerothMinimapButton", {
-        icon = "Interface\\Icons\\INV_Misc_Orb_04",
+        icon = ICON,
         onClick = function(mouseButton)
             if mouseButton == "RightButton" then
                 d.enabled = not d.enabled

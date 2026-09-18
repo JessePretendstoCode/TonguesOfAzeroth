@@ -2,6 +2,15 @@
 
 All notable changes to Tongues of Azeroth are documented here.
 
+## [Unreleased]
+- **The addon list now shows a scroll instead of a red question mark.** None of the
+  TOC files declared an icon, so the client fell back to its placeholder. All of
+  them now set `## IconTexture:` to the parchment scroll `INV_Scroll_03`, a
+  built-in icon that exists on every flavor we ship. Note that the field arrived in
+  patch 10.1.0, so the Wrath TOC (interface `30405`) still ignores it.
+- The minimap button uses that same scroll, so the two match. It reads from one
+  `ICON` constant in `UI.lua` now rather than repeating the path per call site.
+
 ## [0.2.24]
 - **Dropped support for the 2010-era 3.3.5a client** (Project Ascension and
   similar private servers), which has shut down. The base `TonguesOfAzeroth.toc`
