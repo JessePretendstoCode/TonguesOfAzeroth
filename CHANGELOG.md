@@ -3,6 +3,8 @@
 All notable changes to Tongues of Azeroth are documented here.
 
 ## [Unreleased]
+
+## [0.2.25]
 - **New: Favorites.** Seventy-odd tongues ship with the addon and a character
   typically speaks a handful, so the dropdown had become a haystack. Every row
   in the language list now carries a hollow star; click it and it fills in and
