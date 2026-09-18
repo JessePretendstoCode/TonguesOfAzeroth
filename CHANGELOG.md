@@ -4,13 +4,21 @@ All notable changes to Tongues of Azeroth are documented here.
 
 ## [Unreleased]
 - **New: Favorites.** Seventy-odd tongues ship with the addon and a character
-  typically speaks a handful, so the dropdown had become a haystack. Star the
-  ones you use and they get their own section at the top of the list, in the
-  order you added them, while still appearing (starred) in the full list below.
-  Two ways in: the `*` button beside the language dropdown stars whatever is
-  selected, and right-clicking any row in the dropdown stars it without
-  selecting it or closing the menu, so a shortlist can be built in one pass.
-  There's also `/ogt fav [id]`, `/ogt fav list` and `/ogt fav off`.
+  typically speaks a handful, so the dropdown had become a haystack. Every row
+  in the language list now carries a hollow star; click it and it fills in, and
+  that language gets a Favorites section at the top of the list, in the order
+  you added them, while still appearing in the full list below. The menu stays
+  open, so a shortlist can be built in one pass. There's also a star button
+  beside the dropdown for the selected language, right-click anywhere on a row
+  as an alternative to aiming at the star, and `/ogt fav [id]`,
+  `/ogt fav list` and `/ogt fav off`.
+- The star is Blizzard's own favorite art -- the one on Auction House searches
+  and profession recipes -- rather than a glyph or a bundled texture. Atlas
+  names have moved between expansions and the atlas API doesn't exist on the
+  older clients we ship for, so the exact art is probed for at runtime and
+  falls back to the cooldown starburst, tinted gold, on anything that has
+  neither. Where no hollow star is available the filled one is dimmed and
+  desaturated instead, which is indistinguishable at 16px.
 - **Favorites take over cycling.** Once you've starred anything, `/ogt next`,
   `/ogt prev`, the Next button and the minimap scroll wheel walk your favorites
   instead of everything you've learned; with none starred, nothing changes.

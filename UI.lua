@@ -16,10 +16,6 @@ local Accent = ns.Accent
 
 local SAMPLE = "The old gods whisper madness into your mind."
 
--- Marks a favorited language in lists. A text glyph rather than an icon texture
--- so it renders identically in the dropdown, the standalone window and chat.
-local STAR = "|cffffd100*|r "
-
 local CHANNEL_LABELS = {
     SAY           = "Say",
     YELL          = "Yell",
@@ -42,7 +38,7 @@ local DECODE_STYLES = {
 local mainPanel, learnedPanel, accentPanel, customPanel
 local mainContent
 local langDropdown, slider, valueText, enableCheck, previewInput, previewOutput
-local favBtn, favBtnText
+local favBtn, favBtnStar
 local minimapCheck, fluencyCheck, nativeHideCheck, autoDisableCheck
 local widgetCheck, widgetLockCheck
 local accentEnableCheck, accentDropdown, accentSlider, accentValueText
@@ -146,35 +142,38 @@ local function langItems()
     local items = {}
     local emittedParent = {}
 
+    -- Every row carries a star: hollow until you click it. `toggle` is what
+    -- tells the dropdown to draw one (see Compat.CreateDropdown).
+    local function isFav(id)
+        return (ns.IsFavorite and ns.IsFavorite(id)) and true or false
+    end
+
     -- Your curated shortlist, in the order you built it, repeated at the top so
     -- the handful you actually speak aren't seventy rows apart. They stay in the
-    -- full list below too, starred, so right-clicking to unfavorite still works
-    -- from either place.
+    -- full list below too, so clicking a filled star to undo works from either.
     local favs = (ns.GetFavorites and ns.GetFavorites()) or {}
     if #favs > 0 then
         items[#items + 1] = { text = "Favorites", header = true }
         for i = 1, #favs do
             local id = favs[i]
             if not (ns.IsNativeLanguage and ns.IsNativeLanguage(id)) then
-                items[#items + 1] = { text = STAR .. Language.GetLanguageName(id), value = id }
+                items[#items + 1] =
+                    { text = Language.GetLanguageName(id), value = id, toggle = true }
             end
         end
         items[#items + 1] = { text = "All languages", header = true }
     end
 
-    local function label(l, indent)
-        local star = (ns.IsFavorite and ns.IsFavorite(l.id)) and STAR or ""
-        return (indent or "") .. star .. l.name
-    end
-
     for i = 1, #primaries do
         local p = primaries[i]
-        items[#items + 1] = { text = label(p), value = p.id }
+        items[#items + 1] = { text = p.name, value = p.id, toggle = isFav(p.id) }
         emittedParent[p.id] = true
         local subs = subsOf[p.id]
         if subs then
             for j = 1, #subs do
-                items[#items + 1] = { text = label(subs[j], "    "), value = subs[j].id }
+                local s = subs[j]
+                items[#items + 1] =
+                    { text = "    " .. s.name, value = s.id, toggle = isFav(s.id) }
             end
         end
     end
@@ -186,7 +185,7 @@ local function langItems()
     for i = 1, #all do
         local l = all[i]
         if l.sub and l.parent and not emittedParent[l.parent] then
-            items[#items + 1] = { text = label(l), value = l.id }
+            items[#items + 1] = { text = l.name, value = l.id, toggle = isFav(l.id) }
         end
     end
     return items
@@ -250,12 +249,8 @@ local function RefreshMain()
     if nativeHideCheck then nativeHideCheck:SetChecked(d.hideNativeLanguages and true or false) end
     if autoDisableCheck then autoDisableCheck:SetChecked(d.autoDisableInInstances ~= false) end
     langDropdown:SetSelected(d.language, Language.GetLanguageName(d.language))
-    if favBtnText then
-        -- Gold when it's a favorite, grey when it isn't. An asterisk rather than
-        -- a star glyph or texture: the Classic fonts don't carry U+2605, and the
-        -- favorites icon texture isn't on every flavor we ship.
-        local on = ns.IsFavorite and ns.IsFavorite(d.language)
-        favBtnText:SetText(on and "|cffffd100*|r" or "|cff808080*|r")
+    if favBtnStar then
+        Compat.SetStar(favBtnStar, ns.IsFavorite and ns.IsFavorite(d.language))
     end
     local fp = fluencyPct(d.language)
     settingSlider = true
@@ -883,16 +878,18 @@ local function BuildMainPanel()
         -- selected language's fluency.
         RefreshMain()
     end
-    -- Right-clicking a row favorites it without selecting it or shutting the
-    -- menu, so a shortlist can be built in one pass down the list.
-    langDropdown.onAltClick = function(value)
+    -- Clicking a row's star favorites it without selecting the row or shutting
+    -- the menu, so a shortlist can be built in one pass down the list. Right-
+    -- click anywhere on a row does the same, for anyone who'd rather not aim at
+    -- a 16px star.
+    local function toggleFav(value)
         if ns.ToggleFavorite then ns.ToggleFavorite(value) end
         RefreshMain()
     end
+    langDropdown.onToggle = toggleFav
+    langDropdown.onAltClick = toggleFav
 
-    -- Favorite toggle for whatever is selected. The dropdown's right-click does
-    -- the same job in bulk; this is the discoverable version, and the tooltip is
-    -- where right-click gets advertised.
+    -- Favorite toggle for whatever is selected, mirroring the star on each row.
     favBtn = CreateFrame("Button", nil, content)
     favBtn:SetSize(26, 24)
     favBtn:SetPoint("LEFT", langDropdown, "RIGHT", 8, 0)
@@ -900,8 +897,9 @@ local function BuildMainPanel()
     fbg:SetAllPoints()
     Compat.SolidTexture(fbg, 0.18, 0.16, 0.24, 1)
     Compat.AddBorder(favBtn, 0.5, 0.45, 0.7, 0.9)
-    favBtnText = favBtn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    favBtnText:SetPoint("CENTER", 0, 0)
+    favBtnStar = favBtn:CreateTexture(nil, "ARTWORK")
+    favBtnStar:SetSize(16, 16)
+    favBtnStar:SetPoint("CENTER", 0, 0)
     local fhl = favBtn:CreateTexture(nil, "HIGHLIGHT")
     fhl:SetAllPoints()
     Compat.SolidTexture(fhl, 1, 1, 1, 0.12)
@@ -914,7 +912,7 @@ local function BuildMainPanel()
         GameTooltip:SetText("Favorite", 1, 1, 1)
         GameTooltip:AddLine("Keep this language at the top of the list.", 0.8, 0.8, 0.8, true)
         GameTooltip:AddLine("Favorites are also what Next cycles through.", 0.8, 0.8, 0.8, true)
-        GameTooltip:AddLine("Right-click any row in the list to favorite it.", 0.6, 0.6, 0.6, true)
+        GameTooltip:AddLine("You can also click the star on any row in the list.", 0.6, 0.6, 0.6, true)
         GameTooltip:Show()
     end)
     favBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)

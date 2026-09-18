@@ -435,6 +435,84 @@ function Compat.CreateSlider(parent, minV, maxV, step, titleText, lowText, highT
     return s
 end
 
+--=========================================================================--
+--  Favorite star art
+--  Blizzard's own favorite star -- the one on Auction House searches and
+--  profession recipes -- is a texture atlas, and atlases both require an API
+--  that older clients lack and have been renamed between expansions. So probe
+--  for whichever the running client actually has rather than hardcoding a name,
+--  the same way everything else in this file is feature-detected. The last
+--  resort is the cooldown starburst, which has shipped since Vanilla.
+--=========================================================================--
+local STAR_ATLAS_ON = {
+    "auctionhouse-icon-favorite",   -- AH search favorites (8.3+)
+    "professions-icon-favorites",   -- profession recipe list (10.0+)
+    "collections-icon-favorites",
+    "PetJournal-FavoritesIcon",
+    "friendslist-favorite",
+}
+local STAR_ATLAS_OFF = {
+    "auctionhouse-icon-favorite-empty",
+    "professions-icon-favorites-off",
+}
+local STAR_FALLBACK = "Interface\\Cooldown\\star4"
+
+local starOn, starOff, starResolved
+
+local function firstAtlas(list)
+    local info = (C_Texture and C_Texture.GetAtlasInfo) or _G.GetAtlasInfo
+    if not info then return nil end
+    for i = 1, #list do
+        local ok, res = pcall(info, list[i])
+        if ok and res then return list[i] end
+    end
+    return nil
+end
+
+local function resolveStars()
+    if starResolved then return end
+    starResolved = true
+    starOn = firstAtlas(STAR_ATLAS_ON)
+    starOff = firstAtlas(STAR_ATLAS_OFF)
+end
+
+-- Paint `tex` as a favorite star, filled or empty. With no hollow atlas to hand
+-- we dim and desaturate the filled one, which reads the same at 16px.
+function Compat.SetStar(tex, filled)
+    resolveStars()
+    local canAtlas = tex.SetAtlas ~= nil
+    local function desaturate(on)
+        if tex.SetDesaturated then tex:SetDesaturated(on) end
+    end
+
+    if filled then
+        if canAtlas and starOn then
+            tex:SetAtlas(starOn)
+            tex:SetVertexColor(1, 1, 1) -- Blizzard's star is already gold
+        else
+            tex:SetTexture(STAR_FALLBACK)
+            tex:SetVertexColor(1, 0.82, 0)
+        end
+        desaturate(false)
+        tex:SetAlpha(1)
+    elseif canAtlas and starOff then
+        tex:SetAtlas(starOff)
+        tex:SetVertexColor(1, 1, 1)
+        desaturate(false)
+        tex:SetAlpha(0.9)
+    elseif canAtlas and starOn then
+        tex:SetAtlas(starOn)
+        tex:SetVertexColor(1, 1, 1)
+        desaturate(true)
+        tex:SetAlpha(0.35)
+    else
+        tex:SetTexture(STAR_FALLBACK)
+        tex:SetVertexColor(0.65, 0.65, 0.65)
+        desaturate(false)
+        tex:SetAlpha(0.4)
+    end
+end
+
 -- Portable dropdown. API:
 --   dd:SetItems({ {text=, value=}, ... })   (an item with header=true is an
 --                                            inert section label)
@@ -444,6 +522,9 @@ end
 --   dd.onSelect  = function(value) ... end  (called on left-click)
 --   dd.onAltClick = function(value) ... end (right-click; leaves the menu open
 --                                            and the selection alone)
+--   dd.onToggle  = function(value) ... end  (clicking a row's star; set this and
+--                                            give items a boolean `toggle` to
+--                                            draw one)
 function Compat.CreateDropdown(parent, width)
     local dd = CreateFrame("Button", nil, parent)
     dd:SetSize(width or 200, 26)
@@ -553,6 +634,24 @@ function Compat.CreateDropdown(parent, width)
                         h:SetAllPoints()
                         Compat.SolidTexture(h, 1, 1, 1, 0.20)
                         b.highlight = h
+
+                        -- Per-row favorite star. Its own button so it swallows
+                        -- the click instead of selecting the row underneath.
+                        local sb = CreateFrame("Button", nil, b)
+                        sb:SetSize(16, 16)
+                        sb:SetPoint("LEFT", 4, 0)
+                        sb:SetFrameLevel(b:GetFrameLevel() + 2)
+                        sb:EnableMouseWheel(true)
+                        sb:SetScript("OnMouseWheel", function(_, d) menu:Scroll(d) end)
+                        sb.tex = sb:CreateTexture(nil, "ARTWORK")
+                        sb.tex:SetAllPoints()
+                        -- Its own highlight: hovering the star takes the mouse
+                        -- off the row, so the row's highlight drops out.
+                        local shl = sb:CreateTexture(nil, "HIGHLIGHT")
+                        shl:SetAllPoints()
+                        Compat.SolidTexture(shl, 1, 1, 1, 0.25)
+                        b.star = sb
+
                         b:SetScript("OnMouseWheel", function(_, d) menu:Scroll(d) end)
                         menu.buttons[slot] = b
                     end
@@ -560,6 +659,23 @@ function Compat.CreateDropdown(parent, width)
                     b:SetPoint("TOPLEFT", 4, -4 - (slot - 1) * rowH)
                     b:SetPoint("RIGHT", menu, "RIGHT", -4, 0)
                     b.text:SetText(item.text)
+
+                    -- A row carries a star only when the list has a toggle
+                    -- action and the item opts in with a boolean `toggle`.
+                    local starred = dd.onToggle and item.toggle ~= nil and not item.header
+                    b.text:ClearAllPoints()
+                    b.text:SetPoint("LEFT", starred and 24 or 8, 0)
+                    b.text:SetPoint("RIGHT", -8, 0)
+                    if starred then
+                        Compat.SetStar(b.star.tex, item.toggle)
+                        b.star:SetScript("OnClick", function()
+                            dd.onToggle(item.value)
+                            dd:Reopen()
+                        end)
+                        b.star:Show()
+                    else
+                        b.star:Hide()
+                    end
                     -- A header labels a section (e.g. "Favorites"). It is inert:
                     -- no selection, and no hover highlight to imply otherwise.
                     if item.header then

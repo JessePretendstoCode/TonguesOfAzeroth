@@ -46,9 +46,11 @@ generate identical text.
 - **Learned Languages** — mark dialects you understand; when another Tongues of Azeroth
   user speaks one, you see a second line showing the original meaning (emote or whisper
   style). Fluency earned in the trainer is shown per language.
-- **Favorites** — star the handful of tongues your character actually uses and they sit in
-  their own section at the top of the dropdown, out of the seventy-odd below. Favorites
-  also become what `/ogt next` and the minimap scroll wheel cycle through.
+- **Favorites** — every language in the dropdown has a hollow star; click it and it fills
+  in, and that language moves into a Favorites section at the top of the list, out of the
+  seventy-odd below. It's Blizzard's own favorite star, the one on Auction House searches
+  and profession recipes. Favorites also become what `/ogt next` and the minimap scroll
+  wheel cycle through.
 - **Minimap button** for one-click access, plus a standalone draggable window (with
   Back/Close navigation) that hosts the Language Trainer.
 - **In-game configuration** via Settings → AddOns, with a live preview.
@@ -156,9 +158,10 @@ Open **Interface → AddOns → Tongues of Azeroth** (or type `/ogt`).
 
 - Toggle **auto-translate in chat**.
 - Choose the **Language** from the dropdown.
-- **Star** the selected language with the `*` button beside the dropdown to add it to your
-  favorites, or right-click any row in the dropdown to star it without selecting it (the
-  menu stays open, so you can build the list in one pass).
+- **Favorite** a language by clicking the hollow star on its row in the dropdown — it fills
+  in, and the menu stays open so you can build the whole list in one pass. There's also a
+  star button beside the dropdown for the selected language, and right-clicking anywhere on
+  a row does the same as clicking its star.
 - Set **Strength** with the slider.
 - Enable **Channels** for outgoing translate and learned decode.
 - **Preview** any text and watch it re-translate live.
