@@ -584,7 +584,9 @@ local function transformOutgoing(msg, sendType, channel)
         elseif not ns.IsAccentChannelEnabled(channelKey) then
             return msg, false
         end
-        local ok, res = pcall(ns.Accent.Apply, msg, a.id, a.strength or 100, a.emotes)
+        -- `true` = a real utterance, so this one advances the tail spacing state
+        -- (the options preview and /ogt debug deliberately don't).
+        local ok, res = pcall(ns.Accent.Apply, msg, a.id, a.strength or 100, a.emotes, true)
         if ok and type(res) == "string" then return res, res ~= msg end
     end
     return msg, false

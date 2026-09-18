@@ -3,6 +3,25 @@
 All notable changes to Tongues of Azeroth are documented here.
 
 ## [Unreleased]
+- **Accent tails are far less frequent, and no longer arrive in clusters.** They
+  fired on roughly 26% of messages with nothing stopping two in a row, which is
+  what made them feel constant; it's now about 5%, and never twice in a row. The
+  gate changed from a bare per-message coin flip to: a minimum three-message gap
+  between tails, a higher word-count floor (5, up from 3), and half the chance on
+  mid-length lines, so a flourish lands on a sentence with room for it.
+- **Tails now fit the sentence they're joining.** A question no longer absorbs a
+  statement interjection -- "where's the inn, aye?" was not English -- so only a
+  standalone phrase or an emote may follow one. A tail is also skipped when the
+  message already uses its wording, which is what stopped "mon" from turning up
+  twice in one breath. That check matches whole words, so "monk" isn't read as
+  "mon" nor "player" as "aye".
+- **Dwarven has three tails instead of one.** Earlier feedback removed ", lad",
+  ", ah tell ye" and ", ye ken", leaving ", aye." by itself -- so *every* Dwarven
+  flourish was the same word. It's now joined by ", nae doubt." and ", right
+  enough.", both gender-neutral, which also gives the no-repeat rule a choice.
+- The options preview and `/ogt debug` no longer disturb tail spacing, so
+  previewing a line doesn't consume the flourish your next real message would get.
+
 - **The addon list now shows a scroll instead of a red question mark.** None of the
   TOC files declared an icon, so the client fell back to its placeholder. All of
   them now set `## IconTexture:` to the parchment scroll `INV_Scroll_03`, a

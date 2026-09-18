@@ -168,10 +168,11 @@ reg("dwarf", {
         },
     },
     patterns = { { "ing$", "in'", 20 }, { "old$", "auld", 55 }, { "ight", "icht", 72 } },
-    -- Only ", aye." remains: it always sits naturally. "lad" (assumes the
-    -- listener's gender), "ah tell ye", and "ye ken" (often ill-fitting) were
-    -- all removed after feedback.
-    tails = { ", aye." },
+    -- "lad" (assumes the listener's gender), "ah tell ye" and "ye ken" (often
+    -- ill-fitting) were removed after feedback, which left ", aye." alone -- so
+    -- every Dwarven flourish was the same word. These two are gender-neutral and
+    -- sit as naturally, giving the no-repeat rule something to choose between.
+    tails = { ", aye.", ", nae doubt.", ", right enough." },
 })
 
 -- Troll == Jamaican Patois. Voiced th->d (the->da), voiceless th->t
@@ -382,13 +383,29 @@ reg("pirate", {
 --=========================================================================--
 local WORD = "[%a][%a']*"
 
--- At full strength, only about this share of eligible messages get a tail, so
--- interjections stay flavorful instead of tagging every single sentence. The
--- actual chance scales with the accent strength (strength% * this / 100).
-local TAIL_MAX_RATE = 30
--- Messages shorter than this many words never get a tail (avoids bolting a
--- flourish onto a one-word reply like "Aye" or "No").
-local TAIL_MIN_WORDS = 3
+-- Tail gating. Unlike the language engine, an accent is ordinary English that
+-- nothing has to decode, so this may keep session state and does not have to
+-- reproduce the same output forever. That is what lets us *space tails out*
+-- rather than re-rolling an independent chance on every line -- an independent
+-- chance is why they used to land in clusters and feel constant.
+
+-- At full strength, the share of eligible messages that earn a tail. The actual
+-- chance scales with accent strength (strength% * this / 100).
+local TAIL_MAX_RATE = 12
+-- Below this many words there is no room for a flourish; it just crowds the line.
+local TAIL_MIN_WORDS = 5
+-- A line this long carries one comfortably and gets the full rate. Shorter
+-- eligible lines get half, so flourishes favor sentences with somewhere to sit.
+local TAIL_ROOMY_WORDS = 9
+-- Accented messages that must pass before another tail may fire, so two never
+-- land back to back however the chance falls.
+local TAIL_GAP = 3
+
+-- Messages since the last tail, and the exact tail it was -- so we never repeat
+-- one immediately. Only the live send path advances these (see Accent.Apply);
+-- the options preview and `/ogt debug` read them without churning them, or the
+-- preview would reshuffle itself on every keystroke.
+local sinceTail, lastTail = TAIL_GAP, nil
 
 local function wordCount(s)
     local n = 0
@@ -439,10 +456,81 @@ local function appendTail(out, tail)
     return out .. " " .. phrase
 end
 
+-- Which of appendTail's three styles a tail is authored in.
+local function tailKind(tail)
+    if tail:find("%*") then return "emote" end
+    local trimmed = tail:gsub("^%s+", "")
+    if strsub(trimmed, 1, 1) == "," then return "interjection" end
+    return "phrase"
+end
+
+-- A tail's significant wording, lowercased: ", ya know?" -> "ya know". Used to
+-- avoid bolting "mon" onto a sentence that already says "mon".
+local function tailCore(tail)
+    local core = tail:gsub("^[%s,%.]+", "")
+    core = core:gsub("[%s%p]+$", "")
+    return strlower(core)
+end
+
+-- Reduce text to a padded stream of lowercase words so a phrase can be matched
+-- on whole words only. Substring matching would be wrong in both directions
+-- here: "monk" would read as "mon", and "player" contains "aye".
+local function wordStream(s)
+    local t = strlower(s):gsub("[^%a%s']", " ")
+    t = t:gsub("%s+", " "):gsub("^ ", ""):gsub(" $", "")
+    return " " .. t .. " "
+end
+
+local function alreadySays(text, phrase)
+    if phrase == "" then return false end
+    return wordStream(text):find(wordStream(phrase), 1, true) ~= nil
+end
+
+-- Decide whether this message earns a tail, and which one; nil means none.
+--
+-- Beyond the spacing rule above, the judgement calls are:
+--   * short lines are skipped, and mid-length ones are half as likely, so a
+--     flourish lands on a sentence with room for it;
+--   * a question can't absorb a statement interjection -- "where's the inn,
+--     aye?" is not English -- so only a standalone phrase or an emote may
+--     follow one;
+--   * a tail whose wording the message already uses is dropped, which is what
+--     stops "mon" from arriving twice in one breath.
+local function chooseTail(acc, text, out, strength, live)
+    local words = wordCount(text)
+    if words < TAIL_MIN_WORDS then return nil end
+    if live and sinceTail < TAIL_GAP then return nil end
+
+    local rate = TAIL_MAX_RATE
+    if words < TAIL_ROOMY_WORDS then rate = math.floor(rate / 2) end
+    local chance = math.floor(strength * rate / 100)
+    if (hashString("toa-tail:" .. text) % 100) >= chance then return nil end
+
+    local trimmedOut = out:gsub("%s+$", "")
+    local isQuestion = strsub(trimmedOut, -1) == "?"
+
+    local eligible = {}
+    for i = 1, #acc.tails do
+        local tail = acc.tails[i]
+        local core = tailCore(tail)
+        local fitsSentence = not (isQuestion and tailKind(tail) == "interjection")
+        if fitsSentence and tail ~= lastTail and core ~= ""
+            and not alreadySays(trimmedOut, core) then
+            eligible[#eligible + 1] = tail
+        end
+    end
+    if #eligible == 0 then return nil end
+    return eligible[(hashString("toa-pick:" .. text) % #eligible) + 1]
+end
+
 -- `emotesOn` mirrors the "apply accent to emotes" option: when false, inline
 -- *emote* actions are left as plain speech (like /e emotes); when true they get
 -- the accent too.
-function Accent.Apply(text, id, strength, emotesOn)
+--
+-- `live` marks a real utterance, as opposed to the options preview or a debug
+-- sample. Only a real one advances the tail spacing state, so previewing a line
+-- never uses up the flourish that the next thing you actually say would get.
+function Accent.Apply(text, id, strength, emotesOn, live)
     if not text or text == "" then return text end
     strength = strength or 100
     if strength <= 0 then return text end
@@ -486,14 +574,14 @@ function Accent.Apply(text, id, strength, emotesOn)
         out = out:gsub("^ +", "")
     end
 
-    -- Tails are occasional flourishes, not a stamp on every message: gate them
-    -- on a strength-scaled chance and skip very short lines. Deterministic, so a
-    -- given message always reads the same way.
-    if acc.tails and #acc.tails > 0 and wordCount(text) >= TAIL_MIN_WORDS then
-        local chance = math.floor(strength * TAIL_MAX_RATE / 100)
-        if (hashString("toa-tail:" .. text) % 100) < chance then
-            local idx = (hashString("toa-pick:" .. text) % #acc.tails) + 1
-            out = appendTail(out, acc.tails[idx])
+    -- Tails are occasional flourishes, not a stamp on every message.
+    if acc.tails and #acc.tails > 0 then
+        local tail = chooseTail(acc, text, out, strength, live)
+        if tail then
+            out = appendTail(out, tail)
+            if live then sinceTail, lastTail = 0, tail end
+        elseif live then
+            sinceTail = sinceTail + 1
         end
     end
     return out
