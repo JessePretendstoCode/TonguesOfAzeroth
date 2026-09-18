@@ -38,7 +38,6 @@ local DECODE_STYLES = {
 local mainPanel, learnedPanel, accentPanel, customPanel
 local mainContent
 local langDropdown, slider, valueText, enableCheck, previewInput, previewOutput
-local favBtn, favBtnStar
 local minimapCheck, fluencyCheck, nativeHideCheck, autoDisableCheck
 local widgetCheck, widgetLockCheck
 local accentEnableCheck, accentDropdown, accentSlider, accentValueText
@@ -249,9 +248,6 @@ local function RefreshMain()
     if nativeHideCheck then nativeHideCheck:SetChecked(d.hideNativeLanguages and true or false) end
     if autoDisableCheck then autoDisableCheck:SetChecked(d.autoDisableInInstances ~= false) end
     langDropdown:SetSelected(d.language, Language.GetLanguageName(d.language))
-    if favBtnStar then
-        Compat.SetStar(favBtnStar, ns.IsFavorite and ns.IsFavorite(d.language))
-    end
     local fp = fluencyPct(d.language)
     settingSlider = true
     slider:SetValue(fp)
@@ -378,7 +374,7 @@ local function tooltipLines(tt)
     tt:AddLine("|cffffffffRight-click|r  Toggle auto-translate", 1, 1, 1)
     local favCount = (ns.GetFavorites and #ns.GetFavorites()) or 0
     tt:AddLine("|cffffffffScroll|r  Cycle " ..
-        (favCount > 0 and "your favorites" or "learned languages"), 1, 1, 1)
+        ((db().favOnly and favCount > 0) and "your favorites" or "learned languages"), 1, 1, 1)
 end
 
 local function setupLDBButton()
@@ -495,6 +491,12 @@ local function RefreshLanguageWidget()
     else
         langWidget.dot:SetText("Off")
         langWidget.dot:SetTextColor(0.9, 0.4, 0.4)
+    end
+    if langWidget.fav then
+        -- Filled only when the toggle is on AND there's a list to walk, so the
+        -- star never claims a filter is active when it can't be.
+        local n = (ns.GetFavorites and #ns.GetFavorites()) or 0
+        Compat.SetStar(langWidget.fav.tex, d.favOnly and n > 0)
     end
 end
 ns.RefreshLanguageWidget = RefreshLanguageWidget
@@ -687,8 +689,50 @@ local function SetupLanguageWidget()
         f.sub = sub
 
         local dot = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-        dot:SetPoint("BOTTOMRIGHT", -8, 6)
+        -- Shifted left to clear the favorites star in the corner.
+        dot:SetPoint("BOTTOMRIGHT", -24, 6)
         f.dot = dot
+
+        -- "Scroll only my favorites" toggle. Its own button so clicking the
+        -- star doesn't fall through to the frame's cycle-on-click, and it
+        -- forwards the wheel so scrolling over it still cycles.
+        local fav = CreateFrame("Button", nil, f)
+        fav:SetSize(14, 14)
+        fav:SetPoint("BOTTOMRIGHT", -5, 5)
+        fav:SetFrameLevel(f:GetFrameLevel() + 2)
+        fav:EnableMouseWheel(true)
+        fav:SetScript("OnMouseWheel", function(_, delta)
+            if ns.CycleLanguage then ns.CycleLanguage(delta > 0 and 1 or -1) end
+        end)
+        fav.tex = fav:CreateTexture(nil, "ARTWORK")
+        fav.tex:SetAllPoints()
+        local favHl = fav:CreateTexture(nil, "HIGHLIGHT")
+        favHl:SetAllPoints()
+        Compat.SolidTexture(favHl, 1, 1, 1, 0.25)
+        fav:SetScript("OnClick", function()
+            local d2 = db()
+            d2.favOnly = not d2.favOnly
+            if ns.OnSettingsChanged then ns.OnSettingsChanged() end
+        end)
+        fav:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_TOP")
+            GameTooltip:SetText("Scroll only my favorites", 1, 1, 1)
+            local n = (ns.GetFavorites and #ns.GetFavorites()) or 0
+            if n == 0 then
+                GameTooltip:AddLine(
+                    "No favorites yet. Click the star beside a language in the dropdown.",
+                    0.8, 0.8, 0.8, true)
+            elseif db().favOnly then
+                GameTooltip:AddLine("On: scrolling walks your " .. n .. " favorite" ..
+                    (n == 1 and "" or "s") .. ".", 0.4, 0.9, 0.4, true)
+            else
+                GameTooltip:AddLine("Off: scrolling walks everything you've learned.",
+                    0.8, 0.8, 0.8, true)
+            end
+            GameTooltip:Show()
+        end)
+        fav:SetScript("OnLeave", function() GameTooltip:Hide() end)
+        f.fav = fav
 
         f:SetScript("OnDragStart", function(self)
             if db().widget.locked then return end
@@ -719,8 +763,9 @@ local function SetupLanguageWidget()
             GameTooltip:SetText("Tongues of Azeroth", 1, 1, 1)
             GameTooltip:AddLine("Language: |cffffffff" .. Language.GetLanguageName(db().language) .. "|r", 0.8, 0.8, 0.8)
             GameTooltip:AddLine(" ")
-            GameTooltip:AddLine("|cffffffffLeft-click|r  Next learned language", 1, 1, 1)
+            GameTooltip:AddLine("|cffffffffLeft-click|r  Next language", 1, 1, 1)
             GameTooltip:AddLine("|cffffffffScroll|r  Cycle languages", 1, 1, 1)
+            GameTooltip:AddLine("|cffffffffStar|r  Scroll only favorites", 1, 1, 1)
             GameTooltip:AddLine("|cffffffffShift-click|r  Toggle auto-translate", 1, 1, 1)
             GameTooltip:AddLine("|cffffffffRight-click|r  Language menu", 1, 1, 1)
             GameTooltip:AddLine("|cffffffffDrag|r  Move (unlock in options)", 0.7, 0.7, 0.7)
@@ -889,53 +934,8 @@ local function BuildMainPanel()
     langDropdown.onToggle = toggleFav
     langDropdown.onAltClick = toggleFav
 
-    -- Favorite toggle for whatever is selected, mirroring the star on each row.
-    favBtn = CreateFrame("Button", nil, content)
-    favBtn:SetSize(26, 24)
-    favBtn:SetPoint("LEFT", langDropdown, "RIGHT", 8, 0)
-    local fbg = favBtn:CreateTexture(nil, "BACKGROUND")
-    fbg:SetAllPoints()
-    Compat.SolidTexture(fbg, 0.18, 0.16, 0.24, 1)
-    Compat.AddBorder(favBtn, 0.5, 0.45, 0.7, 0.9)
-    favBtnStar = favBtn:CreateTexture(nil, "ARTWORK")
-    favBtnStar:SetSize(16, 16)
-    favBtnStar:SetPoint("CENTER", 0, 0)
-    local fhl = favBtn:CreateTexture(nil, "HIGHLIGHT")
-    fhl:SetAllPoints()
-    Compat.SolidTexture(fhl, 1, 1, 1, 0.12)
-    favBtn:SetScript("OnClick", function()
-        if ns.ToggleFavorite then ns.ToggleFavorite(db().language) end
-        RefreshMain()
-    end)
-    favBtn:SetScript("OnEnter", function(self)
-        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-        GameTooltip:SetText("Favorite", 1, 1, 1)
-        GameTooltip:AddLine("Keep this language at the top of the list.", 0.8, 0.8, 0.8, true)
-        GameTooltip:AddLine("Favorites are also what Next cycles through.", 0.8, 0.8, 0.8, true)
-        GameTooltip:AddLine("You can also click the star on any row in the list.", 0.6, 0.6, 0.6, true)
-        GameTooltip:Show()
-    end)
-    favBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
-
-    -- Quick-cycle button through your favorites (or, with none set, your learned
-    -- languages). Also on the minimap scroll wheel and via /toa next|prev.
-    local cycleBtn = CreateFrame("Button", nil, content)
-    cycleBtn:SetSize(92, 24)
-    cycleBtn:SetPoint("LEFT", favBtn, "RIGHT", 6, 0)
-    local cbg = cycleBtn:CreateTexture(nil, "BACKGROUND")
-    cbg:SetAllPoints()
-    Compat.SolidTexture(cbg, 0.18, 0.16, 0.24, 1)
-    Compat.AddBorder(cycleBtn, 0.5, 0.45, 0.7, 0.9)
-    local cbtext = cycleBtn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    cbtext:SetPoint("CENTER", 0, 0)
-    cbtext:SetText("Next |cff9a7cff>|r")
-    local chl = cycleBtn:CreateTexture(nil, "HIGHLIGHT")
-    chl:SetAllPoints()
-    Compat.SolidTexture(chl, 1, 1, 1, 0.12)
-    cycleBtn:SetScript("OnClick", function()
-        if ns.CycleLanguage then ns.CycleLanguage(1) end
-        RefreshMain()
-    end)
+    -- No star or cycle button out here: favoriting belongs on the rows, and
+    -- cycling is on the floating bar, the minimap wheel and /ogt next.
 
     slider = Compat.CreateSlider(content, 0, 100, 1, "Fluency", "0 - None", "100 - Fluent")
     slider:SetPoint("TOPLEFT", langDropdown, "BOTTOMLEFT", 0, -28)

@@ -8,10 +8,21 @@ All notable changes to Tongues of Azeroth are documented here.
   in the language list now carries a hollow star; click it and it fills in, and
   that language gets a Favorites section at the top of the list, in the order
   you added them, while still appearing in the full list below. The menu stays
-  open, so a shortlist can be built in one pass. There's also a star button
-  beside the dropdown for the selected language, right-click anywhere on a row
-  as an alternative to aiming at the star, and `/ogt fav [id]`,
-  `/ogt fav list` and `/ogt fav off`.
+  open, so a shortlist can be built in one pass. Right-click anywhere on a row
+  does the same, for anyone who'd rather not aim at a 16px star, and there's
+  `/ogt fav [id]`, `/ogt fav list` and `/ogt fav off`.
+- **The floating language bar has a star that toggles "scroll only my
+  favorites".** It governs every way you cycle -- the bar, the minimap wheel,
+  `/ogt next` and `/ogt prev` -- and is on by default, so with favorites set
+  they're what you walk through; switch it off to walk everything you've
+  learned instead. The star only lights up when you actually have favorites, so
+  it never claims a filter is active when there's nothing to filter. Also on
+  `/ogt favonly [on|off]`, since the floating bar is optional and the toggle
+  would otherwise be unreachable with it hidden.
+- **The star and Next buttons beside the language dropdown are gone.** They
+  crowded the row and both jobs are better placed elsewhere: favoriting is on
+  the dropdown rows themselves, and cycling was already on the floating bar,
+  the minimap scroll wheel and `/ogt next`.
 - The star is Blizzard's own favorite art -- the one on Auction House searches
   and profession recipes -- rather than a glyph or a bundled texture. Atlas
   names have moved between expansions and the atlas API doesn't exist on the

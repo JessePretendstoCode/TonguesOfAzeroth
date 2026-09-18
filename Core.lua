@@ -220,6 +220,9 @@ local function migrateDB()
     -- Hand-curated shortlist of languages. An ordered array rather than a set,
     -- so it stays in the order you built it.
     if type(db.favorites) ~= "table" then db.favorites = {} end
+    -- Whether cycling walks only the favorites. Toggled by the star on the
+    -- floating bar, and inert until the list has something in it.
+    if db.favOnly == nil then db.favOnly = true end
 
     if not db.channels then
         db.channels = {}
@@ -1147,12 +1150,12 @@ function ns.GetKnownLanguages()
         end
     end
 
-    -- A curated list takes cycling over completely -- that is the point of
-    -- curating one -- so favorites are not filtered by what you've learned the
-    -- way the fallback below is. Tongues your race natively speaks are still
-    -- skipped, since cycling onto one is never useful.
+    -- With the favorites-only toggle on (the star on the floating bar), a
+    -- curated list takes cycling over completely, so favorites are not filtered
+    -- by what you've learned the way the fallback below is. Tongues your race
+    -- natively speaks are still skipped, since cycling onto one is never useful.
     local favs = ns.GetFavorites()
-    if #favs > 0 then
+    if db.favOnly and #favs > 0 then
         for i = 1, #favs do
             if not ns.IsNativeLanguage(favs[i]) then add(favs[i]) end
         end
@@ -1616,6 +1619,7 @@ local function usage()
     Print("  |cffffff00/ogt next|r / |cffffff00prev|r  - cycle your favorites (or learned languages)")
     Print("  |cffffff00/ogt fav [id]|r  - favorite/unfavorite a language (no id = the current one)")
     Print("  |cffffff00/ogt fav list|off|r  - show or clear your favorites")
+    Print("  |cffffff00/ogt favonly [on|off]|r  - cycle only favorites (the star on the bar)")
     Print("  |cffffff00/ogt list|r  - list available languages")
     Print("  |cffffff00/ogt learned|r  - list languages you understand")
     Print("  |cffffff00/ogt custom|r  - create your own language")
@@ -1662,6 +1666,22 @@ local function handleSlash(input)
         ns.CycleLanguage(-1)
     elseif cmd == "fav" or cmd == "favorite" or cmd == "favourite" then
         favoriteCommand(rest)
+    elseif cmd == "favonly" then
+        migrateDB()
+        local db = TonguesOfAzerothDB
+        local arg = string.lower(rest or "")
+        if arg == "on" then db.favOnly = true
+        elseif arg == "off" then db.favOnly = false
+        else db.favOnly = not db.favOnly end
+        if db.favOnly then
+            local n = #ns.GetFavorites()
+            Print("cycling walks |cffffd100favorites only|r" ..
+                (n == 0 and " |cff808080(none set yet, so it still walks learned languages)|r" or
+                 " (" .. n .. ")") .. ".")
+        else
+            Print("cycling walks |cffffff00every language you've learned|r.")
+        end
+        if ns.OnSettingsChanged then ns.OnSettingsChanged() end
     elseif cmd == "list" or cmd == "langs" then
         listLanguages()
     elseif cmd == "learned" then

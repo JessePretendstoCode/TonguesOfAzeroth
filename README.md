@@ -47,10 +47,10 @@ generate identical text.
   user speaks one, you see a second line showing the original meaning (emote or whisper
   style). Fluency earned in the trainer is shown per language.
 - **Favorites** — every language in the dropdown has a hollow star; click it and it fills
-  in, and that language moves into a Favorites section at the top of the list, out of the
+  in, and that language floats up to a Favorites section at the top of the list, out of the
   seventy-odd below. It's Blizzard's own favorite star, the one on Auction House searches
-  and profession recipes. Favorites also become what `/ogt next` and the minimap scroll
-  wheel cycle through.
+  and profession recipes. The star on the floating language bar toggles whether scrolling
+  and `/ogt next` walk only your favorites or everything you've learned.
 - **Minimap button** for one-click access, plus a standalone draggable window (with
   Back/Close navigation) that hosts the Language Trainer.
 - **In-game configuration** via Settings → AddOns, with a live preview.
@@ -134,7 +134,8 @@ All of them appear in the config dropdown and in `/ogt list`.
 | `/ogt list`                 | List all language IDs (marks the active one)            |
 | `/ogt fav [id]`             | Favorite / unfavorite a language (no id = current one)  |
 | `/ogt fav list` / `off`     | Show or clear your favorites                            |
-| `/ogt next` / `/ogt prev`   | Cycle your favorites (or learned languages, if none)    |
+| `/ogt favonly [on\|off]`    | Cycle only favorites (same as the star on the bar)      |
+| `/ogt next` / `/ogt prev`   | Cycle your favorites, or everything learned             |
 | `/ogt learned`              | List languages you understand                           |
 | `/ogt strength <0-100>`   | Set the translation strength                            |
 | `/ogt accent [on\|off\|<id>\|list]` | Speak in a dialect accent (e.g. `/ogt accent dwarf`) |
@@ -159,9 +160,8 @@ Open **Interface → AddOns → Tongues of Azeroth** (or type `/ogt`).
 - Toggle **auto-translate in chat**.
 - Choose the **Language** from the dropdown.
 - **Favorite** a language by clicking the hollow star on its row in the dropdown — it fills
-  in, and the menu stays open so you can build the whole list in one pass. There's also a
-  star button beside the dropdown for the selected language, and right-clicking anywhere on
-  a row does the same as clicking its star.
+  in, jumps to the Favorites section at the top of the list, and the menu stays open so you
+  can build the whole list in one pass. Right-clicking anywhere on a row does the same.
 - Set **Strength** with the slider.
 - Enable **Channels** for outgoing translate and learned decode.
 - **Preview** any text and watch it re-translate live.

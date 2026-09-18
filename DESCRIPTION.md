@@ -18,7 +18,7 @@ One install runs on **Retail** (Midnight), **WoW: Forever**, and **Classic** (Va
 - **Strength slider (0–100)** — control how much of your text is transformed, from a few cryptic words to fully unintelligible
 - **Per-channel filters** — choose exactly which chat types are affected (Say, Yell, Party, Raid, Guild, Whisper, and more)
 - **Learned Languages** — mark tongues your character understands; when another Tongues of Azeroth user speaks one, you'll see the decoded meaning in your own chat, with per-language fluency shown on progress bars
-- **Favorites** — click the star on any language and it moves into a Favorites section at the top of the dropdown instead of sitting seventy rows down; favorites also become what the Next button, `/ogt next` and the minimap scroll wheel cycle through
+- **Favorites** — click the star on any language and it floats up to a Favorites section at the top of the dropdown instead of sitting seventy rows down; the star on the floating language bar toggles whether scrolling cycles only your favorites
 - **Minimap button** and a draggable standalone window for one-click access (with Back/Close navigation on clients without a native options tree)
 - **Live options panel** with a real-time preview
 - **Deterministic** — the same words always translate the same way, so speech stays consistent between everyone running the addon
