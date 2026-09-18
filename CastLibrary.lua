@@ -1,4 +1,4 @@
-﻿--[[-------------------------------------------------------------------------
+--[[-------------------------------------------------------------------------
     Tongues of Azeroth - CastLibrary.lua
     The shipped phrase packs: ready-made lines for spells you already cast, so
     the feature is usable without writing seventy phrases first. Every pack is

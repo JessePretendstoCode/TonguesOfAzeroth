@@ -969,7 +969,7 @@ local function BuildMainPanel()
     langDropdown.onAltClick = toggleFav
 
     -- No star or cycle button out here: favoriting belongs on the rows, and
-    -- cycling is on the floating bar, the minimap wheel and /ogt next.
+    -- cycling is on the floating bar, the minimap wheel and /toa next.
 
     slider = Compat.CreateSlider(content, 0, 100, 1, "Fluency", "0 - None", "100 - Fluent")
     slider:SetPoint("TOPLEFT", langDropdown, "BOTTOMLEFT", 0, -28)

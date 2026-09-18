@@ -291,7 +291,7 @@ end
 --=========================================================================--
 -- Midnight refuses chat sent from addon code during raid encounters, Mythic+
 -- and rated PvP -- the point being that a keypress may talk but a script may
--- not. Anything we generate ourselves (cast phrases, /ogt say) has to ask first
+-- not. Anything we generate ourselves (cast phrases, /toa say) has to ask first
 -- and fall back to a local-only print, or the send is simply swallowed.
 -- Absent on the older Classic flavors, where no such lockdown exists.
 local rawChatLockdown = C_ChatInfo and C_ChatInfo.InChatMessagingLockdown

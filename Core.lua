@@ -432,7 +432,7 @@ end
 --  languageID (from Languages.db2). We map those IDs to our own language ids and
 --  hide them from the "speak" list -- speaking Common as a Human is just plain
 --  text, so ToA can focus on the tongues you *can't* already speak. This is
---  display-only: /ogt lang, the Learned tab, and the Trainer keep every language.
+--  display-only: /toa lang, the Learned tab, and the Trainer keep every language.
 --=========================================================================--
 -- Blizzard languageID -> ToA language id. Matching on the number (not the
 -- localized name) means this works identically on every client locale.
@@ -639,7 +639,7 @@ local function transformOutgoing(msg, sendType, channel)
             return msg, false
         end
         -- `true` = a real utterance, so this one advances the tail spacing state
-        -- (the options preview and /ogt debug deliberately don't).
+        -- (the options preview and /toa debug deliberately don't).
         local ok, res = pcall(ns.Accent.Apply, msg, a.id, a.strength or 100, a.emotes, true)
         if ok and type(res) == "string" then return res, res ~= msg end
     end
@@ -871,7 +871,7 @@ end
 --=========================================================================--
 -- Decode an incoming line. `taggedLangId` (optional) is the language resolved from
 -- a recognized "[Language]" tag on the line; `force` (optional) is set by the
--- /ogt decode command to try every language regardless.
+-- /toa decode command to try every language regardless.
 --
 -- IMPORTANT: speculative word-by-word decoding CAN false-positive on ordinary
 -- English -- a plain word may coincidentally be a generated language's encoding of
@@ -879,7 +879,7 @@ end
 -- run the addon. So the only thing we ever do to an untagged, uncached line is an
 -- exact cache lookup (whose keys are the exact garbled strings ToA produces, which
 -- plain English cannot hit). Word-by-word/partial decoding runs only when we have
--- proof the line is encoded: a matching tag, or an explicit /ogt decode.
+-- proof the line is encoded: a matching tag, or an explicit /toa decode.
 local function tryDecodeMessage(message, taggedLangId, force)
     migrateDB()
     local learned = TonguesOfAzerothDB.learned or {}
@@ -1241,7 +1241,7 @@ local function setLanguage(id, silent)
         end
         if ns.OnSettingsChanged then ns.OnSettingsChanged() end
     elseif not silent then
-        Print("Unknown language '|cffff0000" .. id .. "|r'. Use |cffffff00/ogt list|r.")
+        Print("Unknown language '|cffff0000" .. id .. "|r'. Use |cffffff00/toa list|r.")
     end
 end
 
@@ -1552,20 +1552,20 @@ end
 local function listFavorites()
     local favs = ns.GetFavorites()
     if #favs == 0 then
-        Print("no favorites yet. |cffffff00/ogt fav|r stars the language you're speaking,")
+        Print("no favorites yet. |cffffff00/toa fav|r stars the language you're speaking,")
         Print("or right-click any row in the language dropdown.")
         return
     end
-    Print("favorites (what |cffffff00/ogt next|r cycles through):")
+    Print("favorites (what |cffffff00/toa next|r cycles through):")
     for i = 1, #favs do
         Print("  |cffffd100*|r " .. Language.GetLanguageName(favs[i]) .. " |cff808080(" .. favs[i] .. ")|r")
     end
 end
 
--- /ogt fav            -> toggle the language you're currently speaking
--- /ogt fav <id>       -> toggle that language
--- /ogt fav list       -> show the list
--- /ogt fav off|clear  -> empty the list
+-- /toa fav            -> toggle the language you're currently speaking
+-- /toa fav <id>       -> toggle that language
+-- /toa fav list       -> show the list
+-- /toa fav off|clear  -> empty the list
 local function favoriteCommand(rest)
     migrateDB()
     rest = string.lower(rest or ""):gsub("^%s+", ""):gsub("%s+$", "")
@@ -1577,14 +1577,14 @@ local function favoriteCommand(rest)
     if rest == "off" or rest == "clear" or rest == "none" then
         local n = ns.ClearFavorites()
         Print("cleared " .. n .. " favorite" .. (n == 1 and "" or "s") ..
-            ". |cffffff00/ogt next|r is back to cycling your learned languages.")
+            ". |cffffff00/toa next|r is back to cycling your learned languages.")
         return
     end
 
     local id = (rest ~= "" and rest) or TonguesOfAzerothDB.language
     local state = ns.ToggleFavorite(id)
     if state == nil then
-        Print("Unknown language '|cffff0000" .. id .. "|r'. Use |cffffff00/ogt list|r.")
+        Print("Unknown language '|cffff0000" .. id .. "|r'. Use |cffffff00/toa list|r.")
     elseif state then
         Print("|cffffd100*|r " .. Language.GetLanguageName(id) .. " added to favorites.")
     else
@@ -1592,7 +1592,7 @@ local function favoriteCommand(rest)
     end
 end
 
--- /ogt cast ...  The panel is where this feature is really driven from (and the
+-- /toa cast ...  The panel is where this feature is really driven from (and the
 -- keybinding is the quickest route into it), so these cover the things worth
 -- having without one: the on/off switch, a look at what a spell will say, and
 -- an answer to "why did nothing happen just now".
@@ -1622,7 +1622,7 @@ local function castCommand(rest)
             c.chance = math.max(0, math.min(100, math.floor(n + 0.5)))
             Print("cast phrase chance: |cffffff00" .. c.chance .. "%|r")
         else
-            Print("cast phrase chance is |cffffff00" .. (c.chance or 35) .. "%|r (usage: /ogt cast chance 0-100)")
+            Print("cast phrase chance is |cffffff00" .. (c.chance or 35) .. "%|r (usage: /toa cast chance 0-100)")
         end
     elseif sub == "list" then
         local keys = Casts.GetKeys()
@@ -1644,7 +1644,7 @@ local function castCommand(rest)
         if name == "" then
             name = Casts.SpellUnderMouse()
             if not name then
-                Print("usage: /ogt cast test <spell name>  (or hover it on your bars first)")
+                Print("usage: /toa cast test <spell name>  (or hover it on your bars first)")
                 return
             end
         end
@@ -1672,7 +1672,7 @@ local function castCommand(rest)
         end
         Print(string.format("%d spell(s) have phrases.", #Casts.GetKeys()))
     else
-        Print("usage: /ogt cast [on|off|pets|chance <0-100>|list|test [spell]|status]")
+        Print("usage: /toa cast [on|off|pets|chance <0-100>|list|test [spell]|status]")
     end
 end
 
@@ -1718,7 +1718,7 @@ local function testDecode(input)
             showDecodeResult(text, decoded, langId, Language.GetLanguageName(langId), inferredStrength)
         else
             Print("could not decode as |cffffff00" .. Language.GetLanguageName(langId) .. "|r.")
-            Print("No cached mapping for that line. Run |cffffff00/ogt roundtrip " .. langId .. " <english>|r first,")
+            Print("No cached mapping for that line. Run |cffffff00/toa roundtrip " .. langId .. " <english>|r first,")
             Print("or hear it from another Tongues of Azeroth user in party/raid/guild/whisper.")
         end
         return
@@ -1726,8 +1726,8 @@ local function testDecode(input)
 
     text = input
     if text == "" then
-        Print("usage: /ogt decode [lang] <translated text>")
-        Print("  example: /ogt decode dwarven red hor gor loch")
+        Print("usage: /toa decode [lang] <translated text>")
+        Print("  example: /toa decode dwarven red hor gor loch")
         return
     end
 
@@ -1735,9 +1735,9 @@ local function testDecode(input)
     if decoded then
         showDecodeResult(text, decoded, bestLangId, bestLangName, inferredStrength)
     else
-        Print("could not decode. Specify a language: |cffffff00/ogt decode dwarven <text>|r")
-        Print("Decode needs a cached mapping from |cffffff00/ogt roundtrip|r or another ToA user.")
-        Print("Or check a learned language is enabled: |cffffff00/ogt learned|r")
+        Print("could not decode. Specify a language: |cffffff00/toa decode dwarven <text>|r")
+        Print("Decode needs a cached mapping from |cffffff00/toa roundtrip|r or another ToA user.")
+        Print("Or check a learned language is enabled: |cffffff00/toa learned|r")
     end
 end
 
@@ -1745,8 +1745,8 @@ local function testEncode(input)
     migrateDB()
     local langId, strength, text = parseLangStrengthText(input, TonguesOfAzerothDB.language, getStrength())
     if text == "" then
-        Print("usage: /ogt encode [lang] [strength] <english text>")
-        Print("  example: /ogt encode dwarven 100 help us all friend")
+        Print("usage: /toa encode [lang] [strength] <english text>")
+        Print("  example: /toa encode dwarven 100 help us all friend")
         return
     end
 
@@ -1754,15 +1754,15 @@ local function testEncode(input)
     Print("encode (|cffffff00" .. Language.GetLanguageName(langId) .. "|r, strength |cffffff00" .. strength .. "%|r):")
     Print("  english:    |cffffffff\"" .. text .. "\"|r")
     Print("  translated: |cffcccccc\"" .. encoded .. "\"|r")
-    Print("Try |cffffff00/ogt decode " .. langId .. " " .. encoded .. "|r")
+    Print("Try |cffffff00/toa decode " .. langId .. " " .. encoded .. "|r")
 end
 
 local function testRoundtrip(input)
     migrateDB()
     local langId, strength, text = parseLangStrengthText(input, TonguesOfAzerothDB.language, getStrength())
     if text == "" then
-        Print("usage: /ogt roundtrip [lang] [strength] <english text>")
-        Print("  example: /ogt roundtrip dwarven 100 help us all friend")
+        Print("usage: /toa roundtrip [lang] [strength] <english text>")
+        Print("  example: /toa roundtrip dwarven 100 help us all friend")
         return
     end
 
@@ -1776,7 +1776,7 @@ local function testRoundtrip(input)
 
     if not decoded then
         Print("  3. |cffff0000decode failed|r")
-        Print("Copy step 2 and run: |cffffff00/ogt decode " .. langId .. " " .. encoded .. "|r")
+        Print("Copy step 2 and run: |cffffff00/toa decode " .. langId .. " " .. encoded .. "|r")
         return
     end
 
@@ -1860,40 +1860,40 @@ local function debugReport()
 end
 
 local function usage()
-    Print("commands (also |cffffff00/ogt|r, |cffffff00/tongues|r):")
+    Print("commands (also |cffffff00/tongues|r):")
     Print("  |cffffff00/toa|r  - open the config panel")
-    Print("  |cffffff00/ogt on|off|r  - toggle auto-translate")
-    Print("  |cffffff00/ogt lang <id>|r  - set language (see /ogt list)")
-    Print("  |cffffff00/ogt next|r / |cffffff00prev|r  - cycle your favorites (or learned languages)")
-    Print("  |cffffff00/ogt fav [id]|r  - favorite/unfavorite a language (no id = the current one)")
-    Print("  |cffffff00/ogt fav list|off|r  - show or clear your favorites")
-    Print("  |cffffff00/ogt favonly [on|off]|r  - cycle only favorites (the star on the bar)")
-    Print("  |cffffff00/ogt list|r  - list available languages")
-    Print("  |cffffff00/ogt learned|r  - list languages you understand")
-    Print("  |cffffff00/ogt custom|r  - create your own language")
-    Print("  |cffffff00/ogt import <code>|r  - add a shared language from a code")
-    Print("  |cffffff00/ogt export [name]|r  - get a shareable code for a custom language")
-    Print("  |cffffff00/ogt share [player]|r  - send your custom language to a target/group")
-    Print("  |cffffff00/ogt decode [lang] <text>|r  - decode translated text back to english")
-    Print("  |cffffff00/ogt encode [lang] [strength] <text>|r  - preview translation output")
-    Print("  |cffffff00/ogt roundtrip [lang] [strength] <text>|r  - encode then decode (self-test)")
-    Print("  |cffffff00/ogt fluency <0-100>|r  - set your fluency (= how you speak it) in the current language")
-    Print("  |cffffff00/ogt minimap|r  - show/hide the minimap button")
-    Print("  |cffffff00/ogt output <1-N|default>|r  - send translations to a chat window")
-    Print("  |cffffff00/ogt tag [on|off]|r  - show fluency in the [Language] tag (e.g. [Broken Orcish])")
-    Print("  |cffffff00/ogt game|r  - play the Decipher language trainer")
-    Print("  |cffffff00/ogt accent [on|off|<id>|list]|r  - speak in a dialect accent")
-    Print("  |cffffff00/ogt accentstrength <0-100>|r  - set accent thickness")
-    Print("  |cffffff00/ogt accenttails <0-100>|r  - how often lines end with a flourish (0 = never)")
-    Print("  |cffffff00/ogt cast|r  - phrases spoken when you cast (panel)")
-    Print("  |cffffff00/ogt cast on|off|r  - toggle cast phrases")
-    Print("  |cffffff00/ogt cast test [spell]|r  - show what a spell would say (sends nothing)")
-    Print("  |cffffff00/ogt cast status|r  - settings, plus whether chat is blocked right now")
-    Print("  |cffffff00/ogt say <text>|r  - say a translated line once")
-    Print("  |cffffff00/ogt yell <text>|r  - yell a translated line once")
-    Print("  |cffffff00/ogt p <text>|r  - preview a translation (only you see it)")
-    Print("  |cffffff00/ogt autodisable on|off|r  - pause translation in instances (accents keep working)")
-    Print("  |cffffff00/ogt debug|r  - diagnostics (hook status + live test)")
+    Print("  |cffffff00/toa on|off|r  - toggle auto-translate")
+    Print("  |cffffff00/toa lang <id>|r  - set language (see /toa list)")
+    Print("  |cffffff00/toa next|r / |cffffff00prev|r  - cycle your favorites (or learned languages)")
+    Print("  |cffffff00/toa fav [id]|r  - favorite/unfavorite a language (no id = the current one)")
+    Print("  |cffffff00/toa fav list|off|r  - show or clear your favorites")
+    Print("  |cffffff00/toa favonly [on|off]|r  - cycle only favorites (the star on the bar)")
+    Print("  |cffffff00/toa list|r  - list available languages")
+    Print("  |cffffff00/toa learned|r  - list languages you understand")
+    Print("  |cffffff00/toa custom|r  - create your own language")
+    Print("  |cffffff00/toa import <code>|r  - add a shared language from a code")
+    Print("  |cffffff00/toa export [name]|r  - get a shareable code for a custom language")
+    Print("  |cffffff00/toa share [player]|r  - send your custom language to a target/group")
+    Print("  |cffffff00/toa decode [lang] <text>|r  - decode translated text back to english")
+    Print("  |cffffff00/toa encode [lang] [strength] <text>|r  - preview translation output")
+    Print("  |cffffff00/toa roundtrip [lang] [strength] <text>|r  - encode then decode (self-test)")
+    Print("  |cffffff00/toa fluency <0-100>|r  - set your fluency (= how you speak it) in the current language")
+    Print("  |cffffff00/toa minimap|r  - show/hide the minimap button")
+    Print("  |cffffff00/toa output <1-N|default>|r  - send translations to a chat window")
+    Print("  |cffffff00/toa tag [on|off]|r  - show fluency in the [Language] tag (e.g. [Broken Orcish])")
+    Print("  |cffffff00/toa game|r  - play the Decipher language trainer")
+    Print("  |cffffff00/toa accent [on|off|<id>|list]|r  - speak in a dialect accent")
+    Print("  |cffffff00/toa accentstrength <0-100>|r  - set accent thickness")
+    Print("  |cffffff00/toa accenttails <0-100>|r  - how often lines end with a flourish (0 = never)")
+    Print("  |cffffff00/toa cast|r  - phrases spoken when you cast (panel)")
+    Print("  |cffffff00/toa cast on|off|r  - toggle cast phrases")
+    Print("  |cffffff00/toa cast test [spell]|r  - show what a spell would say (sends nothing)")
+    Print("  |cffffff00/toa cast status|r  - settings, plus whether chat is blocked right now")
+    Print("  |cffffff00/toa say <text>|r  - say a translated line once")
+    Print("  |cffffff00/toa yell <text>|r  - yell a translated line once")
+    Print("  |cffffff00/toa p <text>|r  - preview a translation (only you see it)")
+    Print("  |cffffff00/toa autodisable on|off|r  - pause translation in instances (accents keep working)")
+    Print("  |cffffff00/toa debug|r  - diagnostics (hook status + live test)")
 end
 
 local function handleSlash(input)
@@ -1944,7 +1944,7 @@ local function handleSlash(input)
         if ns.OpenCustomConfig then ns.OpenCustomConfig() end
     elseif cmd == "import" then
         if rest == "" then
-            Print("Usage: |cffffff00/ogt import <share code>|r (or paste it in the Create Language panel).")
+            Print("Usage: |cffffff00/toa import <share code>|r (or paste it in the Create Language panel).")
         else
             local ok, idOrErr = ns.ImportCustomLanguage(rest)
             if ok then
@@ -1961,7 +1961,7 @@ local function handleSlash(input)
             if ns.ShowExportCode then ns.ShowExportCode(id) end
             Print("Share code for |cffffff00" .. Language.GetLanguageName(id) .. "|r is in the Create Language panel -- select it and copy.")
         else
-            Print("Set a custom language first, or use |cffffff00/ogt export <name>|r.")
+            Print("Set a custom language first, or use |cffffff00/toa export <name>|r.")
         end
     elseif cmd == "share" then
         local id = TonguesOfAzerothDB.language
@@ -1988,7 +1988,7 @@ local function handleSlash(input)
             ns.SetLanguageFluency(langId, n / 100)
             Print("Fluency in |cffffff00" .. Language.GetLanguageName(langId) .. "|r set to |cffffff00" .. n .. "%|r.")
         else
-            Print("Your fluency in |cffffff00" .. Language.GetLanguageName(langId) .. "|r is |cffffff00" .. getStrength() .. "%|r. Use |cffffff00/ogt fluency <0-100>|r.")
+            Print("Your fluency in |cffffff00" .. Language.GetLanguageName(langId) .. "|r is |cffffff00" .. getStrength() .. "%|r. Use |cffffff00/toa fluency <0-100>|r.")
         end
     elseif cmd == "accent" then
         migrateDB()
@@ -2015,7 +2015,7 @@ local function handleSlash(input)
             a.enabled = true
             Print("Accent set to |cffffff00" .. ns.Accent.GetAccentName(arg) .. "|r.")
         else
-            Print("Unknown accent. Use /ogt accent list.")
+            Print("Unknown accent. Use /toa accent list.")
         end
         if ns.OnSettingsChanged then ns.OnSettingsChanged() end
     elseif cmd == "accentstrength" then
@@ -2025,7 +2025,7 @@ local function handleSlash(input)
             TonguesOfAzerothDB.accent.strength = math.max(0, math.min(100, math.floor(n + 0.5)))
             Print("Accent strength set to |cffffff00" .. TonguesOfAzerothDB.accent.strength .. "%|r.")
         else
-            Print("Accent strength is |cffffff00" .. (TonguesOfAzerothDB.accent.strength or 100) .. "%|r. Use /ogt accentstrength <0-100>.")
+            Print("Accent strength is |cffffff00" .. (TonguesOfAzerothDB.accent.strength or 100) .. "%|r. Use /toa accentstrength <0-100>.")
         end
         if ns.OnSettingsChanged then ns.OnSettingsChanged() end
     elseif cmd == "accenttails" then
@@ -2039,7 +2039,7 @@ local function handleSlash(input)
                 :format(a.tails, ns.Accent and ns.Accent.DescribeTailFrequency(a.tails) or "?"))
         else
             local cur = a.tails or (ns.Accent and ns.Accent.TAIL_DIAL_DEFAULT) or 40
-            Print(("Accent interjections are |cffffff00%d|r (%s). Use /ogt accenttails <0-100>; 0 turns them off.")
+            Print(("Accent interjections are |cffffff00%d|r (%s). Use /toa accenttails <0-100>; 0 turns them off.")
                 :format(cur, ns.Accent and ns.Accent.DescribeTailFrequency(cur) or "?"))
         end
         if ns.OnSettingsChanged then ns.OnSettingsChanged() end
@@ -2080,7 +2080,7 @@ local function handleSlash(input)
             else
                 Print("Translations show in the |cffffff00default|r chat window.")
             end
-            Print("Use |cffffff00/ogt output <1-" .. maxWin .. ">|r or |cffffff00/ogt output default|r.")
+            Print("Use |cffffff00/toa output <1-" .. maxWin .. ">|r or |cffffff00/toa output default|r.")
         elseif arg == "default" or arg == "0" or arg == "main" then
             TonguesOfAzerothDB.outputFrame = 0
             Print("Translations will show in the |cffffff00default|r chat window.")
@@ -2091,7 +2091,7 @@ local function handleSlash(input)
                 local name = GetChatWindowInfo and GetChatWindowInfo(n)
                 Print("Translations will show in |cffffff00" .. (name and name ~= "" and name or ("Chat window " .. n)) .. "|r.")
             else
-                Print("Usage: |cffffff00/ogt output <1-" .. maxWin .. ">|r or |cffffff00/ogt output default|r.")
+                Print("Usage: |cffffff00/toa output <1-" .. maxWin .. ">|r or |cffffff00/toa output default|r.")
             end
         end
         if ns.OnSettingsChanged then ns.OnSettingsChanged() end
@@ -2125,10 +2125,12 @@ local function handleSlash(input)
     end
 end
 
+-- /toa is the command; the rest are aliases. `/ogt` was retired in 0.3.1 --
+-- it was short for Old God Tongues, the addon's name three renames ago, and
+-- it no longer tells anyone what this addon is.
 SLASH_TONGUESOFAZEROTH1 = "/toa"
-SLASH_TONGUESOFAZEROTH2 = "/ogt"
-SLASH_TONGUESOFAZEROTH3 = "/oldgod"
-SLASH_TONGUESOFAZEROTH4 = "/tongues"
+SLASH_TONGUESOFAZEROTH2 = "/oldgod"
+SLASH_TONGUESOFAZEROTH3 = "/tongues"
 SlashCmdList["TONGUESOFAZEROTH"] = handleSlash
 
 -- Export channel list for the UI.

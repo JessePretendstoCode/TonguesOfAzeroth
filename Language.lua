@@ -52,7 +52,7 @@ local function register(id, def)
 end
 
 -- Move an already-registered language to the head of the display order, which
--- every list derives from: the dropdown, /ogt list, cycling and the Learned tab.
+-- every list derives from: the dropdown, /toa list, cycling and the Learned tab.
 -- Registration order is otherwise thematic grouping, and with seventy-odd
 -- tongues in the pool a newly added one would be buried at the bottom of the
 -- dropdown. This surfaces it without moving its definition away from the

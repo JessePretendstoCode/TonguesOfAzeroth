@@ -50,7 +50,7 @@ generate identical text.
   in, and that language floats up to a Favorites section at the top of the list, out of the
   seventy-odd below. It's Blizzard's own favorite star, the one on Auction House searches
   and profession recipes. The star on the floating language bar toggles whether scrolling
-  and `/ogt next` walk only your favorites or everything you've learned.
+  and `/toa next` walk only your favorites or everything you've learned.
 - **Cast Phrases** — speak when a spell lands: *Corvin snarls "Aman!" in Broken Demonic
   and the fire takes hold.* Words in `"quotes"` are spoken aloud and get translated into
   your current tongue; the narration around them stays in English. Fifteen opt-in packs
@@ -92,7 +92,7 @@ generate identical text.
    `TonguesOfAzeroth_Mainline.toc` / `_Camelot.toc` / `_Vanilla.toc` / etc. let each client
    pick the right interface version; the base `.toc` is the fallback.)
 3. Launch the game and enable **Tongues of Azeroth** on the character-select AddOns list.
-4. In game, type `/ogt`, or open **Settings → AddOns**.
+4. In game, type `/toa`, or open **Settings → AddOns**.
 
 ---
 
@@ -138,7 +138,7 @@ Tongues of Azeroth ships dozens of *generated* languages, each with its own phon
 - **Sub-dialects** that share a parent's sound: Troll variants (Amani, Gurubashi, Drakkari),
   Sindassi & Shalassian (Thalassian), Eredun (Demonic), Forsaken (Gutterspeak), and more.
 
-All of them appear in the config dropdown and in `/ogt list`.
+All of them appear in the config dropdown and in `/toa list`.
 
 ---
 
@@ -146,30 +146,30 @@ All of them appear in the config dropdown and in `/ogt list`.
 
 | Command                     | Description                                             |
 |-----------------------------|---------------------------------------------------------|
-| `/ogt`                      | Open the config panel (Interface → AddOns)              |
-| `/ogt on` / `/ogt off`      | Enable / disable auto-translate                         |
-| `/ogt toggle`               | Toggle auto-translate                                   |
-| `/ogt lang <id>`            | Set the language (e.g. `/ogt lang orcish`)              |
-| `/ogt list`                 | List all language IDs (marks the active one)            |
-| `/ogt fav [id]`             | Favorite / unfavorite a language (no id = current one)  |
-| `/ogt fav list` / `off`     | Show or clear your favorites                            |
-| `/ogt favonly [on\|off]`    | Cycle only favorites (same as the star on the bar)      |
-| `/ogt next` / `/ogt prev`   | Cycle your favorites, or everything learned             |
-| `/ogt learned`              | List languages you understand                           |
-| `/ogt strength <0-100>`   | Set the translation strength                            |
-| `/ogt accent [on\|off\|<id>\|list]` | Speak in a dialect accent (e.g. `/ogt accent dwarf`) |
-| `/ogt accentstrength <0-100>` | Set accent thickness                                  |
-| `/ogt game`                 | Open the "Decipher" language trainer minigame           |
-| `/ogt minimap`              | Show / hide the minimap button                          |
-| `/ogt cast`                 | Open the Cast Phrases panel                             |
-| `/ogt cast on` / `off`      | Toggle speaking when you cast                           |
-| `/ogt cast list`            | List spells that have phrases                           |
-| `/ogt cast test [spell]`    | Show what a spell would say (sends nothing)             |
-| `/ogt cast status`          | Settings, plus whether chat is blocked right now        |
-| `/ogt say <text>`           | Say one translated line (ignores the on/off toggle)     |
-| `/ogt yell <text>`          | Yell one translated line                                |
-| `/ogt p <text>`             | Preview a translation (only you see it)                 |
-| `/ogt help`                 | Show the command list                                   |
+| `/toa`                      | Open the config panel (Interface → AddOns)              |
+| `/toa on` / `/toa off`      | Enable / disable auto-translate                         |
+| `/toa toggle`               | Toggle auto-translate                                   |
+| `/toa lang <id>`            | Set the language (e.g. `/toa lang orcish`)              |
+| `/toa list`                 | List all language IDs (marks the active one)            |
+| `/toa fav [id]`             | Favorite / unfavorite a language (no id = current one)  |
+| `/toa fav list` / `off`     | Show or clear your favorites                            |
+| `/toa favonly [on\|off]`    | Cycle only favorites (same as the star on the bar)      |
+| `/toa next` / `/toa prev`   | Cycle your favorites, or everything learned             |
+| `/toa learned`              | List languages you understand                           |
+| `/toa strength <0-100>`   | Set the translation strength                            |
+| `/toa accent [on\|off\|<id>\|list]` | Speak in a dialect accent (e.g. `/toa accent dwarf`) |
+| `/toa accentstrength <0-100>` | Set accent thickness                                  |
+| `/toa game`                 | Open the "Decipher" language trainer minigame           |
+| `/toa minimap`              | Show / hide the minimap button                          |
+| `/toa cast`                 | Open the Cast Phrases panel                             |
+| `/toa cast on` / `off`      | Toggle speaking when you cast                           |
+| `/toa cast list`            | List spells that have phrases                           |
+| `/toa cast test [spell]`    | Show what a spell would say (sends nothing)             |
+| `/toa cast status`          | Settings, plus whether chat is blocked right now        |
+| `/toa say <text>`           | Say one translated line (ignores the on/off toggle)     |
+| `/toa yell <text>`          | Yell one translated line                                |
+| `/toa p <text>`             | Preview a translation (only you see it)                 |
+| `/toa help`                 | Show the command list                                   |
 
 Aliases: `/oldgod`, `/tongues`.
 
@@ -177,7 +177,7 @@ Aliases: `/oldgod`, `/tongues`.
 
 ## Configuration
 
-Open **Interface → AddOns → Tongues of Azeroth** (or type `/ogt`).
+Open **Interface → AddOns → Tongues of Azeroth** (or type `/toa`).
 
 **General tab**
 
@@ -251,7 +251,7 @@ register("myeldritch", {
 })
 ```
 
-Either way it appears automatically in `/ogt list` and the config dropdown. You can also add
+Either way it appears automatically in `/toa list` and the config dropdown. You can also add
 an optional `dict = { ["word"] = "override" }` table to force specific word mappings (this
 takes priority over the parser/generator).
 
@@ -290,7 +290,7 @@ takes priority over the parser/generator).
   macro next to the spell; a line inside a macro leaves as *your* input, not an addon's.
 - **During raid encounters, Mythic+ and rated PvP, Midnight blocks addon chat entirely.**
   Nothing gets around that, so a cast phrase is printed for you alone there instead, exactly
-  as the emote would have read. `/ogt cast status` tells you which state you're in.
+  as the emote would have read. `/toa cast status` tells you which state you're in.
 - The client renders an emote as `"Name "` + your text, with that space baked in, so no
   phrase can produce *"Corvin's Felhunter snarls"* — it would come out *"Corvin 's
   Felhunter snarls"*. The shipped pet lines are phrased around it instead.
@@ -319,6 +319,21 @@ Interface numbers only affect the "out of date" flag and are easy to bump. The b
 
 Support for the 2010-era **3.3.5a** client (Project Ascension and similar private servers)
 was dropped in 0.2.24, following that server's shutdown. Use 0.2.23 or earlier if you need it.
+
+---
+
+## AI disclosure
+
+This addon is built with heavy use of AI assistance. Most of the Lua, and the wording of
+the shipped cast phrases, were drafted by an AI coding agent working to my direction. I
+decide what gets built, what the rules are, and what ships — and nothing ships unreviewed:
+every release is read through, checked against the offline test suite in `tools/`, and
+play-tested in game on the clients it supports.
+
+All screenshots are real captures of the addon running. **None of the images are
+AI-generated.**
+
+If something is broken, that's on me and not the model — open an issue and it'll get fixed.
 
 ---
 

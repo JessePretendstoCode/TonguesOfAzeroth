@@ -408,7 +408,7 @@ local TAIL_GAP = 3
 
 -- Messages since the last tail, and the exact tail it was -- so we never repeat
 -- one immediately. Only the live send path advances these (see Accent.Apply);
--- the options preview and `/ogt debug` read them without churning them, or the
+-- the options preview and `/toa debug` read them without churning them, or the
 -- preview would reshuffle itself on every keystroke.
 local sinceTail, lastTail = TAIL_GAP, nil
 

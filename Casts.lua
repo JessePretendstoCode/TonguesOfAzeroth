@@ -575,7 +575,7 @@ local function showLocally(body)
 end
 
 -- Why a line would be kept to yourself rather than sent, or nil when it goes
--- out normally. Also drives /ogt cast status, so it returns a reason rather
+-- out normally. Also drives /toa cast status, so it returns a reason rather
 -- than a bare boolean.
 function Casts.BlockedReason()
     if Compat.InChatLockdown() then

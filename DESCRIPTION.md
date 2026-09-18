@@ -84,16 +84,16 @@ Write your own lines with tokens for the spell, your target and your pet. **Pets
 
 ## 🎮 Getting started
 
-Install, then type **`/ogt`** (or click the minimap button) to open the options panel. Pick a language, set your strength, choose your channels, and start speaking.
+Install, then type **`/toa`** (or click the minimap button) to open the options panel. Pick a language, set your strength, choose your channels, and start speaking.
 
 Handy commands:
 
-- `/ogt` — open the config panel
-- `/ogt lang <id>` — set your language (`/ogt list` shows them all)
-- `/ogt accent <id>` — speak with an accent (`/ogt accent list`)
-- `/ogt game` — open the "Decipher" language trainer
-- `/ogt say <text>` — say one translated line
-- `/ogt cast` — set up phrases spoken when you cast
+- `/toa` — open the config panel
+- `/toa lang <id>` — set your language (`/toa list` shows them all)
+- `/toa accent <id>` — speak with an accent (`/toa accent list`)
+- `/toa game` — open the "Decipher" language trainer
+- `/toa say <text>` — say one translated line
+- `/toa cast` — set up phrases spoken when you cast
 
 ## ℹ️ Good to know
 
@@ -101,6 +101,16 @@ Handy commands:
 - This transforms your text **client-side** — it does not touch WoW's real server-side language system.
 - Settings are stored per character.
 - Cast Phrases go out as **emotes**. `/say` and `/yell` have needed a real keypress since patch 8.2.5, so no addon can send those from a spell cast. During raid encounters, Mythic+ and rated PvP the game blocks addon chat altogether, and the line is shown to you alone instead.
+
+---
+
+## 🤖 AI disclosure
+
+This addon is built with heavy use of AI assistance. Most of the Lua, and the wording of the shipped cast phrases, were drafted by an AI coding agent working to my direction. I decide what gets built, what the rules are, and what ships — and nothing ships unreviewed: every release is read through, checked against an offline test suite, and play-tested in game on the clients it supports.
+
+All screenshots are real captures of the addon running. **None of the images are AI-generated.**
+
+If something is broken, that's on me, not the model — [open an issue](https://github.com/JessePretendstoCode/TonguesOfAzeroth/issues) and it'll get fixed.
 
 ---
 

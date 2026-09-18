@@ -2,6 +2,23 @@
 
 All notable changes to Tongues of Azeroth are documented here.
 
+## [0.3.1]
+- **`/toa` is the command now, and `/ogt` is gone.** `/toa` has actually worked
+  for some time, but the help text and the documentation still taught `/ogt`
+  throughout, so that is what everyone learned. It was short for *Old God
+  Tongues*, the addon's name two renames ago, and it told a new user nothing
+  about what this addon is. Every command, every printed hint and every line of
+  documentation now reads `/toa`. `/oldgod` and `/tongues` still work as
+  aliases.
+  **If you have `/ogt` in a macro or a keybind, it will stop working** -- swap
+  it for `/toa`. Entries for older versions below are left as they were
+  written, so they still name `/ogt`; read those as `/toa`.
+- **Added an AI disclosure** to the README and the project page. This addon is
+  built with heavy AI assistance and it is better to say so plainly than to let
+  someone work it out from the commit history. The screenshots are real
+  captures, which is worth stating separately, since AI-altered showcase images
+  are the one thing CurseForge actually requires a disclaimer for.
+
 ## [0.3.0]
 - **New: Cast Phrases.** Your character can now speak when a spell lands --
   *Corvin roars "Nuk'luk!"* -- in whatever tongue you're currently speaking.
