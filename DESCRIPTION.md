@@ -44,7 +44,7 @@ The 11 core languages use Blizzard's own in-game parser word lists:
 **...plus 60+ generated tongues and dialects**, each with its own phonetic style:
 
 - **Beasts & creatures:** Wolf, Bear, Bat, Boar, Serpent, Cat, Seal, Bird, Ravenspeech, Stag, Orca, and hunter-pet dialects (Raptor, Chimaera, Crocolisk, Core Hound, Spider, Scorpid, Wasp, Sporebat, Turtle…)
-- **Peoples & factions:** Common, Dark Iron, Gilnean, Goblin, Ogre (Ogri'zhan), Furbolg, Tuskarr, Vrykul, Pandaren, Sprite (Faerie), Sylvan, Moonkin, Trentish
+- **Peoples & factions:** Eldre'Thalassian (the Skyborne tongue, new in *WoW: Forever*), Common, Dark Iron, Gilnean, Goblin, Ogre (Ogri'zhan), Furbolg, Tuskarr, Vrykul, Pandaren, Sprite (Faerie), Sylvan, Moonkin, Trentish
 - **Elemental, eldritch & ancient:** Kalimag, Titan, Draconic, Nerubian (+ Qiraji / Silithid), Nerglish (Murloc), Nazja (Naga), Ethereal, Undead
 - **Sub-dialects** that share a parent's sound: Troll variants (Amani, Gurubashi, Drakkari), Sindassi & Shalassian (Thalassian), Eredun (Demonic), Forsaken (Gutterspeak), and more
 

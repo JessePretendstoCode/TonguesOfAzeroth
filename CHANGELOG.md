@@ -30,6 +30,20 @@ All notable changes to Tongues of Azeroth are documented here.
   a tail all produced the same word, which is most of why it felt relentless.
   "friend" now uses Patois' own word, "bredren".
 
+- **New language: Eldre'Thalassian, the tongue of the Skyborne** -- the new race
+  in WoW: Forever -- as `/ogt lang skyborne`. Blizzard wrote no parser word list
+  for them (the race's listed languages are Darnassian plus Common or Orcish by
+  faction), so unlike the other playable-race tongues this one comes from a
+  syllable generator, as Old God (Shath'yar) does. It is deliberately not an
+  alias of Darnassian: the shen'dorei fled Eldre'Thalas after the War of the
+  Ancients and spent ten thousand years sealed in Skywall, the same span over
+  which Thalassian split from the same root, so they get their own sound. The
+  pools stay recognisably elven -- liquid consonants, the "quel" and "shen"
+  roots, apostrophes on longer words -- over airier vowels and the sibilants of
+  their wind-spirit patrons.
+- Because it is its own language rather than a dialect, trainer fluency in it is
+  earned separately and does not come with Darnassian.
+
 - **The addon list now shows a scroll instead of a red question mark.** None of the
   TOC files declared an icon, so the client fell back to its placeholder. All of
   them now set `## IconTexture:` to the parchment scroll `INV_Scroll_03`, a

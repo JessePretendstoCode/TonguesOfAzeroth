@@ -87,12 +87,19 @@ generate identical text.
 | `draenei`     | Draenei                     | Airy, long vowels                |
 | `gutterspeak` | Gutterspeak (Forsaken)      | Raspy, clipped                   |
 | `demonic`     | Demonic (Eredun)            | Harsh, dark                      |
+| `skyborne`    | Eldre'Thalassian (Skyborne) | Airy, elven, wind-worn           |
 
 > The playable-race languages use the authentic in-game parser word lists. Note that this
 > parser is cosmetic — even in the real game it does not perform true translation, so the
 > output is not "real" Darnassian/Orcish/etc., just Blizzard's own same-length word
 > substitution. **Old God (Shath'yar)** has no in-game parser list, so it is produced by a
 > length-capped syllable generator.
+>
+> **Eldre'Thalassian** is generated for the same reason: Blizzard wrote no Skyborne list,
+> and the race's listed languages are Darnassian plus Common or Orcish by faction. Rather
+> than duplicate Darnassian we gave the shen'dorei their own sound — their ancestors fled
+> Eldre'Thalas after the War of the Ancients and spent ten thousand years sealed in
+> Skywall, which is the same span over which Thalassian split from the same root.
 
 **Plus 60+ generated tongues and dialects.** On top of the core word-list languages above,
 Tongues of Azeroth ships dozens of *generated* languages, each with its own phonetic style:

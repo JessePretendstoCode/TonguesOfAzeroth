@@ -482,6 +482,23 @@ G("sylvan", "Sylvan", 0.05,
     { "a", "e", "i", "ae", "ia", "ee" },
     { "n", "l", "r", "th", "s", "ll", "dr" })
 
+--  The tongue of the Skyborne (shen'dorei), the new race in WoW: Forever.
+--  Generated rather than taken from an in-game parser list, because Blizzard
+--  never wrote one: the race's listed languages are Darnassian plus Common or
+--  Orcish by faction. Their ancestors fled Eldre'Thalas after the War of the
+--  Ancients and spent ten thousand years sealed in Skywall, which is ample time
+--  to drift from kaldorei speech -- Thalassian split from the same root over the
+--  same span -- so the pools keep an elven shape (liquid consonants, the "quel"
+--  and "shen" roots, apostrophes on the longer words) over airier vowels and the
+--  sibilants of their wind-spirit patrons. "aer" is reachable both as an onset
+--  and as bare ae + r, so it recurs often enough to mark the language as theirs.
+G("skyborne", "Eldre'Thalassian (Skyborne)", 0.2,
+    { "", "aer", "zeph", "shen", "quel", "vyr", "sae", "thel", "shal",
+      "myr", "eld", "sil", "vel", "nel", "dor", "lyr", "ith",
+      "s", "sh", "th", "l", "n", "v", "r" },
+    { "a", "e", "i", "o", "u", "ae", "ia", "ei", "ee", "ua" },
+    { "", "l", "n", "r", "s", "th", "ll", "ss", "sh", "rn", "st", "nd", "lth", "ryn" })
+
 --  Sub-languages (aliases sharing their parent's word set). Note there is no
 --  generic "Troll" alias: Zandali *is* the trolls' racial tongue, so a separate
 --  "Troll (Zandali)" entry was just a redundant duplicate of "Zandali (Troll)".
