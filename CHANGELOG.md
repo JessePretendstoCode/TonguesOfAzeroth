@@ -21,6 +21,14 @@ All notable changes to Tongues of Azeroth are documented here.
   enough.", both gender-neutral, which also gives the no-repeat rule a choice.
 - The options preview and `/ogt debug` no longer disturb tail spacing, so
   previewing a line doesn't consume the flourish your next real message would get.
+- **New "Interjections" slider** on the Accents tab (and `/ogt accenttails
+  <0-100>`) to tune this yourself, from Off through to roughly twice the default
+  rate. The minimum gap between tails is deliberately not on the dial -- spacing
+  is what stops them clustering, so even the top of the slider won't bring back
+  the old run-of-three effect.
+- **Troll no longer turns "friend" into "mon" as well as "man".** Two swaps and
+  a tail all produced the same word, which is most of why it felt relentless.
+  "friend" now uses Patois' own word, "bredren".
 
 - **The addon list now shows a scroll instead of a red question mark.** None of the
   TOC files declared an icon, so the client fell back to its placeholder. All of

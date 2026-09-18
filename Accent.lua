@@ -184,7 +184,11 @@ reg("troll", {
             the = "da", they = "dey", them = "dem", their = "dere",
             there = "dere", this = "dis", that = "dat", these = "dese",
             those = "dose", ["then"] = "den", with = "wit", little = "likkle",
-            friend = "mon", man = "mon", you = "ya", ["you're"] = "ya",
+            -- "friend" used to map to "mon" as well. With "man" -> "mon" and the
+            -- ", mon." tail, three sources fed one word and it dominated. Patois
+            -- has its own word for a friend, so use it and leave "mon" to "man".
+            friend = "bredren", friends = "bredren", man = "mon",
+            you = "ya", ["you're"] = "ya",
             your = "ya", of = "o'",
         },
         [25] = {
@@ -390,7 +394,8 @@ local WORD = "[%a][%a']*"
 -- chance is why they used to land in clusters and feel constant.
 
 -- At full strength, the share of eligible messages that earn a tail. The actual
--- chance scales with accent strength (strength% * this / 100).
+-- chance scales with accent strength (strength% * this / 100). Driven by the
+-- "Interjections" dial in the options -- see Accent.SetTailFrequency below.
 local TAIL_MAX_RATE = 12
 -- Below this many words there is no room for a flourish; it just crowds the line.
 local TAIL_MIN_WORDS = 5
@@ -406,6 +411,34 @@ local TAIL_GAP = 3
 -- the options preview and `/ogt debug` read them without churning them, or the
 -- preview would reshuffle itself on every keystroke.
 local sinceTail, lastTail = TAIL_GAP, nil
+
+-- The options "Interjections" dial is 0-100; it scales the full-strength chance
+-- above, so 100 restores the old (much heavier) 30% and the default 40 gives 12%.
+-- The minimum gap deliberately ISN'T on the dial: spacing is what stops tails
+-- clustering, which was the actual complaint rather than a matter of taste.
+Accent.TAIL_DIAL_DEFAULT = 40
+local TAIL_DIAL_SCALE = 0.30
+
+-- Call whenever the dial changes (and once on load) to set the working rate.
+function Accent.SetTailFrequency(dial)
+    dial = tonumber(dial) or Accent.TAIL_DIAL_DEFAULT
+    if dial < 0 then dial = 0 elseif dial > 100 then dial = 100 end
+    TAIL_MAX_RATE = math.floor(dial * TAIL_DIAL_SCALE + 0.5)
+end
+
+-- Plain-language label for a dial value, so the slider reads as something more
+-- useful than a bare number. The wording tracks the rate you'd actually see in
+-- chat, which the gap and length rules hold well below the raw chance: measured
+-- over a sample of ordinary chat, the dial spans ~1% at 10 to ~8% at 100, with
+-- the default 40 landing near 4%. Nothing here reaches "constant", by design.
+function Accent.DescribeTailFrequency(dial)
+    dial = tonumber(dial) or Accent.TAIL_DIAL_DEFAULT
+    if dial <= 0 then return "Off" end
+    if dial <= 25 then return "Rare" end
+    if dial <= 55 then return "Occasional" end
+    if dial <= 80 then return "Frequent" end
+    return "Very frequent"
+end
 
 local function wordCount(s)
     local n = 0

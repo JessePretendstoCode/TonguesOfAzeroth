@@ -41,6 +41,7 @@ local langDropdown, slider, valueText, enableCheck, previewInput, previewOutput
 local minimapCheck, fluencyCheck, nativeHideCheck, autoDisableCheck
 local widgetCheck, widgetLockCheck
 local accentEnableCheck, accentDropdown, accentSlider, accentValueText
+local accentTailSlider, accentTailValueText
 local accentPreviewInput, accentPreviewOutput, accentEmotesCheck
 local accentContent
 local accentChannelChecks = {}
@@ -1185,6 +1186,9 @@ local function RefreshAccent()
     if accentDropdown then accentDropdown:SetSelected(d.accent.id, Accent.GetAccentName(d.accent.id)) end
     if accentSlider then accentSlider:SetValue(d.accent.strength) end
     if accentValueText then accentValueText:SetText(d.accent.strength .. "%") end
+    local tails = d.accent.tails or Accent.TAIL_DIAL_DEFAULT
+    if accentTailSlider then accentTailSlider:SetValue(tails) end
+    if accentTailValueText then accentTailValueText:SetText(Accent.DescribeTailFrequency(tails)) end
     if accentEmotesCheck then accentEmotesCheck:SetChecked(d.accent.emotes) end
     local chans = d.accent.channels or {}
     for ch, check in pairs(accentChannelChecks) do
@@ -1258,8 +1262,28 @@ local function BuildAccentPanel()
         refreshAccentPreview()
     end)
 
+    accentTailSlider = Compat.CreateSlider(content, 0, 100, 1, "Interjections", "0 - Off", "100 - Often")
+    accentTailSlider:SetPoint("TOPLEFT", accentSlider, "BOTTOMLEFT", 0, -34)
+    accentTailSlider:SetWidth(320)
+    accentTailValueText = accentTailSlider.valueText
+    accentTailSlider:SetScript("OnValueChanged", function(self, value)
+        value = math.floor(value + 0.5)
+        db().accent.tails = value
+        Accent.SetTailFrequency(value)
+        accentTailValueText:SetText(Accent.DescribeTailFrequency(value))
+        refreshAccentPreview()
+    end)
+
+    local tailHint = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    tailHint:SetPoint("TOPLEFT", accentTailSlider, "BOTTOMLEFT", 0, -6)
+    tailHint:SetPoint("RIGHT", content, "RIGHT", -24, 0)
+    tailHint:SetJustifyH("LEFT")
+    tailHint:SetText("How often a line ends with a flourish like \", aye.\" They are also "
+        .. "spaced out, skipped on short lines and kept off questions, so they turn up "
+        .. "less often in chat than in this preview.")
+
     accentEmotesCheck = Compat.CreateCheckbox(content, "Also apply accent to emotes (/e and inline *actions*)")
-    accentEmotesCheck:SetPoint("TOPLEFT", accentSlider, "BOTTOMLEFT", 0, -34)
+    accentEmotesCheck:SetPoint("TOPLEFT", tailHint, "BOTTOMLEFT", 0, -20)
     accentEmotesCheck:SetScript("OnClick", function(self)
         db().accent.emotes = self:GetChecked() and true or false
         refreshAccentPreview()

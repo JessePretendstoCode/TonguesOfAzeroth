@@ -316,6 +316,14 @@ local function migrateDB()
     if db.accent.id == nil or not (ns.Accent and ns.Accent.IsValid(db.accent.id)) then
         db.accent.id = (ns.Accent and ns.Accent.DEFAULT) or "dwarf"
     end
+    -- How often sentence-end interjections (", aye.", ", mon.") fire. 0 turns
+    -- them off entirely; see Accent.SetTailFrequency for the scale.
+    if db.accent.tails == nil then
+        db.accent.tails = (ns.Accent and ns.Accent.TAIL_DIAL_DEFAULT) or 40
+    end
+    if ns.Accent and ns.Accent.SetTailFrequency then
+        ns.Accent.SetTailFrequency(db.accent.tails)
+    end
     -- Per-channel accent toggles, independent of the language channel list, so
     -- you can (say) keep your accent out of raid/party while it stays on for
     -- say/yell. Default on for every channel (matches how accents behaved before).
@@ -1506,6 +1514,7 @@ local function usage()
     Print("  |cffffff00/ogt game|r  - play the Decipher language trainer")
     Print("  |cffffff00/ogt accent [on|off|<id>|list]|r  - speak in a dialect accent")
     Print("  |cffffff00/ogt accentstrength <0-100>|r  - set accent thickness")
+    Print("  |cffffff00/ogt accenttails <0-100>|r  - how often lines end with a flourish (0 = never)")
     Print("  |cffffff00/ogt say <text>|r  - say a translated line once")
     Print("  |cffffff00/ogt yell <text>|r  - yell a translated line once")
     Print("  |cffffff00/ogt p <text>|r  - preview a translation (only you see it)")
@@ -1623,6 +1632,21 @@ local function handleSlash(input)
             Print("Accent strength set to |cffffff00" .. TonguesOfAzerothDB.accent.strength .. "%|r.")
         else
             Print("Accent strength is |cffffff00" .. (TonguesOfAzerothDB.accent.strength or 100) .. "%|r. Use /ogt accentstrength <0-100>.")
+        end
+        if ns.OnSettingsChanged then ns.OnSettingsChanged() end
+    elseif cmd == "accenttails" then
+        migrateDB()
+        local a = TonguesOfAzerothDB.accent
+        local n = tonumber(rest)
+        if n then
+            a.tails = math.max(0, math.min(100, math.floor(n + 0.5)))
+            if ns.Accent then ns.Accent.SetTailFrequency(a.tails) end
+            Print(("Accent interjections set to |cffffff00%d|r (%s).")
+                :format(a.tails, ns.Accent and ns.Accent.DescribeTailFrequency(a.tails) or "?"))
+        else
+            local cur = a.tails or (ns.Accent and ns.Accent.TAIL_DIAL_DEFAULT) or 40
+            Print(("Accent interjections are |cffffff00%d|r (%s). Use /ogt accenttails <0-100>; 0 turns them off.")
+                :format(cur, ns.Accent and ns.Accent.DescribeTailFrequency(cur) or "?"))
         end
         if ns.OnSettingsChanged then ns.OnSettingsChanged() end
     elseif cmd == "tag" or cmd == "langtag" or cmd == "fluencytag" then
