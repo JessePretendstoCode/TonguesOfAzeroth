@@ -7,8 +7,8 @@ beast, elemental, and faction tongues — or drop the language and speak plain E
 a **spoken accent** (Dwarven, Troll, Pirate, and more). There's even a **Wordle-style
 language trainer** to earn fluency and decode what others say.
 
-**Runs on every client** — 3.3.5a (Wrath, incl. Project Ascension), Classic (Vanilla /
-Cata / Mists), Retail and Forever — from a single install. A feature-detected compatibility layer
+**Runs on every client** — Retail (Midnight), Forever, and Classic (Vanilla / Cata /
+Mists / Wrath) — from a single install. A feature-detected compatibility layer
 (`Compat.lua`) adapts the UI and chat APIs to whichever client it loads on.
 
 The playable-race languages use **Blizzard's own in-game language parser word lists**
@@ -47,12 +47,12 @@ generate identical text.
   user speaks one, you see a second line showing the original meaning (emote or whisper
   style). Fluency earned in the trainer is shown per language.
 - **Minimap button** for one-click access, plus a standalone draggable window (with
-  Back/Close navigation) for clients without a native options tree (e.g. Project Ascension).
-- **In-game configuration** (Interface → AddOns on 3.3.5a; the Settings panel on modern
-  clients), with a live preview.
+  Back/Close navigation) that hosts the Language Trainer.
+- **In-game configuration** via Settings → AddOns, with a live preview.
 - **Slash commands** for quick control.
 - Punctuation, numbers, spacing, and links are preserved — only words are transformed.
-- Pure Lua, **no external libraries**; portable widgets render identically on old and new clients.
+- Portable widgets built from base frame types, so the UI is immune to retail's
+  template churn and renders identically on every client.
 
 ---
 
@@ -65,12 +65,10 @@ generate identical text.
 2. The folder must be named `TonguesOfAzeroth` and contain `TonguesOfAzeroth.toc` plus
    `Compat.lua`, `Language.lua`, `Accent.lua`, `Core.lua`, `Whispers.lua`, `Game.lua`, and
    `UI.lua`. (The extra
-   `TonguesOfAzeroth_Mainline.toc` / `_Vanilla.toc` / etc. let modern clients pick the
-   right interface version; the old 3.3.5a client just reads the base `.toc`.)
-3. Launch the game and enable **Tongues of Azeroth** on the character-select AddOns list
-   (on 3.3.5a, tick **Load out of date AddOns** if needed).
-4. In game, type `/ogt`, or open the options (Interface → AddOns on 3.3.5a; Settings →
-   AddOns on modern clients).
+   `TonguesOfAzeroth_Mainline.toc` / `_Camelot.toc` / `_Vanilla.toc` / etc. let each client
+   pick the right interface version; the base `.toc` is the fallback.)
+3. Launch the game and enable **Tongues of Azeroth** on the character-select AddOns list.
+4. In game, type `/ogt`, or open **Settings → AddOns**.
 
 ---
 
@@ -251,16 +249,19 @@ One download runs on all current clients via version-suffixed TOCs + `Compat.lua
 
 | Client | Interface | TOC |
 |--------|-----------|-----|
-| 3.3.5a (Wrath / Project Ascension) | `30300` | `TonguesOfAzeroth.toc` (base) |
-| Wrath Classic | `30405` | `TonguesOfAzeroth_Wrath.toc` |
-| Cataclysm Classic | `40402` | `TonguesOfAzeroth_Cata.toc` |
-| Mists of Pandaria Classic | `50504` | `TonguesOfAzeroth_Mists.toc` |
-| Classic Era (Vanilla) | `11509` | `TonguesOfAzeroth_Vanilla.toc` |
 | Retail (Midnight) | `120100` | `TonguesOfAzeroth_Mainline.toc` |
 | Forever | `16001` | `TonguesOfAzeroth_Camelot.toc` |
+| Mists of Pandaria Classic | `50504` | `TonguesOfAzeroth_Mists.toc` |
+| Cataclysm Classic | `40402` | `TonguesOfAzeroth_Cata.toc` |
+| Wrath Classic / Titan Reforged | `30405` | `TonguesOfAzeroth_Wrath.toc` |
+| Classic Era (Vanilla) | `11509` | `TonguesOfAzeroth_Vanilla.toc` |
+| *anything else* | `120100` | `TonguesOfAzeroth.toc` (base fallback) |
 
-Modern interface numbers only affect the "out of date" flag and are easy to bump; the base
-`30300` TOC is what the old 3.3.5a client loads.
+Interface numbers only affect the "out of date" flag and are easy to bump. The base
+`.toc` mirrors retail and exists so a client with no matching suffix still loads the addon.
+
+Support for the 2010-era **3.3.5a** client (Project Ascension and similar private servers)
+was dropped in 0.2.24, following that server's shutdown. Use 0.2.23 or earlier if you need it.
 
 ---
 

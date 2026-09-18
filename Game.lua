@@ -10,8 +10,8 @@
         Easy (4 letters) = 1%   Medium (5) = 2%   Hard (6) = 3%   Very Hard (7) = 4%
     A solve streak multiplies that (a longer streak earns more fluency per solve).
 
-    Built entirely from ns.Compat widgets + base frames, so it renders on the
-    3.3.5a client (Ascension) and modern clients alike.
+    Built entirely from ns.Compat widgets + base frames, so it renders the same
+    on every supported client.
 ---------------------------------------------------------------------------]]
 
 local ADDON, ns = ...
@@ -484,13 +484,7 @@ end
 
 local function build()
     if built then return end
-    -- Some custom clients (Ascension) strip math.randomseed. Seed if we can;
-    -- otherwise perturb the default sequence using the clock for per-session variety.
-    if type(math.randomseed) == "function" then
-        math.randomseed(time())
-    else
-        for _ = 1, (time() % 97) do math.random() end
-    end
+    math.randomseed(time())
 
     gameFrame = Compat.CreateOptionsPanel("TonguesOfAzerothGameFrame")
     gameFrame.name = "Language Trainer"

@@ -2,6 +2,24 @@
 
 All notable changes to Tongues of Azeroth are documented here.
 
+## [0.2.24]
+- **Dropped support for the 2010-era 3.3.5a client** (Project Ascension and
+  similar private servers), which has shut down. The base `TonguesOfAzeroth.toc`
+  no longer declares interface `30300`; it now mirrors retail and serves purely as
+  a fallback for any client that has no matching flavor TOC. If you still need a
+  3.3.5a build, 0.2.23 remains available and works.
+- **Removed the code paths that existed only for that client.** The legacy
+  `InterfaceOptions_AddCategory` registration branch is gone, along with the
+  now-unread `Compat.isLegacy` / `Compat.isModern` flags and a `math.randomseed`
+  workaround for custom clients that stripped it. Nothing that serves a live
+  client was touched: the portable widgets stay (they exist to dodge retail's
+  removed `UIDropDownMenu` and template churn), and so does the standalone
+  window, which is what the Language Trainer has always opened in.
+- The base TOC now loads the bundled libraries like every other flavor, so the
+  minimap button goes through LibDBIcon everywhere.
+- Documentation no longer claims 3.3.5a support, and the README's stale "no
+  external libraries" line is corrected -- LibDBIcon has shipped since 0.2.19.
+
 ## [0.2.23]
 - **Support for World of Warcraft: Forever.** Forever is its own game type
   (`camelot`) rather than a retail patch, so the addon now ships a

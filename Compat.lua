@@ -2,20 +2,19 @@
     Tongues of Azeroth - Compat.lua
     Cross-client compatibility shim. Loaded FIRST (before every other file).
 
-    One addon, many clients: this file smooths over the API differences between
-    the 2010-era 3.3.5a client (Project Ascension / WotLK private servers) and
-    the modern engine (Retail "Midnight", plus Cata / Mists / Vanilla Classic).
+    One addon, many clients: this file smooths over the API differences across
+    the modern engine -- Retail "Midnight", Forever, and the Classic flavors
+    (Cata / Mists / Vanilla).
 
     Everything here is *feature-detected*, never version-hardcoded, so it keeps
     working on future patches. The rest of the addon only ever talks to
     ns.Compat, never to the raw client APIs that move around.
 
     What it abstracts:
-      * client tier detection (ns.Compat.isModern / isLegacy)
       * addon metadata            (GetAddOnMetadata vs C_AddOns.GetAddOnMetadata)
       * addon messaging           (SendAddonMessage vs C_ChatInfo.*)
       * group checks              (GetNumRaidMembers vs IsInRaid, etc.)
-      * options panel register/open (InterfaceOptions_* vs Settings.*)
+      * options panel register/open (Settings.*, plus our standalone window)
       * widgets                   (portable checkbox / slider / dropdown that
                                     avoid the removed UIDropDownMenu + template
                                     churn on retail)
@@ -29,14 +28,12 @@ ns.Compat = Compat
 --=========================================================================--
 --  Client tier detection (feature-detected).
 --=========================================================================--
--- The modern Settings API exists on Retail and all current Classic flavors.
--- The legacy InterfaceOptions API only exists on the old 3.3.5a client.
-Compat.hasSettingsAPI      = (type(Settings) == "table" and type(Settings.RegisterCanvasLayoutCategory) == "function")
-Compat.hasLegacyOptionsAPI = (type(InterfaceOptions_AddCategory) == "function")
-Compat.isModern = Compat.hasSettingsAPI
-Compat.isLegacy = not Compat.hasSettingsAPI
+-- The Settings API exists on Retail, Forever and all current Classic flavors.
+-- Still probed rather than assumed, so a client that lacks it degrades to the
+-- standalone window instead of erroring.
+Compat.hasSettingsAPI = (type(Settings) == "table" and type(Settings.RegisterCanvasLayoutCategory) == "function")
 
--- Interface build number, e.g. 30300 (3.3.5a) or 120007 (Midnight).
+-- Interface build number, e.g. 120100 (Midnight) or 16001 (Forever).
 do
     local _, _, _, iface = GetBuildInfo()
     Compat.interface = tonumber(iface) or 0
@@ -69,7 +66,6 @@ function Compat.SendAddonMessage(prefix, message, channel, target)
 end
 
 function Compat.RegisterAddonMessagePrefix(prefix)
-    -- Not present on 3.3.5a (addon messages there need no registration).
     if type(rawRegPrefix) == "function" then
         pcall(rawRegPrefix, prefix)
     end
@@ -94,7 +90,7 @@ function Compat.InParty()
 end
 
 --=========================================================================--
---  Solid-color textures (SetColorTexture is modern-only; 3.3.5a uses SetTexture).
+--  Solid-color textures.
 --=========================================================================--
 function Compat.SolidTexture(tex, r, g, b, a)
     if tex.SetColorTexture then
@@ -105,7 +101,7 @@ function Compat.SolidTexture(tex, r, g, b, a)
 end
 
 -- 1px edge border drawn on a frame's own BORDER layer (never covers content).
--- Works identically on 3.3.5a and modern clients (no SetBackdrop / BackdropTemplate).
+-- Avoids SetBackdrop / BackdropTemplate, so it is immune to template churn.
 function Compat.AddBorder(frame, r, g, b, a)
     local function edge()
         local t = frame:CreateTexture(nil, "BORDER")
@@ -120,17 +116,14 @@ end
 
 --=========================================================================--
 --  Options panel: create / register / open.
---  Legacy: InterfaceOptions_AddCategory + InterfaceOptionsFrame_OpenToCategory.
---  Modern: Settings.RegisterCanvasLayoutCategory / RegisterAddOnCategory /
---          RegisterCanvasLayoutSubcategory + Settings.OpenToCategory.
+--  Settings.RegisterCanvasLayoutCategory / RegisterAddOnCategory /
+--  RegisterCanvasLayoutSubcategory + Settings.OpenToCategory.
 --=========================================================================--
 ns._optionCategories = ns._optionCategories or {}
 
 function Compat.CreateOptionsPanel(globalName)
-    -- On modern clients InterfaceOptionsFramePanelContainer is nil; UIParent is
-    -- a safe parent since the Settings canvas reparents the frame anyway.
-    local parent = InterfaceOptionsFramePanelContainer or UIParent
-    local f = CreateFrame("Frame", globalName, parent)
+    -- The Settings canvas reparents the frame anyway, so UIParent is fine.
+    local f = CreateFrame("Frame", globalName, UIParent)
     f:Hide()
     return f
 end
@@ -153,7 +146,7 @@ function Compat.CreateScrollContent(panel, contentHeight)
     scroll:SetScrollChild(content)
 
     -- Vertical scrollbar: a plain slider with a solid thumb (no template needed,
-    -- so it renders identically on modern and 3.3.5a clients).
+    -- so it is immune to retail's template churn).
     local bar = CreateFrame("Slider", nil, panel)
     bar:SetOrientation("VERTICAL")
     bar:SetWidth(BARW)
@@ -234,14 +227,12 @@ function Compat.RegisterOptionsPanel(frame, name, parentName)
         end
         ns._optionCategories[name] = category
         frame._settingsCategory = category
-    elseif Compat.hasLegacyOptionsAPI then
-        InterfaceOptions_AddCategory(frame)
     end
 end
 
 -- A single, shared, draggable window that hosts ONE options panel at a time
--- (main panel, learned, trainer, ...). Used on legacy / custom clients where the
--- native Interface Options is unreliable. Navigation model:
+-- (main panel, learned, trainer, ...). The Language Trainer always uses this, and
+-- it also backs any panel we can't hand to the Settings tree. Navigation model:
 --   * A panel with no frame._backAction is the "home" and shows a close (X).
 --   * A panel that defines frame._backAction (a function) shows a Back button
 --     that runs it (returning to the home panel) instead of closing.
@@ -375,19 +366,18 @@ end
 function Compat.OpenOptionsPanel(frame)
     if not frame then return end
     if Compat.hasSettingsAPI and frame._settingsCategory then
-        -- Modern clients: the Settings panel open-to-category is reliable.
         Settings.OpenToCategory(frame._settingsCategory:GetID())
         return
     end
-    -- Legacy 3.3.5a / custom clients (Ascension): InterfaceOptionsFrame_OpenToCategory
-    -- is unreliable (or absent), so use our own guaranteed standalone window.
+    -- No Settings category to open to (an unregistered panel, or a client without
+    -- the Settings API): fall back to our own guaranteed standalone window.
     Compat.ShowStandalone(frame)
 end
 
 --=========================================================================--
 --  Widgets. Built from base frame types + universally-available textures so
---  they render identically on 3.3.5a and modern clients (no template churn,
---  no removed UIDropDownMenu).
+--  they render identically on every client (no template churn, no removed
+--  UIDropDownMenu).
 --=========================================================================--
 
 -- Checkbox with a label to its right. Returns the CheckButton; read/write via

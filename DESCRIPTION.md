@@ -8,7 +8,7 @@
 
 ## ✨ Works on every client
 
-One install runs on **3.3.5a** (Wrath, including Project Ascension), **Classic** (Vanilla, Cata, Mists), and **Retail**. A built-in compatibility layer adapts the interface and chat functions to whatever client you're on — no separate downloads to manage.
+One install runs on **Retail** (Midnight), **WoW: Forever**, and **Classic** (Vanilla, Cata, Mists, Wrath). A built-in compatibility layer adapts the interface and chat functions to whatever client you're on — no separate downloads to manage.
 
 ## 🔥 Features
 

@@ -4,9 +4,9 @@
       * Main panel: enable, language, strength, channel filters, preview.
       * Learned Languages sub-panel: per-language checkboxes, decode display style.
 
-    All widgets come from ns.Compat, so the same panel renders on the 3.3.5a
-    client (Interface Options) and on modern clients (the Settings panel), with
-    no reliance on UIDropDownMenu or templates that retail has removed.
+    All widgets come from ns.Compat, so the same panel renders in the Settings
+    tree and in our standalone window, with no reliance on UIDropDownMenu or
+    templates that retail has removed.
 ---------------------------------------------------------------------------]]
 
 local ADDON, ns = ...
@@ -320,11 +320,9 @@ local function RefreshLearned()
     end
 end
 
--- On modern clients we drive the minimap button through LibDBIcon (bundled) so it
--- behaves exactly like every other addon's button: correct placement AND
--- collectable / auto-hideable by minimap-button managers (SexyMap, etc.). The
--- libs aren't loaded on genuine 3.3.5a (Ascension), where we fall back to our
--- dependency-free Compat button.
+-- The minimap button is driven through LibDBIcon (bundled) so it behaves exactly
+-- like every other addon's button: correct placement AND collectable /
+-- auto-hideable by minimap-button managers (SexyMap, etc.).
 local ldbIcon
 local LDB_NAME = "TonguesOfAzeroth"
 
@@ -399,8 +397,9 @@ local function SetupMinimapButton()
         return
     end
 
-    -- Fallback: dependency-free custom button (3.3.5a / Ascension). Generic purple
-    -- orb (a built-in Blizzard icon, so it renders even where loose textures don't).
+    -- Safety net for when the bundled libs are unavailable (a stripped install, or
+    -- LibStub losing a fight with another addon's copy): a dependency-free button,
+    -- using a built-in Blizzard icon so it renders without loose texture files.
     if minimapButton then ApplyMinimapShown(); return end
     minimapButton = Compat.CreateMinimapButton("TonguesOfAzerothMinimapButton", {
         icon = "Interface\\Icons\\INV_Misc_Orb_04",
@@ -756,9 +755,9 @@ local function BuildMainPanel()
     end)
     trainerBtn:SetPoint("TOPRIGHT", content, "TOPRIGHT", -16, -16)
 
-    -- Opens the Learned Languages panel. On legacy/custom clients (Ascension)
-    -- the config is a standalone window with no options tree, so this button is
-    -- the way to reach the sub-panel.
+    -- Opens the Learned Languages panel. Kept as an explicit button so the
+    -- sub-panel is reachable from the standalone window too, which has no
+    -- options tree to navigate.
     local learnedBtn = makeNavButton("Learned Languages", function()
         if ns.OpenLearnedConfig then ns.OpenLearnedConfig() end
     end)
@@ -1657,8 +1656,8 @@ local function BuildPanels()
     BuildCustomPanel()
     Compat.RegisterOptionsPanel(customPanel, customPanel.name, mainPanel.name)
 
-    -- In the shared standalone window (legacy/custom clients), the sub-panels
-    -- show a Back button (to the main panel) instead of their own close button.
+    -- In the shared standalone window the sub-panels show a Back button (to the
+    -- main panel) instead of their own close button.
     learnedPanel._backAction = function() ns.OpenConfig() end
     accentPanel._backAction = function() ns.OpenConfig() end
     customPanel._backAction = function() ns.OpenConfig() end

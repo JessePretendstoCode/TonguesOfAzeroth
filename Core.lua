@@ -3,9 +3,11 @@
     Wires the language engine into chat: auto-translate toggle, slash commands,
     per-channel filters, and learned-language decoding on incoming messages.
 
-    Notes for 3.3.5a:
-      * SendChatMessage is not a protected function, so wrapping it (as Tongues
-        and similar RP addons do) is safe for say/yell/party/etc.
+    Notes:
+      * On the Classic flavors SendChatMessage is not a protected function, so
+        wrapping it (as Tongues and similar RP addons do) is safe for
+        say/yell/party/etc. Midnight and Forever need the pre-send event instead
+        -- see usesPreSendPipeline below.
       * WoW chat has a 255 character limit; translations are longer than the
         source, so output is trimmed to fit.
 ---------------------------------------------------------------------------]]
@@ -590,8 +592,8 @@ end
 
 -- The SendChatMessage wrapper. Taint-safe: SendChatMessage is never in the path
 -- of protected commands (/target, /cast, /use...), so wrapping it never blocks
--- those. This is the intercept point on 3.3.5a / Classic and for our own
--- programmatic sends. On Retail 12.0+ (Midnight) typed chat bypasses this path
+-- those. This is the intercept point on the Classic flavors and for our own
+-- programmatic sends. On Midnight and Forever typed chat bypasses this path
 -- entirely (see onEditBoxPreSend below); `preSendActive` guards the rare case
 -- where both fire so we never translate/tag twice.
 local function sendHookBody(msg, chatType, language, channel)
@@ -616,8 +618,8 @@ end
 -- Probed via issecretvalue rather than an interface number, because the secure chat
 -- pipeline and "secrets" shipped as one change: WoW: Forever carries both yet reports
 -- a 1.60.x interface (16001), so any ">= 120000" test would take the legacy path and
--- taint the UI. issecretvalue is absent on 3.3.5a and the Classic flavors, which do
--- still need the global hook.
+-- taint the UI. issecretvalue is absent on the Classic flavors, which do still need
+-- the global hook.
 local function usesPreSendPipeline()
     return _issecretvalue ~= nil
 end
