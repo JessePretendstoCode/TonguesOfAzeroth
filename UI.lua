@@ -138,41 +138,36 @@ local function langItems()
         end
     end
 
-    local items = {}
-    local emittedParent = {}
-
     -- Every row carries a star: hollow until you click it. `toggle` is what
     -- tells the dropdown to draw one (see Compat.CreateDropdown).
     local function isFav(id)
         return (ns.IsFavorite and ns.IsFavorite(id)) and true or false
     end
 
-    -- Your curated shortlist, in the order you built it, repeated at the top so
-    -- the handful you actually speak aren't seventy rows apart. They stay in the
-    -- full list below too, so clicking a filled star to undo works from either.
-    local favs = (ns.GetFavorites and ns.GetFavorites()) or {}
-    if #favs > 0 then
-        items[#items + 1] = { text = "Favorites", header = true }
-        for i = 1, #favs do
-            local id = favs[i]
-            if not (ns.IsNativeLanguage and ns.IsNativeLanguage(id)) then
-                items[#items + 1] =
-                    { text = Language.GetLanguageName(id), value = id, toggle = true }
-            end
-        end
-        items[#items + 1] = { text = "All languages", header = true }
-    end
-
+    -- The main list, built first so we know whether it ends up with anything in
+    -- it. A favorited language is left out of here entirely: it has moved up to
+    -- the Favorites section, and listing it twice just invited the question of
+    -- why the same tongue appears in two places.
+    local rest = {}
+    local emittedParent = {}
     for i = 1, #primaries do
         local p = primaries[i]
-        items[#items + 1] = { text = p.name, value = p.id, toggle = isFav(p.id) }
+        local parentShown = not isFav(p.id)
+        if parentShown then
+            rest[#rest + 1] = { text = p.name, value = p.id, toggle = false }
+        end
+        -- Claimed either way, so the orphan pass below doesn't re-emit the subs
+        -- of a primary we deliberately moved into Favorites.
         emittedParent[p.id] = true
         local subs = subsOf[p.id]
         if subs then
             for j = 1, #subs do
                 local s = subs[j]
-                items[#items + 1] =
-                    { text = "    " .. s.name, value = s.id, toggle = isFav(s.id) }
+                if not isFav(s.id) then
+                    -- Only indent when the parent row is actually above it.
+                    rest[#rest + 1] = { text = (parentShown and "    " or "") .. s.name,
+                                        value = s.id, toggle = false }
+                end
             end
         end
     end
@@ -183,10 +178,31 @@ local function langItems()
     -- level, in LANGUAGE_ORDER, so they don't vanish along with their parent.
     for i = 1, #all do
         local l = all[i]
-        if l.sub and l.parent and not emittedParent[l.parent] then
-            items[#items + 1] = { text = l.name, value = l.id, toggle = isFav(l.id) }
+        if l.sub and l.parent and not emittedParent[l.parent] and not isFav(l.id) then
+            rest[#rest + 1] = { text = l.name, value = l.id, toggle = false }
         end
     end
+
+    -- Your curated shortlist on top, in the order you built it, so the handful
+    -- you actually speak aren't seventy rows down.
+    local items = {}
+    local favs = (ns.GetFavorites and ns.GetFavorites()) or {}
+    local favRows = {}
+    for i = 1, #favs do
+        local id = favs[i]
+        if not (ns.IsNativeLanguage and ns.IsNativeLanguage(id)) then
+            favRows[#favRows + 1] =
+                { text = Language.GetLanguageName(id), value = id, toggle = true }
+        end
+    end
+    if #favRows > 0 then
+        items[#items + 1] = { text = "Favorites", header = true }
+        for i = 1, #favRows do items[#items + 1] = favRows[i] end
+        -- Skipped when you've favorited everything, so the header can't be left
+        -- sitting over an empty list.
+        if #rest > 0 then items[#items + 1] = { text = "All languages", header = true } end
+    end
+    for i = 1, #rest do items[#items + 1] = rest[i] end
     return items
 end
 

@@ -5,12 +5,16 @@ All notable changes to Tongues of Azeroth are documented here.
 ## [Unreleased]
 - **New: Favorites.** Seventy-odd tongues ship with the addon and a character
   typically speaks a handful, so the dropdown had become a haystack. Every row
-  in the language list now carries a hollow star; click it and it fills in, and
-  that language gets a Favorites section at the top of the list, in the order
-  you added them, while still appearing in the full list below. The menu stays
-  open, so a shortlist can be built in one pass. Right-click anywhere on a row
-  does the same, for anyone who'd rather not aim at a 16px star, and there's
-  `/ogt fav [id]`, `/ogt fav list` and `/ogt fav off`.
+  in the language list now carries a hollow star; click it and it fills in and
+  the language moves up into a Favorites section at the top of the list, in the
+  order you added them. It leaves the main list when it does, rather than
+  sitting in both places, so there's only ever one row per tongue. The menu
+  stays open, so a shortlist can be built in one pass. Right-click anywhere on
+  a row does the same, for anyone who'd rather not aim at a 16px star, and
+  there's `/ogt fav [id]`, `/ogt fav list` and `/ogt fav off`.
+- Favoriting a primary language doesn't orphan its dialects: they stay where
+  they were in the main list, just un-indented now that the parent row that was
+  above them has moved to the top.
 - **The floating language bar has a star that toggles "scroll only my
   favorites".** It governs every way you cycle -- the bar, the minimap wheel,
   `/ogt next` and `/ogt prev` -- and is on by default, so with favorites set
