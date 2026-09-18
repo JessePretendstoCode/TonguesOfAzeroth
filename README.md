@@ -51,14 +51,25 @@ generate identical text.
   seventy-odd below. It's Blizzard's own favorite star, the one on Auction House searches
   and profession recipes. The star on the floating language bar toggles whether scrolling
   and `/ogt next` walk only your favorites or everything you've learned.
-- **Cast Phrases** — speak when a spell lands: *Corvin roars "Nuk'luk!"*. Words in
-  `"quotes"` are spoken aloud and get translated into your current tongue; the rest is
-  narration and stays in English. Sixteen opt-in phrase packs ship with it (one per class,
-  plus pets, professions and battle cries — 144 spells, 180 lines), or write your own with
-  `%s` spell, `%p` pet, `%f` pet family and `%t` target. Per-phrase weights decide how
-  often each comes up, and a keybinding opens a spell's phrase list while you hover it on
-  your action bars. Lines go out as emotes — see [Notes & limitations](#notes--limitations)
-  for why that isn't a choice.
+- **Cast Phrases** — speak when a spell lands: *Corvin snarls "Aman!" in Broken Demonic
+  and the fire takes hold.* Words in `"quotes"` are spoken aloud and get translated into
+  your current tongue; the narration around them stays in English. Fifteen opt-in packs
+  ship with it (one per class, plus pets and professions) covering 143 spells with 783
+  lines, or write your own with `%s` spell, `%p` pet, `%f` pet family and `%t` target.
+  You only see your own class's pack unless you ask for the rest.
+- **A character sheet for how your character sounds** — every shipped line is written for
+  a **Bearing** (Plain, Dry, Fierce, Solemn, Warm) and may carry a **Wording** of courtly
+  or blunt. Pick a Bearing, optionally a second that cuts against it, a Wording, and how
+  much your character talks; those lines rise in the roll and the rest drop out. "Solemn,
+  courtly, measured" and "Dry, blunt, quiet" are different characters out of one library.
+  Anything you write yourself is never filtered by the sheet.
+- **Creeds** — what a character believes isn't tied to a spell, so eight opt-in creeds
+  (the Horde, the Alliance, the Light, Elune, the ancestors, the elements, the fel, the
+  shadow) ride along on whatever you already cast. The class packs name no faction or
+  faith, so a Blood Elf paladin and a draenei one can share a spell list.
+  Per-phrase weights decide how often each line comes up, and a keybinding opens a spell's
+  phrase list while you hover it on your action bars. Lines go out as emotes — see
+  [Notes & limitations](#notes--limitations) for why that isn't a choice.
 - **Minimap button** for one-click access, plus a standalone draggable window (with
   Back/Close navigation) that hosts the Language Trainer.
 - **In-game configuration** via Settings → AddOns, with a live preview.

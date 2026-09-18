@@ -2,7 +2,7 @@
 
 > *Speak the languages of Azeroth — from the maddening whispers of the Old Gods to Orcish, Darnassian, and beyond. Or drop the language entirely and talk with a Dwarven brogue, aye!*
 
-**Tongues of Azeroth** transforms your chat into the fictional languages and dialects of Azeroth, in the spirit of the classic *Tongues* addon. Speak **70+ tongues**, flavor your English with a **spoken accent**, and even **learn languages** through a Wordle-style minigame. Great for roleplay, cults, secret pacts, and cryptic in-character moments.
+**Tongues of Azeroth** transforms your chat into the fictional languages and dialects of Azeroth, in the spirit of the classic *Tongues* addon. Speak **70+ tongues**, flavor your English with a **spoken accent**, let your character **speak when you cast**, and even **learn languages** through a Wordle-style minigame. Great for roleplay, cults, secret pacts, and cryptic in-character moments.
 
 ---
 
@@ -19,7 +19,7 @@ One install runs on **Retail** (Midnight), **WoW: Forever**, and **Classic** (Va
 - **Per-channel filters** — choose exactly which chat types are affected (Say, Yell, Party, Raid, Guild, Whisper, and more)
 - **Learned Languages** — mark tongues your character understands; when another Tongues of Azeroth user speaks one, you'll see the decoded meaning in your own chat, with per-language fluency shown on progress bars
 - **Favorites** — click the star on any language and it floats up to a Favorites section at the top of the dropdown instead of sitting seventy rows down; the star on the floating language bar toggles whether scrolling cycles only your favorites
-- **Cast Phrases** — speak when a spell lands: *Corvin roars "Nuk'luk!"*. Words in `"quotes"` are spoken aloud and get translated into your current tongue, while the rest stays plain narration. **16 opt-in phrase packs** ship with it (one per class, plus pets, professions and battle cries — 144 spells, 180 lines), or write your own with tokens for the spell, your pet and your target. Per-phrase weights decide how often each comes up, and a keybinding opens a spell's phrase list while you hover it on your bars. Your pet's abilities can speak too.
+- **Cast Phrases** — speak when a spell lands: *Corvin snarls "Aman!" in Broken Demonic and the fire takes hold.* Words in `"quotes"` are spoken aloud and get translated into your current tongue, while the narration around them stays plain English. **783 ready-made lines across 143 spells** ship with it, a **character sheet** decides how your character sounds, and a keybinding opens a spell's phrase list while you hover it on your bars. See below.
 - **Minimap button** and a draggable standalone window for one-click access (with Back/Close navigation on clients without a native options tree)
 - **Live options panel** with a real-time preview
 - **Deterministic** — the same words always translate the same way, so speech stays consistent between everyone running the addon
@@ -57,6 +57,30 @@ Prefer to be understood? Accents rewrite your **English** into a spoken dialect 
 **Dwarven · Troll · Orcish · Darnassian · Draenei · Tauren · Forsaken · Pandaren · Goblin · Gilnean · Vrykul · Pirate**
 
 > Auto-translate takes precedence over accents — turn it off (or set Language strength to `0%`) to hear your accent.
+
+## 🪄 Cast Phrases
+
+Your character can speak when a spell lands, in whatever tongue you're currently speaking:
+
+> *Corvin snarls **"Aman!"** in Broken Demonic and the fire takes hold.*
+
+Words in `"quotes"` go through your language and accent exactly as chat does. Everything outside them is narration and stays in English, because that's the part onlookers are meant to follow. **Off until you turn it on**, since it puts text in other people's chat.
+
+**783 ready-made lines covering 143 spells**, written to read like a DM narrating the action rather than a list of spell names — one concrete detail per line, and the long cooldowns get more room than the spammable fillers. Tick a pack and its spells appear in the list, where any line can be reworded, reweighted, or retired. You only see **your own class's pack** by default, plus pets and professions; one click reveals the rest.
+
+### A character sheet, not a house voice
+
+Every shipped line is written for a **Bearing** — Plain, Dry, Fierce, Solemn or Warm — and may carry a **Wording** of courtly or blunt. Pick a Bearing, optionally a second as a streak that cuts against the first, a Wording, and **how much your character talks**. Those lines rise in the roll while the rest drop out, so *"Solemn, courtly, measured"* and *"Dry, blunt, quiet"* are recognisably different characters drawing on the same library.
+
+Anything you write yourself is never filtered — you wrote it, so it's your character's voice by definition.
+
+### Creeds
+
+What a character believes belongs to the character, not to any one spell, so *"For the Horde!"* isn't welded to a fireball. Tick any of **eight creeds** — the Horde, the Alliance, the Light, Elune, the ancestors, the elements, the fel, the shadow — and their lines ride along on whichever spells you've already set up. The class packs themselves name no faction or faith, so a Blood Elf paladin and a draenei one can share a spell list and still sound like themselves.
+
+### Your own words
+
+Write your own lines with tokens for the spell, your target and your pet. **Pets speak too**, on any class. Per-phrase weights decide how often each comes up, a single "how often" chance controls whether a cast speaks at all, and two pauses — one global, one per-spell — stop a spammable spell turning your emotes into a wall of text.
 
 ## 🎮 Getting started
 
