@@ -43,6 +43,11 @@ All notable changes to Tongues of Azeroth are documented here.
   their wind-spirit patrons.
 - Because it is its own language rather than a dialect, trainer fluency in it is
   earned separately and does not come with Darnassian.
+- **It leads the language list** rather than sitting seventy entries down the
+  dropdown, since it's the one most people are looking for at the moment. Old
+  God (Shath'yar) is now second, but is still the default and still what the
+  ambient whispers key off. Every list in the addon reads from the same order,
+  so `/ogt list`, cycling and the Learned tab all match the dropdown.
 
 - **The addon list now shows a scroll instead of a red question mark.** None of the
   TOC files declared an icon, so the client fell back to its placeholder. All of

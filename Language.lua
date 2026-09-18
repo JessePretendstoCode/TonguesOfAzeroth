@@ -51,6 +51,23 @@ local function register(id, def)
     languageListCache = nil
 end
 
+-- Move an already-registered language to the head of the display order, which
+-- every list derives from: the dropdown, /ogt list, cycling and the Learned tab.
+-- Registration order is otherwise thematic grouping, and with seventy-odd
+-- tongues in the pool a newly added one would be buried at the bottom of the
+-- dropdown. This surfaces it without moving its definition away from the
+-- section it belongs to. Ids only, so saved settings are unaffected.
+local function pinFirst(id)
+    for i = 1, #LANGUAGE_ORDER do
+        if LANGUAGE_ORDER[i] == id then
+            table.remove(LANGUAGE_ORDER, i)
+            table.insert(LANGUAGE_ORDER, 1, id)
+            languageListCache = nil
+            return
+        end
+    end
+end
+
 --=========================================================================--
 --  OLD GOD (Shath'yar) - eldritch; generated, length-capped.
 --=========================================================================--
@@ -498,6 +515,10 @@ G("skyborne", "Eldre'Thalassian (Skyborne)", 0.2,
       "s", "sh", "th", "l", "n", "v", "r" },
     { "a", "e", "i", "o", "u", "ae", "ia", "ei", "ee", "ua" },
     { "", "l", "n", "r", "s", "th", "ll", "ss", "sh", "rn", "st", "nd", "lth", "ryn" })
+
+-- Newest race in the game, and the reason most people will open the dropdown
+-- right now, so it leads the list rather than sitting seventy entries down.
+pinFirst("skyborne")
 
 --  Sub-languages (aliases sharing their parent's word set). Note there is no
 --  generic "Troll" alias: Zandali *is* the trolls' racial tongue, so a separate
