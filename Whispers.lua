@@ -37,7 +37,7 @@ local nextInterval = BASE_INTERVAL + math.random(-INTERVAL_JITTER, INTERVAL_JITT
 
 local function isOldGodMode()
     if not TonguesOfAzerothDB then return false end
-    return TonguesOfAzerothDB.enabled
+    return TonguesOfAzerothDB.inCharacter
         and TonguesOfAzerothDB.language == Language.DEFAULT
         and TonguesOfAzerothDB.strength == 100
 end

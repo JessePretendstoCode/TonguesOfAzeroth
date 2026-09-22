@@ -166,6 +166,89 @@ function Casts.RemovePhrase(key, text)
     return false
 end
 
+--=========================================================================--
+--  Rewording a phrase
+--=========================================================================--
+-- A library line keeps the text the pack shipped as its identity even after you
+-- reword it, and the new wording is stored against that. Keying the edit on what
+-- you typed instead would orphan it the moment you edited it again, and would
+-- lose the weight you had set on the same line -- both are addressed by the
+-- original text, so both have to stay addressed by the same value.
+
+local function editMap(key, create)
+    local c = castDB()
+    if not (c and key) then return nil end
+    if type(c.edits) ~= "table" then
+        if not create then return nil end
+        c.edits = {}
+    end
+    if not c.edits[key] and create then c.edits[key] = {} end
+    return c.edits[key]
+end
+
+function Casts.GetEditedText(key, origText)
+    local m = editMap(key)
+    local t = m and m[origText]
+    if type(t) == "string" and t ~= "" then return t end
+    return nil
+end
+
+function Casts.IsEdited(key, origText)
+    return Casts.GetEditedText(key, origText) ~= nil
+end
+
+-- Put a library line back to the wording its pack ships.
+function Casts.ClearPhraseText(key, origText)
+    local m = editMap(key)
+    if not (m and m[origText]) then return false end
+    m[origText] = nil
+    if not next(m) then castDB().edits[key] = nil end
+    return true
+end
+
+-- Reword any phrase, yours or a pack's. One you wrote is renamed where it sits,
+-- so the list doesn't reshuffle under you mid-edit, and its weight moves with it.
+-- Returns ok, err.
+function Casts.SetPhraseText(key, origText, newText)
+    if not key or type(origText) ~= "string" then return false, "no phrase" end
+    if type(newText) ~= "string" then return false, "no phrase" end
+    newText = newText:gsub("^%s+", ""):gsub("%s+$", "")
+    if newText == "" then return false, "no phrase" end
+
+    local isUser = Casts.IsUserPhrase(key, origText)
+
+    -- Typing a pack line back to exactly what it shipped as is a revert, not an
+    -- edit: leaving it stored would keep offering a Revert button that does
+    -- nothing visible.
+    if newText == origText then
+        if not isUser then Casts.ClearPhraseText(key, origText) end
+        return true
+    end
+
+    if isUser then
+        if Casts.IsUserPhrase(key, newText) then return false, "already there" end
+        local list = userList(key)
+        for i, t in ipairs(list) do
+            if t == origText then
+                list[i] = newText
+                local w = Casts.GetExplicitWeight(key, origText)
+                if w then
+                    Casts.ClearWeight(key, origText)
+                    Casts.SetWeight(key, newText, w)
+                end
+                return true
+            end
+        end
+        return false, "not found"
+    end
+
+    if Casts.IsUserPhrase(key, newText) then return false, "already there" end
+    local m = editMap(key, true)
+    if not m then return false, "not loaded" end
+    m[origText] = newText
+    return true
+end
+
 function Casts.IsMuted(key)
     local c = castDB()
     return (c and key and c.muted[key]) and true or false
@@ -355,7 +438,7 @@ function Casts.GetPhrases(key)
             if not seen[text] then
                 seen[text] = true
                 out[#out + 1] = {
-                    text = text, weight = Casts.GetWeight(key, text),
+                    text = text, orig = text, weight = Casts.GetWeight(key, text),
                     step = Casts.GetWeight(key, text), user = true,
                 }
             end
@@ -366,6 +449,13 @@ function Casts.GetPhrases(key)
     local function addLibraryLine(entry, base)
         if seen[entry.text] then return end
         seen[entry.text] = true
+        -- `orig` is what everything else addresses this line by: its weight, its
+        -- edit, and the pack it came from. `text` is only what gets spoken.
+        local shown = Casts.GetEditedText(key, entry.text) or entry.text
+        if shown ~= entry.text then
+            if seen[shown] then return end
+            seen[shown] = true
+        end
         local override = Casts.GetExplicitWeight(key, entry.text)
         local weight, offTone
         if override then
@@ -376,7 +466,8 @@ function Casts.GetPhrases(key)
             offTone = (m == 0)
         end
         out[#out + 1] = {
-            text = entry.text, weight = weight, step = override or base,
+            text = shown, orig = entry.text, edited = (shown ~= entry.text),
+            weight = weight, step = override or base,
             pack = entry.pack, bearing = entry.bearing, wording = entry.wording,
             wildcard = entry.wildcard, offTone = offTone,
         }

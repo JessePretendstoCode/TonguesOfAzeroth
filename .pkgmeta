@@ -6,5 +6,6 @@ ignore:
   - "UI_*.png"
   - "DESCRIPTION.md"
   - "PHRASES.md"
+  - "PROMO.md"
 
 manual-changelog: CHANGELOG.md

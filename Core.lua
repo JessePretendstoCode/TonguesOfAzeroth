@@ -15,6 +15,7 @@
 local ADDON, ns = ...
 local Language = ns.Language
 local Compat = ns.Compat
+local Colors = ns.Colors
 
 local MAX_MESSAGE = 255
 
@@ -210,15 +211,69 @@ local function migrateDB()
         db.strength = 100
     end
 
-    if db.enabled == nil then
-        db.enabled = false
+    -- One switch for "am I speaking in character right now", covering the tongue
+    -- AND the accent. It replaces two separate enables that each governed half
+    -- your voice, which is what made the two read as unrelated addons.
+    --
+    -- Note this is NOT "is the addon on": with it off you still decode other
+    -- players, still get the per-language colors, still run the Trainer. It is
+    -- the switch you hit to answer your raid leader in plain English and then
+    -- hit again, many times a session -- which is exactly why disabling the
+    -- addon in Blizzard's list is not a substitute for it.
+    if db.inCharacter == nil then
+        -- Either old switch being on means this character had a voice, so the
+        -- one switch inherits both. "Accents on, translation off" was a working
+        -- and popular setup -- plain English in your own accent -- and reading
+        -- only db.enabled here would silently strip the accent on upgrade.
+        db.inCharacter = (db.enabled or (db.accent and db.accent.enabled)) and true or false
+        -- That setup now has an honest spelling: in character, speaking no
+        -- particular tongue. Without this the upgrade would hand them a
+        -- language they had deliberately switched off and put them in Orcish
+        -- mid-sentence.
+        if db.enabled == false and db.accent and db.accent.enabled then
+            db.language = "none"
+        end
     end
+    db.enabled = nil
+
+    -- A short-lived "how much comes through" cap used to live here, separate
+    -- from fluency. Two numbers for one question turned out to be worse than
+    -- the problem it solved: nobody could say which one they were reading. How
+    -- well you speak a tongue is just your fluency in it, set on its own row
+    -- under Languages. Cleared rather than left behind so it can't quietly
+    -- throttle anyone who ran a build that had it.
+    db.speakLevel = nil
     -- The redundant generic "troll" language was merged into "zandali"; carry
     -- over anyone who was speaking/learning it so nothing silently resets.
     if db.language == "troll" then db.language = "zandali" end
     if db.learned and db.learned["troll"] then
         db.learned["zandali"] = true
         db.learned["troll"] = nil
+    end
+    -- Aliases that were only a second name for a tongue already in the list
+    -- ("Eredun (Demonic)" beside "Demonic (Eredun)") are hidden now. They still
+    -- resolve, but leaving someone parked on one would show a language absent
+    -- from every list, so anything saved moves to the name that is shown.
+    if db.language and Language.CanonicalId then
+        db.language = Language.CanonicalId(db.language)
+    end
+    if db.learned and Language.CanonicalId then
+        -- Collected before anything is written: adding a key to a table while
+        -- pairs() is walking it is undefined in Lua.
+        local moved
+        for id in pairs(db.learned) do
+            local canon = Language.CanonicalId(id)
+            if canon ~= id then
+                moved = moved or {}
+                moved[id] = canon
+            end
+        end
+        if moved then
+            for id, canon in pairs(moved) do
+                db.learned[canon] = true
+                db.learned[id] = nil
+            end
+        end
     end
     if db.language == nil or not Language.IsValid(db.language) then
         db.language = Language.DEFAULT
@@ -227,6 +282,20 @@ local function migrateDB()
     -- Hand-curated shortlist of languages. An ordered array rather than a set,
     -- so it stays in the order you built it.
     if type(db.favorites) ~= "table" then db.favorites = {} end
+    if Language.CanonicalId then
+        local seen = {}
+        for i = #db.favorites, 1, -1 do
+            local canon = Language.CanonicalId(db.favorites[i])
+            -- Canonicalising can collide two entries onto one; drop the dupe
+            -- rather than leaving the same tongue starred twice.
+            if seen[canon] then
+                table.remove(db.favorites, i)
+            else
+                seen[canon] = true
+                db.favorites[i] = canon
+            end
+        end
+    end
     -- Whether cycling walks only the favorites. Toggled by the star on the
     -- floating bar, and inert until the list has something in it.
     if db.favOnly == nil then db.favOnly = true end
@@ -251,8 +320,8 @@ local function migrateDB()
         db.decodeStyle = "inline"
     end
     -- One-time: move existing users onto the new in-line display (the chat line
-    -- itself is rewritten, like retail). They can pick a legacy style again in
-    -- Learned Languages if they prefer the old separate line.
+    -- itself is rewritten, like retail). They can pick a legacy style again
+    -- under Chat -> When you listen if they prefer the old separate line.
     if not db.decodeStyleV2 then
         db.decodeStyle = "inline"
         db.decodeStyleV2 = true
@@ -322,12 +391,26 @@ local function migrateDB()
     end
 
     if not db.accent then db.accent = {} end
-    if db.accent.enabled == nil then db.accent.enabled = false end
     if db.accent.strength == nil then db.accent.strength = 100 end
     -- Emotes describe an action ("/e waves"), so accenting them reads oddly.
     -- Off by default; players can opt in on the Accents tab.
     if db.accent.emotes == nil then db.accent.emotes = false end
-    if db.accent.id == nil or not (ns.Accent and ns.Accent.IsValid(db.accent.id)) then
+    -- "No accent" is an entry in the accent list now, not a checkbox beside it,
+    -- so the old accent.enabled flag folds into the selection itself.
+    local NONE = (ns.Accent and ns.Accent.NONE) or "none"
+    if db.accent.enabled == false then
+        -- Switched off: land on "none", but remember what they had picked so
+        -- "/toa accent on" hands their own accent back rather than Dwarven.
+        if db.accent.id and db.accent.id ~= NONE then db.accent.lastId = db.accent.id end
+        db.accent.id = NONE
+    elseif db.accent.enabled == nil and db.accent.id == nil then
+        -- Fresh profile. Accents stay off until asked for, exactly as they
+        -- always did -- that used to be enabled=false with a default id sitting
+        -- unused behind it, and is now simply a selection of "none".
+        db.accent.id = NONE
+    end
+    db.accent.enabled = nil
+    if not (ns.Accent and ns.Accent.IsValid(db.accent.id)) then
         db.accent.id = (ns.Accent and ns.Accent.DEFAULT) or "dwarf"
     end
     -- How often sentence-end interjections (", aye.", ", mon.") fire. 0 turns
@@ -338,13 +421,16 @@ local function migrateDB()
     if ns.Accent and ns.Accent.SetTailFrequency then
         ns.Accent.SetTailFrequency(db.accent.tails)
     end
-    -- Per-channel accent toggles, independent of the language channel list, so
-    -- you can (say) keep your accent out of raid/party while it stays on for
-    -- say/yell. Default on for every channel (matches how accents behaved before).
-    if not db.accent.channels then db.accent.channels = {} end
-    for _, ch in ipairs(CHANNEL_TYPES) do
-        if db.accent.channels[ch] == nil then db.accent.channels[ch] = true end
-    end
+    -- Accents used to carry their own channel list beside the language one, so
+    -- "where does my voice apply" had two answers that could disagree. There is
+    -- one list now: the channels you are in character in, governing the tongue
+    -- and the accent alike.
+    --
+    -- The language list wins the merge rather than the union of the two. Union
+    -- would switch translation ON in a channel somebody had deliberately
+    -- silenced, leaving them unintelligible where they had chosen to be clear;
+    -- losing an accent somewhere is cosmetic and one click to restore.
+    db.accent.channels = nil
 
     -- Cast phrases: emote a line when one of your spells lands. Off until asked
     -- for -- it puts text in other people's chat, so it should never be a
@@ -391,17 +477,11 @@ function ns.IsChannelEnabled(chatType)
     return TonguesOfAzerothDB.channels[chatType] and true or false
 end
 
--- Whether the *accent* should apply on this channel. Independent of the language
--- channel list. Missing entries default to on. (EMOTE is handled separately by
--- the dedicated emote toggle, not here.)
+-- Kept as a name other code and older saved macros may still reach for. There
+-- is one channel list now, so the accent answers the same question the tongue
+-- does: am I in character on this channel?
 function ns.IsAccentChannelEnabled(chatType)
-    migrateDB()
-    chatType = normalizeChatType(chatType)
-    local db = TonguesOfAzerothDB
-    if not db or not db.accent or not db.accent.channels then return true end
-    local v = db.accent.channels[chatType]
-    if v == nil then return true end
-    return v and true or false
+    return ns.IsChannelEnabled(chatType)
 end
 
 -- Speaking strength for the language you're speaking IS your fluency in it: a
@@ -420,8 +500,17 @@ local function getStrength()
     local db = TonguesOfAzerothDB
     if not db then return 100 end
     local pct = fluencyPercent(db.language)
-    if pct ~= nil then return pct end
-    return db.strength or 100
+    if pct == nil then pct = db.strength or 100 end
+    return pct
+end
+
+-- The strength your chat actually goes out at. Public so the config preview
+-- asks for the real number rather than recomputing the rule beside it -- the
+-- two drifting apart is exactly how the preview once came to disagree with the
+-- control sitting above it.
+function ns.GetSpeakingStrength()
+    migrateDB()
+    return getStrength()
 end
 
 --=========================================================================--
@@ -589,59 +678,86 @@ local function languageTag(langId)
     return "[" .. languageName(langId) .. "] "
 end
 
+-- Is an accent selected, and does it apply on this channel? Gated by the same
+-- in-character switch and the same channel list as the tongue, because they are
+-- two halves of one voice. Emotes (/e and inline *actions*) narrate an action
+-- rather than speak, so they keep their own opt-in.
+local function accentAppliesTo(channelKey)
+    local db = TonguesOfAzerothDB
+    if not (ns.Accent and db and db.inCharacter and db.accent) then return false end
+    if db.accent.id == ns.Accent.NONE then return false end
+    if channelKey == "EMOTE" then return db.accent.emotes and true or false end
+    return ns.IsChannelEnabled(channelKey) and true or false
+end
+
+-- `live` marks a real utterance; only those advance the accent's tail spacing,
+-- so previewing never uses up the flourish your next real line would get.
+local function applyAccent(text, live)
+    local a = TonguesOfAzerothDB.accent
+    local ok, res = pcall(ns.Accent.Apply, text, a.id, a.strength or 100, a.emotes, live and true or false)
+    if ok and type(res) == "string" then return res end
+    return text
+end
+
 -- Shared outgoing transform. Given a raw message and its chat type, return
 -- (outgoingText, changed). Also fires the decode payload for grouped ToA users
 -- when a translation actually changed the text.
---   * Language translation "wins" only when it actually rewrites the line. At 0%
---     strength, or when the tongue reads as plain speech (Common and Low Common),
---     translating is a no-op, so the accent takes the line instead -- letting you
---     drop Language strength to 0, or speak Common, and still have a pure accent.
+--
+-- Language and accent COMPOSE rather than compete. Partial fluency leaves part
+-- of the line in English by design, and English spoken by a dwarf should sound
+-- dwarven -- so at 40% Orcish you get Orcish words with a Dwarven accent on the
+-- rest. The foreign words sit behind sentinels while the accent runs, because
+-- they must reach the receiver byte-identical for decoding to find them.
+--
+-- These two used to race, and the language branch always won: an accent was
+-- only ever heard on lines translation had left alone (Common, 0% fluency, a
+-- channel with translation off). That was invisible from the UI -- there was a
+-- /toa debug line whose entire job was explaining why a configured accent
+-- appeared to do nothing -- and it is why the two read as separate addons.
 local function transformOutgoing(msg, sendType, channel)
     if type(msg) ~= "string" or msg == "" then return msg, false end
 
     local db = TonguesOfAzerothDB
     if not db then return msg, false end
     local channelKey = normalizeChatType(sendType)
+    local accentOn = accentAppliesTo(channelKey)
 
-    -- Language translation wins when it's on, you're actually speaking a tongue,
-    -- and this channel is enabled for translation. Paused inside instances:
-    -- encoded text is only readable if the receiver's addon can read chat, which
-    -- Blizzard blocks there. Accents are exempt -- they're plain English that
-    -- needs no decoding, so they keep working (see the accent branch below).
-    if not instanceSuppressed and db.enabled and getStrength() > 0
-        and ns.IsChannelEnabled(channelKey) then
-        local langId = db.language
-        local strength = getStrength()
-        local out = translateOutgoing(msg, langId, strength)
-        if out ~= msg then
-            -- Cache/sync the UNTAGGED mapping so decoding still matches.
-            sendDecodePayload(msg, out, langId, strength, sendType, channel)
+    -- Translation is paused inside instances: encoded text is only readable if
+    -- the receiver's addon can read chat, which Blizzard blocks there. Accents
+    -- are exempt -- they're plain English that needs no decoding -- so the
+    -- accent-only branch below still runs.
+    local translating = not instanceSuppressed and db.inCharacter and getStrength() > 0
+        and ns.IsChannelEnabled(channelKey)
+
+    if translating then
+        local langId, strength = db.language, getStrength()
+        local marked, marks = Language.TranslateMarked(msg, strength, langId)
+        if marks then
+            local body = marked
+            if accentOn then body = applyAccent(body, true) end
+            body = fit(Language.RestoreMarked(body, marks))
+
+            -- Cache and sync the mapping against the text that actually goes
+            -- out, accent and all: decoding is a lookup on the exact string the
+            -- receiver sees, so remembering the pre-accent version would leave
+            -- every composed line undecodable.
+            Language.RememberEncodedMessage(langId, msg, body, strength)
+            sendDecodePayload(msg, body, langId, strength, sendType, channel)
+
             -- The "[Language]" tag is always applied: it's the signal receivers use
             -- to know the line is encoded (and in which tongue) so they can decode
             -- it without false-positiving on ordinary chat. Deliberately not
             -- user-configurable; only the fluency adjective prefix is optional.
-            out = fit(languageTag(langId) .. out)
-            return out, true
+            return fit(languageTag(langId) .. body), true
         end
-        -- Translating changed nothing: Common and Low Common read as plain speech,
-        -- and a line can have no mapped words at low fluency. Fall through rather
-        -- than returning here, so the accent still gets its shot at the line.
+        -- Nothing translated: Common and Low Common read as plain speech, and a
+        -- line can have no mapped words at low fluency. Fall through so the
+        -- accent still gets the whole line.
     end
 
-    -- Otherwise fall through to accents. Channel control here is independent of
-    -- the language channels: emotes (/e and inline *actions*) are gated by the
-    -- emote toggle, every other channel by its own accent toggle.
-    if ns.Accent and db.accent and db.accent.enabled then
-        local a = db.accent
-        if channelKey == "EMOTE" then
-            if not a.emotes then return msg, false end
-        elseif not ns.IsAccentChannelEnabled(channelKey) then
-            return msg, false
-        end
-        -- `true` = a real utterance, so this one advances the tail spacing state
-        -- (the options preview and /toa debug deliberately don't).
-        local ok, res = pcall(ns.Accent.Apply, msg, a.id, a.strength or 100, a.emotes, true)
-        if ok and type(res) == "string" then return res, res ~= msg end
+    if accentOn then
+        local out = applyAccent(msg, true)
+        return out, out ~= msg
     end
     return msg, false
 end
@@ -777,20 +893,33 @@ local function registerYapperFilter()
     if ok and handle then yapperFilterHandle = handle end
 end
 
+-- /toa say|yell (and the bare "/toa <text>" fallback). An explicit "say this in
+-- my tongue" command, so unlike transformOutgoing it ignores the auto-translate
+-- switch and the channel list -- you asked for it by name. The accent still
+-- composes onto whatever English fluency left behind, same as ordinary chat.
 local function speak(msg, chatType, channel)
     migrateDB()
     installSendHook()
     suppress = true
+    local sendType = chatType or "SAY"
     local langId = TonguesOfAzerothDB and TonguesOfAzerothDB.language
     local strength = getStrength()
-    local translated = translateOutgoing(msg, langId, strength)
-    local out = translated
-    if translated ~= msg then
-        sendDecodePayload(msg, translated, langId, strength, chatType or "SAY", channel)
-        out = fit(languageTag(langId) .. translated)
+
+    local out = msg
+    local marked, marks = Language.TranslateMarked(msg, strength, langId)
+    if marks then
+        local body = marked
+        if accentAppliesTo(normalizeChatType(sendType)) then body = applyAccent(body, true) end
+        body = fit(Language.RestoreMarked(body, marks))
+        Language.RememberEncodedMessage(langId, msg, body, strength)
+        sendDecodePayload(msg, body, langId, strength, sendType, channel)
+        out = fit(languageTag(langId) .. body)
+    elseif accentAppliesTo(normalizeChatType(sendType)) then
+        out = applyAccent(msg, true)
     end
+
     if orig_SendChatMessage then
-        orig_SendChatMessage(out, chatType or "SAY", nil, channel)
+        orig_SendChatMessage(out, sendType, nil, channel)
     end
     suppress = false
 end
@@ -803,11 +932,12 @@ end
 -- a line rather than to a whole outgoing message the way transformOutgoing
 -- does. The steps are exposed separately and the caller assembles the result.
 
--- Run one span of spoken words through the current language and accent, with
--- the same precedence chat uses: the tongue takes the words if it actually
--- rewrites them, otherwise the accent gets them. Returns (out, langId,
--- encoded); `encoded` is true only when the tongue rewrote the words, and so
+-- Run one span of spoken words through the current language and accent, the
+-- same way chat does: the two compose, with the tongue taking the words fluency
+-- covers and the accent taking the English that remains. Returns (out, langId,
+-- encoded); `encoded` is true only when the tongue rewrote something, and so
 -- only then does the line need a [Language] tag and a decode payload.
+--
 -- `live` false marks a preview, which must not advance the accent's
 -- interjection spacing -- otherwise looking at the options panel would change
 -- how your next real line reads.
@@ -816,25 +946,41 @@ function ns.EncodeSpeech(text, live)
     if type(text) ~= "string" or text == "" then return text, nil, false end
     local db = TonguesOfAzerothDB
     local langId, strength = db.language, getStrength()
+    -- Spoken words riding inside an emote are still speech, so they take the
+    -- accent's own strength; the emote toggle governs narration, not this.
+    local accentOn = ns.Accent and db.inCharacter and db.accent
+        and db.accent.id ~= ns.Accent.NONE
 
-    if db.enabled and strength > 0 then
-        local out = translateOutgoing(text, langId, strength)
-        if out ~= text then return out, langId, true end
+    if db.inCharacter and strength > 0 then
+        local marked, marks = Language.TranslateMarked(text, strength, langId)
+        if marks then
+            local out = marked
+            if accentOn then
+                local a = db.accent
+                local ok, res = pcall(ns.Accent.Apply, out, a.id, a.strength or 100, false,
+                    live and true or false)
+                if ok and type(res) == "string" then out = res end
+            end
+            out = Language.RestoreMarked(out, marks)
+            -- The caller (Casts.lua) broadcasts the mapping, so it has to be the
+            -- composed string that will actually be spoken. Previews are skipped:
+            -- nothing said in an options panel should end up in the decode cache.
+            if live then Language.RememberEncodedMessage(langId, text, out, strength) end
+            return out, langId, true
+        end
     end
 
-    if ns.Accent and db.accent and db.accent.enabled then
+    if accentOn then
         local a = db.accent
-        -- Not the emote path despite riding inside an emote: these are spoken
-        -- words, so they take the accent's own strength, and the `false` keeps
-        -- the emote-specific handling out of it.
-        local ok, res = pcall(ns.Accent.Apply, text, a.id, a.strength or 100, false, live and true or false)
+        local ok, res = pcall(ns.Accent.Apply, text, a.id, a.strength or 100, false,
+            live and true or false)
         if ok and type(res) == "string" then return res, langId, false end
     end
     return text, langId, false
 end
 
--- Tell grouped ToA users what a garbled span means, so their Learned Languages
--- decode can read it. Same payload chat translation sends.
+-- Tell grouped ToA users what a garbled span means, so their decode can read
+-- it. Same payload chat translation sends.
 function ns.BroadcastSpeech(original, encoded, langId, chatType, channel)
     sendDecodePayload(original, encoded, langId, getStrength(), chatType, channel)
 end
@@ -844,6 +990,9 @@ function ns.LanguageName(langId) return languageName(langId) end
 function ns.FitMessage(text, maxLen) return fit(text, maxLen) end
 function ns.MaxMessageLength() return MAX_MESSAGE end
 function ns.PrintToChat(msg, style) addToChat(msg, style, getDecodeFrame()) end
+-- Addon feedback with the "[ToA]" prefix, for the modules that need to say
+-- something in their own voice (PrintToChat is the unprefixed decode channel).
+function ns.Print(msg) Print(msg) end
 
 -- Send a line we generated ourselves, already through the pipeline above.
 -- Prefers the C_ChatInfo call: the global was deprecated in 11.2.0, and on the
@@ -1003,6 +1152,45 @@ local function passiveLangIdFromTag(tag)
     if first and FLUENCY_ADJECTIVES[first] then tag = rest end
     return passiveNameToId[tag]
 end
+
+-- WoW's own language system, for the optional tinting of genuine in-game speech
+-- from players who don't run the addon. Its names are not ours: the client says
+-- "Darnassian" where we say "Darnassian (Night Elf)", and spells the dwarven
+-- tongue "Dwarvish". So this is an explicit map rather than a fuzzy match, and
+-- every result is checked against the registry before use -- a name we guessed
+-- wrong then simply doesn't tint instead of coloring the wrong language.
+local REAL_LANGUAGE_IDS = {
+    ["common"]      = "common",
+    ["orcish"]      = "orcish",
+    ["darnassian"]  = "darnassian",
+    ["taurahe"]     = "taurahe",
+    ["dwarvish"]    = "dwarven",
+    ["dwarven"]     = "dwarven",
+    ["gnomish"]     = "gnomish",
+    ["thalassian"]  = "thalassian",
+    ["gutterspeak"] = "gutterspeak",
+    ["draenei"]     = "draenei",
+    ["zandali"]     = "zandali",
+    ["troll"]       = "zandali",
+    ["demonic"]     = "demonic",
+    ["eredun"]      = "demonic",
+    ["goblin"]      = "goblin",
+    ["pandaren"]    = "pandaren",
+    ["draconic"]    = "draconic",
+    ["kalimag"]     = "kalimag",
+    ["titan"]       = "titan",
+    ["vrykul"]      = "vrykul",
+    ["shath'yar"]   = "oldgod",
+    ["nerglish"]    = "nerglish",
+}
+
+local function realLanguageId(languageName)
+    if type(languageName) ~= "string" or languageName == "" then return nil end
+    local id = REAL_LANGUAGE_IDS[string.lower(languageName)]
+        or passiveLangIdFromTag(languageName)
+    if not id or not Language.IsValid(id) then return nil end
+    return id
+end
 ns.InvalidatePassiveNames = function() passiveNameToId = nil end
 
 -- Cast phrases name their tongue in prose after the speech -- `snarls "Aman!"
@@ -1156,34 +1344,82 @@ end)
 -- instead of a separate posted line. Messages you don't understand are left as
 -- their gibberish, preserving immersion for everyone. Partial (word-by-word)
 -- understanding shows here too -- exactly the "learning" experience.
-local function inlineChatFilter(_, event, msg, sender, ...)
+-- `languageName` is the client's own language for the line ("Orcish"); it is
+-- pulled out of the varargs by name because the optional real-language tinting
+-- reads it, and because every rewritten return has to put it back in place.
+local function inlineChatFilter(_, event, msg, sender, languageName, ...)
     -- Never touch a secret message: we can't read/rewrite it, so let the client
     -- display it untouched (return false = don't filter).
     if isSecret(msg) or isSecret(sender) then return false end
     if instanceSuppressed then return false end
     if not msg or msg == "" then return false end
     migrateDB()
-    if (TonguesOfAzerothDB.decodeStyle or "inline") ~= "inline" then return false end
-    if sender == UnitName("player") then return false end
 
     local chatType = CHAT_EVENTS[event]
     if not chatType or not ns.IsChannelEnabled(chatType) then return false end
 
+    -- Which tongue is this line in? A leading "[Language] " tag, or a cast
+    -- phrase naming it in prose. This is resolved up front, ahead of any decode
+    -- attempt, because the color depends only on the tongue and not on whether
+    -- we can read it -- seeing at a glance that a line is Demonic while still
+    -- understanding none of it is the entire point of the palette.
     local tag = msg:match("^%[([^%]]+)%]%s+")
     local stripped = msg:gsub("^%[[^%]]+%]%s+", "")
-    -- A cast phrase carries its tongue in prose instead of a leading tag.
     local proseLangId = (not tag) and inlineLangIdFromProse(msg) or nil
-    local taggedLangId = (tag and passiveLangIdFromTag(tag)) or proseLangId
-    local decoded, _, _, langName = tryDecodeMessage(stripped, taggedLangId)
-    if not decoded or decoded == stripped then return false end
+    local langId = (tag and passiveLangIdFromTag(tag)) or proseLangId
 
-    -- When the line already says which tongue it was in, prefixing "[Demonic]"
-    -- would both repeat that and drop a bracket between the emoter's name and
-    -- their verb -- the very thing the prose form exists to avoid.
-    if proseLangId then return false, decoded, sender, ... end
+    -- Failing that, WoW's own language system, for players who don't run the
+    -- addon at all. Opt-in: nearly all chat is Common or your faction tongue,
+    -- so tinting it by default would repaint the window rather than pick
+    -- anything out of it.
+    local isReal = false
+    if not langId and Colors and Colors.RealLanguagesEnabled() then
+        langId = realLanguageId(languageName)
+        isReal = langId ~= nil
+    end
 
-    local marker = "|cff9a7cff[" .. (langName or "?") .. "]|r "
-    return false, marker .. decoded, sender, ...
+    local function paint(text)
+        if not (Colors and langId) then return text end
+        -- Genuine in-game speech carries no "[Language]" tag, so the words are
+        -- the only thing there is to tint. Turning that option on is therefore
+        -- opting into speech color for those lines specifically, whatever the
+        -- general speech setting says.
+        if isReal then return Colors.Apply(text, langId, { speech = true }) end
+        return Colors.Apply(text, langId)
+    end
+
+    -- Decoding is for other people's encoded speech. You already know what you
+    -- said, and genuine in-game speech was never ours to decode -- but both
+    -- still get painted below.
+    local inlineMode = (TonguesOfAzerothDB.decodeStyle or "inline") == "inline"
+    if inlineMode and not isReal and sender ~= UnitName("player") then
+        local decoded, _, _, langName = tryDecodeMessage(stripped, langId)
+        if decoded and decoded ~= stripped then
+            -- When the line already says which tongue it was in, prefixing
+            -- "[Demonic]" would both repeat that and drop a bracket between the
+            -- emoter's name and their verb -- the very thing the prose form
+            -- exists to avoid.
+            if proseLangId then
+                return false, paint(decoded), sender, languageName, ...
+            end
+            -- The marker is itself a "[Language] " tag, so it goes through the
+            -- same painter as any other tagged line and picks up that tongue's
+            -- color. The hardcoded purple remains the answer when the palette
+            -- is switched off.
+            if Colors and Colors.AnyEnabled() and langId then
+                local line = "[" .. (langName or "?") .. "] " .. decoded
+                return false, Colors.Apply(line, langId), sender, languageName, ...
+            end
+            local marker = "|cff9a7cff[" .. (langName or "?") .. "]|r "
+            return false, marker .. decoded, sender, languageName, ...
+        end
+    end
+
+    local painted = paint(msg)
+    if painted ~= msg then
+        return false, painted, sender, languageName, ...
+    end
+    return false
 end
 
 if ChatFrame_AddMessageEventFilter then
@@ -1195,14 +1431,54 @@ end
 --=========================================================================--
 --  Slash commands
 --=========================================================================--
-local function setEnabled(state)
-    TonguesOfAzerothDB.enabled = state
-    if state then
-        Print("Auto-translate |cff00ff00ON|r (|cffffff00" .. Language.GetLanguageName(TonguesOfAzerothDB.language) .. "|r).")
-    else
-        Print("Auto-translate |cffff0000OFF|r.")
+-- The in-character switch, shared by /toa on|off, the minimap button, the
+-- floating bar and the keybinding.
+--
+-- Only the typed commands report, and then they report both halves of your
+-- voice, since one switch now governs the tongue and the accent together. The
+-- button, the bar and the keybind pass silent: they already say it better than
+-- a chat line does, by going green or red the instant you use them, and they
+-- are the ones you flip often enough for a line each to read as spam.
+function ns.SetInCharacter(state, silent)
+    migrateDB()
+    TonguesOfAzerothDB.inCharacter = state and true or false
+    if ns.OnSettingsChanged then ns.OnSettingsChanged() end
+
+    if silent then return end
+    if not state then
+        Print("Speaking |cffff0000out of character|r -- your chat goes out as typed.")
+        return
     end
+    local a = TonguesOfAzerothDB.accent
+    local accentName = (a and ns.Accent and a.id ~= ns.Accent.NONE)
+        and ns.Accent.GetAccentName(a.id) or nil
+    Print("Speaking |cff00ff00in character|r: |cffffff00"
+        .. Language.GetLanguageName(TonguesOfAzerothDB.language) .. "|r"
+        .. (accentName and (" with a |cffffff00" .. accentName .. "|r accent") or "")
+        .. ".")
 end
+
+function ns.ToggleInCharacter(silent)
+    migrateDB()
+    ns.SetInCharacter(not TonguesOfAzerothDB.inCharacter, silent)
+end
+
+-- Globals for Bindings.xml: Blizzard runs binding bodies as bare chunks with no
+-- access to the addon namespace, so the keybinds need a name on _G.
+function TonguesOfAzeroth_ToggleInCharacter()
+    ns.ToggleInCharacter(true)
+end
+
+function TonguesOfAzeroth_CycleLanguage(dir)
+    if ns.CycleLanguage then ns.CycleLanguage(dir) end
+end
+
+BINDING_HEADER_TONGUESOFAZEROTH = "Tongues of Azeroth"
+BINDING_NAME_TONGUESOFAZEROTH_TOGGLE_IC = "Speak in character (toggle)"
+BINDING_NAME_TONGUESOFAZEROTH_NEXT_LANG = "Next language"
+BINDING_NAME_TONGUESOFAZEROTH_PREV_LANG = "Previous language"
+
+local setEnabled = ns.SetInCharacter
 
 local function listLanguages()
     Print("available languages (use |cffffff00/toa lang <id>|r):")
@@ -1545,7 +1821,7 @@ local function listLearned()
         end
     end
     if not any then
-        Print("  |cffff0000(none)|r - check languages under Interface -> AddOns -> Learned Languages")
+        Print("  |cffff0000(none)|r - check languages under Interface -> AddOns -> Languages")
     end
 end
 
@@ -1822,17 +2098,18 @@ local function debugReport()
             :format(hasYapper and "|cff00ff00detected|r" or "|cff888888not present|r",
                 yapperFilterHandle and "|cff00ff00REGISTERED|r" or (hasYapper and "|cffff0000NO|r" or "|cff888888n/a|r")))
     end
-    Print(("enabled=%s  strength=|cffffff00%d%%|r  lang=|cffffff00%s|r")
-        :format(db.enabled and "|cff00ff00ON|r" or "|cffff0000OFF|r", getStrength(), tostring(db.language)))
-    Print(("accent enabled=%s  id=|cffffff00%s|r  strength=|cffffff00%d%%|r")
-        :format(a.enabled and "|cff00ff00ON|r" or "|cffff0000OFF|r", tostring(a.id), a.strength or 0))
+    Print(("in character=%s  fluency=|cffffff00%d%%|r  lang=|cffffff00%s|r")
+        :format(db.inCharacter and "|cff00ff00YES|r" or "|cffff0000NO|r",
+            getStrength(), tostring(db.language)))
+    Print(("accent=|cffffff00%s|r  strength=|cffffff00%d%%|r")
+        :format(tostring(a.id), a.strength or 0))
     Print("SAY channel enabled=" .. (ns.IsChannelEnabled("SAY") and "|cff00ff00YES|r" or "|cffff0000NO|r"))
 
     -- Live engine test (bypasses the send hook so we can tell whether the
     -- problem is the hook not firing vs. the translation/accent engine itself).
     local sample = "hello my friend we attack at dawn"
     Print("sample:    |cffffffff\"" .. sample .. "\"|r")
-    local enc = translateOutgoing(sample, db.language, getStrength())
+    local enc = Language.TranslateText(sample, getStrength(), db.language, false)
     Print("translate: |cffcccccc\"" .. enc .. "\"|r "
         .. ((enc ~= sample) and "|cff00ff00(changed)|r" or "|cffff0000(unchanged)|r"))
     if ns.Accent then
@@ -1844,16 +2121,32 @@ local function debugReport()
             Print("accent:    |cffff0000error: " .. tostring(acc) .. "|r")
         end
     end
-    -- Which branch actually gets a SAY line. "Accent is on but nothing happens" is
-    -- almost always the language branch winning with a no-op translation.
+    -- What a SAY line would actually come out as. The two transforms compose
+    -- now, so this shows the composed result rather than which one won -- the
+    -- old "path=language|accent" line existed only to explain why a configured
+    -- accent silently did nothing, which can no longer happen.
     do
-        local langWins = (db.enabled and getStrength() > 0
-            and ns.IsChannelEnabled("SAY") and enc ~= sample) and true or false
-        local accentWins = ((not langWins) and a.enabled
-            and ns.IsAccentChannelEnabled("SAY")) and true or false
-        Print("SAY path=" .. (langWins and "|cff00ff00language|r"
-            or (accentWins and "|cff00ff00accent|r"
-            or "|cffff0000none (sent exactly as typed)|r")))
+        local translating = db.inCharacter and getStrength() > 0 and ns.IsChannelEnabled("SAY")
+        local accenting = accentAppliesTo("SAY")
+        local composed = sample
+        if translating then
+            local marked, marks = Language.TranslateMarked(sample, getStrength(), db.language)
+            if marks then
+                local body = marked
+                -- `false` = not a real utterance, so debugging never consumes
+                -- the interjection your next real line would have got.
+                if accenting then body = applyAccent(body, false) end
+                composed = Language.RestoreMarked(body, marks)
+            elseif accenting then
+                composed = applyAccent(sample, false)
+            end
+        elseif accenting then
+            composed = applyAccent(sample, false)
+        end
+        Print("SAY out:   |cffcccccc\"" .. composed .. "\"|r")
+        Print("SAY using=" .. ((translating and "|cff00ff00language|r" or "|cff808080language:off|r"))
+            .. " + " .. ((accenting and "|cff00ff00accent|r" or "|cff808080accent:off|r"))
+            .. ((composed == sample) and "  |cffff0000(sent exactly as typed)|r" or ""))
     end
     Print("On Midnight and Forever, typed chat uses the pre-send hook (not")
     Print("SendChatMessage, so seen=0 is normal). Chat edits pause in combat by design.")
@@ -1862,8 +2155,10 @@ end
 local function usage()
     Print("commands (also |cffffff00/tongues|r):")
     Print("  |cffffff00/toa|r  - open the config panel")
-    Print("  |cffffff00/toa on|off|r  - toggle auto-translate")
+    Print("  |cffffff00/toa on|off|r  - speak in character / out of character")
+    Print("  |cffffff00/toa ic|r  - toggle in character (same as the keybind and the bar)")
     Print("  |cffffff00/toa lang <id>|r  - set language (see /toa list)")
+    Print("  |cffffff00/toa accent <id|off>|r  - set your accent (see /toa accent list)")
     Print("  |cffffff00/toa next|r / |cffffff00prev|r  - cycle your favorites (or learned languages)")
     Print("  |cffffff00/toa fav [id]|r  - favorite/unfavorite a language (no id = the current one)")
     Print("  |cffffff00/toa fav list|off|r  - show or clear your favorites")
@@ -1878,6 +2173,7 @@ local function usage()
     Print("  |cffffff00/toa encode [lang] [strength] <text>|r  - preview translation output")
     Print("  |cffffff00/toa roundtrip [lang] [strength] <text>|r  - encode then decode (self-test)")
     Print("  |cffffff00/toa fluency <0-100>|r  - set your fluency (= how you speak it) in the current language")
+    Print("  |cffffff00/toa color [lang] [hex]|r  - per-language chat colors (|cffffff00/toa color|r for options)")
     Print("  |cffffff00/toa minimap|r  - show/hide the minimap button")
     Print("  |cffffff00/toa output <1-N|default>|r  - send translations to a chat window")
     Print("  |cffffff00/toa tag [on|off]|r  - show fluency in the [Language] tag (e.g. [Broken Orcish])")
@@ -1908,8 +2204,8 @@ local function handleSlash(input)
         setEnabled(true)
     elseif cmd == "off" then
         setEnabled(false)
-    elseif cmd == "toggle" then
-        setEnabled(not TonguesOfAzerothDB.enabled)
+    elseif cmd == "toggle" or cmd == "ic" or cmd == "ooc" then
+        ns.ToggleInCharacter()
     elseif cmd == "lang" or cmd == "language" then
         setLanguage(rest)
     elseif cmd == "next" or cmd == "cycle" then
@@ -1997,11 +2293,17 @@ local function handleSlash(input)
         if arg == "" then
             if ns.OpenAccentConfig then ns.OpenAccentConfig() end
         elseif arg == "on" then
-            a.enabled = true
-            Print("Accent |cff00ff00enabled|r (" .. (ns.Accent and ns.Accent.GetAccentName(a.id) or a.id) .. ").")
-        elseif arg == "off" then
-            a.enabled = false
-            Print("Accent |cffff0000disabled|r.")
+            -- "on" with nothing selected has to pick something, or it would
+            -- claim to enable an accent and leave you on "none". Prefer the one
+            -- they last used over the generic default.
+            if a.id == ns.Accent.NONE then
+                a.id = (a.lastId and ns.Accent.IsValid(a.lastId) and a.lastId) or ns.Accent.DEFAULT
+            end
+            Print("Accent set to |cffffff00" .. ns.Accent.GetAccentName(a.id) .. "|r.")
+        elseif arg == "off" or arg == "none" then
+            if a.id ~= ns.Accent.NONE then a.lastId = a.id end
+            a.id = ns.Accent.NONE
+            Print("Speaking |cffffff00plainly|r (no accent).")
         elseif arg == "list" then
             if ns.Accent then
                 Print("Accents:")
@@ -2012,7 +2314,6 @@ local function handleSlash(input)
             end
         elseif ns.Accent and ns.Accent.IsValid(arg) then
             a.id = arg
-            a.enabled = true
             Print("Accent set to |cffffff00" .. ns.Accent.GetAccentName(arg) .. "|r.")
         else
             Print("Unknown accent. Use /toa accent list.")
@@ -2059,6 +2360,87 @@ local function handleSlash(input)
             .. (TonguesOfAzerothDB.tagFluency
                 and "|cff00ff00ON|r (e.g. [Broken Orcish])"
                 or "|cffff0000OFF|r") .. ".")
+        if ns.OnSettingsChanged then ns.OnSettingsChanged() end
+    elseif cmd == "color" or cmd == "colour" or cmd == "colors" or cmd == "colours" then
+        migrateDB()
+        if not Colors then
+            Print("Colors are unavailable on this install.")
+            return
+        end
+        -- "<id> <hex>" and "<id> reset" both start with a language, so the
+        -- bare words are checked first and anything else is read as a language.
+        local first, second = string.match(rest or "", "^(%S*)%s*(.*)$")
+        local arg = string.lower(first or "")
+        if arg == "" then
+            local function state(v) return v and "|cff00ff00on|r" or "|cffff0000off|r" end
+            Print("Tag color " .. state(Colors.TagsEnabled())
+                .. ", speech tint " .. state(Colors.SpeechEnabled())
+                .. ", in-game languages " .. state(Colors.RealLanguagesEnabled()) .. ".")
+            Print("  |cffffff00/toa color <lang> <hex>|r  - e.g. /toa color demonic ff9e5e")
+            Print("  |cffffff00/toa color <lang> reset|r  - back to the shipped color")
+            Print("  |cffffff00/toa color list|r  - show every language's color")
+            Print("  |cffffff00/toa color tags on|off|r  - color the [Language] tag")
+            Print("  |cffffff00/toa color speech on|off|r  - tint the spoken words (independent of tags)")
+            Print("  |cffffff00/toa color ingame on|off|r, |cffffff00/toa color off|r (all), |cffffff00resetall|r")
+        elseif arg == "tags" then
+            local v = string.lower(second or "")
+            Colors.SetTagsEnabled(v == "on" or (v ~= "off" and not Colors.TagsEnabled()))
+            Print("Tag color " .. (Colors.TagsEnabled()
+                and "|cff00ff00on|r" or "|cffff0000off|r -- tags keep the channel's own color") .. ".")
+        elseif arg == "on" or arg == "off" then
+            -- The bare form is the convenience switch over both axes; "off"
+            -- means "stop coloring anything", and "on" restores the shipped
+            -- look rather than turning on a tint nobody asked for.
+            local on = (arg == "on")
+            Colors.SetTagsEnabled(on)
+            if not on then Colors.SetSpeechEnabled(false) end
+            Print("Language colors " .. (on
+                and "|cff00ff00on|r (tags; add |cffffff00/toa color speech on|r for the words)"
+                or "|cffff0000off|r") .. ".")
+        elseif arg == "speech" then
+            local v = string.lower(second or "")
+            Colors.SetSpeechEnabled(v == "on" or (v ~= "off" and not Colors.SpeechEnabled()))
+            Print("Speech tint " .. (Colors.SpeechEnabled()
+                and "|cff00ff00on|r -- the whole line takes the language color"
+                or "|cffff0000off|r -- only the [Language] tag is colored") .. ".")
+        elseif arg == "ingame" or arg == "real" then
+            local v = string.lower(second or "")
+            Colors.SetRealLanguagesEnabled(v == "on" or (v ~= "off" and not Colors.RealLanguagesEnabled()))
+            Print("In-game language tint " .. (Colors.RealLanguagesEnabled()
+                and "|cff00ff00on|r -- real Orcish, Darnassian and friends are tinted too"
+                or "|cffff0000off|r") .. ".")
+        elseif arg == "resetall" then
+            Colors.ResetAll()
+            Print("All language colors reset to their shipped values.")
+        elseif arg == "list" then
+            Print("language colors (|cffffff00/toa color <lang> <hex>|r to change):")
+            local langs = Language.GetLanguages()
+            for i = 1, #langs do
+                local id = langs[i].id
+                local hex = Colors.Hex(id)
+                Print(string.format("  |cff%s%s|r  |cffffff00%s|r%s", hex, langs[i].name, hex,
+                    Colors.IsCustom(id) and " |cff888888(custom)|r" or ""))
+            end
+        elseif Language.IsValid(arg) then
+            local value = string.lower(second or "")
+            if value == "" then
+                local hex = Colors.Hex(arg)
+                Print(string.format("|cff%s%s|r is |cffffff00%s|r%s", hex,
+                    Language.GetLanguageName(arg), hex,
+                    Colors.IsCustom(arg) and " |cff888888(custom)|r" or " |cff888888(default)|r"))
+            elseif value == "reset" or value == "default" then
+                Colors.Reset(arg)
+                Print(string.format("|cff%s%s|r reset to |cffffff00%s|r.",
+                    Colors.Hex(arg), Language.GetLanguageName(arg), Colors.Hex(arg)))
+            elseif Colors.Set(arg, value) then
+                Print(string.format("|cff%s%s|r is now |cffffff00%s|r.",
+                    Colors.Hex(arg), Language.GetLanguageName(arg), Colors.Hex(arg)))
+            else
+                Print("That isn't a color. Use six hex digits, e.g. |cffffff00ff9e5e|r.")
+            end
+        else
+            Print("Unknown language '" .. arg .. "'. Use |cffffff00/toa color list|r.")
+        end
         if ns.OnSettingsChanged then ns.OnSettingsChanged() end
     elseif cmd == "game" or cmd == "learn" or cmd == "trainer" or cmd == "wordle" then
         if ns.OpenTrainer then ns.OpenTrainer() end

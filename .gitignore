@@ -10,3 +10,7 @@ Thumbs.db
 
 # Transient commit message scratch file
 .git-commit-msg.tmp
+
+# Outreach notes: creator shortlists with per-channel "worth a pitch?" calls.
+# This repo is public and some of those channels are small enough to find it.
+PROMO.md

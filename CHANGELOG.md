@@ -2,6 +2,280 @@
 
 All notable changes to Tongues of Azeroth are documented here.
 
+## [0.4.0]
+- **Every cast phrase can be reworded, including the ones the packs ship.**
+  Only lines you had written yourself could be changed; a library line could be
+  weighted or retired but not touched, so a phrase that was nearly right for a
+  character had to be set to 0 and retyped from scratch as a new one, losing its
+  Bearing and its place in the list. Click any line to edit it in place.
+  A reworded library line keeps the text its pack shipped as its identity, which
+  is what lets the weight you set survive the edit, keeps the line matched to its
+  pack across updates, and leaves its Bearing and Wording applying as before --
+  you are changing what it says, not what kind of line it is. The pack column
+  turns into **Revert** on a line you have changed, and editing one back to its
+  original wording clears the edit rather than storing a no-op. Lines you wrote
+  are renamed where they sit, so the list doesn't reshuffle mid-edit, and their
+  weight moves with them.
+  Hovering a line now also shows its full text, which matters because the phrase
+  column is narrower than most library lines.
+- **One "Speak in character" switch, and one voice behind it.** There were two
+  master switches -- one for translation, one for accents -- each with its own
+  channel list, each governing half of how your character talks. Nothing said
+  they were related, so the only way to find out that an accent needed its own
+  switch *and* its own channel enabled was to be silently misheard.
+  There is one switch now. It covers the tongue and the accent together, and it
+  is not "is the addon on": with it off you still read other players, still
+  decode, still get the per-language colors, still build fluency. It is the
+  switch you hit to answer your raid leader in plain English and hit again after
+  -- many times a session -- which is why it is also a button on the floating
+  bar and a **keybind** (Options → Keybindings → AddOns), not just a checkbox
+  three panels deep.
+  The two channel lists collapsed into one, "the channels I'm in character on".
+  Where they disagreed the language list wins: turning translation back on
+  somewhere a player had deliberately silenced would leave them unintelligible
+  in a channel they had chosen to be clear in, while losing an accent somewhere
+  is cosmetic and one click to restore.
+  The switch is also visible at a glance: the minimap button and the floating
+  bar go **green in character, red out of it**, so the state of something you
+  toggle all evening no longer needs a hover to read.
+- **"None" is a choice in both lists, instead of a switch beside them.** The
+  accent's on/off checkbox is gone; speaking plainly is a voice like any other,
+  so it is an entry in the accent list. The language list gained the same entry,
+  which finally gives "plain English in my own accent" an honest spelling --
+  previously you had to fake it by parking on a tongue you were 0% fluent in.
+  **Upgrading:** every old combination lands on the setup that sounds the same.
+  Accents-on-with-translation-off -- a popular setup -- becomes *in character,
+  language None*, keeping the accent rather than dropping it. Anyone who had an
+  accent switched off keeps their pick in reserve, so `/toa accent on` hands
+  back their own accent rather than the default.
+- **Settings live where the thing they configure lives.** The panel you land on
+  had become a second place to change your language and your accent, competing
+  with the panels that own them -- so people went looking for "my languages"
+  under **Languages**, found the list but not the picker, and came back out.
+  Both pickers moved to their own panels. **Languages** is now where you choose
+  which tongue you speak and how fluently you speak each one; **Accents** is
+  where you choose your accent. The landing panel keeps the one thing that is
+  genuinely global -- **Speak in character** -- plus the minimap/bar options and
+  the way through to everything else.
+- **"Your voice" and the preview sit with the dials that move them.** Every
+  control that shapes how you sound now lives on **Languages** -- the tongue,
+  the fluency, the color -- so the readout and the preview followed them there.
+  Hearing the result is part of tuning it, and it was one panel away from every
+  control that changed it.
+  The preview also runs the real outgoing path now, so it shows the *composed*
+  voice -- the tongue first, your accent over whatever English the fluency left
+  behind -- and drops to plain text the moment you go out of character. It
+  previously modelled only the translation half, which meant it was quietly
+  wrong for anyone speaking with an accent.
+- **The Language Trainer is its own panel.** It is a whole minigame with its own
+  fluency economy, and it was reachable only through a button on the landing
+  page, so nothing in the navigation suggested it existed. It sits in the
+  settings tree beside Languages, Chat and Accents now.
+  *(Two fixes since the first cut. It seeded its RNG with `math.randomseed(time())`,
+  and `time` is not a global on every client -- the builder runs behind a pcall,
+  so that one nil call aborted the whole panel and it never reached the settings
+  tree. Seeding is now optional in every part, which is what it always should
+  have been: the client seeds its own RNG. It was also built early enough in the
+  login sequence that the game could not yet say which tongues your race speaks,
+  so it would have baked in a practice list it should have filtered; it now
+  builds once the player exists.)*
+- **A language you create is a real language everywhere.** Creating one on the
+  Create Language panel left it half-registered: it might be selectable, but it
+  had no row under *Your languages* — no fluency bar to drag, no color swatch,
+  no star. Two separate causes. `GetLanguages()` is memoised and the custom
+  registration path edited the registry directly without clearing the cache, so
+  most of the addon carried on as though the tongue did not exist; the registry
+  now invalidates on every change, in one place, rather than at each call site
+  that remembered to. And the language rows were built once when the panel was
+  first opened, with no way to add a later arrival — a language registered after
+  that now gets a row made for it. Deleting a custom language removes it cleanly
+  in the same pass.
+- **Dropdown menus close when you click away from them.** They only closed by
+  clicking the dropdown a second time, so every other instinct — click the
+  panel, click another control, click the world — left the menu hanging over the
+  UI. The menus are parented to the screen so they survive being opened inside a
+  scrolling panel, which also meant nothing was positioned to notice the click
+  that should have dismissed them.
+- **The floating language bar is on by default.** It is the only always-visible
+  readout of what you're speaking and whether you're in character, and it
+  carries the in/out of character button -- having it off by default made the
+  addon's main signal opt-in.
+  **Upgrading:** existing characters have an explicit "off" written by the old
+  default, which is indistinguishable from having switched the bar off on
+  purpose, so the new default is applied **once** on first login after this
+  update. Turn it off after that and it stays off.
+- **Fixed the Cast Phrases panel being shoved sideways.** Everything from *Spell*
+  downwards — the dropdown, the phrase list, *New phrase* and the preview — was drawn a
+  column to the right and ran off the edge of the panel, with the Add button pushed off
+  entirely. The pack checkboxes are a two-column grid where the right-hand column sits
+  240px in, and the section below them was anchored to *the last checkbox placed* rather
+  than to the left-hand column, so an even number of creed packs indented the whole rest
+  of the panel. Both columns of a row are the same height, so it now anchors to the left
+  one. The spell-name box and the new-phrase box also take their right edge from the panel
+  instead of a fixed width, so neither can run past it on a narrower canvas.
+- **Tooltips rebuild while you're still hovering them.** They are built in
+  `OnEnter`, so anything that changed state while one was open left stale text
+  under a cursor that never moved: flipping in or out of character with the
+  bar's own button still read "Speaking in character", and scrolling the minimap
+  icon to cycle languages still named the previous tongue. The minimap button,
+  the floating bar and its star and in-character button, and the per-language
+  star and color swatch now redraw their tooltip in place. This covers
+  LibDBIcon's private tooltip frame as well as `GameTooltip` -- the minimap icon
+  uses the former, so a first pass at this fixed everything except the one
+  frame you cycle languages from.
+- **Switching in and out of character no longer reports to chat**, unless you
+  asked for it by typing `/toa on`, `/toa off` or `/toa ic`. The minimap icon,
+  the floating bar's button and the keybinding all turn green or red as you use
+  them, which says the same thing without a line of chat each time you flip.
+- **The language you're speaking is always the first row.** The preview sits
+  directly above the language list, and the pair is only worth anything if you
+  can see both at once -- drag a fluency, read the line it produces. In a fixed
+  list of seventy tongues that meant hunting for your own row every time, which
+  made the preview effectively unreachable for the one language it was
+  previewing. Your tongue pins to the top (a sub-dialect pins its parent, whose
+  row it shares), your favorites follow it, then everything else in the usual
+  order. Switching tongues scrolls the list back up to it.
+- **Favorites are starred on the language rows, not in the Speaking dropdown.**
+  The one control for curating a shortlist was buried inside the long list the
+  shortlist exists to shorten: you had to hunt through seventy entries to mark
+  the handful that would have saved you the hunt. The star now sits on each
+  language's row beside its fluency and its color, with the rest of what you set
+  per language. The dropdown still groups your favorites at the top -- it just
+  no longer sets them. (Right-clicking a dropdown row still toggles it, which
+  remains the way to favorite a *sub-dialect*: the rows are primaries, so
+  Eldre'Thalassian (Skyborne) has no row, and no star, of its own.)
+- **"Your voice" gets its own line.** It spent a version squeezed into a second
+  column beside the Speaking dropdown, which fit the panel but not the content:
+  the preview is a sentence, and half a panel is not enough to read one in.
+- **The fluency bars look like sliders.** They are draggable, but a track with a
+  lit section reads as a progress meter -- it reports, it doesn't invite -- so
+  there was nothing to suggest you could grab one. Each bar now carries a
+  **handle** at its current value, drawn at every value including 0%, where the
+  fill is hidden and there was previously nothing on screen to take hold of.
+- **Fluency is one number again, on the row it belongs to.** The front panel's
+  Fluency slider read like a live "how much is coming through" dial and got used
+  like one -- but it wrote character progress, so dialing it down to sound broken
+  for one conversation permanently erased fluency you had earned.
+  The fix is not a second number. **Drag a language's bar** on the Languages
+  panel to set its fluency; that is the only place it is edited, and it is the
+  same number everything else reads. (A brief attempt at a separate
+  non-destructive "coming through" cap made this worse rather than better --
+  nothing could tell you which of the two numbers you were looking at -- so it
+  is gone, and any saved value is cleared on upgrade.)
+- **Accents and languages compose instead of competing.** They were two
+  subsystems racing for each line, and the language always won: your accent was
+  only ever heard on lines translation had left alone -- Common, 0% fluency, or
+  a channel with translation switched off. Configure an accent while speaking a
+  tongue and it silently did nothing. The giveaway was that `/toa debug` carried
+  a diagnostic whose entire job was explaining why, which is a design problem
+  worked around rather than fixed, and it is most of why the two read as
+  separate addons bolted together.
+  Partial fluency already leaves part of a line in English -- that is what
+  partial fluency *means* -- and English spoken by a dwarf should sound dwarven.
+  So the accent now applies to exactly that remainder:
+
+  | Fluency | Dwarf speaking Orcish |
+  |---|---|
+  | 0% | *hello ma braw laddie we attack the tower at dawn* |
+  | 50% | *magan mu braw laddie ko attack the throm no dawn, right enough.* |
+  | 100% | *magan mu nogu revash ko goth'a kaz throm no uruk* |
+
+  The translated words are held behind sentinels while the accent runs and are
+  never touched by it. That is not tidiness: decoding is a lookup on the exact
+  encoded string, so an accent that respelled a foreign word would make the line
+  undecodable for every listener. The mapping other players receive is now the
+  composed line, accent and all, rather than the pre-accent version.
+  **What changes for you:** lines that came out as flat English now carry your
+  accent, and anyone who had an accent configured but never saw it will start
+  hearing it. Nothing needs reconfiguring.
+- **The settings are reorganized, because they had stopped being organized at
+  all.** Options had been landing on whichever panel was open when they were
+  written, and the main panel had drifted into holding seven unrelated
+  checkboxes in a flat stack -- a master switch, the minimap button, the
+  floating bar and its lock, tag appearance, a list filter and an instance
+  toggle -- above the language and fluency controls you actually opened it for.
+  "Learned Languages" had gone the same way, collecting the decode style and
+  output window (which are about reading other people, not about your learned
+  list) and, most recently, the color toggles.
+  Every panel now answers exactly one question, which is also the rule for where
+  anything new goes:
+  - **Tongues of Azeroth** -- *what am I speaking right now?* Auto-translate,
+    language, fluency, preview. The minimap button and floating bar stay here
+    under an **Interface** heading at the bottom: they are furniture rather than
+    language settings, but "where do I turn off the minimap button" is a
+    question people arrive with, and they are three checkboxes, not a panel.
+  - **Languages** (was "Learned Languages") -- *how is each tongue set up?* The
+    per-language list, where what you understand, how fluently and what color it
+    reads in are all edited on the same row. The color toggles sit directly
+    above the swatches they govern, and "Hide languages my race already speaks"
+    moved here from the main panel, next to the list it filters.
+  - **Chat** (new) -- *where does translation apply, and how does it read?*
+    Split by the two directions the pipeline runs in. *When you speak:*
+    channels, the fluency tag, and pausing inside instances. *When you listen:*
+    decode style and which window translations appear in. The instance
+    heads-up now sits beside the option it explains instead of being the first
+    thing a new player reads on the landing panel.
+  - **Accents**, **Cast Phrases**, **Create Language** are unchanged; each was
+    already one self-contained job.
+  Nothing was removed and no setting was reset -- every option is still there,
+  and section headings now separate groups instead of running them together.
+  The fluency slider also says outright that it is a shortcut for the language
+  you are speaking and shows the same number as that tongue's row under
+  Languages; two controls over one value is fine, but two controls over one
+  value with nothing saying so is how you get a bug report.
+- **New: a color for every tongue.** Demonic reads as a warm orange, Old God as
+  a deep purple, and the other sixty-odd arrive with their own distinct color
+  rather than sharing one. The colors that were worth choosing by hand were
+  chosen by hand; the rest are derived from the language's own id, with the
+  saturation and brightness pinned to a band that stays legible on the chat
+  background, so a beast or faction dialect is still recognisable without anyone
+  hand-picking fifty more swatches. Sub-dialects inherit their parent, because
+  Amani, Gurubashi and Drakkari already sound like Troll and should look like it
+  too.
+  **The color lands whether or not you can read the line.** That is the whole
+  reason the feature exists, and it decided the implementation: coloring happens
+  before the decode attempt rather than as part of it, so a tongue you have not
+  learned still announces itself. Your own speech is colored as well, which it
+  previously was not -- the chat filter used to skip your own lines entirely.
+- **Tags are colored by default, speech is not.** A tag marks the language
+  without repainting a conversation, so that is the setting that ships on. Tint
+  the spoken words too with the "Tint speech" toggle if you want it fuller.
+  The two are **independent**, which is worth stating because the first cut had
+  it wrong: tag color was a master switch, so turning it off killed the speech
+  tint along with it. All four combinations now do what the two checkboxes say
+  they do, including tags-off/speech-on, which tints the words and leaves the
+  tag in the channel's own color. A cast phrase is the one line where a single
+  span is both the marker and the speech -- it has no tag, and the quoted words
+  are the only thing naming the tongue -- so either setting colors it.
+- **WoW's own languages can be tinted too**, for players who do not run the
+  addon at all -- real Orcish, Darnassian and the rest. This one ships **off**,
+  because nearly all chat is Common or your faction's tongue, so turning it on
+  tints most of the window rather than picking anything out of it. The client's
+  names for these are not ours ("Dwarvish" to our "Dwarven"), so they go through
+  an explicit map and a name we guessed wrong simply does not tint.
+- **Saved account-wide.** The palette is the first setting in the addon that is
+  not per-character, on the grounds that a color scheme is something you want on
+  every alt rather than something to rebuild seventy times.
+- Set colors from the swatch on each row of the Languages panel (click to pick,
+  right-click for the default) or from `/toa color <lang> <hex>`. The color
+  picker is feature-detected, since Blizzard replaced that API in 10.2.5, and
+  falls back to the slash command where it is unavailable.
+- **Fixed: three languages appeared in the list twice, under two names.**
+  "Eredun (Demonic)" sat directly below "Demonic (Eredun)" and was the same
+  tongue -- a sub-language shares its parent's word set, so the two translated
+  identically. "Forsaken" under "Gutterspeak (Forsaken)" and "Elemental" under
+  "Kalimag (Elemental)" were the same mistake. The dropdown, `/toa list`,
+  cycling, the Learned tab and the color list now show 66 languages instead of
+  69, with nothing lost: the three ids still resolve, so a macro, a saved
+  setting or a share code naming one keeps working, and anything saved is moved
+  onto the name that is shown. The test suite now enforces the rule that caught
+  them -- a dialect whose name says nothing its parent's name does not is a
+  second label, not a dialect.
+- **Fixed: long language names overflowed the floating bar.** The box was a
+  fixed 140px and "Eldre'Thalassian (Skyborne)" ran out of both ends of it. It
+  measures its contents now, so every shipped name fits and a custom language
+  can be called whatever you like.
+
 ## [0.3.1]
 - **`/toa` is the command now, and `/ogt` is gone.** `/toa` has actually worked
   for some time, but the help text and the documentation still taught `/ogt`

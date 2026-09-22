@@ -329,7 +329,7 @@ function updateStats()
             langName(), r.name, math.floor(frac * 100 + 0.5), learned))
     end
 
-    -- Live-update the Learned Languages panel's fluency bars if it's open too.
+    -- Live-update the Languages panel's fluency bars if it's open too.
     if ns.RefreshLearnedIfShown then ns.RefreshLearnedIfShown() end
 end
 
@@ -484,7 +484,21 @@ end
 
 local function build()
     if built then return end
-    math.randomseed(time())
+
+    -- The client seeds its own RNG at startup, so this is belt-and-braces --
+    -- which is why every part of it is optional rather than assumed. The bare
+    -- `math.randomseed(time())` this replaces is standalone-Lua habit: `time`
+    -- is not a global on every client we build for, and `math.randomseed` is
+    -- not guaranteed either.
+    --
+    -- It cost more than a line. build() runs behind a pcall, so the nil call
+    -- didn't just skip the seeding, it aborted the whole builder -- and since
+    -- the trainer registers itself from there, the panel silently never
+    -- appeared in the settings tree at all.
+    local seed = (GetServerTime and GetServerTime())
+        or (time and time())
+        or (GetTime and GetTime())
+    if seed and math.randomseed then math.randomseed(math.floor(seed)) end
 
     gameFrame = Compat.CreateOptionsPanel("TonguesOfAzerothGameFrame")
     gameFrame.name = "Language Trainer"
@@ -623,14 +637,42 @@ local function build()
     applyLength(diffFor(DB().difficulty).len)
 
     gameFrame.refresh = updateStats
+
+    -- Deal the first round lazily on show, so building the panel at login
+    -- doesn't burn a word before anyone has opened it.
+    gameFrame:HookScript("OnShow", function()
+        if not target or over then newRound() end
+        if input then input:SetFocus() end
+    end)
+
     built = true
+end
+
+-- Build the trainer without showing it, and hand the frame back so UI.lua can
+-- register it in the settings tree alongside Languages, Chat and Accents.
+--
+-- It is a whole minigame with its own fluency economy, so reaching it through a
+-- lone button on the landing panel buried it: nothing in the navigation tree
+-- suggested it existed. It is a layer, so it gets a layer.
+function ns.BuildTrainerPanel()
+    local ok, err = pcall(build)
+    if not ok then
+        DEFAULT_CHAT_FRAME:AddMessage("|cffff5555[ToA Trainer error]|r " .. tostring(err))
+        return nil
+    end
+    return gameFrame
 end
 
 function ns.OpenTrainer()
     local ok, err = pcall(function()
-        build()
+        -- Builds and registers if login hasn't already; opening the trainer
+        -- should never depend on having been registered first.
+        if ns.EnsureTrainerPanel then ns.EnsureTrainerPanel() else build() end
         if not target or over then newRound() end
-        Compat.ShowStandalone(gameFrame)
+        -- Routes through the shared opener so it lands in the settings tree on
+        -- clients that have one, and in the standalone window on those that
+        -- don't -- the same path every other panel takes.
+        Compat.OpenOptionsPanel(gameFrame)
         if input then input:SetFocus() end
     end)
     if not ok then

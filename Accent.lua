@@ -40,8 +40,13 @@ end
 
 local function isUpper(ch) return ch >= "A" and ch <= "Z" end
 
--- Spans that must survive an accent untouched: WoW hyperlinks, [bracketed] text,
--- and (parenthetical) OOC asides. We stash them behind a placeholder that the
+-- Spans that must survive an accent untouched: the "|"-led escape sequences
+-- listed in Language.lua's MARKUP_PATTERNS (hyperlinks, textures, atlases,
+-- colors, URLs), plus [bracketed] text and (parenthetical) OOC asides. The
+-- escape list is shared rather than repeated here, because an accent that
+-- protects a different set from the translator is a bug waiting to happen --
+-- swap tables only spare a link's innards by luck. We stash them behind a
+-- placeholder that the
 -- word matcher can't touch, then restore them afterwards. \002 + digits is safe:
 -- the WORD pattern below only matches letters, so placeholders pass straight
 -- through the swap/pattern pass.
@@ -55,7 +60,7 @@ local function protectSpans(text, protectStars)
         saved[n] = seg
         return ACCENT_PLACEHOLDER .. n .. ACCENT_PLACEHOLDER
     end
-    local out = text:gsub("|c%x+|H.-|h.-|h|r", stash)  -- item/spell/player links
+    local out = ns.StashMarkup(text, stash)             -- links, textures, colors, URLs
     out = out:gsub("%b[]", stash)                       -- [bracketed] labels
     out = out:gsub("%b()", stash)                       -- (OOC asides)
     -- Inline *emote* actions are treated like emotes: only accented when the
@@ -125,6 +130,16 @@ end
 --    threshold ~70+ : heavy dialect spelling (hard to read = very "garbled")
 --  patterns = { { luaPattern, repl, threshold }, ... }   (applied after swaps)
 --=========================================================================--
+
+-- Speaking plainly is a voice like any other, so "no accent" is an entry in the
+-- list rather than a separate on/off switch beside it. One control answers "how
+-- do I sound", instead of a checkbox that silently overrode a dropdown -- which
+-- is the shape the old accent.enabled flag had.
+--
+-- Registered first so it heads the dropdown, and empty so that even if something
+-- routes past the early-out in Accent.Apply it is still a no-op.
+Accent.NONE = "none"
+reg("none", { name = "None (speak plainly)", swaps = {}, patterns = {}, tails = {} })
 
 -- Dwarven == broad Scots. Real Scots writing: ye/yer, -in', cannae/dinnae,
 -- tae/frae/o', oot/hoose/doon, and the classic -icht for -ight (nicht/licht).
@@ -565,6 +580,9 @@ end
 -- never uses up the flourish that the next thing you actually say would get.
 function Accent.Apply(text, id, strength, emotesOn, live)
     if not text or text == "" then return text end
+    -- "No accent" short-circuits before the tail bookkeeping below, so choosing
+    -- it never consumes the interjection spacing that a real accent tracks.
+    if id == Accent.NONE then return text end
     strength = strength or 100
     if strength <= 0 then return text end
     local acc = ACCENTS[id or Accent.DEFAULT] or ACCENTS[Accent.DEFAULT]

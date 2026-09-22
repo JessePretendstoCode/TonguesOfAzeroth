@@ -1,9 +1,22 @@
 <Bindings>
-    <!-- Hover a spell on your action bars or in the spellbook and press this to
-         jump straight to its phrase list. Deliberately NOT listed in the .toc:
-         the client loads Bindings.xml by name, and listing it as well throws
-         "Unrecognized XML: Binding". -->
-    <Binding name="TONGUESOFAZEROTH_CASTPHRASES" category="ADDONS" header="TONGUESOFAZEROTH">
-        TonguesOfAzeroth_OpenCastPhrases();
+    <!--
+        Switching in and out of character happens mid-conversation, several
+        times a session: you duck out to answer a raid leader and duck back.
+        That is keybind territory, not a trip to the options panel.
+
+        The actions call globals rather than the addon namespace because
+        Blizzard runs these bodies as plain chunks with no addon scope.
+
+        Note for editors: XML forbids a double hyphen inside a comment, so
+        keep the prose here free of them.
+    -->
+    <Binding name="TONGUESOFAZEROTH_TOGGLE_IC" header="TONGUESOFAZEROTH" category="ADDONS">
+        TonguesOfAzeroth_ToggleInCharacter()
+    </Binding>
+    <Binding name="TONGUESOFAZEROTH_NEXT_LANG" category="ADDONS">
+        TonguesOfAzeroth_CycleLanguage(1)
+    </Binding>
+    <Binding name="TONGUESOFAZEROTH_PREV_LANG" category="ADDONS">
+        TonguesOfAzeroth_CycleLanguage(-1)
     </Binding>
 </Bindings>

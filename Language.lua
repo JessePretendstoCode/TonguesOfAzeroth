@@ -40,15 +40,32 @@ local MAX_WORD_LEN = 18 -- Blizzard caps parser lookups at 18 letters.
 --=========================================================================--
 local LANGUAGES = {}
 local LANGUAGE_ORDER = {}
--- Memoised result of GetLanguages(); rebuilt lazily and cleared whenever a new
--- language is registered (including runtime custom/imported languages).
+-- Memoised result of GetLanguages(); rebuilt lazily and cleared whenever the
+-- registry changes (including runtime custom/imported languages).
 local languageListCache = nil
+
+-- Bumped alongside the cache so callers that build something *else* from the
+-- registry can tell it moved. The config UI builds a row per language once, and
+-- a language created after that would otherwise never get one -- it would show
+-- up in the dropdown with no fluency bar, no color swatch and no star.
+local revision = 0
+
+-- Every mutation of LANGUAGES / LANGUAGE_ORDER goes through this. Registering a
+-- custom language used to edit both directly and leave the memoised list alone,
+-- so a tongue you had just created did not exist as far as GetLanguages() was
+-- concerned -- which is most of what reads the registry.
+local function invalidate()
+    languageListCache = nil
+    revision = revision + 1
+end
+
+function Language.GetRevision() return revision end
 
 local function register(id, def)
     def.id = id
     LANGUAGES[id] = def
     LANGUAGE_ORDER[#LANGUAGE_ORDER + 1] = id
-    languageListCache = nil
+    invalidate()
 end
 
 -- Move an already-registered language to the head of the display order, which
@@ -62,7 +79,7 @@ local function pinFirst(id)
         if LANGUAGE_ORDER[i] == id then
             table.remove(LANGUAGE_ORDER, i)
             table.insert(LANGUAGE_ORDER, 1, id)
-            languageListCache = nil
+            invalidate()
             return
         end
     end
@@ -320,7 +337,13 @@ local function G(id, name, apostrophe, onsets, nuclei, codas)
 end
 
 -- Register a sub-language that reuses its parent's word set / generator.
-local function alias(id, name, parentId)
+--
+-- `hidden` marks an alias that is a second name for its parent rather than a
+-- dialect of it -- "Eredun (Demonic)" beside "Demonic (Eredun)" reads as two
+-- languages in the dropdown when it is one. Hidden aliases are left out of
+-- every list but stay resolvable, so an old saved setting, a macro or a share
+-- code naming one still works instead of falling back to the default tongue.
+local function alias(id, name, parentId, hidden)
     local p = LANGUAGES[parentId]
     if not p then return end
     register(id, {
@@ -329,9 +352,29 @@ local function alias(id, name, parentId)
         generator = p.generator,
         dict = p.dict,
         sub = true,
+        hidden = hidden or nil,
         parent = parentId,
         wordset = p.wordset or parentId, -- generators seed from this so output matches parent
     })
+end
+
+-- "None" is the absence of a tongue, offered beside the real ones so that
+-- "speak English, but in my own accent" is something you can pick rather than
+-- something you have to fake by parking on a language you're 0% fluent in.
+--
+-- Registered as hidden: it is not a tongue you learn, train, color or hear
+-- anyone else speak, so it has no business in the Languages list, the color
+-- palette or the cycle order. The speak-language dropdown offers it explicitly.
+-- No parent, so CanonicalId leaves it alone rather than migrating it away the
+-- way it does a hidden alias.
+register("none", { name = "None (speak plainly)", plain = true, hidden = true })
+
+-- Languages that pass English straight through. Common is one by design -- it
+-- is the shared tongue, already intelligible -- and "none" is one by definition.
+function Language.IsPlain(langId)
+    local l = LANGUAGES[langId]
+    if not l then return false end
+    return l.plain == true or l.id == "common" or l.parent == "common"
 end
 
 G("common", "Common", 0.03,
@@ -527,11 +570,14 @@ pinFirst("skyborne")
 alias("amani",     "Amani (Troll)",         "zandali")
 alias("gurubashi", "Gurubashi (Troll)",     "zandali")
 alias("drakkari",  "Drakkari (Troll)",      "zandali")
-alias("forsaken",  "Forsaken",              "gutterspeak")
+-- Hidden: the parent is already "Gutterspeak (Forsaken)", so listing this too
+-- puts the same tongue in the dropdown twice under both of its names.
+alias("forsaken",  "Forsaken",              "gutterspeak", true)
 alias("lowcommon", "Low Common",            "common")
 alias("sindassi",  "Sindassi (Thalassian)", "thalassian")
 alias("shalassian", "Shalassian (Nightborne)", "thalassian")
-alias("eredun",    "Eredun (Demonic)",      "demonic")
+-- Hidden: "Eredun (Demonic)" is "Demonic (Eredun)" with the words swapped.
+alias("eredun",    "Eredun (Demonic)",      "demonic", true)
 alias("hyena",     "Hyena",                 "wolf")
 alias("corehound", "Core Hound",            "wolf")
 alias("sporebat",  "Sporebat",              "bat")
@@ -541,7 +587,8 @@ alias("chimaera",  "Chimaera",              "serpent")
 alias("crocolisk", "Crocolisk",             "serpent")
 alias("devilsaur", "Devilsaur",             "serpent")
 alias("turtle",    "Turtle",                "trentish")
-alias("elemental", "Elemental",             "kalimag")
+-- Hidden: the parent is already "Kalimag (Elemental)".
+alias("elemental", "Elemental",             "kalimag", true)
 alias("qiraji",    "Qiraji",                "nerubian")
 alias("silithid",  "Silithid",              "nerubian")
 alias("wasp",      "Wasp",                  "nerubian")
@@ -657,13 +704,19 @@ local function resolveLang(langId)
     return LANGUAGES[langId or Language.DEFAULT] or LANGUAGES[Language.DEFAULT]
 end
 
+-- Every language worth showing. Hidden aliases (a second name for a tongue
+-- already in the list) are excluded here rather than filtered by each caller,
+-- so the dropdown, /toa list, cycling, the Learned tab and the color list all
+-- agree on what exists.
 function Language.GetLanguages()
     if languageListCache then return languageListCache end
     local out = {}
     for i = 1, #LANGUAGE_ORDER do
         local id = LANGUAGE_ORDER[i]
         local l = LANGUAGES[id]
-        out[i] = { id = id, name = l.name, sub = l.sub or false, parent = l.parent }
+        if not l.hidden then
+            out[#out + 1] = { id = id, name = l.name, sub = l.sub or false, parent = l.parent }
+        end
     end
     languageListCache = out
     return out
@@ -675,11 +728,20 @@ function Language.GetPrimaryLanguages()
     for i = 1, #LANGUAGE_ORDER do
         local id = LANGUAGE_ORDER[i]
         local l = LANGUAGES[id]
-        if not l.sub then
+        if not l.sub and not l.hidden then
             out[#out + 1] = { id = id, name = l.name }
         end
     end
     return out
+end
+
+-- A hidden alias still resolves, but nothing should leave a player parked on
+-- one: it would show as a language absent from every list. Callers migrate a
+-- saved id through this to the tongue it is a second name for.
+function Language.CanonicalId(langId)
+    local l = LANGUAGES[langId]
+    if l and l.hidden and l.parent then return l.parent end
+    return langId
 end
 
 function Language.GetLanguageName(langId)
@@ -766,6 +828,7 @@ function Language.RegisterCustom(def)
         if strsub(k, 1, #id + 1) == id .. ":" then generateCache[k] = nil end
     end
     DECODE_WORD_CACHE[id] = nil
+    invalidate()
     return true, id
 end
 
@@ -780,6 +843,7 @@ function Language.UnregisterCustom(langId)
         if strsub(k, 1, #langId + 1) == langId .. ":" then generateCache[k] = nil end
     end
     DECODE_WORD_CACHE[langId] = nil
+    invalidate()
     return true
 end
 
@@ -905,6 +969,41 @@ end
 local ENCODE_CACHE = {} -- ENCODE_CACHE[langId][encodedText] = { english, strength }
 local SEGMENT_PLACEHOLDER = "\002"
 
+-- Spans that must reach the chat server byte-identical. Chat is not plain text:
+-- "|"-led escape sequences carry hyperlinks, textures, atlases and colors, and
+-- WORD_PATTERN ("[%a][%a'-]*") matches the bare letters that terminate them --
+-- so an unprotected sequence comes back as malformed markup (|h substituted to
+-- |a, |c to |m) rather than merely translated.
+--
+-- Order matters. Whole links are stashed before the color codes and terminators
+-- they contain, and the escaped pipe goes first so "||c" is never read as the
+-- start of a color. The color patterns take exactly eight hex digits rather
+-- than "%x+": greedy matching swallows following text that happens to be
+-- hex-ish, so "|cffFF0000Dead men|r" would lose the word "Dead".
+local MARKUP_PATTERNS = {
+    "||",                               -- escaped literal pipe
+    "|c%x%x%x%x%x%x%x%x|H.-|h.-|h|r",   -- colored hyperlink (item, spell, quest, achievement)
+    "|H.-|h.-|h",                       -- hyperlink with no color wrapper (player, achievement)
+    "|T.-|t",                           -- texture
+    "|A.-|a",                           -- atlas
+    "|K.-|k",                           -- obfuscated Battle.net name
+    "|c%x%x%x%x%x%x%x%x",               -- color start, AARRGGBB
+    "|c[nN]%a[%w_]*:",                  -- color start by name (retail: |cnRED_FONT_COLOR:)
+    "|r",                               -- color end
+    "|n",                               -- newline
+    "https?://%S+",                     -- URLs; not RP text, and garbling one helps nobody
+    "www%.[%w-]+%.%S+",
+}
+
+-- Shared with Accent.lua, which has to protect exactly the same spans. Keeping
+-- one list means the two transforms cannot drift apart on what is untouchable.
+function ns.StashMarkup(text, stash)
+    for i = 1, #MARKUP_PATTERNS do
+        text = text:gsub(MARKUP_PATTERNS[i], stash)
+    end
+    return text
+end
+
 local function protectSegments(text)
     local saved = {}
     local n = 0
@@ -914,8 +1013,9 @@ local function protectSegments(text)
         return SEGMENT_PLACEHOLDER .. n .. SEGMENT_PLACEHOLDER
     end
 
-    -- WoW item/spell/player hyperlinks first (they contain bracketed labels).
-    local out = text:gsub("|c%x+|H.-|h.-|h|r", stash)
+    -- Escape sequences first: a link stashed whole takes its [bracketed] label
+    -- with it, so the %b[] pass below only ever sees genuine prose brackets.
+    local out = ns.StashMarkup(text, stash)
     -- Any remaining [bracketed] text (should not be translated).
     out = out:gsub("%b[]", stash)
     -- (Parenthetical) OOC asides are left in plain speech, not translated.
@@ -987,7 +1087,7 @@ function Language.TranslateText(text, strength, langId, remember)
     -- Common is the shared, universally-understood tongue: speaking it should
     -- read as plain text to everyone, not a garbled substitution. So Common
     -- (and any dialect built on it, e.g. Low Common) passes straight through.
-    if lang.id == "common" or lang.parent == "common" then
+    if Language.IsPlain(lang.id) then
         return text
     end
     local protected, saved = protectSegments(text)
@@ -1002,6 +1102,60 @@ function Language.TranslateText(text, strength, langId, remember)
         rememberEncodedMessage(lang.id, text, result, strength)
     end
     return result
+end
+
+-- Translate, but leave every translated word behind a sentinel instead of
+-- inline, so a later pass can transform the English that survived without
+-- touching the foreign words. Returns markedText, marks (nil when nothing
+-- translated); pass both to Language.RestoreMarked when the later pass is done.
+--
+-- This is what lets an accent and a language share one line. Partial fluency
+-- already leaves some of a sentence in English -- that is the whole point of it
+-- -- and English spoken by a dwarf should sound dwarven, so at 40% Orcish you
+-- get Orcish words with a Dwarven accent on the rest.
+--
+-- Running the accent over the finished translation instead is not an option:
+-- the accent respells words phonetically, and the foreign words have to reach
+-- the receiver byte-identical, because decoding is a lookup on the exact
+-- encoded string. An accent that touched them would make the line undecodable
+-- for everyone.
+--
+-- The sentinel is deliberately NOT SEGMENT_PLACEHOLDER ("\002"): Accent.lua
+-- protects its own spans with that same character and restores them mid-flight,
+-- so it would consume ours on the way past.
+local FOREIGN_PLACEHOLDER = "\003"
+
+function Language.TranslateMarked(text, strength, langId)
+    if not text or text == "" then return text, nil end
+    strength = strength or 100
+    local lang = resolveLang(langId)
+    -- Same passthroughs as TranslateText: nothing to mark, so the caller's
+    -- accent gets the whole line as plain English.
+    if strength <= 0 or Language.IsPlain(lang.id) then
+        return text, nil
+    end
+
+    local protected, saved = protectSegments(text)
+    local marks, n = {}, 0
+    local marked = protected:gsub(WORD_PATTERN, function(word)
+        if not Language.WordTranslates(word, strength) then return word end
+        n = n + 1
+        marks[n] = Language.TranslateWord(word, lang.id)
+        return FOREIGN_PLACEHOLDER .. n .. FOREIGN_PLACEHOLDER
+    end)
+    if n == 0 then return text, nil end
+
+    -- Markup and bracket spans go back now. Only the foreign words stay behind
+    -- sentinels, because only they must survive the accent untouched -- the
+    -- accent protects links and asides perfectly well by itself.
+    return restoreSegments(marked, saved), marks
+end
+
+function Language.RestoreMarked(text, marks)
+    if not marks or not text then return text end
+    return (text:gsub(FOREIGN_PLACEHOLDER .. "(%d+)" .. FOREIGN_PLACEHOLDER, function(i)
+        return marks[tonumber(i)] or ""
+    end))
 end
 
 --=========================================================================--
@@ -1130,10 +1284,15 @@ end
 local function buildReverseMaps(forwardFn)
     for i = 1, #LANGUAGE_ORDER do
         local langId = LANGUAGE_ORDER[i]
-        for j = 1, #COMMON_WORDS do
-            local word = COMMON_WORDS[j]
-            local out = forwardFn(word, langId)
-            rememberTranslation(langId, word, out)
+        -- Plain "languages" have no word set and never encode anything, so
+        -- there is nothing to reverse -- and asking for a translation would
+        -- reach a generator they don't have.
+        if not Language.IsPlain(langId) then
+            for j = 1, #COMMON_WORDS do
+                local word = COMMON_WORDS[j]
+                local out = forwardFn(word, langId)
+                rememberTranslation(langId, word, out)
+            end
         end
     end
 end

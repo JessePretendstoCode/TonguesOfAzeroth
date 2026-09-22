@@ -343,6 +343,19 @@ function Compat.AddBorder(frame, r, g, b, a)
     local bottom = edge(); bottom:SetPoint("BOTTOMLEFT"); bottom:SetPoint("BOTTOMRIGHT"); bottom:SetHeight(1)
     local left = edge();   left:SetPoint("TOPLEFT");      left:SetPoint("BOTTOMLEFT");    left:SetWidth(1)
     local right = edge();  right:SetPoint("TOPRIGHT");    right:SetPoint("BOTTOMRIGHT");   right:SetWidth(1)
+
+    -- Handed back so a border can be recolored later to signal state (the
+    -- floating bar goes green/red for in/out of character). Callers that just
+    -- want a static frame can ignore the return, as most do.
+    local edges = { top, bottom, left, right }
+    return {
+        edges = edges,
+        SetColor = function(self, nr, ng, nb, na)
+            for i = 1, #self.edges do
+                Compat.SolidTexture(self.edges[i], nr, ng, nb, na)
+            end
+        end,
+    }
 end
 
 --=========================================================================--
@@ -761,6 +774,45 @@ end
 --   dd.onToggle  = function(value) ... end  (clicking a row's star; set this and
 --                                            give items a boolean `toggle` to
 --                                            draw one)
+-- One click-catcher shared by every dropdown menu.
+--
+-- A menu you can only dismiss by clicking the dropdown again is a menu you get
+-- stuck in -- every other instinct (click the panel, click another control,
+-- click the world) leaves it hanging over the UI. The menus are parented to
+-- UIParent so they survive being opened inside a ScrollFrame, which also means
+-- nothing is positioned to notice the click that ought to close them.
+--
+-- Full-screen, one strata below the menus themselves: a click inside the menu
+-- still reaches the menu, and a click anywhere else lands here. That click is
+-- consumed rather than passed through, which is how Blizzard's own dropdowns
+-- behave -- the first click outside dismisses, and only then does the UI take
+-- clicks again.
+local dropdownCatcher, openDropdownMenu
+
+local function hideDropdownCatcher()
+    openDropdownMenu = nil
+    if dropdownCatcher then dropdownCatcher:Hide() end
+end
+
+local function showDropdownCatcher(menu)
+    if not dropdownCatcher then
+        dropdownCatcher = CreateFrame("Button", nil, UIParent)
+        dropdownCatcher:SetAllPoints(UIParent)
+        dropdownCatcher:SetFrameStrata("FULLSCREEN")
+        dropdownCatcher:EnableMouse(true)
+        dropdownCatcher:RegisterForClicks("AnyUp")
+        dropdownCatcher:SetScript("OnClick", function()
+            if openDropdownMenu then openDropdownMenu:Hide() end
+            hideDropdownCatcher()
+        end)
+        dropdownCatcher:Hide()
+    end
+    -- Opening a second menu closes the first, so only one is ever live.
+    if openDropdownMenu and openDropdownMenu ~= menu then openDropdownMenu:Hide() end
+    openDropdownMenu = menu
+    dropdownCatcher:Show()
+end
+
 function Compat.CreateDropdown(parent, width)
     local dd = CreateFrame("Button", nil, parent)
     dd:SetSize(width or 200, 26)
@@ -803,6 +855,7 @@ function Compat.CreateDropdown(parent, width)
     local menu
     local function closeMenu()
         if menu then menu:Hide() end
+        if openDropdownMenu == menu then hideDropdownCatcher() end
     end
 
     -- `keepOffset` reopens at a given scroll position instead of jumping to the
@@ -955,6 +1008,7 @@ function Compat.CreateDropdown(parent, width)
 
         render()
         menu:Show()
+        showDropdownCatcher(menu)
     end
 
     dd:SetScript("OnClick", function()
@@ -1243,4 +1297,70 @@ function Compat.ShowConfirm(opts)
     f:Show()
     f:Raise()
     return f
+end
+
+--=========================================================================--
+--  Color picker.
+--
+--  Blizzard reworked this in 10.2.5: the old contract was to assign callbacks
+--  onto ColorPickerFrame as fields (.func, .cancelFunc, .opacityFunc) and show
+--  the frame, and the new one passes them in a table to
+--  SetupColorPickerAndShow. Feature-detected on that method rather than an
+--  interface number, per the usual rule -- Forever reports 16001 while carrying
+--  the modern frame.
+--
+--  Returns true if a picker was opened. A false return is not a failure the
+--  caller should swallow: every caller must have a hex-entry path anyway, both
+--  for clients where the frame is missing and for anyone who wants to type an
+--  exact value.
+--
+--    Compat.ShowColorPicker{ r=, g=, b=, onChange=function(r,g,b) end,
+--                            onCancel=function(r,g,b) end }
+--
+--  onChange fires live as the player drags, so callers should apply rather than
+--  only commit; onCancel receives the original color to restore.
+--=========================================================================--
+function Compat.ShowColorPicker(opts)
+    opts = opts or {}
+    local picker = _G.ColorPickerFrame
+    if not picker then return false end
+
+    local r = tonumber(opts.r) or 1
+    local g = tonumber(opts.g) or 1
+    local b = tonumber(opts.b) or 1
+
+    local function changed()
+        if not opts.onChange then return end
+        local nr, ng, nb = picker:GetColorRGB()
+        opts.onChange(nr, ng, nb)
+    end
+    local function cancelled()
+        if opts.onCancel then opts.onCancel(r, g, b) end
+    end
+
+    -- Wrapped because this is Blizzard UI: a frame that another addon has
+    -- already replaced or half-initialised should cost us a fallback to the hex
+    -- box, not a Lua error in the middle of the options panel.
+    local ok = pcall(function()
+        if picker.SetupColorPickerAndShow then
+            picker:SetupColorPickerAndShow({
+                r = r, g = g, b = b,
+                hasOpacity = false,
+                swatchFunc = changed,
+                cancelFunc = cancelled,
+            })
+        else
+            picker.func = changed
+            picker.cancelFunc = cancelled
+            picker.opacityFunc = nil
+            picker.hasOpacity = false
+            picker.previousValues = { r = r, g = g, b = b }
+            -- Hide first: re-showing an already-open picker leaves the old
+            -- callbacks installed on some builds.
+            picker:Hide()
+            picker:SetColorRGB(r, g, b)
+            picker:Show()
+        end
+    end)
+    return ok
 end
