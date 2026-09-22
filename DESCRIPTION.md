@@ -13,12 +13,13 @@ One install runs on **Retail** (Midnight), **WoW: Forever**, and **Classic** (Va
 ## 🔥 Features
 
 - **66 languages & dialects.** The core playable-race and Old God tongues, plus dozens of beast, faction, elemental and eldritch languages.
+- **A color for every tongue.** Demonic reads as a warm orange, Old God as a deep purple, and every language has a default you can recolor. Language tags are colored out of the box and tinting the speech itself is a separate toggle, so you can have one without the other. WoW's own languages can be tinted too, including from players who don't run the addon. The palette is saved account-wide, so it follows you across every character.
 - **Accents.** Instead of translating, flavor your *English* with a spoken dialect: Dwarven ("I cannae do this, aye!"), Troll ("da voodoo, mon.") and 10 more, each with its own strength slider.
 - **Language Trainer ("Decipher").** A Wordle-style minigame to learn languages. Climb reputation ranks, build fluency, and unlock decoding as you go.
-- **Strength slider (0–100).** Controls how much of your text is transformed, from a few cryptic words to fully unintelligible.
+- **Fluency, per language (0–100).** Drag the bar on a language's row to set how much of your text comes through in it, from a few cryptic words to fully unintelligible. Every tongue remembers its own, so you can be fluent in one and stumbling in another.
 - **Per-channel filters.** Choose exactly which chat types are affected (Say, Yell, Party, Raid, Guild, Whisper, and more).
 - **Languages.** Mark the tongues your character understands. When another Tongues of Azeroth user speaks one, you'll see the decoded meaning in your own chat, with per-language fluency shown on progress bars.
-- **Favorites.** Click the star on any language and it floats up to a Favorites section at the top of the dropdown instead of sitting seventy rows down. The star on the floating language bar toggles whether scrolling cycles only your favorites.
+- **An ordered language list.** The tongue you're speaking is always the first row, favorites sit under it, and the rest follow, so nothing you use is ever seventy rows down. Star a language on its own row to favorite it. The star on the floating language bar toggles whether scrolling cycles only your favorites.
 - **Cast Phrases.** Speak when a spell lands: *Corvin snarls "Aman!" in Broken Demonic and the fire takes hold.* Words in `"quotes"` are spoken aloud and get translated into your current tongue, while the narration around them stays plain English. **783 ready-made lines across 143 spells** ship with it, a **character sheet** decides how your character sounds, and a keybinding opens a spell's phrase list while you hover it on your bars. See below.
 - **Minimap button** and a draggable standalone window for one-click access, with Back/Close navigation on clients without a native options tree.
 - **Live options panel** with a real-time preview.
@@ -102,7 +103,7 @@ Handy commands:
 
 - Chat has a 255-character limit, so translated text is trimmed to fit.
 - This transforms your text **client-side**. It does not touch WoW's real server-side language system.
-- Settings are stored per character.
+- Settings are stored per character, so each of your characters keeps its own voice. The color palette is the one exception: it's shared account-wide, because a language reading as the same color everywhere is the point of coloring it.
 - Cast Phrases go out as **emotes**. `/say` and `/yell` have needed a real keypress since patch 8.2.5, so no addon can send those from a spell cast. During raid encounters, Mythic+ and rated PvP the game blocks addon chat altogether, and the line is shown to you alone instead.
 
 ---
