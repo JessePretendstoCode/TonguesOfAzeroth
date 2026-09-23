@@ -2,6 +2,29 @@
 
 All notable changes to Tongues of Azeroth are documented here.
 
+## [Unreleased]
+- **Player names stay readable inside translated speech.** Say "Corvin, get back"
+  in Demonic and Corvin now comes through as Corvin, the way a real language
+  leaves a proper noun alone. Someone who can't read a word of the tongue can
+  still tell they're the one being addressed, which is usually the point of
+  saying their name.
+  There is no API that lists the players around you, so the addon assembles a
+  list instead. The best source turned out to be one already running: SAY, EMOTE
+  and YELL are proximity-filtered by the server before they reach the client and
+  carry the sender as plain text, so everyone nearby who has spoken is known for
+  free. Your group, guild, friends, whoever you target or mouse over, and
+  friendly nameplates fill in the rest.
+  The hard part was not matching the wrong word. Every RP realm has players
+  called Light, Storm, Raven and Hope, and an English word that silently stops
+  translating is a worse bug than the one being fixed, because the sentence still
+  looks right. So a name only counts when you capitalise it, common words are
+  refused outright however many players are using them as names, names seen in
+  passing are forgotten after twenty minutes, and public channels like Trade are
+  never harvested. Toggle it under Chat, or with `/toa names on|off`;
+  `/toa names` shows what is currently remembered.
+  Names read off unit tokens are checked for Midnight's secret values first, and
+  nameplate scanning stops entirely in combat and in instances.
+
 ## [0.4.0]
 - **Every cast phrase can be reworded, including the ones the packs ship.**
   Only lines you had written yourself could be changed; a library line could be

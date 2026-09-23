@@ -1016,6 +1016,12 @@ local function protectSegments(text)
     -- Escape sequences first: a link stashed whole takes its [bracketed] label
     -- with it, so the %b[] pass below only ever sees genuine prose brackets.
     local out = ns.StashMarkup(text, stash)
+    -- Player names are proper nouns and don't translate between real languages
+    -- either. This runs after the markup pass so a name inside a player link is
+    -- already stashed whole and can't be matched a second time. See Names.lua.
+    if ns.Names then
+        out = ns.Names.Stash(out, stash)
+    end
     -- Any remaining [bracketed] text (should not be translated).
     out = out:gsub("%b[]", stash)
     -- (Parenthetical) OOC asides are left in plain speech, not translated.

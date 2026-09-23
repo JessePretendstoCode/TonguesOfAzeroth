@@ -12,6 +12,7 @@ One install runs on Retail (Midnight), WoW: Forever, and Classic (Vanilla, Cata,
 
 - **66 languages and dialects.** The core playable-race and Old God tongues, plus dozens of beast, faction, elemental and eldritch languages.
 - **A color for every tongue.** Demonic reads as a warm orange, Old God as a deep purple, and every language has a default you can recolor. Language tags are colored out of the box; tinting the speech itself is a separate toggle, so you can have one without the other. WoW's own languages can be tinted too, including from players who don't run the addon. The palette is saved account-wide, so it follows you across every character.
+- **Names stay readable.** Say "Corvin, get back" in Demonic and Corvin comes through as Corvin, the way a real language leaves a proper noun alone, so someone who can't read the tongue can still tell they're being addressed. The addon learns names from people who have spoken near you, your group, guild and friends, and whoever you target. A name only counts when you capitalise it and common words are refused outright, so ordinary speech keeps translating.
 - **Accents.** Rather than translating, these flavor your English with a spoken dialect: Dwarven ("I cannae do this, aye!"), Troll ("da voodoo, mon.") and ten more, each with its own strength.
 - **Language Trainer.** A Wordle-style word game for learning languages. Climb reputation ranks, build fluency, and unlock decoding as you go.
 - **Fluency, per language.** Drag the bar on a language's row to set how much of your text comes through in it, from a few cryptic words to fully unintelligible. Every tongue remembers its own, so you can be fluent in one and stumbling in another.
@@ -103,7 +104,7 @@ Handy commands:
 
 ## How it's built, and an AI disclosure
 
-Every release is read through before it goes out, checked against an offline test suite of nine automated test files that run without a game client, and play-tested in game on the clients it supports. The addon defines no accidental globals: everything lives in a private namespace except the handful of entry points WoW itself requires (`SLASH_*`, `BINDING_*`) and the public functions named for the addon. Seven TOC files are kept in sync by an automated packaging test, so a release can't quietly break one client while working on another.
+Every release is read through before it goes out, checked against an offline test suite of ten automated test files that run without a game client, and play-tested in game on the clients it supports. The addon defines no accidental globals: everything lives in a private namespace except the handful of entry points WoW itself requires (`SLASH_*`, `BINDING_*`) and the public functions named for the addon. Seven TOC files are kept in sync by an automated packaging test, so a release can't quietly break one client while working on another.
 
 That process is there because this addon is built with heavy use of AI assistance. Most of the Lua, and the wording of the shipped cast phrases, were drafted by an AI coding agent working to my direction. I decide what gets built, what the rules are and what ships, and nothing ships unreviewed.
 

@@ -102,6 +102,16 @@ local CHAT_EVENTS = {
     CHAT_MSG_CHANNEL         = "CHANNEL",
 }
 
+-- Chat types whose sender is someone you are talking to, and so a name you may
+-- well type back at them. Deliberately excludes CHANNEL: Trade and General would
+-- pour hundreds of strangers onto the protected list, and every name on it is a
+-- word you can no longer say in character.
+local CONVERSATIONAL = {
+    SAY = true, YELL = true, EMOTE = true, WHISPER = true,
+    PARTY = true, RAID = true, RAID_WARNING = true,
+    GUILD = true, OFFICER = true,
+}
+
 local PREFIX = "|cff8000ff[ToA]|r "
 local ADDON_PREFIX = "ToA2"
 local MAX_ADDON_PAYLOAD = 240
@@ -431,6 +441,13 @@ local function migrateDB()
     -- silenced, leaving them unintelligible where they had chosen to be clear;
     -- losing an accent somewhere is cosmetic and one click to restore.
     db.accent.channels = nil
+
+    -- Leave player names readable inside translated speech. On by default: real
+    -- languages don't translate proper nouns either, and a listener who catches
+    -- their own name in a line of Demonic knows it was aimed at them. See
+    -- Names.lua for where the list of names comes from and what stops it
+    -- swallowing ordinary words.
+    if db.protectNames == nil then db.protectNames = true end
 
     -- Cast phrases: emote a line when one of your spells lands. Off until asked
     -- for -- it puts text in other people's chat, so it should never be a
@@ -1356,7 +1373,17 @@ local function inlineChatFilter(_, event, msg, sender, languageName, ...)
     migrateDB()
 
     local chatType = CHAT_EVENTS[event]
-    if not chatType or not ns.IsChannelEnabled(chatType) then return false end
+    if not chatType then return false end
+
+    -- Harvest the speaker before the channel check, not after: this is the best
+    -- proximity list the client can give us (the server already filtered SAY and
+    -- friends by range), and it would be silly to miss the people standing next
+    -- to you purely because you don't translate in the channel they used.
+    if ns.Names and CONVERSATIONAL[chatType] then
+        ns.Names.NoteSpeaker(sender)
+    end
+
+    if not ns.IsChannelEnabled(chatType) then return false end
 
     -- Which tongue is this line in? A leading "[Language] " tag, or a cast
     -- phrase naming it in prose. This is resolved up front, ahead of any decode
@@ -2174,6 +2201,7 @@ local function usage()
     Print("  |cffffff00/toa roundtrip [lang] [strength] <text>|r  - encode then decode (self-test)")
     Print("  |cffffff00/toa fluency <0-100>|r  - set your fluency (= how you speak it) in the current language")
     Print("  |cffffff00/toa color [lang] [hex]|r  - per-language chat colors (|cffffff00/toa color|r for options)")
+    Print("  |cffffff00/toa names [on|off|clear]|r  - leave player names readable in your speech")
     Print("  |cffffff00/toa minimap|r  - show/hide the minimap button")
     Print("  |cffffff00/toa output <1-N|default>|r  - send translations to a chat window")
     Print("  |cffffff00/toa tag [on|off]|r  - show fluency in the [Language] tag (e.g. [Broken Orcish])")
@@ -2361,6 +2389,38 @@ local function handleSlash(input)
                 and "|cff00ff00ON|r (e.g. [Broken Orcish])"
                 or "|cffff0000OFF|r") .. ".")
         if ns.OnSettingsChanged then ns.OnSettingsChanged() end
+    elseif cmd == "names" then
+        migrateDB()
+        if not ns.Names then
+            Print("Name protection is unavailable on this install.")
+            return
+        end
+        local arg = string.lower(rest or "")
+        if arg == "on" or arg == "off" then
+            ns.Names.SetEnabled(arg == "on")
+            Print("Player names in your speech: "
+                .. (arg == "on" and "|cff00ff00left readable|r" or "|cffff0000translated with everything else|r") .. ".")
+            if ns.OnSettingsChanged then ns.OnSettingsChanged() end
+            return
+        end
+        if arg == "clear" then
+            ns.Names.Clear()
+            ns.Names.RefreshRoster()
+            Print("Forgot every remembered name and rebuilt from your group.")
+            return
+        end
+        local list = ns.Names.List()
+        Print("Name protection is "
+            .. (ns.Names.IsEnabled() and "|cff00ff00on|r" or "|cffff0000off|r")
+            .. ", " .. #list .. " name(s) remembered.")
+        if #list > 0 then
+            -- Long enough lists are unreadable in chat and this is a debug aid,
+            -- so show a window of it rather than paging the whole roster out.
+            local shown = {}
+            for i = 1, math.min(#list, 25) do shown[i] = list[i] end
+            Print(table.concat(shown, ", ") .. (#list > 25 and (", and " .. (#list - 25) .. " more") or ""))
+        end
+        Print("Use |cffffff00/toa names on|off|r, or |cffffff00/toa names clear|r to reset the list.")
     elseif cmd == "color" or cmd == "colour" or cmd == "colors" or cmd == "colours" then
         migrateDB()
         if not Colors then

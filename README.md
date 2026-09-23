@@ -82,6 +82,15 @@ generate identical text.
   to every alt. Tags are colored by default and the speech is left in its normal channel
   color; the two are independent toggles, so you can tint the words alone if you'd rather.
   WoW's own languages can be tinted too.
+- **Player names survive translation.** Say "Corvin, get back" in Demonic and Corvin
+  arrives as Corvin, the way a real language leaves a proper noun alone: a listener who
+  can't read the tongue can still tell they're the one being addressed. There's no API
+  that lists nearby players, so the list is assembled from people who have spoken near
+  you (say/emote/yell are already range-filtered by the server), your group, guild and
+  friends, whoever you target, and friendly nameplates. A name only matches when you
+  capitalise it and common words are refused outright, because an English word that
+  quietly stops translating is worse than a name that does. Toggle under **Chat**, or
+  `/toa names on|off`.
 - **Minimap button** for one-click access, plus a standalone draggable window (with
   Back/Close navigation) that hosts the Language Trainer.
 - **In-game configuration** via Settings → AddOns, with a live preview.
@@ -178,6 +187,9 @@ All of them appear in the config dropdown and in `/toa list`.
 | `/toa color tags on\|off`   | Color the `[Language]` tag                              |
 | `/toa color speech on\|off` | Tint the spoken words (independent of the tag setting)  |
 | `/toa color ingame on\|off` | Tint WoW's own languages from non-addon users           |
+| `/toa names`                | Whether names are protected, and which ones are known   |
+| `/toa names on\|off`        | Leave player names readable inside translated speech    |
+| `/toa names clear`          | Forget every remembered name and rebuild from your group |
 | `/toa game`                 | Open the "Decipher" language trainer minigame           |
 | `/toa minimap`              | Show / hide the minimap button                          |
 | `/toa cast`                 | Open the Cast Phrases panel                             |

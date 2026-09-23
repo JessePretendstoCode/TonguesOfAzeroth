@@ -18,6 +18,10 @@ read_globals = {
     "CreateFrame", "UIParent", "DEFAULT_CHAT_FRAME", "SlashCmdList",
     "hooksecurefunc", "GetTime", "GetBuildInfo", "SendChatMessage",
     "UnitName", "UnitIsDead", "PlaySoundFile", "ChatTypeInfo", "NUM_CHAT_WINDOWS",
+    -- name harvesting (Names.lua); all probed for existence before use
+    "UnitExists", "UnitIsPlayer", "InCombatLockdown", "IsInInstance", "issecretvalue",
+    "IsInGuild", "GetNumGuildMembers", "GetGuildRosterInfo", "GuildRoster", "C_GuildInfo",
+    "C_FriendList", "GetNumFriends", "GetFriendInfo", "C_NamePlate", "GameTooltip",
     -- metadata (both eras)
     "GetAddOnMetadata", "C_AddOns",
     -- addon messaging (both eras)

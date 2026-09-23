@@ -55,7 +55,7 @@ local chatPanel, chatContent
 local mainContent
 local langDropdown, enableCheck, previewInput, previewOutput
 local voiceText, voiceHint
-local minimapCheck, fluencyCheck, nativeHideCheck, autoDisableCheck
+local minimapCheck, fluencyCheck, nativeHideCheck, autoDisableCheck, namesCheck
 local widgetCheck, widgetLockCheck
 local accentDropdown, accentSlider, accentValueText
 local accentTailSlider, accentTailValueText
@@ -432,6 +432,7 @@ local function RefreshChat()
         check:SetChecked(d.channels[ch] and true or false)
     end
     if fluencyCheck then fluencyCheck:SetChecked(d.tagFluency ~= false) end
+    if namesCheck then namesCheck:SetChecked(d.protectNames ~= false) end
     if autoDisableCheck then autoDisableCheck:SetChecked(d.autoDisableInInstances ~= false) end
     if decodeStyleDropdown then
         decodeStyleDropdown:SetSelected(d.decodeStyle, decodeStyleLabel(d.decodeStyle))
@@ -1405,8 +1406,36 @@ local function BuildChatPanel()
         refreshPreview()
     end)
 
+    namesCheck = Compat.CreateCheckbox(content, "Leave player names readable")
+    namesCheck:SetPoint("TOPLEFT", fluencyCheck, "BOTTOMLEFT", 0, -8)
+    namesCheck:SetScript("OnClick", function(self)
+        db().protectNames = self:GetChecked() and true or false
+        refreshPreview()
+    end)
+    namesCheck._toaTooltip = true
+    namesCheck:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:AddLine("Leave player names readable", 1, 0.82, 0)
+        GameTooltip:AddLine(
+            "Names pass through untranslated, the way a real language treats a "
+                .. "proper noun, so someone can tell they're being addressed even "
+                .. "when they can't read the rest.", 0.8, 0.8, 0.8, true)
+        GameTooltip:AddLine(" ")
+        GameTooltip:AddLine(
+            "Recognises people who have spoken near you, your group, guild and "
+                .. "friends, and whoever you target. A name only counts when you "
+                .. "capitalise it, so ordinary words keep translating.",
+            0.6, 0.6, 0.6, true)
+        if ns.Names then
+            GameTooltip:AddLine(" ")
+            GameTooltip:AddLine(ns.Names.Count() .. " name(s) remembered right now.", 0.6, 0.6, 0.6)
+        end
+        GameTooltip:Show()
+    end)
+    namesCheck:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
     autoDisableCheck = Compat.CreateCheckbox(content, "Pause translation during instances")
-    autoDisableCheck:SetPoint("TOPLEFT", fluencyCheck, "BOTTOMLEFT", 0, -8)
+    autoDisableCheck:SetPoint("TOPLEFT", namesCheck, "BOTTOMLEFT", 0, -8)
     autoDisableCheck:SetScript("OnClick", function(self)
         db().autoDisableInInstances = self:GetChecked() and true or false
         -- Apply immediately if we're already inside an instance.
