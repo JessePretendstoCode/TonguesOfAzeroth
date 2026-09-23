@@ -91,6 +91,11 @@ generate identical text.
   capitalise it and common words are refused outright, because an English word that
   quietly stops translating is worse than a name that does. Toggle under **Chat**, or
   `/toa names on|off`.
+- **Those names are colored**, so it's visible which words came through on purpose
+  rather than because your fluency left them in English. Class color where the class is
+  known, interface gold where it isn't. Painted in your own chat window only -- nothing
+  is added to the message other people receive -- which also means other players'
+  speech gets the same treatment from the names your client knows. `/toa names color`.
 - **Minimap button** for one-click access, plus a standalone draggable window (with
   Back/Close navigation) that hosts the Language Trainer.
 - **In-game configuration** via Settings → AddOns, with a live preview.
@@ -189,6 +194,7 @@ All of them appear in the config dropdown and in `/toa list`.
 | `/toa color ingame on\|off` | Tint WoW's own languages from non-addon users           |
 | `/toa names`                | Whether names are protected, and which ones are known   |
 | `/toa names on\|off`        | Leave player names readable inside translated speech    |
+| `/toa names color`          | Color protected names in your chat window               |
 | `/toa names clear`          | Forget every remembered name and rebuild from your group |
 | `/toa game`                 | Open the "Decipher" language trainer minigame           |
 | `/toa minimap`              | Show / hide the minimap button                          |
@@ -426,7 +432,7 @@ was dropped in 0.2.24, following that server's shutdown. Use 0.2.23 or earlier i
 ## How it's built, and an AI disclosure
 
 Every release is read through before it goes out, checked against the offline test suite in
-`tools/` (**nine test files**, run under LuaJIT with no game client), and play-tested in
+`tools/` (**ten test files**, run under LuaJIT with no game client), and play-tested in
 game on the clients it supports. The addon defines **no accidental globals**: everything
 lives on a private namespace table except the entry points WoW itself requires
 (`SLASH_TONGUESOFAZEROTH*`, `BINDING_HEADER_*`, `BINDING_NAME_*`) and the public functions

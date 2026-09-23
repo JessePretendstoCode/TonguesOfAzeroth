@@ -24,6 +24,23 @@ All notable changes to Tongues of Azeroth are documented here.
   `/toa names` shows what is currently remembered.
   Names read off unit tokens are checked for Midnight's secret values first, and
   nameplate scanning stops entirely in combat and in instances.
+- **Those names are colored, so you can see which words came through on
+  purpose.** A protected name and a word your fluency happened to leave in
+  English look identical from the outside, and the difference is the whole
+  feature. Names now arrive in their class color where the class is known --
+  from your group, guild, friends list or whoever you've targeted -- and in
+  interface gold where it isn't, which is most of the time, since a chat line
+  tells us nothing about the speaker beyond their name and their GUID.
+  Like the rest of the palette this happens when a line is displayed, never
+  when it is sent: your chat window is painted from your own list, the text on
+  the wire stays clean, nobody is handed markup they didn't ask for, and none
+  of it eats into the 255-character budget. It also means other people's speech
+  is highlighted too, using the names your client already knows.
+  Decoded lines are left alone -- once you can read the whole sentence there is
+  nothing for a highlight to tell you -- and player links are handed through
+  untouched, since `|Hplayer:Corvin|h` carries the name in its target and a
+  color inserted there would break the link rather than paint it.
+  Under Chat beside the name toggle, or `/toa names color`.
 
 ## [0.4.0]
 - **Every cast phrase can be reworded, including the ones the packs ship.**

@@ -449,6 +449,10 @@ local function migrateDB()
     -- swallowing ordinary words.
     if db.protectNames == nil then db.protectNames = true end
 
+    -- And paint them, so it is visible which words survived on purpose rather
+    -- than because the fluency roll left them in English.
+    if db.colorNames == nil then db.colorNames = true end
+
     -- Cast phrases: emote a line when one of your spells lands. Off until asked
     -- for -- it puts text in other people's chat, so it should never be a
     -- surprise. See Casts.lua for why phrases are keyed by spell *name*.
@@ -1380,7 +1384,15 @@ local function inlineChatFilter(_, event, msg, sender, languageName, ...)
     -- friends by range), and it would be silly to miss the people standing next
     -- to you purely because you don't translate in the channel they used.
     if ns.Names and CONVERSATIONAL[chatType] then
-        ns.Names.NoteSpeaker(sender)
+        -- CHAT_MSG_* carries the sender's GUID as its twelfth argument, which
+        -- is the ninth of the varargs left here. That GUID is the only thing a
+        -- chat line says about the speaker beyond their name, so it is also the
+        -- only way most names ever get a class color. Read positionally because
+        -- that is the only way it is offered; Names screens it for the
+        -- "Player-" prefix, so a layout that ever shifts costs a color and
+        -- nothing more.
+        local guid = select("#", ...) >= 9 and select(9, ...) or nil
+        ns.Names.NoteSpeaker(sender, guid)
     end
 
     if not ns.IsChannelEnabled(chatType) then return false end
@@ -1405,7 +1417,16 @@ local function inlineChatFilter(_, event, msg, sender, languageName, ...)
         isReal = langId ~= nil
     end
 
-    local function paint(text)
+    -- `decoded` lines are already readable end to end, so a name highlight has
+    -- nothing left to tell you there and would just be noise. It only runs on
+    -- speech you can't read -- which includes your own outgoing line, where
+    -- seeing the name light up is the confirmation the protection worked.
+    --
+    -- Names are painted before the language tint rather than after, so the
+    -- tint wraps them: Colors.Wrap re-opens itself after every "|r" it finds
+    -- inside a span, which is exactly what a nested name color leaves behind.
+    local function paint(text, decoded)
+        if not decoded and ns.Names then text = ns.Names.Highlight(text) end
         if not (Colors and langId) then return text end
         -- Genuine in-game speech carries no "[Language]" tag, so the words are
         -- the only thing there is to tint. Turning that option on is therefore
@@ -1427,7 +1448,7 @@ local function inlineChatFilter(_, event, msg, sender, languageName, ...)
             -- emoter's name and their verb -- the very thing the prose form
             -- exists to avoid.
             if proseLangId then
-                return false, paint(decoded), sender, languageName, ...
+                return false, paint(decoded, true), sender, languageName, ...
             end
             -- The marker is itself a "[Language] " tag, so it goes through the
             -- same painter as any other tagged line and picks up that tongue's
@@ -2201,7 +2222,7 @@ local function usage()
     Print("  |cffffff00/toa roundtrip [lang] [strength] <text>|r  - encode then decode (self-test)")
     Print("  |cffffff00/toa fluency <0-100>|r  - set your fluency (= how you speak it) in the current language")
     Print("  |cffffff00/toa color [lang] [hex]|r  - per-language chat colors (|cffffff00/toa color|r for options)")
-    Print("  |cffffff00/toa names [on|off|clear]|r  - leave player names readable in your speech")
+    Print("  |cffffff00/toa names [on|off|color|clear]|r  - leave player names readable in your speech")
     Print("  |cffffff00/toa minimap|r  - show/hide the minimap button")
     Print("  |cffffff00/toa output <1-N|default>|r  - send translations to a chat window")
     Print("  |cffffff00/toa tag [on|off]|r  - show fluency in the [Language] tag (e.g. [Broken Orcish])")
@@ -2409,6 +2430,15 @@ local function handleSlash(input)
             Print("Forgot every remembered name and rebuilt from your group.")
             return
         end
+        if arg == "color" or arg == "colour" then
+            ns.Names.SetHighlightEnabled(not ns.Names.HighlightEnabled())
+            Print("Protected names are "
+                .. (ns.Names.HighlightEnabled()
+                    and "|cff00ff00colored|r in your chat window"
+                    or "|cffff0000left in the line's own color|r") .. ".")
+            if ns.OnSettingsChanged then ns.OnSettingsChanged() end
+            return
+        end
         local list = ns.Names.List()
         Print("Name protection is "
             .. (ns.Names.IsEnabled() and "|cff00ff00on|r" or "|cffff0000off|r")
@@ -2416,11 +2446,15 @@ local function handleSlash(input)
         if #list > 0 then
             -- Long enough lists are unreadable in chat and this is a debug aid,
             -- so show a window of it rather than paging the whole roster out.
+            -- Painted the way chat would paint them, which makes this the
+            -- quickest way to see which names picked up a class.
             local shown = {}
-            for i = 1, math.min(#list, 25) do shown[i] = list[i] end
+            for i = 1, math.min(#list, 25) do
+                shown[i] = Colors and Colors.Wrap(list[i], ns.Names.ColorFor(list[i])) or list[i]
+            end
             Print(table.concat(shown, ", ") .. (#list > 25 and (", and " .. (#list - 25) .. " more") or ""))
         end
-        Print("Use |cffffff00/toa names on|off|r, or |cffffff00/toa names clear|r to reset the list.")
+        Print("Use |cffffff00/toa names on|off|r, |cffffff00/toa names color|r, or |cffffff00/toa names clear|r to reset the list.")
     elseif cmd == "color" or cmd == "colour" or cmd == "colors" or cmd == "colours" then
         migrateDB()
         if not Colors then

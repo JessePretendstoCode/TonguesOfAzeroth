@@ -22,6 +22,9 @@ read_globals = {
     "UnitExists", "UnitIsPlayer", "InCombatLockdown", "IsInInstance", "issecretvalue",
     "IsInGuild", "GetNumGuildMembers", "GetGuildRosterInfo", "GuildRoster", "C_GuildInfo",
     "C_FriendList", "GetNumFriends", "GetFriendInfo", "C_NamePlate", "GameTooltip",
+    -- class, for coloring a protected name; same probing, and UnitClass carries
+    -- the same secret-value risk as UnitName does
+    "UnitClass", "GetPlayerInfoByGUID",
     -- metadata (both eras)
     "GetAddOnMetadata", "C_AddOns",
     -- addon messaging (both eras)

@@ -286,6 +286,36 @@ function Colors.ResetAll()
 end
 
 --=========================================================================--
+--  Player names
+--=========================================================================--
+-- Names that came through a translation untranslated are painted so you can
+-- tell them from a word the fluency roll happened to leave in English. Class
+-- color when Names.lua knows the class; this when it doesn't, which is most of
+-- the time -- so it is WoW's own interface gold rather than anything clever,
+-- and reads as "this is a name" without claiming to say more.
+local NAME_HEX = "ffd100"
+
+function Colors.NameHex() return NAME_HEX end
+
+-- CUSTOM_CLASS_COLORS is the long-standing community override that ClassColors
+-- and its descendants publish. Honouring it first means a name here matches the
+-- class colors everywhere else in the player's UI instead of fighting them.
+function Colors.ClassHex(classFile)
+    if type(classFile) ~= "string" or classFile == "" then return nil end
+    local t = (_G.CUSTOM_CLASS_COLORS and _G.CUSTOM_CLASS_COLORS[classFile])
+        or (_G.RAID_CLASS_COLORS and _G.RAID_CLASS_COLORS[classFile])
+    if type(t) ~= "table" then return nil end
+    -- colorStr is "aarrggbb"; the palette here is rrggbb throughout.
+    if type(t.colorStr) == "string" and #t.colorStr == 8 then
+        return strlower(t.colorStr:sub(3))
+    end
+    if type(t.r) == "number" and type(t.g) == "number" and type(t.b) == "number" then
+        return Colors.ToHex(t.r, t.g, t.b)
+    end
+    return nil
+end
+
+--=========================================================================--
 --  Painting
 --=========================================================================--
 -- Wrap a span in a color, surviving any color codes already inside it.

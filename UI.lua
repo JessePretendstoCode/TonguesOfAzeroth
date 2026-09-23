@@ -55,7 +55,8 @@ local chatPanel, chatContent
 local mainContent
 local langDropdown, enableCheck, previewInput, previewOutput
 local voiceText, voiceHint
-local minimapCheck, fluencyCheck, nativeHideCheck, autoDisableCheck, namesCheck
+local minimapCheck, fluencyCheck, nativeHideCheck, autoDisableCheck
+local namesCheck, nameColorCheck
 local widgetCheck, widgetLockCheck
 local accentDropdown, accentSlider, accentValueText
 local accentTailSlider, accentTailValueText
@@ -202,6 +203,10 @@ local function refreshPreview()
             or fluencyPct(d.language)
         out = Language.TranslateText(src, strength, d.language)
     end
+    -- Painted here the same way the chat filter paints a real line, so the
+    -- preview answers "did my name survive that?" without having to go and say
+    -- it to someone.
+    if ns.Names then out = ns.Names.Highlight(out) end
     previewOutput:SetText(out)
 end
 
@@ -433,6 +438,19 @@ local function RefreshChat()
     end
     if fluencyCheck then fluencyCheck:SetChecked(d.tagFluency ~= false) end
     if namesCheck then namesCheck:SetChecked(d.protectNames ~= false) end
+    if nameColorCheck then
+        nameColorCheck:SetChecked(d.colorNames ~= false)
+        -- Greyed rather than reset when protection is off: turning it back on
+        -- should restore the color setting the player last chose, not whatever
+        -- it collapsed to while the box above was unticked.
+        if d.protectNames ~= false then
+            nameColorCheck:Enable()
+            nameColorCheck.labelText:SetTextColor(1, 1, 1)
+        else
+            nameColorCheck:Disable()
+            nameColorCheck.labelText:SetTextColor(0.5, 0.5, 0.5)
+        end
+    end
     if autoDisableCheck then autoDisableCheck:SetChecked(d.autoDisableInInstances ~= false) end
     if decodeStyleDropdown then
         decodeStyleDropdown:SetSelected(d.decodeStyle, decodeStyleLabel(d.decodeStyle))
@@ -1410,6 +1428,7 @@ local function BuildChatPanel()
     namesCheck:SetPoint("TOPLEFT", fluencyCheck, "BOTTOMLEFT", 0, -8)
     namesCheck:SetScript("OnClick", function(self)
         db().protectNames = self:GetChecked() and true or false
+        RefreshChat()
         refreshPreview()
     end)
     namesCheck._toaTooltip = true
@@ -1434,8 +1453,37 @@ local function BuildChatPanel()
     end)
     namesCheck:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
+    -- Indented because it only means anything while the box above is ticked.
+    nameColorCheck = Compat.CreateCheckbox(content, "Color those names in your chat window")
+    nameColorCheck:SetPoint("TOPLEFT", namesCheck, "BOTTOMLEFT", 16, -6)
+    nameColorCheck:SetScript("OnClick", function(self)
+        db().colorNames = self:GetChecked() and true or false
+        refreshPreview()
+    end)
+    nameColorCheck._toaTooltip = true
+    nameColorCheck:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:AddLine("Color those names", 1, 0.82, 0)
+        GameTooltip:AddLine(
+            "A name that came through untranslated and a word your fluency "
+                .. "happened to leave in English look identical. Coloring the "
+                .. "names says which is which.", 0.8, 0.8, 0.8, true)
+        GameTooltip:AddLine(" ")
+        GameTooltip:AddLine(
+            "Class color when the class is known -- from your group, guild, "
+                .. "friends or whoever you've targeted -- and "
+                .. "|cff" .. (ns.Colors and ns.Colors.NameHex() or "ffd100") .. "gold|r "
+                .. "otherwise.", 0.8, 0.8, 0.8, true)
+        GameTooltip:AddLine(" ")
+        GameTooltip:AddLine(
+            "Only your own chat window is painted. Nothing is added to the "
+                .. "message other people receive.", 0.6, 0.6, 0.6, true)
+        GameTooltip:Show()
+    end)
+    nameColorCheck:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
     autoDisableCheck = Compat.CreateCheckbox(content, "Pause translation during instances")
-    autoDisableCheck:SetPoint("TOPLEFT", namesCheck, "BOTTOMLEFT", 0, -8)
+    autoDisableCheck:SetPoint("TOPLEFT", nameColorCheck, "BOTTOMLEFT", -16, -8)
     autoDisableCheck:SetScript("OnClick", function(self)
         db().autoDisableInInstances = self:GetChecked() and true or false
         -- Apply immediately if we're already inside an instance.
