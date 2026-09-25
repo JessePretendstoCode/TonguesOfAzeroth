@@ -1426,7 +1426,11 @@ local function inlineChatFilter(_, event, msg, sender, languageName, ...)
     -- tint wraps them: Colors.Wrap re-opens itself after every "|r" it finds
     -- inside a span, which is exactly what a nested name color leaves behind.
     local function paint(text, decoded)
-        if not decoded and ns.Names then text = ns.Names.Highlight(text) end
+        -- Only lines that are actually in a tongue get names painted. A plain
+        -- Common sentence had nothing translated out of it, so a highlight
+        -- there would be the addon coloring chat it had no hand in -- `langId`
+        -- is exactly the "this line is in a language" test.
+        if langId and not decoded and ns.Names then text = ns.Names.Highlight(text) end
         if not (Colors and langId) then return text end
         -- Genuine in-game speech carries no "[Language]" tag, so the words are
         -- the only thing there is to tint. Turning that option on is therefore
