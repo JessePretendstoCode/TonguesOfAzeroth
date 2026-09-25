@@ -199,6 +199,24 @@ local function Print(msg)
     addToChat(PREFIX .. msg, "system")
 end
 
+-- Cast phrase pacing, in one place because four files need to agree on it: the
+-- migration that seeds a new character, the sliders that display it, the slash
+-- command that reports it, and the roll itself. Every one of those used to
+-- carry its own `or 35`, so changing the default meant changing seven literals
+-- and a disagreement between any two of them was invisible.
+--
+-- Deliberately rare. A cast phrase is text in other people's chat, and the
+-- failure mode of a spammable spell is a wall of it -- so the pauses start at
+-- the top of both sliders and the roll starts low. Somebody who wants their
+-- character talking constantly can find the sliders; somebody who ticks a pack
+-- to see what it does should not have to.
+local CAST_DEFAULTS = {
+    chance   = 5,     -- percent of casts that even roll a line
+    gap      = 120,   -- quiet period after any line, seconds (slider maximum)
+    spellGap = 300,   -- ...and before the same spell speaks again (slider maximum)
+}
+ns.CAST_DEFAULTS = CAST_DEFAULTS
+
 -- Latches true once migration is fully done. migrateDB() is called on the hot
 -- path (every incoming AND outgoing chat message), so after the one-time work is
 -- complete we skip the whole body instead of re-checking ~40 fields per message.
@@ -459,9 +477,9 @@ local function migrateDB()
     if not db.casts then db.casts = {} end
     local casts = db.casts
     if casts.enabled == nil then casts.enabled = false end
-    if casts.chance == nil then casts.chance = 35 end
-    if casts.gap == nil then casts.gap = 20 end
-    if casts.spellGap == nil then casts.spellGap = 60 end
+    if casts.chance == nil then casts.chance = CAST_DEFAULTS.chance end
+    if casts.gap == nil then casts.gap = CAST_DEFAULTS.gap end
+    if casts.spellGap == nil then casts.spellGap = CAST_DEFAULTS.spellGap end
     if casts.pets == nil then casts.pets = true end
     -- Which library packs are opted in: { [packId] = true }.
     if type(casts.packs) ~= "table" then casts.packs = {} end
@@ -1950,7 +1968,7 @@ local function castCommand(rest)
             c.chance = math.max(0, math.min(100, math.floor(n + 0.5)))
             Print("cast phrase chance: |cffffff00" .. c.chance .. "%|r")
         else
-            Print("cast phrase chance is |cffffff00" .. (c.chance or 35) .. "%|r (usage: /toa cast chance 0-100)")
+            Print("cast phrase chance is |cffffff00" .. (c.chance or CAST_DEFAULTS.chance) .. "%|r (usage: /toa cast chance 0-100)")
         end
     elseif sub == "list" then
         local keys = Casts.GetKeys()
@@ -1990,8 +2008,9 @@ local function castCommand(rest)
     elseif sub == "status" then
         Print("cast phrases: " .. (c.enabled and "|cff00ff00on|r" or "|cffff0000off|r")
             .. ", pets " .. (c.pets and "on" or "off")
-            .. ", chance " .. (c.chance or 35) .. "%"
-            .. ", pauses " .. (c.gap or 20) .. "s / " .. (c.spellGap or 60) .. "s")
+            .. ", chance " .. (c.chance or CAST_DEFAULTS.chance) .. "%"
+            .. ", pauses " .. (c.gap or CAST_DEFAULTS.gap) .. "s / "
+            .. (c.spellGap or CAST_DEFAULTS.spellGap) .. "s")
         local blocked = Casts.BlockedReason()
         if blocked then
             Print("right now lines stay with you: " .. blocked .. ".")

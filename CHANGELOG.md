@@ -41,6 +41,17 @@ All notable changes to Tongues of Azeroth are documented here.
   untouched, since `|Hplayer:Corvin|h` carries the name in its target and a
   color inserted there would break the link rather than paint it.
   Under Chat beside the name toggle, or `/toa names color`.
+- **Cast phrases start much rarer.** A new character now rolls a line on 5% of
+  casts rather than 35%, with both pauses starting at the top of their sliders:
+  two minutes of quiet after any line, five before the same spell speaks again.
+  Play-testing the old defaults made the point -- a cast phrase is text in other
+  people's chat, and on a spammable spell the failure mode is a wall of it. Rare
+  enough that a line lands as a moment is the setting worth shipping; anyone who
+  wants their character talking constantly can still find the sliders.
+  Existing characters keep whatever they had set. The three numbers now live in
+  one place instead of being repeated as a fallback in four files, and the test
+  suite pins them, which it previously did not -- every test set its own pacing,
+  so nothing knew what the addon actually shipped with.
 
 ## [0.4.0]
 - **Every cast phrase can be reworded, including the ones the packs ship.**

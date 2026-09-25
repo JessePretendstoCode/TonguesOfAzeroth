@@ -2917,9 +2917,10 @@ local function RefreshCasts()
     local function seconds(value)
         return value == 0 and "No pause" or (value .. " seconds")
     end
-    setSlider(castChanceSlider, c.chance or 35, (c.chance or 35) .. "%")
-    setSlider(castGapSlider, c.gap or 20, seconds(c.gap or 20))
-    setSlider(castSpellGapSlider, c.spellGap or 60, seconds(c.spellGap or 60))
+    local cd = ns.CAST_DEFAULTS
+    setSlider(castChanceSlider, c.chance or cd.chance, (c.chance or cd.chance) .. "%")
+    setSlider(castGapSlider, c.gap or cd.gap, seconds(c.gap or cd.gap))
+    setSlider(castSpellGapSlider, c.spellGap or cd.spellGap, seconds(c.spellGap or cd.spellGap))
 
     for packId, check in pairs(castPackChecks) do
         check:SetChecked(Casts.IsPackEnabled(packId))

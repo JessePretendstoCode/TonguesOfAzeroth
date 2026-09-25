@@ -736,12 +736,13 @@ local function shouldSpeak(key)
     if not (c and c.enabled) then return false end
     if not key or Casts.IsMuted(key) then return false end
 
+    local d = ns.CAST_DEFAULTS
     local now = GetTime and GetTime() or 0
-    if lastSpoken > 0 and (now - lastSpoken) < (c.gap or 20) then return false end
+    if lastSpoken > 0 and (now - lastSpoken) < (c.gap or d.gap) then return false end
     local seen = lastByKey[key]
-    if seen and (now - seen) < (c.spellGap or 60) then return false end
+    if seen and (now - seen) < (c.spellGap or d.spellGap) then return false end
 
-    local chance = tonumber(c.chance) or 35
+    local chance = tonumber(c.chance) or d.chance
     if chance <= 0 then return false end
     if chance < 100 and math.random(100) > chance then return false end
     return true
