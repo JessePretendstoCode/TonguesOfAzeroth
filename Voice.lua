@@ -258,7 +258,11 @@ end
 -- would still be wrong for any pack somebody assembled by hand. Overlapping
 -- speech is the only genuinely bad outcome here, so the estimate is allowed
 -- to run long: a beat of silence between two barks costs nothing.
-local CHARS_PER_SECOND = 13
+-- Measured against a real rendered voice: 314 clips averaging 0.67s for lines
+-- averaging 11.3 characters, so about 17 characters a second of speech. The
+-- pad keeps the estimate slightly long, which is the direction that costs a
+-- beat of silence rather than two clips talking over each other.
+local CHARS_PER_SECOND = 17
 local PAD = 0.35
 local MIN_GAP, MAX_GAP = 0.7, 5
 

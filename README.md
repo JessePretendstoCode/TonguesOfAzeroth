@@ -70,6 +70,9 @@ generate identical text.
   no finite set of recordings could cover the translated forms. Leaving speech in English
   is what reduces a whole voice to 314 clips. `/toa voice` reports which folder your
   character reads from and, when nothing plays, every path it looked in.
+  Packs are generated locally and cost nothing — `tools/Build-VoicePack.ps1` reads the
+  lines with an offline text-to-speech engine and shapes each race with a pitch and
+  formant shift, so you can build or retune your own without an account anywhere.
 - **A character sheet for how your character sounds.** Every shipped line is written for
   a **Bearing** (Plain, Dry, Fierce, Solemn, Warm) and may carry a **Wording** of courtly
   or blunt. Pick a Bearing, optionally a second that cuts against it, a Wording, and how

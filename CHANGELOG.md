@@ -18,6 +18,10 @@ All notable changes to Tongues of Azeroth are documented here.
   because otherwise every possible failure here sounds exactly the same: silence.
   Note the client indexes addon audio at load, so clips added while you're playing need
   a `/reload` before they'll play.
+  The pack itself is generated on your own machine and costs nothing: a local neural
+  text-to-speech engine reads the lines, and each race is then a pitch and formant shift
+  rather than a separate recording — formants are what carry body size, so moving them is
+  what makes a tauren read as a tauren rather than as a slowed-down human.
 - **Player names stay readable inside translated speech.** Say "Corvin, get back"
   in Demonic and Corvin now comes through as Corvin, the way a real language
   leaves a proper noun alone. Someone who can't read a word of the tongue can
