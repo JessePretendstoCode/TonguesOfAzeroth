@@ -2086,6 +2086,20 @@ local function voiceCommand(rest)
         Print("your voice: |cffffff00" .. d.folder .. "|r"
             .. ((d.race and d.sex) and "" or "  |cff808080(race or gender unknown -- using the fallback)|r"))
         Print("pack folder: " .. d.root .. "\\" .. d.folder .. "\\")
+        if not d.installed then
+            Print("|cffff0000the voice pack isn't loaded.|r Tick |cffffff00Tongues of Azeroth - Voices|r")
+            Print("in the AddOns list at character select and log back in. If it isn't")
+            Print("listed there at all, the pack isn't installed yet.")
+        else
+            Print(string.format("pack loaded with %d voice(s): %s",
+                #d.installed, table.concat(d.installed, ", ")))
+            local have = d.clipCounts and d.clipCounts[d.folder]
+            if have then
+                Print(string.format("|cff00ff00%s|r is installed (%d clips).", d.folder, have))
+            else
+                Print("|cffff9900" .. d.folder .. "|r isn't built yet -- your lines fall back to the common voice.")
+            end
+        end
         Print(string.format("%d line(s) can be voiced; played %d, missing %d, unmapped %d this session.",
             d.count, d.stats.played, d.stats.missing, d.stats.unmapped))
         Print("audio must be in place |cffffff00before|r you log in or /reload -- the client")

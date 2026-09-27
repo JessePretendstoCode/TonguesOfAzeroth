@@ -417,9 +417,25 @@ end
 -- What /toa voice check reports. Everything here answers a question somebody
 -- assembling a pack by hand will have: which folder am I meant to create, what
 -- do I call the file, and did the addon find it.
+-- The pack addon ships a table naming the voices it installed. Reading it is
+-- the only way to answer "is the pack there?" -- Lua gets no directory listing
+-- in game, and PlaySoundFile only ever speaks about one exact filename. If the
+-- table is missing the pack is either not installed or not enabled, and those
+-- are the two failures worth calling out by name, because a player who has the
+-- files on disk will otherwise go looking for a bug that isn't there.
+function Voice.InstalledVoices()
+    local info = _G[PACK_ADDON]
+    if type(info) ~= "table" or type(info.voices) ~= "table" then return nil end
+    local names = {}
+    for name in pairs(info.voices) do names[#names + 1] = name end
+    table.sort(names)
+    return names, info.voices
+end
+
 function Voice.Describe()
     local race, sex = Voice.PlayerVoice()
     local lines = ns.VoiceLines
+    local installed, counts = Voice.InstalledVoices()
     return {
         enabled = Voice.IsEnabled(),
         others = Voice.HearsOthers(),
@@ -429,6 +445,8 @@ function Voice.Describe()
         root = "Interface\\AddOns\\" .. PACK_ADDON,
         count = lines and lines.COUNT or 0,
         stats = Voice.stats,
+        installed = installed,
+        clipCounts = counts,
     }
 end
 

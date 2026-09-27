@@ -18,6 +18,10 @@ All notable changes to Tongues of Azeroth are documented here.
   because otherwise every possible failure here sounds exactly the same: silence.
   Note the client indexes addon audio at load, so clips added while you're playing need
   a `/reload` before they'll play.
+  `/toa voice` also reports whether the pack addon is loaded at all and lists the voices
+  it contains, because "the pack isn't installed", "the pack is installed but switched
+  off in the AddOns list", and "your race's voice hasn't been built yet" are three
+  different problems that are otherwise indistinguishable from the silence they produce.
   The pack itself is generated on your own machine and costs nothing: a local neural
   text-to-speech engine reads the lines, and each race is then a pitch and formant shift
   rather than a separate recording — formants are what carry body size, so moving them is
