@@ -3,6 +3,21 @@
 All notable changes to Tongues of Azeroth are documented here.
 
 ## [Unreleased]
+- **Cast phrases can speak out loud.** Turn on **Voice** under Cast Phrases and the words
+  in `"quotes"` are played as audio, in a voice matching the speaker's race and gender.
+  Other players are voiced too, and that costs nothing extra: a chat line already carries
+  the sender's GUID, which is all it takes to look up what race and gender they are.
+  Turning voices on turns translation **off** for cast phrases. That is the bargain the
+  feature is built on rather than a shortcoming of it — a tongue re-garbles every line
+  from its own seed, so there is no finite set of recordings that could cover the
+  translated forms, and leaving speech in English is exactly what reduces a whole voice
+  to 314 clips. Accents stop applying for the same reason: nobody recorded "Feel dat?".
+  The audio ships separately, so until a pack is installed nothing changes and nothing
+  breaks — a missing clip is the normal case, not an error. `/toa voice` reports which
+  folder your character reads from, and `/toa voice test` names every path it looked in,
+  because otherwise every possible failure here sounds exactly the same: silence.
+  Note the client indexes addon audio at load, so clips added while you're playing need
+  a `/reload` before they'll play.
 - **Player names stay readable inside translated speech.** Say "Corvin, get back"
   in Demonic and Corvin now comes through as Corvin, the way a real language
   leaves a proper noun alone. Someone who can't read a word of the tongue can

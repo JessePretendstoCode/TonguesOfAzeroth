@@ -495,6 +495,13 @@ local function migrateDB()
     if casts.packsSeeded == nil then casts.packsSeeded = false end
     if casts.filterSpellbook == nil then casts.filterSpellbook = true end
     if casts.showOtherPacks == nil then casts.showOtherPacks = false end
+    -- Voice packs: speak the quoted part of a phrase aloud. Off by default and
+    -- deliberately not seeded on, because the audio ships in a separate addon
+    -- most people won't have -- turning it on without that would only switch
+    -- translation off and give nothing back. Hearing other people defaults on,
+    -- since once you have a pack installed it costs nothing extra.
+    if casts.voice == nil then casts.voice = false end
+    if casts.voiceOthers == nil then casts.voiceOthers = true end
 
     -- One-time: enable all channel toggles (older saves may have some off).
     if not db.channelDefaultsVersion or db.channelDefaultsVersion < 2 then
@@ -2023,6 +2030,70 @@ local function castCommand(rest)
     end
 end
 
+-- /toa voice. Mostly a diagnostic, because the interesting failure here is a
+-- silent one: the pack is a folder of files the player assembled themselves,
+-- and "I heard nothing" has four or five plausible causes that look identical
+-- from the game. So `check` names the folder it wants, the file it looked for,
+-- and the reload rule -- rather than reporting a boolean nobody can act on.
+local function voiceCommand(rest)
+    local Voice = ns.Voice
+    if not Voice then
+        Print("voice packs are unavailable (Voice.lua did not load).")
+        return
+    end
+    migrateDB()
+    local c = TonguesOfAzerothDB.casts
+    local sub, arg = (rest or ""):match("^(%S*)%s*(.-)$")
+    sub = string.lower(sub or "")
+
+    if sub == "on" or sub == "off" then
+        c.voice = (sub == "on")
+        Print("voice packs: " .. (c.voice and "|cff00ff00on|r" or "|cffff0000off|r"))
+        if c.voice then
+            Print("cast phrases will speak in plain English while this is on -- "
+                .. "a voice clip can't be recorded for every translation.")
+            if not c.enabled then
+                Print("cast phrases themselves are still |cffff0000off|r (/toa cast on).")
+            end
+        end
+        if ns.OnSettingsChanged then ns.OnSettingsChanged() end
+    elseif sub == "others" then
+        c.voiceOthers = not c.voiceOthers
+        Print("other players' voices: " .. (c.voiceOthers and "|cff00ff00on|r" or "|cffff0000off|r"))
+        if ns.OnSettingsChanged then ns.OnSettingsChanged() end
+    elseif sub == "test" then
+        local line = (arg ~= "" and arg) or Voice.SampleLine()
+        if not line then
+            Print("no voice lines are known (VoiceLines.lua did not load).")
+            return
+        end
+        local ok, path, tried, clip = Voice.Check(line)
+        if not clip then
+            Print("|cffffff00" .. line .. "|r isn't one of the lines a pack covers.")
+            Print("only the quoted part of a shipped phrase is voiced; try /toa voice test")
+            return
+        end
+        if ok then
+            Print("played |cffffff00" .. line .. "|r from " .. path)
+        else
+            Print("|cffffff00" .. line .. "|r is clip |cffffff00" .. clip .. "|r, but no file was found:")
+            for _, p in ipairs(tried) do Print("  " .. p) end
+        end
+    else
+        local d = Voice.Describe()
+        Print("voice packs: " .. (d.enabled and "|cff00ff00on|r" or "|cffff0000off|r")
+            .. ", other players " .. (d.others and "on" or "off"))
+        Print("your voice: |cffffff00" .. d.folder .. "|r"
+            .. ((d.race and d.sex) and "" or "  |cff808080(race or gender unknown -- using the fallback)|r"))
+        Print("pack folder: " .. d.root .. "\\" .. d.folder .. "\\")
+        Print(string.format("%d line(s) can be voiced; played %d, missing %d, unmapped %d this session.",
+            d.count, d.stats.played, d.stats.missing, d.stats.unmapped))
+        Print("audio must be in place |cffffff00before|r you log in or /reload -- the client")
+        Print("indexes addon sound at load, so a file dropped in now needs a reload.")
+        Print("usage: /toa voice [on|off|others|test [line]]")
+    end
+end
+
 local function parseLangStrengthText(input, defaultLang, defaultStrength)
     input = input or ""
     if input == "" then return defaultLang, defaultStrength, "" end
@@ -2288,6 +2359,8 @@ local function handleSlash(input)
         favoriteCommand(rest)
     elseif cmd == "cast" or cmd == "casts" or cmd == "phrases" then
         castCommand(rest)
+    elseif cmd == "voice" or cmd == "voices" then
+        voiceCommand(rest)
     elseif cmd == "favonly" then
         migrateDB()
         local db = TonguesOfAzerothDB

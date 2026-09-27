@@ -61,6 +61,15 @@ generate identical text.
   You only see your own class's pack unless you ask for the rest. Click any line to
   reword it in place, shipped ones included; a pack line you've changed offers
   **Revert** where its pack name was, and keeps its Bearing and its weight.
+- **Voice packs (optional).** Hear the words in `"quotes"` spoken aloud, in a voice
+  matching the speaker's race and gender — your own lines and other players' alike, since
+  a chat line carries the GUID their race and gender can be read from. The audio is a
+  separate download; without it nothing changes and nothing breaks.
+  Turning voices on turns translation **off** for cast phrases, and that trade is the
+  feature rather than a limitation: a tongue re-garbles every line from its own seed, so
+  no finite set of recordings could cover the translated forms. Leaving speech in English
+  is what reduces a whole voice to 314 clips. `/toa voice` reports which folder your
+  character reads from and, when nothing plays, every path it looked in.
 - **A character sheet for how your character sounds.** Every shipped line is written for
   a **Bearing** (Plain, Dry, Fierce, Solemn, Warm) and may carry a **Wording** of courtly
   or blunt. Pick a Bearing, optionally a second that cuts against it, a Wording, and how
@@ -203,6 +212,9 @@ All of them appear in the config dropdown and in `/toa list`.
 | `/toa cast list`            | List spells that have phrases                           |
 | `/toa cast test [spell]`    | Show what a spell would say (sends nothing)             |
 | `/toa cast status`          | Settings, plus whether chat is blocked right now        |
+| `/toa voice`                | Voice-pack status: your voice folder and what's missing |
+| `/toa voice on` / `off`     | Toggle speaking cast phrases out loud                   |
+| `/toa voice test [line]`    | Play one line, or report every path it looked in        |
 | `/toa say <text>`           | Say one translated line (ignores the on/off toggle)     |
 | `/toa yell <text>`          | Yell one translated line                                |
 | `/toa p <text>`             | Preview a translation (only you see it)                 |
@@ -432,7 +444,7 @@ was dropped in 0.2.24, following that server's shutdown. Use 0.2.23 or earlier i
 ## How it's built, and an AI disclosure
 
 Every release is read through before it goes out, checked against the offline test suite in
-`tools/` (**ten test files**, run under LuaJIT with no game client), and play-tested in
+`tools/` (**eleven test files**, run under LuaJIT with no game client), and play-tested in
 game on the clients it supports. The addon defines **no accidental globals**: everything
 lives on a private namespace table except the entry points WoW itself requires
 (`SLASH_TONGUESOFAZEROTH*`, `BINDING_HEADER_*`, `BINDING_NAME_*`) and the public functions

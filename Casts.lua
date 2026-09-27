@@ -579,6 +579,15 @@ function Casts.Render(template, ctx, live)
     local body = substitute(template, ctx or {})
     if not body then return nil end
 
+    -- A voiced line stays in plain English, and that is the trade voice mode
+    -- makes rather than a shortcoming of it. Audio has to match a recorded
+    -- clip; a tongue seeds a different garbling for every line, so there is no
+    -- finite set of clips that could cover the translated forms. Leaving the
+    -- speech untranslated is what reduces a voice to 314 files. See Voice.lua.
+    if ns.Voice and ns.Voice.SuppressesTranslation() then
+        return ns.FitMessage(body), nil, {}
+    end
+
     local spoken, langId = {}, nil
     local named = false
     body = body:gsub('"([^"]*)"', function(speech)
@@ -663,6 +672,10 @@ local function showLocally(body)
     local ok, line = pcall(string.format, format, me)
     if not ok then line = me .. " " end
     ns.PrintToChat(line .. body, "emote")
+    -- Voice normally rides on CHAT_MSG_EMOTE, which never arrives for a line
+    -- the client refused to send. This is the only path that has to cue it by
+    -- hand, and the RP beat is worth keeping even when nobody else can hear it.
+    if ns.Voice then ns.Voice.SpeakLocal(body) end
 end
 
 -- Why a line would be kept to yourself rather than sent, or nil when it goes

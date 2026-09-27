@@ -22,6 +22,8 @@ Accent.lua
 Core.lua
 CastLibrary.lua
 Casts.lua
+VoiceLines.lua
+Voice.lua
 Whispers.lua
 Game.lua
 UI.lua

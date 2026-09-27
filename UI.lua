@@ -76,6 +76,7 @@ local castCreedHeader, castCreedHint, castPackAnchor
 local castBearingDropdown, castStreakDropdown, castWordingDropdown, castTalkDropdown
 local castToneSummary
 local castFilterSpellbookCheck, castShowOtherPacksCheck
+local castVoiceCheck, castVoiceOthersCheck
 local castRows = {}
 local castSelectedKey
 -- The phrase currently open for rewording, held as the text that addresses it
@@ -2905,6 +2906,14 @@ local function RefreshCasts()
     if castShowOtherPacksCheck then
         castShowOtherPacksCheck:SetChecked(c.showOtherPacks and true or false)
     end
+    if castVoiceCheck then castVoiceCheck:SetChecked(c.voice and true or false) end
+    if castVoiceOthersCheck then
+        castVoiceOthersCheck:SetChecked(c.voiceOthers and true or false)
+        -- Greyed rather than hidden when voices are off: the setting is still
+        -- true, it just has nothing to act on, and a control that vanishes
+        -- reads as one you imagined.
+        if c.voice then castVoiceOthersCheck:Enable() else castVoiceOthersCheck:Disable() end
+    end
 
     -- The captions are set here rather than left to OnValueChanged, which
     -- doesn't fire when the value is already what we're setting -- a slider
@@ -3279,9 +3288,41 @@ local function BuildCastPanel()
     if throttleHint.SetWordWrap then throttleHint:SetWordWrap(true) end
     throttleHint:SetText("The two pauses are what keep a spammable spell from turning your emotes into a wall of text. A cast that rolls a phrase while either pause is running simply stays quiet.")
 
+    --  Voice ---------------------------------------------------------------
+    local voiceLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    voiceLabel:SetPoint("TOPLEFT", throttleHint, "BOTTOMLEFT", 0, -16)
+    voiceLabel:SetText("Voice")
+
+    local voiceHint = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    voiceHint:SetPoint("TOPLEFT", voiceLabel, "BOTTOMLEFT", 0, -4)
+    voiceHint:SetPoint("RIGHT", content, "RIGHT", -24, 0)
+    voiceHint:SetJustifyH("LEFT")
+    if voiceHint.SetWordWrap then voiceHint:SetWordWrap(true) end
+    voiceHint:SetText("Say the words in \"quotes\" out loud, in a voice matching the speaker's race and gender. The audio is a separate download; without it nothing changes and nothing breaks. |cffffd200/toa voice|r reports which folder your character reads from.")
+
+    castVoiceCheck = Compat.CreateCheckbox(content, "Speak phrases out loud")
+    castVoiceCheck:SetPoint("TOPLEFT", voiceHint, "BOTTOMLEFT", 0, -8)
+    castVoiceCheck:SetScript("OnClick", function(self)
+        castDB().voice = self:GetChecked() and true or false
+        RefreshCasts()
+    end)
+
+    castVoiceOthersCheck = Compat.CreateCheckbox(content, "Hear other players' voices too")
+    castVoiceOthersCheck:SetPoint("TOPLEFT", castVoiceCheck, "BOTTOMLEFT", 16, -6)
+    castVoiceOthersCheck:SetScript("OnClick", function(self)
+        castDB().voiceOthers = self:GetChecked() and true or false
+    end)
+
+    local voiceNote = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    voiceNote:SetPoint("TOPLEFT", castVoiceCheck, "BOTTOMLEFT", 0, -34)
+    voiceNote:SetPoint("RIGHT", content, "RIGHT", -24, 0)
+    voiceNote:SetJustifyH("LEFT")
+    if voiceNote.SetWordWrap then voiceNote:SetWordWrap(true) end
+    voiceNote:SetText("|cffffd200While this is on, spoken words stay in plain English.|r A clip can't be recorded for every seed of every tongue, so voice and translation are a choice between two ways of sounding like someone else.")
+
     --  Packs -------------------------------------------------------------
     local packLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    packLabel:SetPoint("TOPLEFT", throttleHint, "BOTTOMLEFT", 0, -16)
+    packLabel:SetPoint("TOPLEFT", voiceNote, "BOTTOMLEFT", 0, -16)
     packLabel:SetText("Phrase packs")
 
     local packHint = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
