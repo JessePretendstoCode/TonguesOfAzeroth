@@ -23,9 +23,11 @@ All notable changes to Tongues of Azeroth are documented here.
   off in the AddOns list", and "your race's voice hasn't been built yet" are three
   different problems that are otherwise indistinguishable from the silence they produce.
   The pack itself is generated on your own machine and costs nothing: a local neural
-  text-to-speech engine reads the lines, and each race is then a pitch and formant shift
-  rather than a separate recording — formants are what carry body size, so moving them is
-  what makes a tauren read as a tauren rather than as a slowed-down human.
+  text-to-speech engine reads the lines, and each race gets its own speaker rather than
+  one voice pitched up and down — a different voice changes *who* someone is, where a
+  pitch shift only changes how big they are. Pitch still applies on top, because it moves
+  the formants that carry body size, which is what makes a tauren read as a tauren rather
+  than as a slowed-down human.
 - **Player names stay readable inside translated speech.** Say "Corvin, get back"
   in Demonic and Corvin now comes through as Corvin, the way a real language
   leaves a proper noun alone. Someone who can't read a word of the tongue can
