@@ -59,8 +59,9 @@ generate identical text.
   ship with it (one per class, plus pets and professions) covering 143 spells, two or
   three lines each, or write your own with `%s` spell, `%p` pet, `%f` pet family and
   `%t` target. You only see your own class's pack unless you ask for the rest. Click any
-  line to reword it in place, shipped ones included; a pack line you've changed offers
-  **Revert** where its pack name was, and keeps the weight you gave it.
+  line to reword it in place, shipped ones included; it keeps what you type when you click
+  away, and Escape (or the circle-slash on the row) puts it back. A pack line you've
+  changed offers **Revert** where its pack name was, and keeps the weight you gave it.
 - **Voice packs (optional).** Hear the words in `"quotes"` spoken aloud, in a voice
   matching the speaker's race and gender — your own lines and other players' alike, since
   a chat line carries the GUID their race and gender can be read from. The audio is a

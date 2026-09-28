@@ -77,10 +77,21 @@ local castFilterSpellbookCheck, castShowOtherPacksCheck
 local castVoiceCheck, castVoiceOthersCheck
 local castRows = {}
 local castSelectedKey
--- The phrase currently open for rewording, held as the text that addresses it
--- (its shipped wording for a library line). Rows are pooled and reused, so an
--- index would point at a different phrase the moment the list reflows.
-local castEditing
+-- The reword in progress, or nil. Four things, and all four have to live here
+-- rather than on the row: rows are pooled and redrawn constantly -- every
+-- keystroke in the new-phrase field below redraws the whole list -- so anything
+-- kept on the frame is lost the moment the list reflows.
+--
+--   orig   the text that ADDRESSES the phrase (a library line's shipped
+--          wording), which is what its weight and its edit hang off
+--   from    what it read as when the editor opened, so an untouched edit can
+--          close without writing anything
+--   typed   what is in the box now, which is the whole point: the box is
+--          reseeded from this on every redraw, so a redraw cannot eat the edit
+--   focus   set once when the editor opens. Grabbing focus on every redraw
+--          would yank the cursor out of the new-phrase field the moment
+--          somebody typed in it with a row still open.
+local castEdit
 local castSpellEventsRegistered
 local channelChecks = {}
 local learnedRows = {}
@@ -1552,6 +1563,36 @@ local function BuildChatPanel()
     chatPanel:SetScript("OnShow", RefreshChat)
 end
 
+-- Small square icon button with a tooltip: the check and circle-slash pair used
+-- on the language rows, and on a phrase row while it is being reworded. Shared
+-- so that accepting a change looks the same everywhere it can be accepted.
+local function iconButton(parent, tex, tip, r, g, b, size)
+    local btn = CreateFrame("Button", nil, parent)
+    btn:SetSize(size or 24, size or 24)
+    local bg = btn:CreateTexture(nil, "BACKGROUND"); bg:SetAllPoints()
+    Compat.SolidTexture(bg, 0.16, 0.15, 0.20, 1)
+    Compat.AddBorder(btn, r or 0.5, g or 0.45, b or 0.7, 0.9)
+    local icon = btn:CreateTexture(nil, "ARTWORK")
+    icon:SetPoint("CENTER", 0, 0)
+    icon:SetSize((size or 24) - 8, (size or 24) - 8)
+    icon:SetTexture(tex)
+    btn.icon = icon
+    local hl = btn:CreateTexture(nil, "HIGHLIGHT"); hl:SetAllPoints()
+    Compat.SolidTexture(hl, 1, 1, 1, 0.15)
+    if tip then
+        btn:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetText(tip, 1, 1, 1, 1, true)
+            GameTooltip:Show()
+        end)
+        btn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    end
+    return btn
+end
+
+local ICON_ACCEPT = "Interface\\RAIDFRAME\\ReadyCheck-Ready"
+local ICON_DISCARD = "Interface\\Buttons\\UI-GroupLoot-Pass-Up"
+
 local function BuildLearnedPanel()
     learnedPanel = Compat.CreateOptionsPanel("TonguesOfAzerothLearnedOptions")
     -- "Learned Languages" while it only held the learned list. It is the
@@ -1755,31 +1796,6 @@ local function BuildLearnedPanel()
     note:SetPoint("BOTTOMRIGHT", learnedPanel, "BOTTOMRIGHT", -28, 14)
     note:SetJustifyH("LEFT")
     note:SetText("Fluency is how fully you speak a tongue -- build it by hearing it, in the Language Trainer, or with the buttons above. Decoding only works on text produced by Tongues of Azeroth.")
-
-    -- Small square icon button with a tooltip (used for the check / reset icons).
-    local function iconButton(parent, tex, tip, r, g, b)
-        local btn = CreateFrame("Button", nil, parent)
-        btn:SetSize(24, 24)
-        local bg = btn:CreateTexture(nil, "BACKGROUND"); bg:SetAllPoints()
-        Compat.SolidTexture(bg, 0.16, 0.15, 0.20, 1)
-        Compat.AddBorder(btn, r or 0.5, g or 0.45, b or 0.7, 0.9)
-        local icon = btn:CreateTexture(nil, "ARTWORK")
-        icon:SetPoint("CENTER", 0, 0)
-        icon:SetSize(16, 16)
-        icon:SetTexture(tex)
-        btn.icon = icon
-        local hl = btn:CreateTexture(nil, "HIGHLIGHT"); hl:SetAllPoints()
-        Compat.SolidTexture(hl, 1, 1, 1, 0.15)
-        if tip then
-            btn:SetScript("OnEnter", function(self)
-                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-                GameTooltip:SetText(tip, 1, 1, 1, 1, true)
-                GameTooltip:Show()
-            end)
-            btn:SetScript("OnLeave", function() GameTooltip:Hide() end)
-        end
-        return btn
-    end
 
     -- Scrollable single-column list: each row is a language with its fluency bar
     -- and two icon buttons -- a check (make fully fluent) and a circle-slash
@@ -2579,6 +2595,38 @@ local function castStatusMsg(msg, isError)
     end
 end
 
+-- Close the open reword, if there is one. `save` is the default answer for
+-- everything except an explicit discard, because clicking away from a line you
+-- have just retyped is universally read as "keep that" -- losing it is the only
+-- outcome nobody ever wants. A save that fails validation deliberately does NOT
+-- close: the editor stays open with the text still in it and the reason on
+-- screen, so a rejected line is something you fix rather than something you
+-- watch disappear. Returns whether the editor is now closed.
+local function castFinishEdit(save)
+    if not castEdit then return true end
+    if not save or castEdit.typed == nil or castEdit.typed == castEdit.from then
+        castEdit = nil
+        return true
+    end
+    local ok, err = Casts.SetPhraseText(castSelectedKey, castEdit.orig, castEdit.typed)
+    if ok then
+        castEdit = nil
+        castStatusMsg("Saved.", false)
+        return true
+    end
+    castStatusMsg("Not saved: " .. tostring(err) .. ". Fix it, or discard it with Escape.", true)
+    return false
+end
+
+-- Leaving the spell, or the panel, behind. The same rule -- keep what was typed
+-- -- except that there is nowhere to hold a line the validator refuses, since
+-- the editor is about to leave with the spell the line belonged to. The only two
+-- refusals are an empty box and a line you already have, neither of which is
+-- worth refusing to change spell over.
+local function castLeaveEdit()
+    if not castFinishEdit(true) then castEdit = nil end
+end
+
 local function bindDropdownDesc(dd, items)
     dd:HookScript("OnEnter", function()
         local val = dd:GetValue()
@@ -2826,9 +2874,23 @@ local function castRow(index, parent)
     -- neighbours while rewording it. Built from a bare EditBox rather than
     -- InputBoxTemplate: the template's art carries padding sized for a full-width
     -- field and doesn't sit inside a 22px row.
+    -- Keep / discard, the same check and circle-slash the language rows use, and
+    -- shown only while this row is open. They are here because Enter used to be
+    -- the only way to keep a change and nothing on screen said so: the box looked
+    -- like every other field that saves itself, so clicking away from it read as
+    -- committing rather than as abandoning. Now clicking away does commit, and
+    -- these two say out loud which of the two things a click will do.
+    row.discard = iconButton(row, ICON_DISCARD, "Discard this rewording (Escape)", 0.7, 0.4, 0.4, 18)
+    row.discard:SetPoint("RIGHT", row.action, "LEFT", -6, 0)
+    row.discard:Hide()
+
+    row.keep = iconButton(row, ICON_ACCEPT, "Keep this rewording (Enter)", 0.4, 0.6, 0.4, 18)
+    row.keep:SetPoint("RIGHT", row.discard, "LEFT", -4, 0)
+    row.keep:Hide()
+
     row.input = CreateFrame("EditBox", nil, row)
     row.input:SetPoint("LEFT", row.text, "LEFT", -4, 0)
-    row.input:SetPoint("RIGHT", row.action, "LEFT", -8, 0)
+    row.input:SetPoint("RIGHT", row.keep, "LEFT", -6, 0)
     row.input:SetHeight(18)
     row.input:SetAutoFocus(false)
     row.input:SetFontObject("GameFontHighlightSmall")
@@ -2961,7 +3023,7 @@ local function RefreshCasts()
                 GameTooltip:AddLine("Revert puts it back.", 0.6, 0.6, 0.6, true)
             end
             GameTooltip:AddLine(" ")
-            GameTooltip:AddLine("Click to reword this line.", 0.6, 0.6, 0.6)
+            GameTooltip:AddLine("Click to reword this line. It keeps what you type; Escape puts it back.", 0.6, 0.6, 0.6, true)
             GameTooltip:Show()
         end)
         row:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -2979,45 +3041,73 @@ local function RefreshCasts()
             RefreshCasts()
         end)
 
-        local editing = (castEditing == text)
+        local editing = (castEdit ~= nil and castEdit.orig == text)
         if editing then
             row.text:Hide()
             row.input:Show()
-            -- Only seed the box when it isn't already being typed in: RefreshCasts
-            -- runs on every keystroke in the new-phrase field below, and resetting
-            -- the text each time would eat the edit as it was made.
-            if not row.input:HasFocus() then
-                row.input:SetText(phrase.text)
+            row.keep:Show()
+            row.discard:Show()
+            -- The box is a view of castEdit.typed, never of the saved phrase.
+            -- Seeding it from the phrase was the bug: the list redraws on every
+            -- keystroke in the new-phrase field below, and each redraw put the
+            -- saved wording back, so anything typed here vanished the moment
+            -- anything else on the panel moved.
+            if castEdit.focus then
+                row.input:SetText(castEdit.typed or phrase.text)
                 row.input:SetFocus()
                 row.input:HighlightText()
+                castEdit.focus = nil
+            elseif not row.input:HasFocus() and row.input:GetText() ~= castEdit.typed then
+                -- Redrawn while the cursor is somewhere else. Put the pending
+                -- text back, but do not take focus: somebody typing in the
+                -- new-phrase field would have the cursor pulled out from under
+                -- them on their first keypress.
+                row.input:SetText(castEdit.typed or phrase.text)
             end
         else
             row.input:Hide()
+            row.keep:Hide()
+            row.discard:Hide()
             row.text:Show()
         end
 
-        row.input:SetScript("OnEnterPressed", function(self)
-            local ok, err = Casts.SetPhraseText(key, text, self:GetText())
-            castEditing = nil
-            self:ClearFocus()
-            if ok then
-                castStatusMsg("Saved.", false)
-            else
-                castStatusMsg("Not saved: " .. tostring(err) .. ".", true)
+        row.input:SetScript("OnTextChanged", function(self)
+            if castEdit and castEdit.orig == text then castEdit.typed = self:GetText() end
+        end)
+        local function keep(self)
+            if castEdit then castEdit.typed = row.input:GetText() end
+            castFinishEdit(true)
+            if castEdit then castEdit.focus = true else row.input:ClearFocus() end
+            RefreshCasts()
+        end
+        local function discard()
+            castFinishEdit(false)
+            row.input:ClearFocus()
+            castStatusMsg("Left as it was.", false)
+            RefreshCasts()
+        end
+        row.input:SetScript("OnEnterPressed", keep)
+        row.input:SetScript("OnEscapePressed", discard)
+        -- Clicking away from the box -- at a different row, at the panel behind
+        -- it, at anything -- keeps what is in it. That is the assumption people
+        -- arrive with, and the reason this handler exists.
+        row.input:SetScript("OnEditFocusLost", function()
+            if castEdit and castEdit.orig == text then
+                castEdit.typed = row.input:GetText()
+                castFinishEdit(true)
+                RefreshCasts()
             end
-            RefreshCasts()
         end)
-        row.input:SetScript("OnEscapePressed", function(self)
-            castEditing = nil
-            self:ClearFocus()
-            RefreshCasts()
-        end)
+        row.keep:SetScript("OnClick", keep)
+        row.discard:SetScript("OnClick", discard)
 
         row:SetScript("OnClick", function()
-            -- Clicking the row being edited would cancel the edit under the
+            -- Clicking the row being edited would close the edit under the
             -- cursor mid-typing, which is never what the click meant.
             if editing then return end
-            castEditing = text
+            -- Opening this one puts away whichever was open, keeping it.
+            if not castFinishEdit(true) then return end
+            castEdit = { orig = text, from = phrase.text, typed = phrase.text, focus = true }
             RefreshCasts()
         end)
 
@@ -3027,7 +3117,7 @@ local function RefreshCasts()
             row.action.label:SetText("Delete")
             row.action:SetScript("OnClick", function()
                 Casts.RemovePhrase(key, text)
-                if castEditing == text then castEditing = nil end
+                if castEdit and castEdit.orig == text then castEdit = nil end
                 castStatusMsg("Removed that phrase.", false)
                 RefreshCasts()
             end)
@@ -3039,7 +3129,7 @@ local function RefreshCasts()
             row.action.label:SetText("Revert")
             row.action:SetScript("OnClick", function()
                 Casts.ClearPhraseText(key, text)
-                if castEditing == text then castEditing = nil end
+                if castEdit and castEdit.orig == text then castEdit = nil end
                 castStatusMsg("Back to the wording the pack ships.", false)
                 RefreshCasts()
             end)
@@ -3295,8 +3385,8 @@ local function BuildCastPanel()
     castSpellDropdown:SetPoint("TOPLEFT", castFilterSpellbookCheck, "BOTTOMLEFT", 0, -6)
     castSpellDropdown.onSelect = function(value)
         if value then noteSpellKey(value) end
+        castLeaveEdit()
         castSelectedKey = value
-        castEditing = nil
         castStatusMsg("", false)
         RefreshCasts()
     end
@@ -3322,8 +3412,8 @@ local function BuildCastPanel()
             return
         end
         Casts.NoteSpellName((typed:gsub("^%s+", ""):gsub("%s+$", "")))
+        castLeaveEdit()
         castSelectedKey = key
-        castEditing = nil
         addSpellInput:SetText("")
         addSpellInput:ClearFocus()
         castStatusMsg("Editing " .. Casts.DisplayName(key) .. " -- add a phrase below.", false)
@@ -3583,8 +3673,8 @@ end
 -- panel opens already showing that spell's phrases.
 function ns.OpenCastConfig(key)
     BuildPanels()
+    castLeaveEdit()
     if key then castSelectedKey = key end
-    castEditing = nil
     Compat.OpenOptionsPanel(castPanel)
     RefreshCasts()
 end

@@ -63,7 +63,7 @@ Your character can speak when a spell lands, in whatever tongue you're currently
 
 Words in quotes go through your language and accent exactly as chat does. Everything outside them is narration and stays in English, because that's the part onlookers are meant to follow. It's off until you turn it on, since it puts text in other people's chat.
 
-The shipped lines cover 143 spells, two or three apiece, and are written to read like a DM narrating the action rather than a list of spell names. One concrete detail per line, and the long cooldowns get more room than the spammable fillers. Tick a pack and its spells appear in the list, where any line can be reworded, reweighted or retired. Click a line to edit it in place, shipped lines included; one you've changed offers a Revert button to put the pack's wording back, and keeps the weight it had. You only see your own class's pack by default, plus pets and professions, and one click reveals the rest.
+The shipped lines cover 143 spells, two or three apiece, and are written to read like a DM narrating the action rather than a list of spell names. One concrete detail per line, and the long cooldowns get more room than the spammable fillers. Tick a pack and its spells appear in the list, where any line can be reworded, reweighted or retired. Click a line to edit it in place, shipped lines included; it keeps what you type when you click away from it, and Escape puts it back. One you've changed offers a Revert button to restore the pack's wording, and keeps the weight it had. You only see your own class's pack by default, plus pets and professions, and one click reveals the rest.
 
 ### Two or three lines, and nothing to configure
 

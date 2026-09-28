@@ -3,6 +3,21 @@
 All notable changes to Tongues of Azeroth are documented here.
 
 ## [Unreleased]
+- **Rewording a phrase keeps what you typed.** Clicking away from a line you were part
+  way through rewording used to throw the whole edit away: Enter was the only thing that
+  saved, and nothing on screen said so. The box looked like every other field on the
+  panel, and every other field on the panel saves itself, so clicking off it read as
+  finishing rather than abandoning.
+  It now keeps the wording. Clicking another line, clicking the panel behind it, changing
+  spell -- all of them save. Two buttons on the row say which is which: a green check to
+  keep, a red circle-slash to discard, the same pair the language rows use for making a
+  language fluent or resetting it. Enter and Escape still do the same two things.
+  A wording the addon cannot store -- an empty line, or one you already have -- no longer
+  vanishes while you read why it was refused. The editor stays open with the text still
+  in it and the reason underneath, so it is something to fix rather than to retype.
+  Underneath, the in-progress wording is held by the panel instead of by the text box.
+  The phrase list redraws on every keystroke in the new-phrase field beneath it, and each
+  redraw used to put the shipped wording back into the box mid-edit.
 - **Two or three lines per spell, and the character sheet is gone.** The Bearing,
   Streak, Wording and Talkativeness dials have been removed, along with the 783-line
   library they selected from. In their place every spell carries two or three lines that
