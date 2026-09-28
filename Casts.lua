@@ -101,9 +101,9 @@ local function userList(key, create)
 end
 
 -- The weight you set by hand, or nil if you never touched this line. Kept
--- separate from GetWeight because an explicit weight means something stronger
--- than a number: it opts the line out of tone weighting entirely, so a line you
--- asked for plays even when it cuts against your character's Bearing.
+-- separate from GetWeight so the panel can tell "left at the default" from
+-- "deliberately set to the same number as the default", which is the difference
+-- between a line the player has an opinion about and one they have not seen.
 function Casts.GetExplicitWeight(key, text)
     local c = castDB()
     local byKey = c and c.weights and c.weights[key]
@@ -290,142 +290,16 @@ function Casts.SeedDefaultPacks()
 end
 
 --=========================================================================--
---  The character sheet
---=========================================================================--
--- Tone is described the way a tabletop character is: a Bearing for how they
--- carry themselves, an optional second Bearing for a streak that cuts against
--- the first, a Wording for diction, and how much they talk. The four combine
--- into a weighting over the whole library rather than selecting one pre-written
--- voice, which is what lets "Fierce with a Dry streak" genuinely draw on both
--- without anyone having to write a Fierce-Dry variant of every line.
---
--- Talkativeness costs no content at all: whether a line speaks is visible in
--- the line itself, since spoken words are the bit in quotes. So that dial just
--- reweights what is already there.
-
-Casts.BEARINGS = {
-    { id = "plain",  name = "Plain",  desc = "States what is happening, without flourish." },
-    { id = "dry",    name = "Dry",    desc = "Understated, faintly amused." },
-    { id = "fierce", name = "Fierce", desc = "Loud, forward, spoiling for it." },
-    { id = "solemn", name = "Solemn", desc = "Grave, with weight behind the words." },
-    { id = "warm",   name = "Warm",   desc = "Looks after people, even mid-fight." },
-}
-
-Casts.WORDINGS = {
-    { id = "common",  name = "Common",  desc = "Plain, modern speech." },
-    { id = "courtly", name = "Courtly", desc = "Formal and archaic: oaths, vows, thee and thou." },
-    { id = "blunt",   name = "Blunt",   desc = "Clipped. A soldier's mouth." },
-}
-
-Casts.TALK = {
-    { id = "quiet",    name = "Quiet",    desc = "Narration only; hardly ever speaks aloud." },
-    { id = "measured", name = "Measured", desc = "Speaks about half the time." },
-    { id = "loud",     name = "Loud",     desc = "Speaks whenever there is anything to say." },
-}
-
-local TONE_DEFAULT = { bearing = "plain", second = "", wording = "common", talk = "measured" }
-
-local function optionName(list, id)
-    for _, opt in ipairs(list) do
-        if opt.id == id then return opt.name end
-    end
-    return nil
-end
-
-local function validId(list, value, fallback)
-    for _, opt in ipairs(list) do
-        if opt.id == value then return value end
-    end
-    return fallback
-end
-
-function Casts.GetTone()
-    local c = castDB()
-    local t = (c and type(c.tone) == "table") and c.tone or TONE_DEFAULT
-    return {
-        bearing = validId(Casts.BEARINGS, t.bearing, TONE_DEFAULT.bearing),
-        -- "" is a real answer: plenty of characters are only the one thing.
-        second = validId(Casts.BEARINGS, t.second, ""),
-        wording = validId(Casts.WORDINGS, t.wording, TONE_DEFAULT.wording),
-        talk = validId(Casts.TALK, t.talk, TONE_DEFAULT.talk),
-    }
-end
-
-function Casts.SetTone(field, value)
-    local c = castDB()
-    if not c then return end
-    if type(c.tone) ~= "table" then c.tone = {} end
-    if field == "bearing" then
-        c.tone.bearing = validId(Casts.BEARINGS, value, TONE_DEFAULT.bearing)
-        -- A streak that matches the main Bearing says nothing, so drop it.
-        if c.tone.second == c.tone.bearing then c.tone.second = "" end
-    elseif field == "second" then
-        local v = validId(Casts.BEARINGS, value, "")
-        c.tone.second = (v == Casts.GetTone().bearing) and "" or v
-    elseif field == "wording" then
-        c.tone.wording = validId(Casts.WORDINGS, value, TONE_DEFAULT.wording)
-    elseif field == "talk" then
-        c.tone.talk = validId(Casts.TALK, value, TONE_DEFAULT.talk)
-    end
-end
-
-function Casts.DescribeTone()
-    local t = Casts.GetTone()
-    local lead = optionName(Casts.BEARINGS, t.bearing) or "Plain"
-    local streak = optionName(Casts.BEARINGS, t.second)
-    if streak then lead = lead .. " with a " .. streak .. " streak" end
-    return lead .. ", " .. (optionName(Casts.WORDINGS, t.wording) or "Common")
-        .. ", " .. (optionName(Casts.TALK, t.talk) or "Measured")
-end
-
--- What a library line is worth to this character. Zero means "not this
--- character's voice", which drops the line from the roll -- it stays visible in
--- the panel, greyed, and setting a weight by hand overrides this.
-local BEARING_MATCH, BEARING_SECOND = 3, 2
-local WORDING_MATCH, WORDING_CLASH = 2, 0.5
-
-function Casts.ToneWeight(entry, tone)
-    tone = tone or Casts.GetTone()
-    local m = 1
-
-    local bearing = entry.bearing
-    if bearing and bearing ~= "plain" then
-        if bearing == tone.bearing then
-            m = m * BEARING_MATCH
-        elseif tone.second ~= "" and bearing == tone.second then
-            m = m * BEARING_SECOND
-        else
-            return 0
-        end
-    elseif tone.bearing == "plain" then
-        -- Plain is a Bearing you can pick as well as the neutral backbone, so
-        -- picking it promotes those lines rather than merely leaving them in.
-        m = m * BEARING_MATCH
-    end
-
-    if entry.wording then
-        m = m * ((entry.wording == tone.wording) and WORDING_MATCH or WORDING_CLASH)
-    end
-
-    local speaks = entry.text:find('"', 1, true) ~= nil
-    if tone.talk == "quiet" then
-        m = m * (speaks and 0.15 or 1.5)
-    elseif tone.talk == "loud" then
-        m = m * (speaks and 3 or 0.35)
-    end
-    return m
-end
-
---=========================================================================--
 --  Assembling a spell's phrases
 --=========================================================================--
 -- Every phrase available for a spell, your own first and then each opted-in
 -- pack, de-duplicated by text so a line you happened to write yourself doesn't
 -- also arrive from a pack and get double the share of the roll.
 --
--- Your own phrases are never tone-weighted. You wrote them; they are by
--- definition your character's voice, and second-guessing them against a dial
--- would be obnoxious. The library is what the sheet filters.
+-- Every line starts on the same footing. The library used to be filtered by a
+-- character sheet, which meant most of what was written never reached any one
+-- player; now a spell carries two or three lines that all suit anyone, and the
+-- only thing that moves a line up or down is the weight the player sets.
 local WILDCARD_WEIGHT = 1
 
 function Casts.GetPhrases(key)
@@ -445,7 +319,6 @@ function Casts.GetPhrases(key)
         end
     end
 
-    local tone = Casts.GetTone()
     local function addLibraryLine(entry, base)
         if seen[entry.text] then return end
         seen[entry.text] = true
@@ -457,19 +330,10 @@ function Casts.GetPhrases(key)
             seen[shown] = true
         end
         local override = Casts.GetExplicitWeight(key, entry.text)
-        local weight, offTone
-        if override then
-            weight = override
-        else
-            local m = Casts.ToneWeight(entry, tone)
-            weight = base * m
-            offTone = (m == 0)
-        end
         out[#out + 1] = {
             text = shown, orig = entry.text, edited = (shown ~= entry.text),
-            weight = weight, step = override or base,
-            pack = entry.pack, bearing = entry.bearing, wording = entry.wording,
-            wildcard = entry.wildcard, offTone = offTone,
+            weight = override or base, step = override or base,
+            pack = entry.pack, wildcard = entry.wildcard,
         }
     end
 
@@ -583,7 +447,7 @@ function Casts.Render(template, ctx, live)
     -- makes rather than a shortcoming of it. Audio has to match a recorded
     -- clip; a tongue seeds a different garbling for every line, so there is no
     -- finite set of clips that could cover the translated forms. Leaving the
-    -- speech untranslated is what reduces a voice to 314 files. See Voice.lua.
+    -- speech untranslated is what reduces a voice to 194 files. See Voice.lua.
     if ns.Voice and ns.Voice.SuppressesTranslation() then
         return ns.FitMessage(body), nil, {}
     end

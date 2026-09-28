@@ -14,7 +14,7 @@
         feature rather than a limitation. A voiced line has to match a recorded
         clip, and there is no way to record "Zaq'roth!" for every seed of every
         tongue -- the combinations are unbounded. Suppressing the tongue
-        collapses that to one clip per line per voice, which is 314 clips.
+        collapses that to one clip per line per voice, which is 194 clips.
         The accent goes with it for the same reason: "Feel dat?" is not a line
         anybody recorded, so leaving accents on would silently match nothing.
 

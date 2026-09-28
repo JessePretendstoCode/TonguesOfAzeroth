@@ -487,11 +487,13 @@ local function migrateDB()
     if type(casts.spells) ~= "table" then casts.spells = {} end
     -- Spells silenced even though an enabled pack covers them.
     if type(casts.muted) ~= "table" then casts.muted = {} end
-    -- The character sheet: which of the library's voices this character uses.
-    -- Per-character like the rest of the DB, which is the whole point -- your
-    -- warrior and your priest should not have to sound the same. Left empty
-    -- here; Casts.GetTone fills in its own defaults.
-    if type(casts.tone) ~= "table" then casts.tone = {} end
+    -- The character sheet is gone: a Bearing and Wording used to weight the
+    -- library, but the weighting dropped every non-matching group entirely, so
+    -- a character only ever reached one or two lines of the five-odd written per
+    -- spell. The library now ships two or three lines that suit anyone, which is
+    -- the same reach without the panel. Dropped rather than left in place so it
+    -- does not sit in the saved file looking meaningful.
+    casts.tone = nil
     if casts.packsSeeded == nil then casts.packsSeeded = false end
     if casts.filterSpellbook == nil then casts.filterSpellbook = true end
     if casts.showOtherPacks == nil then casts.showOtherPacks = false end

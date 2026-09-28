@@ -73,8 +73,6 @@ local castPreviewText, castStatus, castAddRow, castEmptyNote
 local castPackChecks = {}
 local castPackBottom
 local castCreedHeader, castCreedHint, castPackAnchor
-local castBearingDropdown, castStreakDropdown, castWordingDropdown, castTalkDropdown
-local castToneSummary
 local castFilterSpellbookCheck, castShowOtherPacksCheck
 local castVoiceCheck, castVoiceOthersCheck
 local castRows = {}
@@ -2581,29 +2579,6 @@ local function castStatusMsg(msg, isError)
     end
 end
 
-local function toneOptionName(list, id)
-    if id == "" then return "None" end
-    for _, opt in ipairs(list) do
-        if opt.id == id then return opt.name end
-    end
-    return id
-end
-
-local function toneDropdownItems(list, includeNone)
-    local items = {}
-    if includeNone then
-        items[#items + 1] = {
-            text = "None",
-            value = "",
-            desc = "No secondary streak -- one Bearing is enough.",
-        }
-    end
-    for _, opt in ipairs(list) do
-        items[#items + 1] = { text = opt.name, value = opt.id, desc = opt.desc }
-    end
-    return items
-end
-
 local function bindDropdownDesc(dd, items)
     dd:HookScript("OnEnter", function()
         local val = dd:GetValue()
@@ -2696,17 +2671,16 @@ local function noteSpellKey(key)
     end
 end
 
-local function phraseToneLabel(phrase)
-    if phrase.user then return "" end
-    local parts = {}
-    if phrase.bearing then
-        parts[#parts + 1] = toneOptionName(Casts.BEARINGS, phrase.bearing)
+-- What a row says about where its line came from. Yours say nothing -- you know
+-- where they came from -- and a creed line is worth naming because it arrives on
+-- spells you never attached it to, which is otherwise a puzzle.
+local function phraseSourceLabel(phrase)
+    if phrase.user or not phrase.pack then return "" end
+    local packs = (ns.CastLibrary and ns.CastLibrary.GetPacks()) or {}
+    for _, p in ipairs(packs) do
+        if p.id == phrase.pack then return p.name end
     end
-    if phrase.wording then
-        parts[#parts + 1] = toneOptionName(Casts.WORDINGS, phrase.wording)
-    end
-    if #parts == 0 then return "" end
-    return table.concat(parts, " · ")
+    return ""
 end
 
 local function layoutCastPacks()
@@ -2874,21 +2848,6 @@ local function RefreshCasts()
     local c = castDB()
     if not c then return end
 
-    local tone = Casts.GetTone()
-    if castBearingDropdown then
-        castBearingDropdown:SetSelected(tone.bearing, toneOptionName(Casts.BEARINGS, tone.bearing))
-    end
-    if castStreakDropdown then
-        castStreakDropdown:SetSelected(tone.second, toneOptionName(Casts.BEARINGS, tone.second))
-    end
-    if castWordingDropdown then
-        castWordingDropdown:SetSelected(tone.wording, toneOptionName(Casts.WORDINGS, tone.wording))
-    end
-    if castTalkDropdown then
-        castTalkDropdown:SetSelected(tone.talk, toneOptionName(Casts.TALK, tone.talk))
-    end
-    if castToneSummary then castToneSummary:SetText(Casts.DescribeTone()) end
-
     if castEnableCheck then castEnableCheck:SetChecked(c.enabled) end
     if castPetCheck then castPetCheck:SetChecked(c.pets) end
 
@@ -2970,7 +2929,7 @@ local function RefreshCasts()
 
         local step = phrase.step or 0
         row.weight:SetText(tostring(step))
-        local grey = phrase.offTone or step == 0
+        local grey = step == 0
         if grey then
             row.weight:SetTextColor(0.5, 0.5, 0.5)
             row.text:SetTextColor(0.5, 0.5, 0.5)
@@ -2980,7 +2939,7 @@ local function RefreshCasts()
             row.text:SetTextColor(1, 1, 1)
             row.meta:SetTextColor(0.55, 0.55, 0.55)
         end
-        row.meta:SetText(phraseToneLabel(phrase))
+        row.meta:SetText(phraseSourceLabel(phrase))
         row.text:SetText(phrase.text)
 
         row:SetScript("OnEnter", function(self)
@@ -2988,11 +2947,11 @@ local function RefreshCasts()
             -- The row is wider than the column it can draw in, so the tooltip is
             -- also where you read a line that's too long to fit.
             GameTooltip:AddLine(phrase.text, 1, 1, 1, true)
-            if phrase.offTone then
+            if phrase.wildcard then
                 GameTooltip:AddLine(" ")
-                GameTooltip:AddLine("Off character", 1, 0.82, 0)
+                GameTooltip:AddLine("From a creed", 1, 0.82, 0)
                 GameTooltip:AddLine(
-                    "This line doesn't match your Bearing. Give it a weight to use it anyway.",
+                    "Creed lines ride along on every spell that already says something.",
                     0.8, 0.8, 0.8, true)
             end
             if phrase.edited then
@@ -3166,81 +3125,8 @@ local function BuildCastPanel()
     if limits.SetWordWrap then limits:SetWordWrap(true) end
     limits:SetText("|cffffd200Heads-up:|r lines go out as emotes. /say and /yell need a real keypress, so no addon can send them from a cast -- and during raid encounters, Mythic+ and rated PvP Blizzard blocks addon chat entirely, where the line is shown to you alone instead.")
 
-    --  Character sheet ---------------------------------------------------
-    local sheetLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    sheetLabel:SetPoint("TOPLEFT", limits, "BOTTOMLEFT", 0, -16)
-    sheetLabel:SetText("This character")
-
-    local bearingLabel = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-    bearingLabel:SetPoint("TOPLEFT", sheetLabel, "BOTTOMLEFT", 0, -10)
-    bearingLabel:SetText("Bearing")
-
-    local bearingItems = toneDropdownItems(Casts.BEARINGS)
-    castBearingDropdown = Compat.CreateDropdown(content, 220)
-    castBearingDropdown:SetPoint("TOPLEFT", bearingLabel, "BOTTOMLEFT", 0, -6)
-    castBearingDropdown:SetItems(bearingItems)
-    bindDropdownDesc(castBearingDropdown, bearingItems)
-    castBearingDropdown.onSelect = function(value)
-        Casts.SetTone("bearing", value)
-        RefreshCasts()
-    end
-
-    local streakLabel = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-    streakLabel:SetPoint("TOPLEFT", bearingLabel, "TOPLEFT", 260, 0)
-    streakLabel:SetText("Streak")
-
-    local streakItems = toneDropdownItems(Casts.BEARINGS, true)
-    castStreakDropdown = Compat.CreateDropdown(content, 220)
-    castStreakDropdown:SetPoint("TOPLEFT", streakLabel, "BOTTOMLEFT", 0, -6)
-    castStreakDropdown:SetItems(streakItems)
-    bindDropdownDesc(castStreakDropdown, streakItems)
-    castStreakDropdown.onSelect = function(value)
-        Casts.SetTone("second", value)
-        RefreshCasts()
-    end
-
-    local wordingLabel = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-    wordingLabel:SetPoint("TOPLEFT", castBearingDropdown, "BOTTOMLEFT", 0, -20)
-    wordingLabel:SetText("Wording")
-
-    local wordingItems = toneDropdownItems(Casts.WORDINGS)
-    castWordingDropdown = Compat.CreateDropdown(content, 220)
-    castWordingDropdown:SetPoint("TOPLEFT", wordingLabel, "BOTTOMLEFT", 0, -6)
-    castWordingDropdown:SetItems(wordingItems)
-    bindDropdownDesc(castWordingDropdown, wordingItems)
-    castWordingDropdown.onSelect = function(value)
-        Casts.SetTone("wording", value)
-        RefreshCasts()
-    end
-
-    local talkLabel = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-    talkLabel:SetPoint("TOPLEFT", wordingLabel, "TOPLEFT", 260, 0)
-    talkLabel:SetText("Talkativeness")
-
-    local talkItems = toneDropdownItems(Casts.TALK)
-    castTalkDropdown = Compat.CreateDropdown(content, 220)
-    castTalkDropdown:SetPoint("TOPLEFT", talkLabel, "BOTTOMLEFT", 0, -6)
-    castTalkDropdown:SetItems(talkItems)
-    bindDropdownDesc(castTalkDropdown, talkItems)
-    castTalkDropdown.onSelect = function(value)
-        Casts.SetTone("talk", value)
-        RefreshCasts()
-    end
-
-    castToneSummary = content:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-    castToneSummary:SetPoint("TOPLEFT", castWordingDropdown, "BOTTOMLEFT", 0, -20)
-    castToneSummary:SetPoint("RIGHT", content, "RIGHT", -24, 0)
-    castToneSummary:SetJustifyH("LEFT")
-
-    local sheetHint = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-    sheetHint:SetPoint("TOPLEFT", castToneSummary, "BOTTOMLEFT", 0, -6)
-    sheetHint:SetPoint("RIGHT", content, "RIGHT", -24, 0)
-    sheetHint:SetJustifyH("LEFT")
-    if sheetHint.SetWordWrap then sheetHint:SetWordWrap(true) end
-    sheetHint:SetText("The sheet decides which shipped lines suit this character; lines you write yourself are always used.")
-
     castEnableCheck = Compat.CreateCheckbox(content, "Speak a phrase when I cast something")
-    castEnableCheck:SetPoint("TOPLEFT", sheetHint, "BOTTOMLEFT", 0, -14)
+    castEnableCheck:SetPoint("TOPLEFT", limits, "BOTTOMLEFT", 0, -16)
     castEnableCheck:SetScript("OnClick", function(self)
         local enabled = self:GetChecked() and true or false
         castDB().enabled = enabled

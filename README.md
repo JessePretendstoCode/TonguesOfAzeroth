@@ -56,11 +56,11 @@ generate identical text.
 - **Cast Phrases.** Speak when a spell lands: *Corvin snarls "Aman!" in Broken Demonic
   and the fire takes hold.* Words in `"quotes"` are spoken aloud and get translated into
   your current tongue; the narration around them stays in English. Fifteen opt-in packs
-  ship with it (one per class, plus pets and professions) covering 143 spells with 783
-  lines, or write your own with `%s` spell, `%p` pet, `%f` pet family and `%t` target.
-  You only see your own class's pack unless you ask for the rest. Click any line to
-  reword it in place, shipped ones included; a pack line you've changed offers
-  **Revert** where its pack name was, and keeps its Bearing and its weight.
+  ship with it (one per class, plus pets and professions) covering 143 spells, two or
+  three lines each, or write your own with `%s` spell, `%p` pet, `%f` pet family and
+  `%t` target. You only see your own class's pack unless you ask for the rest. Click any
+  line to reword it in place, shipped ones included; a pack line you've changed offers
+  **Revert** where its pack name was, and keeps the weight you gave it.
 - **Voice packs (optional).** Hear the words in `"quotes"` spoken aloud, in a voice
   matching the speaker's race and gender — your own lines and other players' alike, since
   a chat line carries the GUID their race and gender can be read from. The audio is a
@@ -68,17 +68,16 @@ generate identical text.
   Turning voices on turns translation **off** for cast phrases, and that trade is the
   feature rather than a limitation: a tongue re-garbles every line from its own seed, so
   no finite set of recordings could cover the translated forms. Leaving speech in English
-  is what reduces a whole voice to 314 clips. `/toa voice` reports which folder your
+  is what reduces a whole voice to 194 clips. `/toa voice` reports which folder your
   character reads from and, when nothing plays, every path it looked in.
   Packs are generated locally and cost nothing — `tools/Build-VoicePack.ps1` reads the
   lines with an offline text-to-speech engine and shapes each race with a pitch and
   formant shift, so you can build or retune your own without an account anywhere.
-- **A character sheet for how your character sounds.** Every shipped line is written for
-  a **Bearing** (Plain, Dry, Fierce, Solemn, Warm) and may carry a **Wording** of courtly
-  or blunt. Pick a Bearing, optionally a second that cuts against it, a Wording, and how
-  much your character talks; those lines rise in the roll and the rest drop out. "Solemn,
-  courtly, measured" and "Dry, blunt, quiet" are different characters out of one library.
-  Anything you write yourself is never filtered by the sheet.
+- **Two or three lines per spell, all of them eligible.** Nothing to configure before the
+  feature sounds right: every shipped line suits any character, so what you hear is what
+  the pack ships. The bound is the throttle's doing rather than a budget — a spell won't
+  speak twice inside five minutes, so a fourth line is one you'd almost never reach. Per-
+  phrase weights are there when you want a favourite more often, or a line never again.
 - **Creeds.** What a character believes isn't tied to a spell, so eight opt-in creeds
   (the Horde, the Alliance, the Light, Elune, the ancestors, the elements, the fel, the
   shadow) ride along on whatever you already cast. The class packs name no faction or

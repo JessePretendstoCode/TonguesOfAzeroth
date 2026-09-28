@@ -19,7 +19,7 @@ One install runs on Retail (Midnight), WoW: Forever, and Classic (Vanilla, Cata,
 - **Per-channel filters.** Choose which chat types are affected: Say, Yell, Party, Raid, Guild, Whisper and the rest.
 - **Decoding.** Mark the tongues your character understands. When another Tongues of Azeroth user speaks one, you see the decoded meaning in your own chat, with your fluency in it shown on a progress bar.
 - **An ordered language list.** The tongue you're speaking is always the first row, favorites sit under it, and the rest follow, so nothing you use is ever seventy rows down. Star a language on its row to favorite it, and the star on the floating bar decides whether scrolling cycles only those.
-- **Cast Phrases.** Your character speaks when a spell lands, in whatever tongue you're using. 783 ready-made lines across 143 spells ship with it, and a character sheet decides how yours sounds. More on this below.
+- **Cast Phrases.** Your character speaks when a spell lands, in whatever tongue you're using. Ready-made lines for 143 spells ship with it, two or three apiece, with nothing to configure first. More on this below.
 - **Minimap button** and a draggable window for one-click access, with Back and Close navigation on clients that have no native options tree.
 - **Deterministic.** The same words always translate the same way, so speech stays consistent between everyone running the addon.
 - Punctuation, numbers and links are preserved.
@@ -63,13 +63,15 @@ Your character can speak when a spell lands, in whatever tongue you're currently
 
 Words in quotes go through your language and accent exactly as chat does. Everything outside them is narration and stays in English, because that's the part onlookers are meant to follow. It's off until you turn it on, since it puts text in other people's chat.
 
-The 783 shipped lines cover 143 spells and are written to read like a DM narrating the action rather than a list of spell names. One concrete detail per line, and the long cooldowns get more room than the spammable fillers. Tick a pack and its spells appear in the list, where any line can be reworded, reweighted or retired. Click a line to edit it in place, shipped lines included; one you've changed offers a Revert button to put the pack's wording back, and keeps the Bearing and weight it had. You only see your own class's pack by default, plus pets and professions, and one click reveals the rest.
+The shipped lines cover 143 spells, two or three apiece, and are written to read like a DM narrating the action rather than a list of spell names. One concrete detail per line, and the long cooldowns get more room than the spammable fillers. Tick a pack and its spells appear in the list, where any line can be reworded, reweighted or retired. Click a line to edit it in place, shipped lines included; one you've changed offers a Revert button to put the pack's wording back, and keeps the weight it had. You only see your own class's pack by default, plus pets and professions, and one click reveals the rest.
 
-### A character sheet rather than a house voice
+### Two or three lines, and nothing to configure
 
-Every shipped line is written for a Bearing (Plain, Dry, Fierce, Solemn or Warm) and may carry a Wording of courtly or blunt. Pick a Bearing, optionally a second as a streak that cuts against the first, a Wording, and how much your character talks. Those lines rise in the roll while the rest drop out, so "Solemn, courtly, measured" and "Dry, blunt, quiet" are recognisably different characters drawing on the same library.
+There's no tone dial to set before the feature sounds right. Every shipped line suits any character, so what you hear is what the pack ships.
 
-Anything you write yourself is never filtered. You wrote it, so it's your character's voice by definition.
+Two or three is not a space budget — it's what the throttle makes useful. A spell won't speak twice inside five minutes, so a fourth line is one you'd almost never reach. The three are spent on different shapes instead: one that narrates with a concrete detail, one that speaks aloud, and, where the spell earns it, one that's wry.
+
+Per-phrase weights are there when you want a favourite to come up more often, or a line never again.
 
 ### Creeds
 

@@ -3,6 +3,26 @@
 All notable changes to Tongues of Azeroth are documented here.
 
 ## [Unreleased]
+- **Two or three lines per spell, and the character sheet is gone.** The Bearing,
+  Streak, Wording and Talkativeness dials have been removed, along with the 783-line
+  library they selected from. In their place every spell carries two or three lines that
+  suit any character, and all of them are always in the roll.
+  This reads like a cut and is closer to the opposite. The sheet weighted the library by
+  dropping every non-matching group to zero, so a character on the default sheet reached
+  one or two lines per spell -- on all 143 spells, without exception -- and one on any
+  other Bearing reached about two and a half. Five and a half lines were written per
+  spell to deliver two. The other four were written, reviewed and rendered into every
+  voice pack for players who would never hear them.
+  So the number of lines you can actually hear per spell has not gone down, and what you
+  hear is better: the surviving set was picked from all five Bearings, which means the
+  fierce and warm readings that only some characters used to reach are now everyone's.
+  Two or three is not a space budget either. A spell will not speak twice inside five
+  minutes, so a fourth line is one almost nobody reaches -- and one more clip to render
+  in every voice pack, which is why a complete voice is now 194 clips rather than 314.
+  Per-phrase weights still do the work the sheet was reaching for, and more directly:
+  raise a line you like, set one to zero to retire it, reword any of them. Anything you
+  wrote yourself is untouched. Saved character sheets are discarded on upgrade rather
+  than left in the file looking meaningful.
 - **Cast phrases can speak out loud.** Turn on **Voice** under Cast Phrases and the words
   in `"quotes"` are played as audio, in a voice matching the speaker's race and gender.
   Other players are voiced too, and that costs nothing extra: a chat line already carries
@@ -11,7 +31,7 @@ All notable changes to Tongues of Azeroth are documented here.
   feature is built on rather than a shortcoming of it — a tongue re-garbles every line
   from its own seed, so there is no finite set of recordings that could cover the
   translated forms, and leaving speech in English is exactly what reduces a whole voice
-  to 314 clips. Accents stop applying for the same reason: nobody recorded "Feel dat?".
+  to 194 clips. Accents stop applying for the same reason: nobody recorded "Feel dat?".
   The audio ships separately, so until a pack is installed nothing changes and nothing
   breaks — a missing clip is the normal case, not an error. `/toa voice` reports which
   folder your character reads from, and `/toa voice test` names every path it looked in,
