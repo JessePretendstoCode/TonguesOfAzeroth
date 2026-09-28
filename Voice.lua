@@ -258,11 +258,16 @@ end
 -- would still be wrong for any pack somebody assembled by hand. Overlapping
 -- speech is the only genuinely bad outcome here, so the estimate is allowed
 -- to run long: a beat of silence between two barks costs nothing.
--- Measured against a real rendered voice: 314 clips averaging 0.87s for lines
--- averaging 11.4 characters, so about 13 characters a second of speech. The
+-- Measured against a real rendered voice: 314 clips averaging 1.17s for lines
+-- averaging 11.4 characters, so under 10 characters a second of speech. The
 -- pad keeps the estimate slightly long, which is the direction that costs a
 -- beat of silence rather than two clips talking over each other.
-local CHARS_PER_SECOND = 13
+--
+-- Taken from the slowest voice rather than an average of all of them. Races
+-- speak at different rates -- the heavy ones drawl -- and one constant has to
+-- serve every pack, including hand-made ones. Guessing short is what makes two
+-- clips talk over each other, so the guess is made against the slowest.
+local CHARS_PER_SECOND = 10
 local PAD = 0.35
 local MIN_GAP, MAX_GAP = 0.7, 5
 
