@@ -249,6 +249,108 @@ function Casts.SetPhraseText(key, origText, newText)
     return true
 end
 
+--=========================================================================--
+--  Choosing what a line sounds like
+--=========================================================================--
+-- Audio is a fixed set of clips rendered ahead of time, one per quoted span the
+-- library shipped, each addressed by a hash of its exact wording. Nothing can be
+-- rendered in game: the client indexes addon sound at login, and a player has no
+-- speech synthesiser to hand. So a line you wrote yourself -- or reworded --
+-- hashes to a clip nobody ever made, and simply goes unheard.
+--
+-- This is the way out of that. Point a phrase at one of the clips that does
+-- exist: the words on screen stay yours, and the voice borrows a line that was
+-- rendered. The two are allowed to disagree. Picking "Burn!" to carry
+-- `roars "Let it all burn!"` is a fair trade for a line that would otherwise be
+-- silent, and refusing the mismatch would mean nothing anyone wrote could ever
+-- be spoken at all.
+--
+-- Keyed by `orig`, like weights and edits, so the choice survives a reword --
+-- which is exactly the moment it is worth the most, since rewording is what
+-- takes a line's own voice away.
+local function voiceMap(key, create)
+    local c = castDB()
+    if not (c and key) then return nil end
+    if type(c.voices) ~= "table" then
+        if not create then return nil end
+        c.voices = {}
+    end
+    if not c.voices[key] and create then c.voices[key] = {} end
+    return c.voices[key]
+end
+
+-- Read straight from the manifest rather than through Voice, so a phrase can be
+-- given a voice with the audio addon absent. The choice is a saved preference,
+-- not a claim that anything is installed to play it.
+local function hasClip(spoken)
+    local lines = ns.VoiceLines
+    if type(spoken) ~= "string" or spoken == "" then return false end
+    return (lines and type(lines.ByText) == "table" and lines.ByText[spoken]) and true or false
+end
+
+Casts.HasClip = hasClip
+
+-- The line this phrase borrows its voice from, or nil to let its own words
+-- speak for themselves -- which works only where they happen to match a clip.
+function Casts.GetPhraseVoice(key, origText)
+    local m = voiceMap(key)
+    local t = m and m[origText]
+    if type(t) == "string" and t ~= "" then return t end
+    return nil
+end
+
+-- Pass nil to go back to the phrase's own words. Returns ok, err.
+function Casts.SetPhraseVoice(key, origText, spoken)
+    if not key or type(origText) ~= "string" then return false, "no phrase" end
+    if spoken == nil or spoken == "" then
+        local m = voiceMap(key)
+        if m then
+            m[origText] = nil
+            if not next(m) then castDB().voices[key] = nil end
+        end
+        return true
+    end
+    -- Only a line with a clip behind it is worth storing. Anything else would
+    -- sit in the saved file looking chosen and play nothing, which is a worse
+    -- answer than having refused it.
+    if not hasClip(spoken) then return false, "nothing is recorded for that line" end
+    local m = voiceMap(key, true)
+    if not m then return false, "not loaded" end
+    m[origText] = spoken
+    return true
+end
+
+-- What the picker offers, in two groups: the lines this spell's own phrases
+-- already say, and then everything else that has a clip. Near ones first
+-- because the one somebody wants is nearly always among the handful this spell
+-- already speaks, and a flat list of two hundred is a list nobody reads.
+--
+-- Both the shipped wording and the displayed one are scanned. They differ on a
+-- reworded line, and it is the shipped one that still has a clip -- so the line
+-- a player is most likely to want back is the one only `orig` knows about.
+function Casts.VoiceChoices(key)
+    local near, far, seen = {}, {}, {}
+    local lines = ns.VoiceLines
+    if not (lines and type(lines.ByText) == "table") then return near, far end
+
+    for _, phrase in ipairs(Casts.GetPhrases(key)) do
+        for _, source in ipairs({ phrase.orig, phrase.text }) do
+            for span in tostring(source):gmatch('"([^"]*)"') do
+                if lines.ByText[span] and not seen[span] then
+                    seen[span] = true
+                    near[#near + 1] = span
+                end
+            end
+        end
+    end
+    for span in pairs(lines.ByText) do
+        if not seen[span] then far[#far + 1] = span end
+    end
+    table.sort(near)
+    table.sort(far)
+    return near, far
+end
+
 function Casts.IsMuted(key)
     local c = castDB()
     return (c and key and c.muted[key]) and true or false
@@ -314,6 +416,7 @@ function Casts.GetPhrases(key)
                 out[#out + 1] = {
                     text = text, orig = text, weight = Casts.GetWeight(key, text),
                     step = Casts.GetWeight(key, text), user = true,
+                    voice = Casts.GetPhraseVoice(key, text),
                 }
             end
         end
@@ -334,6 +437,7 @@ function Casts.GetPhrases(key)
             text = shown, orig = entry.text, edited = (shown ~= entry.text),
             weight = override or base, step = override or base,
             pack = entry.pack, wildcard = entry.wildcard,
+            voice = Casts.GetPhraseVoice(key, entry.text),
         }
     end
 
@@ -590,6 +694,13 @@ function Casts.Speak(spellName, opts)
 
     local body, langId, spoken = Casts.Render(chosen.text, ctx, true)
     if not body then return nil end
+
+    -- Which clip this phrase borrows, handed over before the line is sent.
+    -- Playback rides on the emote coming back round, and by then which phrase
+    -- produced it is no longer knowable -- an emote body is just a string.
+    if ns.Voice and ns.Voice.NoteChoice then
+        ns.Voice.NoteChoice(body, Casts.GetPhraseVoice(key, chosen.orig or chosen.text))
+    end
 
     local now = GetTime and GetTime() or 0
     lastSpoken = now

@@ -62,6 +62,9 @@ generate identical text.
   line to reword it in place, shipped ones included; it keeps what you type when you click
   away, and Escape (or the circle-slash on the row) puts it back. A pack line you've
   changed offers **Revert** where its pack name was, and keeps the weight you gave it.
+  A phrase you wrote has no recording of its own, so the editor also carries a **Sounds
+  like** picker: point the line at any of the 194 that were recorded, audition it in your
+  own voice, and see what the phrase will read as with its tokens filled in.
 - **Voice packs (optional).** Hear the words in `"quotes"` spoken aloud, in a voice
   matching the speaker's race and gender — your own lines and other players' alike, since
   a chat line carries the GUID their race and gender can be read from. The audio is a

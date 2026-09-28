@@ -2804,6 +2804,12 @@ end
 
 -- Rows are created once and reused, so switching between a spell with two
 -- phrases and one with twelve doesn't leak frames.
+-- A row at rest is one line. Opened for editing it grows two more: the voice
+-- picker with its audition button, and the preview of what the line will read
+-- as. Rows anchor to the row above, so growing one simply pushes the rest down.
+local ROW_LINE_H = 22
+local ROW_EDIT_H = ROW_LINE_H + 26 + 18
+
 local function castRow(index, parent)
     if castRows[index] then return castRows[index] end
 
@@ -2812,7 +2818,7 @@ local function castRow(index, parent)
     -- one part of the row that is already too narrow for the longer library
     -- lines; the child buttons swallow their own clicks, so nothing is lost.
     local row = CreateFrame("Button", nil, parent)
-    row:SetHeight(22)
+    row:SetHeight(ROW_LINE_H)
 
     local function tinyButton(label, width)
         local btn = CreateFrame("Button", nil, row)
@@ -2831,10 +2837,19 @@ local function castRow(index, parent)
         return btn
     end
 
+    -- The phrase itself and its controls live on a strip pinned to the top of
+    -- the row, rather than on the row directly. Everything up here is centred
+    -- vertically on what it is anchored to, so anchoring to a row that grows
+    -- would slide the whole line downwards as the editor opened beneath it.
+    row.line1 = CreateFrame("Frame", nil, row)
+    row.line1:SetPoint("TOPLEFT", row, "TOPLEFT", 0, 0)
+    row.line1:SetPoint("TOPRIGHT", row, "TOPRIGHT", 0, 0)
+    row.line1:SetHeight(ROW_LINE_H)
+
     -- A pair of nudge buttons rather than a slider: at 22px tall there's no
     -- room for a slider's labels, and the whole range is six steps.
     row.down = tinyButton("-")
-    row.down:SetPoint("LEFT", row, "LEFT", 0, 0)
+    row.down:SetPoint("LEFT", row.line1, "LEFT", 0, 0)
     row.up = tinyButton("+")
     row.up:SetPoint("LEFT", row.down, "RIGHT", 24, 0)
 
@@ -2856,17 +2871,19 @@ local function castRow(index, parent)
     row:EnableMouse(true)
 
     row.action = tinyButton("Delete", 56)
-    row.action:SetPoint("RIGHT", row, "RIGHT", 0, 0)
+    row.action:SetPoint("RIGHT", row.line1, "RIGHT", 0, 0)
     row.text:SetPoint("RIGHT", row.action, "LEFT", -8, 0)
 
     -- Faint wash under the row on hover, so it reads as something you can click.
+    -- Over the phrase strip only: washing the editor beneath it would imply the
+    -- dropdown and the preview were part of the same click target.
     local rowHL = row:CreateTexture(nil, "HIGHLIGHT")
-    rowHL:SetAllPoints()
+    rowHL:SetAllPoints(row.line1)
     Compat.SolidTexture(rowHL, 1, 1, 1, 0.07)
 
     -- Names the pack a library line came from, where the Delete button would be.
     row.source = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    row.source:SetPoint("RIGHT", row, "RIGHT", 0, 0)
+    row.source:SetPoint("RIGHT", row.line1, "RIGHT", 0, 0)
     row.source:SetWidth(56)
     row.source:SetJustifyH("RIGHT")
 
@@ -2900,6 +2917,33 @@ local function castRow(index, parent)
     Compat.SolidTexture(ibg, 0.06, 0.05, 0.10, 1)
     Compat.AddBorder(row.input, 0.6, 0.55, 0.85, 0.9)
     row.input:Hide()
+
+    -- The voice picker, the audition button and the preview all belong to the
+    -- row being edited, and the row grows to hold them. They are not on every
+    -- row at rest because a dropdown is 240px wide and the phrase column is
+    -- already the tightest thing on this panel -- putting one on all of them
+    -- would leave no room to read the phrases you came here to read.
+    row.voiceLabel = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    row.voiceLabel:SetPoint("TOPLEFT", row, "TOPLEFT", 2, -ROW_LINE_H)
+    row.voiceLabel:SetText("Sounds like:")
+    row.voiceLabel:Hide()
+
+    row.voiceDrop = Compat.CreateDropdown(row, 240)
+    row.voiceDrop:SetPoint("LEFT", row.voiceLabel, "RIGHT", 6, 0)
+    row.voiceDrop:SetHeight(22)
+    row.voiceDrop:Hide()
+
+    row.voicePlay = tinyButton("Play", 40)
+    row.voicePlay:ClearAllPoints()
+    row.voicePlay:SetPoint("LEFT", row.voiceDrop, "RIGHT", 6, 0)
+    row.voicePlay:Hide()
+
+    -- What the line will actually read as in chat, tokens filled in.
+    row.preview = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    row.preview:SetPoint("TOPLEFT", row, "TOPLEFT", 2, -(ROW_LINE_H + 26))
+    row.preview:SetPoint("RIGHT", row, "RIGHT", -4, 0)
+    row.preview:SetJustifyH("LEFT")
+    row.preview:Hide()
 
     castRows[index] = row
     return row
@@ -3001,7 +3045,16 @@ local function RefreshCasts()
             row.text:SetTextColor(1, 1, 1)
             row.meta:SetTextColor(0.55, 0.55, 0.55)
         end
-        row.meta:SetText(phraseSourceLabel(phrase))
+        -- A line that borrows its voice says so where the pack name would go.
+        -- That is the surprising fact about the row -- the words on screen are
+        -- not the words you will hear -- and the pack is already named at the
+        -- far end of the same row.
+        if phrase.voice then
+            row.meta:SetText('"' .. phrase.voice .. '"')
+            if not grey then row.meta:SetTextColor(0.53, 0.8, 1) end
+        else
+            row.meta:SetText(phraseSourceLabel(phrase))
+        end
         row.text:SetText(phrase.text)
 
         row:SetScript("OnEnter", function(self)
@@ -3014,6 +3067,12 @@ local function RefreshCasts()
                 GameTooltip:AddLine("From a creed", 1, 0.82, 0)
                 GameTooltip:AddLine(
                     "Creed lines ride along on every spell that already says something.",
+                    0.8, 0.8, 0.8, true)
+            end
+            if phrase.voice then
+                GameTooltip:AddLine(" ")
+                GameTooltip:AddLine("Borrows a voice", 0.53, 0.8, 1)
+                GameTooltip:AddLine("Says \"" .. phrase.voice .. "\" out loud, whatever the words above read as.",
                     0.8, 0.8, 0.8, true)
             end
             if phrase.edited then
@@ -3041,12 +3100,91 @@ local function RefreshCasts()
             RefreshCasts()
         end)
 
+        -- What the line will read as in chat once its %tokens are filled in,
+        -- plus what it will sound like when the two differ. Refreshed straight
+        -- from the edit box as it is typed in, rather than on the next full
+        -- redraw, so the preview keeps up with the typing it is previewing.
+        local function updatePreview()
+            local template = (castEdit and castEdit.orig == text and castEdit.typed) or phrase.text
+            local rendered = Casts.Preview(template, key)
+            if not rendered then
+                row.preview:SetText("|cffcc6666That won't fill in -- check the %tokens.|r")
+                return
+            end
+            local note = ""
+            local voice = phrase.voice
+            if voice then
+                note = "   |cff88ccffheard as \"" .. voice .. "\"|r"
+            elseif not template:find('"') then
+                note = "   |cff909090nothing in quotes, so nothing is said aloud|r"
+            end
+            row.preview:SetText("|cffb0b0b0" .. rendered .. "|r" .. note)
+        end
+
         local editing = (castEdit ~= nil and castEdit.orig == text)
         if editing then
+            row:SetHeight(ROW_EDIT_H)
             row.text:Hide()
             row.input:Show()
             row.keep:Show()
             row.discard:Show()
+            row.voiceLabel:Show()
+            row.voiceDrop:Show()
+            row.voicePlay:Show()
+            row.preview:Show()
+
+            -- The spell's own lines first, then the rest of what was recorded.
+            -- Two hundred entries is a list nobody reads top to bottom, and the
+            -- line somebody wants is nearly always one this spell already says.
+            local near, far = Casts.VoiceChoices(key)
+            local items = { { value = "", text = "Its own words" } }
+            local function addGroup(title, lines)
+                if #lines == 0 then return end
+                items[#items + 1] = { text = title, header = true }
+                for _, line in ipairs(lines) do
+                    items[#items + 1] = { value = line, text = '"' .. line .. '"' }
+                end
+            end
+            addGroup("This spell", near)
+            addGroup("Every recorded line", far)
+            row.voiceDrop:SetItems(items)
+            row.voiceDrop:SetSelected(phrase.voice or "",
+                phrase.voice and ('"' .. phrase.voice .. '"') or "Its own words")
+            row.voiceDrop.onSelect = function(value)
+                local ok, err = Casts.SetPhraseVoice(key, text, value ~= "" and value or nil)
+                if ok then
+                    castStatusMsg(value ~= "" and ("Now says \"" .. value .. "\" out loud.")
+                        or "Back to its own words.", false)
+                else
+                    castStatusMsg("Not set: " .. tostring(err) .. ".", true)
+                end
+                RefreshCasts()
+            end
+
+            row.voicePlay:SetScript("OnClick", function()
+                -- With nothing borrowed, audition what the line actually says.
+                -- That is the honest preview: if its own words were never
+                -- recorded, the silence is the answer to the question.
+                local line = phrase.voice
+                if not line then
+                    local template = (castEdit and castEdit.typed) or phrase.text
+                    line = template:match('"([^"]*)"')
+                end
+                if not line or line:gsub("%s", "") == "" then
+                    castStatusMsg("Nothing in quotes to say aloud.", true)
+                elseif not (ns.Voice and ns.Voice.Audition) then
+                    castStatusMsg("The voice module isn't loaded.", true)
+                elseif ns.Voice.Audition(line) then
+                    castStatusMsg("Played \"" .. line .. "\".", false)
+                elseif Casts.HasClip(line) then
+                    -- Recorded, but not in a voice this character can reach.
+                    -- Worth separating from "never recorded": one is fixed by
+                    -- installing a pack, the other by picking a different line.
+                    castStatusMsg("That line is recorded, but no voice pack is installed for your race.", true)
+                else
+                    castStatusMsg("Nothing was recorded for \"" .. line .. "\" -- pick a line above to give it one.", true)
+                end
+            end)
             -- The box is a view of castEdit.typed, never of the saved phrase.
             -- Seeding it from the phrase was the bug: the list redraws on every
             -- keystroke in the new-phrase field below, and each redraw put the
@@ -3064,15 +3202,25 @@ local function RefreshCasts()
                 -- them on their first keypress.
                 row.input:SetText(castEdit.typed or phrase.text)
             end
+            updatePreview()
         else
+            row:SetHeight(ROW_LINE_H)
             row.input:Hide()
             row.keep:Hide()
             row.discard:Hide()
+            row.voiceLabel:Hide()
+            row.voiceDrop:Hide()
+            row.voiceDrop:Close()
+            row.voicePlay:Hide()
+            row.preview:Hide()
             row.text:Show()
         end
 
         row.input:SetScript("OnTextChanged", function(self)
-            if castEdit and castEdit.orig == text then castEdit.typed = self:GetText() end
+            if castEdit and castEdit.orig == text then
+                castEdit.typed = self:GetText()
+                updatePreview()
+            end
         end)
         local function keep(self)
             if castEdit then castEdit.typed = row.input:GetText() end

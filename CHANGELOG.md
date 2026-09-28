@@ -3,6 +3,23 @@
 All notable changes to Tongues of Azeroth are documented here.
 
 ## [Unreleased]
+- **A phrase you wrote can borrow a voice.** Audio is a fixed set of clips rendered
+  ahead of time, one per line the library ships, each addressed by a hash of its exact
+  wording -- and nothing can be recorded in game, since the client indexes addon sound at
+  login. So anything you wrote yourself was silent, and rewording a shipped line took its
+  voice away, both without ever saying why.
+  Open a phrase for editing and it now carries a **Sounds like** picker: leave it on
+  *its own words*, or point the line at any of the 194 that were recorded. The lines this
+  spell already says come first, then the rest. **Play** auditions the choice in your own
+  character's voice, and the row shows what the phrase will read as in chat with its
+  `%tokens` filled in, updating as you type.
+  The words on screen and the words you hear are allowed to disagree -- a line reading
+  *"Let it all burn!"* can speak with *"Burn!"*. That is the trade the feature exists to
+  offer, because the alternative is that nothing anybody writes is ever spoken. A line
+  that borrows says so on its row and in its tooltip, so it is never a mystery.
+  The choice is keyed to the wording the pack shipped, so it survives rewording the line
+  -- which is the moment it is worth the most. It stays in your own settings and is never
+  sent, so nobody else's phrase is ever voiced by it.
 - **The lines contract the way people actually speak.** *"You have got this."* is not
   something anyone says out loud, and a handful of shipped lines read like that. Fourteen
   spoken lines and ten pieces of narration now contract: *"You've got this."*,

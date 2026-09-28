@@ -330,9 +330,40 @@ function Voice.SpansOf(body)
     return out
 end
 
--- Speak an emote body: find its quoted spans and play them in order.
-function Voice.SpeakBody(body, race, sex)
+--=========================================================================--
+--  A line pointed at someone else's clip
+--=========================================================================--
+-- Most phrases are voiced by looking up their own quoted words. A phrase the
+-- player wrote has no clip of its own, so they can point it at one that exists
+-- -- see Casts.SetPhraseVoice -- and that choice has to reach playback.
+--
+-- It cannot ride on the emote, which is only ever a string, so Casts hands it
+-- over just before sending and the body it belongs to claims it here. Matched
+-- on that exact body rather than simply consumed, because the client can refuse
+-- to send a line at all: a choice left waiting in a variable would then attach
+-- itself to whatever spoke next, which is somebody else's phrase wearing your
+-- clip. Matching means an unclaimed choice is replaced rather than misapplied.
+local pendingBody, pendingLine = nil, nil
+
+function Voice.NoteChoice(body, spoken)
+    pendingBody, pendingLine = body, spoken
+end
+
+local function claimChoice(body)
+    if pendingBody == nil or pendingBody ~= body then return nil end
+    local line = pendingLine
+    pendingBody, pendingLine = nil, nil
+    return line
+end
+
+-- Speak an emote body: find its quoted spans and play them in order. `chosen`
+-- is a line the player pointed this phrase at, which speaks in place of the
+-- body's own words.
+function Voice.SpeakBody(body, race, sex, chosen)
     local spans = Voice.SpansOf(body)
+    -- Still gated on there being quotes at all. The quotes are what mark a
+    -- phrase as containing speech; borrowing a clip changes what that speech
+    -- sounds like, not whether the line has any.
     if #spans == 0 then return 0 end
 
     -- Anything already sounding is cut off rather than queued behind. Two
@@ -342,6 +373,13 @@ function Voice.SpeakBody(body, race, sex)
     if playing and type(StopSound) == "function" then
         pcall(StopSound, playing)
         playing = nil
+    end
+
+    -- One borrowed clip stands for the whole line, however many times the line
+    -- quotes. Splitting a choice across two spans would mean asking which of
+    -- them it was for, and the panel only ever asked the question once.
+    if chosen then
+        return Voice.PlayLine(chosen, race, sex) and 1 or 0
     end
 
     local spoken = 0
@@ -387,7 +425,10 @@ local function onEmote(msg, sender, guid)
     else
         race, sex = Voice.VoiceForGUID(guid)
     end
-    Voice.SpeakBody(msg, race, sex)
+    -- Only your own line can carry a borrowed clip: the choice never leaves
+    -- your saved settings, so another player's phrase is voiced by its words
+    -- alone, exactly as it was before.
+    Voice.SpeakBody(msg, race, sex, mine and claimChoice(msg) or nil)
 end
 
 Voice.OnEmote = onEmote
@@ -413,7 +454,20 @@ end)
 function Voice.SpeakLocal(body)
     if not Voice.IsEnabled() then return 0 end
     local race, sex = Voice.PlayerVoice()
-    return Voice.SpeakBody(body, race, sex)
+    return Voice.SpeakBody(body, race, sex, claimChoice(body))
+end
+
+-- Audition one line in your own voice, for the play button on the phrase panel.
+-- Deliberately not gated on IsEnabled: pressing play is a direct request, and
+-- refusing it because the feature is switched off would leave somebody picking
+-- a voice they are not allowed to hear first.
+function Voice.Audition(spoken)
+    if playing and type(StopSound) == "function" then
+        pcall(StopSound, playing)
+        playing = nil
+    end
+    local race, sex = Voice.PlayerVoice()
+    return Voice.PlayLine(spoken, race, sex)
 end
 
 --=========================================================================--
