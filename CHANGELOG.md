@@ -3,6 +3,17 @@
 All notable changes to Tongues of Azeroth are documented here.
 
 ## [Unreleased]
+- **The lines contract the way people actually speak.** *"You have got this."* is not
+  something anyone says out loud, and a handful of shipped lines read like that. Fourteen
+  spoken lines and ten pieces of narration now contract: *"You've got this."*,
+  *"You'll need this."*, *"There's enough for everyone."*, *"The fel doesn't tire."*
+  Two kept their full forms because contracting them would be wrong rather than formal --
+  *"There you are."* does not become *"There you're."*
+  A line's audio is addressed by a hash of its exact wording, so every changed line is a
+  different clip. All four built voices were re-rendered and the fifty-six clips the
+  change orphaned were removed, which also finished moving `common-male`, `common-female`
+  and `troll-male` off the older Piper renders onto Kokoro -- so all four voices now match
+  each other as well as the text.
 - **Rewording a phrase keeps what you typed.** Clicking away from a line you were part
   way through rewording used to throw the whole edit away: Enter was the only thing that
   saved, and nothing on screen said so. The box looked like every other field on the
