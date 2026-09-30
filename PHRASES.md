@@ -1,6 +1,6 @@
 # Cast phrases — reference copy
 
-Generated from `CastLibrary.lua` by `tools/dump_phrases.lua`: **23 packs, 143 spells, 386 phrases**.
+Generated from `CastLibrary.lua` by `tools/dump_phrases.lua`: **15 packs, 143 spells, 362 phrases**.
 
 This is a read-only view. To change a line, edit `CastLibrary.lua` and re-run the dump.
 
@@ -17,7 +17,7 @@ A phrase is the **body of an emote**, so it continues the sentence `<Your name> 
 | End with **punctuation** | Nothing is appended after it |
 | Words in `"double quotes"` are **spoken aloud** | Only these are translated into the current tongue; the rest stays English narration, which is the part onlookers are meant to follow |
 | **No pronouns for the caster** | `sets his feet` only works if the character is male; the library ships to everyone |
-| **No faction or faith** in a class pack | A Blood Elf paladin does not serve the Light; creeds are separate opt-in packs |
+| **No faction or faith** anywhere | A Blood Elf paladin does not serve the Light; a battlecry belongs to a character, so it is left for the player to write |
 | Keep it **short** | The line shares one 255-character message with a translation that runs longer than the English |
 | `%s` spell · `%p` pet's name · `%f` pet's family · `%t` target | A phrase whose token cannot be filled is skipped for that cast, so `%t` and `%p` lines are safe |
 | No possessive openers | Emotes render as `"Name "` + text with the space baked in, so `'s pet growls` becomes *Corvin 's pet growls* |
@@ -38,15 +38,15 @@ worth it — one that is wry.
 
 ## Health
 
-- **221 of 386 lines (57%) speak aloud.** The quoted half is the only part the language
+- **200 of 362 lines (55%) speak aloud.** The quoted half is the only part the language
   engine gets to transform, so this is the number that decides whether the feature shows
   itself off. The target is roughly half.
-- **195 distinct spoken spans.** This is the size of a voice pack: one rendered clip per
+- **194 distinct spoken spans.** This is the size of a voice pack: one rendered clip per
   span, per race and gender. Reusing a short span across two spells is a saving, not a
   failure of imagination.
 - **76 of 143 spells carry the full three lines**; the rest make do with two, which is
   the right answer for a spell with only two things worth saying about it.
-- 159 of 386 lines use a `%` token.
+- 159 of 362 lines use a `%` token.
 - Longest line is 87 characters, Warlock / Hellfire: *spreads both arms and lets the fire spill outward until the stone underfoot goes black.*
 
 ---
@@ -84,7 +84,7 @@ worth it — one that is wry.
 ### Drain Life
 
 - closes a hand and draws the warmth out of %t in a thin grey thread.
-- snarls "Mine." and does not let go until it is.
+- snarls "Mine." and doesn't let go until it is.
 
 ### Health Funnel
 
@@ -116,8 +116,8 @@ worth it — one that is wry.
 ### Summon Voidwalker
 
 - draws something vast and unhurried into the light, and the light gives way for it.
-- says "Good. You are here." to %p.
-- summons %p, who could not be less impressed.
+- says "Good. You're here." to %p.
+- summons %p, who couldn't be less impressed.
 
 ### Summon Imp
 
@@ -180,7 +180,7 @@ worth it — one that is wry.
 ### Arcane Intellect
 
 - taps %t on the brow. "Try to keep up."
-- says "You will need this." and leaves %t blinking at the sudden clarity.
+- says "You'll need this." and leaves %t blinking at the sudden clarity.
 
 ### Blizzard
 
@@ -208,7 +208,7 @@ worth it — one that is wry.
 
 - speaks a word over %t and something closes around %t with a faint hum.
 - snaps "Hold!" and the ward snaps shut with a pressure like deep water.
-- says "You are not alone in this." and a steady warmth settles on %t.
+- says "You're not alone in this." and a steady warmth settles on %t.
 
 ### Flash Heal
 
@@ -224,8 +224,8 @@ worth it — one that is wry.
 ### Resurrection
 
 - kneels, breathes warmth back toward still lungs, and asks for one more.
-- tells the fallen, "Come back. We are not finished."
-- demands "Up!" into the stillness and will not stop until something moves.
+- tells the fallen, "Come back. We're not finished."
+- demands "Up!" into the stillness and won't stop until something moves.
 
 ### Shadow Word: Pain
 
@@ -279,7 +279,7 @@ worth it — one that is wry.
 
 - bellows "With me!" loud enough to hurt.
 - raises the volume until courage seems plausible.
-- says "We have this." and sells it with a nod nobody argues with.
+- says "We've got this." and sells it with a nod nobody argues with.
 
 ### Taunt
 
@@ -300,7 +300,7 @@ worth it — one that is wry.
 
 ### Intimidating Shout
 
-- roars, and something in it is not entirely human.
+- roars, and something in it isn't entirely human.
 - bellows "Run!" until the rafters answer.
 
 ### Thunder Clap
@@ -334,7 +334,7 @@ worth it — one that is wry.
 
 - presses both hands to %t and gives everything, heat draining out through the palms.
 - says "Take mine." and means it, even when the knees go soft.
-- tells %t, "Not your turn yet." and does not let go.
+- tells %t, "Not your turn yet." and doesn't let go.
 
 ### Hammer of Justice
 
@@ -364,7 +364,7 @@ worth it — one that is wry.
 
 - passes sentence on %t without raising voice, one flat syllable at a time.
 - snaps "Guilty." and strikes before the echo fades.
-- tells %t, "This could have gone differently." and means it.
+- tells %t, "This could've gone differently." and means it.
 
 ### Avenging Wrath
 
@@ -375,7 +375,7 @@ worth it — one that is wry.
 ### Blessing of Might
 
 - lays a blessing on %t like a hand on a shoulder, grip firm through the mail.
-- tells %t, "You have got this." and makes it sound true.
+- tells %t, "You've got this." and makes it sound true.
 
 ### Hand of Protection
 
@@ -430,7 +430,7 @@ worth it — one that is wry.
 
 ### Revive Pet
 
-- refuses to let %p go, and is not asking.
+- refuses to let %p go, and isn't asking.
 - whispers "Not you. Get up." to %p with blood on the gloves.
 - says "Come back." to %p and waits, hand on the scruff.
 
@@ -461,7 +461,7 @@ worth it — one that is wry.
 
 - is no longer quite where you were looking, only the curtain moving.
 - says "Gone." and slips out of sight without a footfall.
-- was never in that spot. "Must have been someone else."
+- was never in that spot. "Must've been someone else."
 
 ### Sap
 
@@ -536,7 +536,7 @@ worth it — one that is wry.
 
 - coaxes life back toward %t, and green warmth threads through the air.
 - says "Not yet." and the ground under %t goes soft with new growth.
-- tells %t, "The fight is not over. Get up."
+- tells %t, "The fight isn't over. Get up."
 
 ### Healing Touch
 
@@ -557,17 +557,17 @@ worth it — one that is wry.
 ### Hibernate
 
 - sings low at %t until the melody goes soft and dragging.
-- says "Sleep. I will watch." and keeps the hum going under %t's ear.
+- says "Sleep. I'll watch." and keeps the hum going under %t's ear.
 
 ### Innervate
 
 - says "Take this." and shares focus with %t in a rush of clear-headed air.
-- says "I have you." and fills %t with focus that smells of rain on pine.
+- says "I've got you." and fills %t with focus that smells of rain on pine.
 
 ### Mark of the Wild
 
 - says "Marked." and %t's skin prickles with borrowed toughness.
-- says "You will need this." and leaves %t smelling of bark and wind.
+- says "You'll need this." and leaves %t smelling of bark and wind.
 
 ## Shaman <!-- id: shaman -->
 
@@ -766,7 +766,7 @@ worth it — one that is wry.
 
 ### Chaos Strike
 
-- cuts %t with something that should not be a blade.
+- cuts %t with something that shouldn't be a blade.
 - snarls "Break!" and the chaos lands with a crack like splitting wood.
 
 ### Imprison
@@ -781,7 +781,7 @@ worth it — one that is wry.
 
 ### Glide
 
-- steps off the edge and does not fall.
+- steps off the edge and doesn't fall.
 - spreads the wings and says "Easy." The descent goes quiet.
 - declines gravity with the wings out.
 
@@ -852,7 +852,7 @@ worth it — one that is wry.
 ### Bite
 
 - watches %p find the throat.
-- says "That will do." as %p lets go, reluctantly.
+- says "That'll do." as %p lets go, reluctantly.
 
 ### Spell Lock
 
@@ -889,7 +889,7 @@ worth it — one that is wry.
 ### Hearthstone
 
 - turns the stone over until it warms, and says "Home."
-- decides that is quite enough adventuring.
+- decides that's quite enough adventuring.
 - holds the hearthstone up until the glow fills both hands.
 
 ### Fishing
@@ -915,7 +915,7 @@ worth it — one that is wry.
 ### Cooking
 
 - gets a fire going and something over it, grease popping in the pan.
-- says "There is enough for everyone." over a pot already steaming.
+- says "There's enough for everyone." over a pot already steaming.
 
 ### First Aid
 
@@ -934,89 +934,37 @@ worth it — one that is wry.
 
 ---
 
-# Creeds
+# Spoken lines with no phrase
 
-These belong to a character rather than to a spell, so they are not keyed to one. Tick
-a creed and its lines ride along on whichever spells you have already set up, at a
-third of the weight of a spell's own lines — enough to season your casts, not to take
-them over.
+These were the creed packs — lines tied to no spell, which rode along on whatever you
+already cast. The packs are gone: what a character believes is exactly the sort of thing
+that wants writing rather than ticking, and eight tickboxes were never going to fit
+anybody properly.
 
-## Creed: the Horde <!-- id: creed_horde -->
+The words stayed. Audio can only be rendered ahead of time, and the **Says** picker only
+offers lines that were — so dropping these would leave somebody who writes their own
+`roars "For the Horde!"` with no way to make it audible, which is the one thing removing
+the packs was meant to make easier. They are no longer phrases, but they are still voices:
+write your own line and point it at one of these.
 
-*Lok'tar ogar.*
-
-<!-- creed pack: rides along on whichever spells you have set up -->
-
-- says "For the Horde." like a plain fact.
-- roars "For the Horde!" loud enough to carry over the noise.
-- bellows "Lok'tar ogar!" and does not wait for an answer.
-
-## Creed: the Alliance <!-- id: creed_alliance -->
-
-*For the Alliance.*
-
-<!-- creed pack: rides along on whichever spells you have set up -->
-
-- says "For the Alliance." the way it was drilled in.
-- roars "For the Alliance!" until the word goes ragged.
-- shouts "Hold the line!" and plants both feet.
-
-## Creed: the Light <!-- id: creed_light -->
-
-*For those who serve it.*
-
-<!-- creed pack: rides along on whichever spells you have set up -->
-
-- says "Light guide us." out of long habit.
-- shouts "The Light is with us!" and believes it for a moment.
-- says "The Light keep you." and means every word.
-
-## Creed: Elune <!-- id: creed_elune -->
-
-*For the moon and her own.*
-
-<!-- creed pack: rides along on whichever spells you have set up -->
-
-- says "Elune be with us." quietly, as though indoors.
-- cries "Elune, give me strength!" with both hands open.
-- whispers "Elune-adore." and lets the word hang.
-
-## Creed: the ancestors <!-- id: creed_ancestors -->
-
-*For those who came before.*
-
-<!-- creed pack: rides along on whichever spells you have set up -->
-
-- says "The ancestors are watching." like a weather report.
-- shouts "For the ancestors!" and then the name of one of them.
-- says "Walk with the ancestors." to whoever needs to hear it.
-
-## Creed: the elements <!-- id: creed_elements -->
-
-*For earth, sea, sky and flame.*
-
-<!-- creed pack: rides along on whichever spells you have set up -->
-
-- says "The elements are restless today."
-- shouts "The elements answer!" over the noise of them doing it.
-- thanks the elements, quietly, the way one thanks a neighbour.
-
-## Creed: the fel <!-- id: creed_fel -->
-
-*For power, and what it costs.*
-
-<!-- creed pack: rides along on whichever spells you have set up -->
-
-- says "The fel does not tire." which is most of the appeal.
-- snarls "Burn it all!" and sounds glad about it.
-- observes that this was always going to end in fel.
-
-## Creed: the shadow <!-- id: creed_shadow -->
-
-*For the patient dark.*
-
-<!-- creed pack: rides along on whichever spells you have set up -->
-
-- says "The shadow is patient." as if quoting someone.
-- hisses "Into the dark with you!" through the teeth.
-- notes that the shadow is, as ever, unhelpful.
+- "For the Horde."
+- "For the Horde!"
+- "Lok'tar ogar!"
+- "For the Alliance."
+- "For the Alliance!"
+- "Hold the line!"
+- "Light guide us."
+- "The Light is with us!"
+- "The Light keep you."
+- "Elune be with us."
+- "Elune, give me strength!"
+- "Elune-adore."
+- "The ancestors are watching."
+- "For the ancestors!"
+- "Walk with the ancestors."
+- "The elements are restless today."
+- "The elements answer!"
+- "The fel doesn't tire."
+- "Burn it all!"
+- "The shadow is patient."
+- "Into the dark with you!"

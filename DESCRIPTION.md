@@ -73,9 +73,9 @@ Two or three is not a space budget — it's what the throttle makes useful. A sp
 
 Per-phrase weights are there when you want a favourite to come up more often, or a line never again.
 
-### Creeds
+### Faction and faith are yours to write
 
-What a character believes belongs to the character rather than to any one spell, so "For the Horde!" isn't welded to a fireball. Tick any of the eight creeds (the Horde, the Alliance, the Light, Elune, the ancestors, the elements, the fel, the shadow) and their lines ride along on whichever spells you've already set up. The class packs themselves name no faction or faith, so a Blood Elf paladin and a draenei one can share a spell list and still sound like themselves.
+No pack names either, so a Blood Elf paladin and a draenei one can share a spell list and still sound like themselves. What a character believes belongs to the character, and a tickbox was never going to fit anybody properly — so write your own `roars "For the Horde!"` on whatever spell suits it. The cries that used to ship as creed packs kept their recordings, so the **Says** picker can still give yours a voice.
 
 ### Your own words
 

@@ -427,7 +427,6 @@ end
 -- character sheet, which meant most of what was written never reached any one
 -- player; now a spell carries two or three lines that all suit anyone, and the
 -- only thing that moves a line up or down is the weight the player sets.
-local WILDCARD_WEIGHT = 1
 
 function Casts.GetPhrases(key)
     local out, seen = {}, {}
@@ -462,7 +461,7 @@ function Casts.GetPhrases(key)
         out[#out + 1] = {
             text = shown, orig = entry.text, edited = (shown ~= entry.text),
             weight = override or base, step = override or base,
-            pack = entry.pack, wildcard = entry.wildcard,
+            pack = entry.pack,
             spoken = Casts.GetPhraseSpoken(key, entry.text),
             voice = Casts.GetPhraseVoice(key, entry.text),
         }
@@ -475,14 +474,6 @@ function Casts.GetPhrases(key)
         end
     end
 
-    -- Creed lines ride along on spells that already say something. Gating on a
-    -- non-empty list matters: a wildcard pack must not make every spell in the
-    -- book start talking just because it was ticked.
-    if #out > 0 and lib and lib.GetWildcards then
-        for _, entry in ipairs(lib.GetWildcards()) do
-            addLibraryLine(entry, WILDCARD_WEIGHT)
-        end
-    end
     return out
 end
 

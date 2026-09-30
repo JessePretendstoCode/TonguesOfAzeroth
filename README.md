@@ -85,10 +85,10 @@ generate identical text.
   the pack ships. The bound is the throttle's doing rather than a budget — a spell won't
   speak twice inside five minutes, so a fourth line is one you'd almost never reach. Per-
   phrase weights are there when you want a favourite more often, or a line never again.
-- **Creeds.** What a character believes isn't tied to a spell, so eight opt-in creeds
-  (the Horde, the Alliance, the Light, Elune, the ancestors, the elements, the fel, the
-  shadow) ride along on whatever you already cast. The class packs name no faction or
-  faith, so a Blood Elf paladin and a draenei one can share a spell list.
+- **Faction and faith are yours to write.** No pack names either, so a Blood Elf paladin
+  and a draenei one can share a spell list and still sound like themselves. Write your own
+  `roars "For the Horde!"` on whatever spell suits it — and because the cries that used to
+  ship as creed packs kept their recordings, the **Says** picker can still give it a voice.
   Per-phrase weights decide how often each line comes up, and a keybinding opens a spell's
   phrase list while you hover it on your action bars. Lines go out as emotes; see
   [Notes & limitations](#notes--limitations) for why that isn't a choice.

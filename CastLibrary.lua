@@ -60,10 +60,11 @@
       that is wry. Three lines all built "says X and does Y" read as one line
       with the words shuffled.
 
-      Nothing here should assume WHY the character fights, which is what the
-      creed packs are for -- keep faction and religion out of the class packs
-      entirely. Avoid pronouns: the emote reads "<Name> <your line>", and
-      "their" lands oddly in that frame, so prefer phrasings that need none.
+      Nothing here should assume WHY the character fights. Faction and religion
+      belong to a character, not to a spell, so they are left to the player to
+      write -- keep them out of the packs entirely. Avoid pronouns: the emote
+      reads "<Name> <your line>", and "their" lands oddly in that frame, so
+      prefer phrasings that need none.
 ---------------------------------------------------------------------------]]
 
 local ADDON, ns = ...
@@ -73,7 +74,6 @@ ns.CastLibrary = CastLibrary
 
 local PACKS = {}
 local byKey = {}
-local wildcards = {}
 
 -- Which pack belongs to which class, by the locale-independent token from
 -- UnitClass. Declared up here because pack() uses it to work out whether a pack
@@ -101,9 +101,9 @@ for _, id in pairs(CLASS_PACKS) do CLASS_PACK_IDS[id] = true end
 -- feeding the flat byKey lookup the game reads. The ordered copy is what
 -- tools/dump_phrases.lua turns into PHRASES.md for review, so the document and
 -- the shipped lines can't drift apart.
-local function addLines(sink, id, lines, counter, wildcard)
+local function addLines(sink, id, lines, counter)
     for _, text in ipairs(lines) do
-        sink[#sink + 1] = { pack = id, text = text, wildcard = wildcard or nil }
+        sink[#sink + 1] = { pack = id, text = text }
         if counter then counter[#counter + 1] = { text = text } end
     end
 end
@@ -129,23 +129,6 @@ local function pack(id, name, note, spells)
         p.list[#p.list + 1] = { name = spellName, phrases = written }
         p.spells = p.spells + 1
     end
-    PACKS[#PACKS + 1] = p
-end
-
--- A creed pack: lines tied to no spell in particular, which ride along on
--- whichever spells you've already set up. This is the only way a cry like "For
--- the Horde!" can work -- it belongs to a character, not to a spell. Wildcard
--- lines carry a lower base weight than a spell's own, so ticking a creed
--- seasons your casts rather than taking them over.
-local function creed(id, name, note, lines)
-    local p = {
-        id = id, name = name, note = note, spells = 0, phrases = 0,
-        kind = "creed", list = {},
-    }
-    local written = {}
-    addLines(wildcards, id, lines, written, true)
-    p.phrases = #written
-    p.list[#p.list + 1] = { name = name, phrases = written }
     PACKS[#PACKS + 1] = p
 end
 
@@ -703,60 +686,32 @@ pack('professions', 'Professions & travel', 'The quiet, everyday casts.', {
         'argues with the magic until it settles.' },
 })
 
--- Creeds. What a character believes belongs to the character, not to any one
--- spell, so these ride along on whatever you already cast rather than being
--- keyed to a spell of their own. Tick as many as fit; nothing here is tied to
--- a class, and the class packs deliberately stay clear of faction and faith.
-
-creed('creed_horde', 'Creed: the Horde', 'Lok\'tar ogar.', {
-    'says "For the Horde." like a plain fact.',
-    'roars "For the Horde!" loud enough to carry over the noise.',
-    'bellows "Lok\'tar ogar!" and doesn\'t wait for an answer.',
-})
-
-creed('creed_alliance', 'Creed: the Alliance', 'For the Alliance.', {
-    'says "For the Alliance." the way it was drilled in.',
-    'roars "For the Alliance!" until the word goes ragged.',
-    'shouts "Hold the line!" and plants both feet.',
-})
-
-creed('creed_light', 'Creed: the Light', 'For those who serve it.', {
-    'says "Light guide us." out of long habit.',
-    'shouts "The Light is with us!" and believes it for a moment.',
-    'says "The Light keep you." and means every word.',
-})
-
-creed('creed_elune', 'Creed: Elune', 'For the moon and her own.', {
-    'says "Elune be with us." quietly, as though indoors.',
-    'cries "Elune, give me strength!" with both hands open.',
-    'whispers "Elune-adore." and lets the word hang.',
-})
-
-creed('creed_ancestors', 'Creed: the ancestors', 'For those who came before.', {
-    'says "The ancestors are watching." like a weather report.',
-    'shouts "For the ancestors!" and then the name of one of them.',
-    'says "Walk with the ancestors." to whoever needs to hear it.',
-})
-
-creed('creed_elements', 'Creed: the elements', 'For earth, sea, sky and flame.', {
-    'says "The elements are restless today."',
-    'shouts "The elements answer!" over the noise of them doing it.',
-    'thanks the elements, quietly, the way one thanks a neighbour.',
-})
-
-creed('creed_fel', 'Creed: the fel', 'For power, and what it costs.', {
-    'says "The fel doesn\'t tire." which is most of the appeal.',
-    'snarls "Burn it all!" and sounds glad about it.',
-    'observes that this was always going to end in fel.',
-})
-
-creed('creed_shadow', 'Creed: the shadow', 'For the patient dark.', {
-    'says "The shadow is patient." as if quoting someone.',
-    'hisses "Into the dark with you!" through the teeth.',
-    'notes that the shadow is, as ever, unhelpful.',
-})
 --@phrases-end@
 --=========================================================================--
+
+-- Spoken lines with no phrase of their own.
+--
+-- These were the creed packs -- "For the Horde!", "Elune-adore." -- lines tied
+-- to no spell, which rode along on whatever you already cast. The packs are
+-- gone: what a character believes is exactly the sort of thing that should be
+-- written rather than ticked, and a list of eight beliefs was never going to
+-- cover anybody properly.
+--
+-- The words stay, because audio can only be rendered ahead of time and the
+-- picker will only offer lines that were. Dropping these from the manifest
+-- would mean somebody writing their own 'roars "For the Horde!"' had no way to
+-- make it audible -- which is the one thing removing the packs was supposed to
+-- make easier. So they are no longer phrases, but they are still voices.
+CastLibrary.EXTRA_SPOKEN = {
+    'For the Horde.', 'For the Horde!', 'Lok\'tar ogar!',
+    'For the Alliance.', 'For the Alliance!', 'Hold the line!',
+    'Light guide us.', 'The Light is with us!', 'The Light keep you.',
+    'Elune be with us.', 'Elune, give me strength!', 'Elune-adore.',
+    'The ancestors are watching.', 'For the ancestors!', 'Walk with the ancestors.',
+    'The elements are restless today.', 'The elements answer!',
+    'The fel doesn\'t tire.', 'Burn it all!',
+    'The shadow is patient.', 'Into the dark with you!',
+}
 
 function CastLibrary.GetPacks()
     return PACKS
@@ -800,19 +755,6 @@ function CastLibrary.EachEnabledKey()
         i = i + 1
         return keys[i]
     end
-end
-
--- Creed lines from every ticked creed pack. Casts.GetPhrases mixes these into
--- any spell that already has phrases of its own; see creed() above for why they
--- can't simply be attached to a spell.
-function CastLibrary.GetWildcards()
-    local out = {}
-    local Casts = ns.Casts
-    if not Casts then return out end
-    for _, entry in ipairs(wildcards) do
-        if Casts.IsPackEnabled(entry.pack) then out[#out + 1] = entry end
-    end
-    return out
 end
 
 -- The pack matching the player's class, so the panel can show the obvious one

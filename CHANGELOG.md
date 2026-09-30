@@ -3,6 +3,19 @@
 All notable changes to Tongues of Azeroth are documented here.
 
 ## [Unreleased]
+- **The creed packs are gone; write your own.** Eight tickboxes -- the Horde, the
+  Alliance, the Light, Elune, the ancestors, the elements, the fel, the shadow -- were
+  never going to fit anybody exactly, and now that any line can be reworded and given any
+  voice, the better answer to "what does my character believe" is that you write it. The
+  packs, their wildcard mechanism and the panel section they lived in are all removed, and
+  a creed left ticked in an old save is cleared on upgrade.
+  Their **words stayed**. Audio can only be rendered ahead of time and the **Says** picker
+  only offers lines that were, so dropping the twenty-one cries they spoke would have left
+  anybody writing their own *"For the Horde!"* with no way to make it audible -- which is
+  the one thing removing the packs was meant to make easier. They are no longer phrases,
+  but they are still voices: write the line, then point it at *"Lok'tar ogar!"*,
+  *"Elune-adore."*, *"Light guide us."* or any of the rest. The manifest is unchanged at
+  194 clips, so every rendered voice pack stays valid.
 - **A phrase you wrote can borrow a voice.** Audio is a fixed set of clips rendered
   ahead of time, one per line the library ships, each addressed by a hash of its exact
   wording -- and nothing can be recorded in game, since the client indexes addon sound at

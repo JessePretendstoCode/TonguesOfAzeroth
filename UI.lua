@@ -72,7 +72,7 @@ local castSpellDropdown, castMuteCheck, castNewInput, castNewLabel
 local castPreviewText, castStatus, castAddRow, castEmptyNote
 local castPackChecks = {}
 local castPackBottom
-local castCreedHeader, castCreedHint, castPackAnchor
+local castPackAnchor
 local castFilterSpellbookCheck, castShowOtherPacksCheck
 local castVoiceCheck, castVoiceOthersCheck
 local castRows = {}
@@ -2720,8 +2720,8 @@ local function noteSpellKey(key)
 end
 
 -- What a row says about where its line came from. Yours say nothing -- you know
--- where they came from -- and a creed line is worth naming because it arrives on
--- spells you never attached it to, which is otherwise a puzzle.
+-- where they came from -- so the label is only there to name the pack a shipped
+-- line arrived with.
 local function phraseSourceLabel(phrase)
     if phrase.user or not phrase.pack then return "" end
     local packs = (ns.CastLibrary and ns.CastLibrary.GetPacks()) or {}
@@ -2738,13 +2738,11 @@ local function layoutCastPacks()
     local mine = ns.CastLibrary and ns.CastLibrary.PackForPlayer()
     local packs = (ns.CastLibrary and ns.CastLibrary.GetPacks()) or {}
 
-    local mainList, creedList = {}, {}
+    local mainList = {}
     for _, pack in ipairs(packs) do
         local check = castPackChecks[pack.id]
         if check then
-            if pack.kind == "creed" then
-                creedList[#creedList + 1] = check
-            elseif pack.kind == "universal" or pack.id == mine
+            if pack.kind == "universal" or pack.id == mine
                 or (pack.kind == "class" and showOther) then
                 mainList[#mainList + 1] = check
                 check:Show()
@@ -2772,32 +2770,6 @@ local function layoutCastPacks()
         end
         if i % 2 == 1 then colAnchor = check end
     end
-    if castCreedHeader and #creedList > 0 then
-        castCreedHeader:ClearAllPoints()
-        castCreedHeader:SetPoint("TOPLEFT", colAnchor, "BOTTOMLEFT", 0, -16)
-        castCreedHeader:Show()
-        castCreedHint:ClearAllPoints()
-        castCreedHint:SetPoint("TOPLEFT", castCreedHeader, "BOTTOMLEFT", 0, -4)
-        castCreedHint:Show()
-        colAnchor = castCreedHint
-        for i, check in ipairs(creedList) do
-            check:Show()
-            check:ClearAllPoints()
-            if i == 1 then
-                check:SetPoint("TOPLEFT", castCreedHint, "BOTTOMLEFT", 0, -8)
-            elseif i % 2 == 1 then
-                check:SetPoint("TOPLEFT", colAnchor, "BOTTOMLEFT", 0, -2)
-            else
-                check:SetPoint("TOPLEFT", colAnchor, "TOPLEFT", 240, 0)
-            end
-            if i % 2 == 1 then colAnchor = check end
-        end
-    elseif castCreedHeader then
-        castCreedHeader:Hide()
-        castCreedHint:Hide()
-        for _, check in ipairs(creedList) do check:Hide() end
-    end
-
     castPackBottom:ClearAllPoints()
     castPackBottom:SetPoint("TOPLEFT", colAnchor, "BOTTOMLEFT", 0, 0)
 end
@@ -3081,13 +3053,6 @@ local function RefreshCasts()
             -- The row is wider than the column it can draw in, so the tooltip is
             -- also where you read a line that's too long to fit.
             GameTooltip:AddLine(phrase.text, 1, 1, 1, true)
-            if phrase.wildcard then
-                GameTooltip:AddLine(" ")
-                GameTooltip:AddLine("From a creed", 1, 0.82, 0)
-                GameTooltip:AddLine(
-                    "Creed lines ride along on every spell that already says something.",
-                    0.8, 0.8, 0.8, true)
-            end
             if phrase.spoken or phrase.voice then
                 GameTooltip:AddLine(" ")
                 GameTooltip:AddLine("Pinned", 0.53, 0.8, 1)
@@ -3551,28 +3516,10 @@ local function BuildCastPanel()
     end
 
     for _, pack in ipairs(packs) do
-        if pack.kind ~= "creed" then
-            local label = pack.name
-            if pack.id == mine then label = label .. " |cff00ff00(yours)|r" end
-            addPackCheck(pack, label)
-        end
+        local label = pack.name
+        if pack.id == mine then label = label .. " |cff00ff00(yours)|r" end
+        addPackCheck(pack, label)
     end
-    for _, pack in ipairs(packs) do
-        if pack.kind == "creed" then addPackCheck(pack) end
-    end
-
-    castCreedHeader = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    castCreedHeader:SetPoint("TOPLEFT", castPackAnchor, "BOTTOMLEFT", 0, -8)
-    castCreedHeader:SetText("Creed packs")
-    castCreedHeader:Hide()
-
-    castCreedHint = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-    castCreedHint:SetPoint("TOPLEFT", castCreedHeader, "BOTTOMLEFT", 0, -4)
-    castCreedHint:SetPoint("RIGHT", content, "RIGHT", -24, 0)
-    castCreedHint:SetJustifyH("LEFT")
-    if castCreedHint.SetWordWrap then castCreedHint:SetWordWrap(true) end
-    castCreedHint:SetText("Creed lines are not tied to a spell -- they ride along on whichever spells you already have set up.")
-    castCreedHint:Hide()
 
     castPackBottom = CreateFrame("Frame", nil, content)
     castPackBottom:SetSize(1, 1)

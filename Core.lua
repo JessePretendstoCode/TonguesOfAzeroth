@@ -515,6 +515,19 @@ local function migrateDB()
         casts.voices = nil
     end
 
+    -- The creed packs are gone. What a character believes is exactly the sort
+    -- of thing that wants writing rather than ticking, and eight tickboxes were
+    -- never going to cover anybody properly -- so the lines they carried are
+    -- now yours to write, and the audio for them stayed behind in the manifest.
+    -- Their tickboxes no longer exist, so clear them rather than leave settings
+    -- nobody can see or reach. Matched on the id prefix, because the point is
+    -- to not carry a list of dead packs around forever.
+    for id in pairs(casts.packs) do
+        if type(id) == "string" and id:sub(1, 6) == "creed_" then
+            casts.packs[id] = nil
+        end
+    end
+
     -- One-time: enable all channel toggles (older saves may have some off).
     if not db.channelDefaultsVersion or db.channelDefaultsVersion < 2 then
         for ch, enabled in pairs(DEFAULT_CHANNELS) do
