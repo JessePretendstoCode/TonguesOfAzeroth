@@ -2940,10 +2940,21 @@ local function castRow(index, parent)
     -- anything left to read the phrase in.
     row.voiceLabel = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     row.voiceLabel:SetPoint("TOPLEFT", row, "TOPLEFT", 26, -ROW_LINE_H - 3)
-    row.voiceLabel:SetText("Sounds like")
+    row.voiceLabel:SetText("Says")
 
-    row.voiceDrop = Compat.CreateDropdown(row, 240)
-    row.voiceDrop:SetPoint("LEFT", row.voiceLabel, "RIGHT", 6, 0)
+    -- Which words are spoken, and who speaks them. Two questions rather than
+    -- one, because they are genuinely independent: a line can keep its own
+    -- words in somebody else's voice as readily as the other way round.
+    row.spokenDrop = Compat.CreateDropdown(row, 200)
+    row.spokenDrop:SetPoint("LEFT", row.voiceLabel, "RIGHT", 6, 0)
+    row.spokenDrop:SetHeight(20)
+
+    row.inLabel = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    row.inLabel:SetPoint("LEFT", row.spokenDrop, "RIGHT", 8, 0)
+    row.inLabel:SetText("in")
+
+    row.voiceDrop = Compat.CreateDropdown(row, 150)
+    row.voiceDrop:SetPoint("LEFT", row.inLabel, "RIGHT", 6, 0)
     row.voiceDrop:SetHeight(20)
 
     row.voicePlay = tinyButton("Play", 40)
@@ -3077,11 +3088,17 @@ local function RefreshCasts()
                     "Creed lines ride along on every spell that already says something.",
                     0.8, 0.8, 0.8, true)
             end
-            if phrase.voice then
+            if phrase.spoken or phrase.voice then
                 GameTooltip:AddLine(" ")
-                GameTooltip:AddLine("Borrows a voice", 0.53, 0.8, 1)
-                GameTooltip:AddLine("Says \"" .. phrase.voice .. "\" out loud, whatever the words above read as.",
-                    0.8, 0.8, 0.8, true)
+                GameTooltip:AddLine("Pinned", 0.53, 0.8, 1)
+                if phrase.spoken then
+                    GameTooltip:AddLine("Says \"" .. phrase.spoken
+                        .. "\" out loud, whatever the words above read as.", 0.8, 0.8, 0.8, true)
+                end
+                if phrase.voice then
+                    GameTooltip:AddLine("Spoken in a " .. phrase.voice:gsub("%-", " ")
+                        .. " voice rather than your own.", 0.8, 0.8, 0.8, true)
+                end
             end
             if phrase.edited then
                 GameTooltip:AddLine(" ")
@@ -3120,21 +3137,26 @@ local function RefreshCasts()
                 return
             end
             local note = ""
-            local voice = phrase.voice
-            if voice then
-                note = "   |cff88ccffheard as \"" .. voice .. "\"|r"
+            if phrase.spoken then
+                note = "   |cff88ccffheard as \"" .. phrase.spoken .. "\"|r"
             elseif not template:find('"') then
                 note = "   |cff909090nothing in quotes, so nothing is said aloud|r"
+            end
+            if phrase.voice then
+                note = note .. "   |cff88ccffin a " .. phrase.voice:gsub("%-", " ") .. " voice|r"
             end
             row.preview:SetText("|cffb0b0b0" .. rendered .. "|r" .. note)
         end
 
-        -- The voice picker, on every row whether or not it is being edited. The
-        -- spell's own lines come first: two hundred entries is a list nobody
-        -- reads top to bottom, and the line somebody wants is nearly always one
-        -- this spell already says.
+        -- Both pickers, on every row whether or not it is being edited. Which
+        -- lines have been pinned to something is the question this panel exists
+        -- to answer, and it has to be answerable down the list at a glance.
+        --
+        -- The spell's own lines come first: two hundred entries is a list
+        -- nobody reads top to bottom, and the words somebody wants are nearly
+        -- always ones this spell already says.
         local near, far = Casts.VoiceChoices(key)
-        local items = { { value = "", text = "Its own words" } }
+        local items = { { value = "", text = "its own words" } }
         local function addGroup(title, lines)
             if #lines == 0 then return end
             items[#items + 1] = { text = title, header = true }
@@ -3144,21 +3166,49 @@ local function RefreshCasts()
         end
         addGroup("This spell", near)
         addGroup("Every recorded line", far)
-        row.voiceDrop:SetItems(items)
-        row.voiceDrop:SetSelected(phrase.voice or "",
-            phrase.voice and ('"' .. phrase.voice .. '"') or "Its own words")
-        -- Borrowed lines are coloured so the ones that sound like something
-        -- other than they read stand out when you run an eye down the list.
-        if phrase.voice then
-            row.voiceDrop.label:SetTextColor(0.53, 0.8, 1)
-        else
-            row.voiceDrop.label:SetTextColor(0.6, 0.6, 0.6)
-        end
-        row.voiceDrop.onSelect = function(value)
-            local ok, err = Casts.SetPhraseVoice(key, text, value ~= "" and value or nil)
+        row.spokenDrop:SetItems(items)
+        row.spokenDrop:SetSelected(phrase.spoken or "",
+            phrase.spoken and ('"' .. phrase.spoken .. '"') or "its own words")
+        -- Anything pinned is coloured, so the lines that no longer simply say
+        -- what they read stand out when you run an eye down the column.
+        row.spokenDrop.label:SetTextColor(phrase.spoken and 0.53 or 0.6,
+            phrase.spoken and 0.8 or 0.6, phrase.spoken and 1 or 0.6)
+        row.spokenDrop.onSelect = function(value)
+            local ok, err = Casts.SetPhraseSpoken(key, text, value ~= "" and value or nil)
             if ok then
                 castStatusMsg(value ~= "" and ("Now says \"" .. value .. "\" out loud.")
                     or "Back to its own words.", false)
+            else
+                castStatusMsg("Not set: " .. tostring(err) .. ".", true)
+            end
+            RefreshCasts()
+        end
+
+        -- Who says it. Unbuilt voices are labelled rather than hidden: the
+        -- pack is a separate download and races get rendered over time, so a
+        -- voice missing today is a voice you may already be planning for. What
+        -- would be unfair is letting it be picked silently, since an unbuilt
+        -- voice falls back to the neutral one and sounds like nothing happened.
+        local voiceItems = { { value = "", text = "your own voice" } }
+        for _, v in ipairs((ns.Voice and ns.Voice.VoiceOptions and ns.Voice.VoiceOptions()) or {}) do
+            voiceItems[#voiceItems + 1] = {
+                value = v.id,
+                text = v.installed and v.name or (v.name .. "  (not installed)"),
+            }
+        end
+        row.voiceDrop:SetItems(voiceItems)
+        local voiceName = "your own voice"
+        for _, it in ipairs(voiceItems) do
+            if it.value == phrase.voice then voiceName = it.text end
+        end
+        row.voiceDrop:SetSelected(phrase.voice or "", voiceName)
+        row.voiceDrop.label:SetTextColor(phrase.voice and 0.53 or 0.6,
+            phrase.voice and 0.8 or 0.6, phrase.voice and 1 or 0.6)
+        row.voiceDrop.onSelect = function(value)
+            local ok, err = Casts.SetPhraseVoice(key, text, value ~= "" and value or nil)
+            if ok then
+                castStatusMsg(value ~= "" and ("Spoken by a " .. value:gsub("%-", " ") .. " voice.")
+                    or "Back to your own voice.", false)
             else
                 castStatusMsg("Not set: " .. tostring(err) .. ".", true)
             end
@@ -3169,7 +3219,7 @@ local function RefreshCasts()
             -- With nothing borrowed, audition what the line actually says.
             -- That is the honest preview: if its own words were never
             -- recorded, the silence is the answer to the question.
-            local line = phrase.voice
+            local line = phrase.spoken
             if not line then
                 local template = (castEdit and castEdit.orig == text and castEdit.typed)
                     or phrase.text
@@ -3179,15 +3229,15 @@ local function RefreshCasts()
                 castStatusMsg("Nothing in quotes to say aloud.", true)
             elseif not (ns.Voice and ns.Voice.Audition) then
                 castStatusMsg("The voice module isn't loaded.", true)
-            elseif ns.Voice.Audition(line) then
+            elseif ns.Voice.Audition(line, phrase.voice) then
                 castStatusMsg("Played \"" .. line .. "\".", false)
             elseif Casts.HasClip(line) then
-                -- Recorded, but not in a voice this character can reach.
-                -- Worth separating from "never recorded": one is fixed by
-                -- installing a pack, the other by picking a different line.
-                castStatusMsg("That line is recorded, but no voice pack is installed for your race.", true)
+                -- Recorded, but not in a voice that could be reached. Worth
+                -- separating from "never recorded": one is fixed by building
+                -- the voice, the other by picking different words.
+                castStatusMsg("That line is recorded, but the voice it would use isn't installed.", true)
             else
-                castStatusMsg("Nothing was recorded for \"" .. line .. "\" -- pick a line above to give it one.", true)
+                castStatusMsg("Nothing was recorded for \"" .. line .. "\" -- pick some words to its left.", true)
             end
         end)
 

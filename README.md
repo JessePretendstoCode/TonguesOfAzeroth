@@ -62,10 +62,12 @@ generate identical text.
   line to reword it in place, shipped ones included; it keeps what you type when you click
   away, and Escape (or the circle-slash on the row) puts it back. A pack line you've
   changed offers **Revert** where its pack name was, and keeps the weight you gave it.
-  A phrase you wrote has no recording of its own, so every line carries a **Sounds like**
-  picker beneath it: point the line at any of the 194 that were recorded and audition it
-  in your own voice. Editing a line also previews how it will read with its tokens
-  filled in.
+  A phrase you wrote has no recording of its own, so every line carries a strip beneath
+  it reading **Says** *[its own words]* **in** *[your own voice]*: point the line at any
+  of the 194 that were recorded, pick who says it — *Male Forsaken*, *Female Night Elf*,
+  any race in either sex — and **Play** auditions the pair. The two are independent, so
+  your own words in another race's voice works as readily as the other way round.
+  Editing a line also previews how it will read with its tokens filled in.
 - **Voice packs (optional).** Hear the words in `"quotes"` spoken aloud, in a voice
   matching the speaker's race and gender — your own lines and other players' alike, since
   a chat line carries the GUID their race and gender can be read from. The audio is a

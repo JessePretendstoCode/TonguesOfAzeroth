@@ -265,18 +265,49 @@ end
 -- silent, and refusing the mismatch would mean nothing anyone wrote could ever
 -- be spoken at all.
 --
+-- Who says it is a separate question from what they say, and both are answered
+-- here. Either can be set without the other: a line can keep its own words in a
+-- Forsaken voice, borrow words in your own, or both.
+--
 -- Keyed by `orig`, like weights and edits, so the choice survives a reword --
 -- which is exactly the moment it is worth the most, since rewording is what
 -- takes a line's own voice away.
-local function voiceMap(key, create)
+local function phraseMap(field, key, create)
     local c = castDB()
     if not (c and key) then return nil end
-    if type(c.voices) ~= "table" then
+    if type(c[field]) ~= "table" then
         if not create then return nil end
-        c.voices = {}
+        c[field] = {}
     end
-    if not c.voices[key] and create then c.voices[key] = {} end
-    return c.voices[key]
+    if not c[field][key] and create then c[field][key] = {} end
+    return c[field][key]
+end
+
+local function readSetting(field, key, origText)
+    local m = phraseMap(field, key)
+    local v = m and m[origText]
+    if type(v) == "string" and v ~= "" then return v end
+    return nil
+end
+
+-- Shared by both setters: nil clears, anything else is checked before it is
+-- stored. A value that refers to something absent would sit in the saved file
+-- looking chosen and quietly do nothing, which is worse than a refusal.
+local function writeSetting(field, key, origText, value, valid, complaint)
+    if not key or type(origText) ~= "string" then return false, "no phrase" end
+    if value == nil or value == "" then
+        local m = phraseMap(field, key)
+        if m then
+            m[origText] = nil
+            if not next(m) then castDB()[field][key] = nil end
+        end
+        return true
+    end
+    if not valid(value) then return false, complaint end
+    local m = phraseMap(field, key, true)
+    if not m then return false, "not loaded" end
+    m[origText] = value
+    return true
 end
 
 -- Read straight from the manifest rather than through Voice, so a phrase can be
@@ -290,34 +321,28 @@ end
 
 Casts.HasClip = hasClip
 
--- The line this phrase borrows its voice from, or nil to let its own words
--- speak for themselves -- which works only where they happen to match a clip.
-function Casts.GetPhraseVoice(key, origText)
-    local m = voiceMap(key)
-    local t = m and m[origText]
-    if type(t) == "string" and t ~= "" then return t end
-    return nil
+-- The recorded words this phrase borrows, or nil to let its own words speak for
+-- themselves -- which works only where they happen to match a clip.
+function Casts.GetPhraseSpoken(key, origText)
+    return readSetting("spoken", key, origText)
 end
 
 -- Pass nil to go back to the phrase's own words. Returns ok, err.
-function Casts.SetPhraseVoice(key, origText, spoken)
-    if not key or type(origText) ~= "string" then return false, "no phrase" end
-    if spoken == nil or spoken == "" then
-        local m = voiceMap(key)
-        if m then
-            m[origText] = nil
-            if not next(m) then castDB().voices[key] = nil end
-        end
-        return true
-    end
-    -- Only a line with a clip behind it is worth storing. Anything else would
-    -- sit in the saved file looking chosen and play nothing, which is a worse
-    -- answer than having refused it.
-    if not hasClip(spoken) then return false, "nothing is recorded for that line" end
-    local m = voiceMap(key, true)
-    if not m then return false, "not loaded" end
-    m[origText] = spoken
-    return true
+function Casts.SetPhraseSpoken(key, origText, spoken)
+    return writeSetting("spoken", key, origText, spoken,
+        hasClip, "nothing is recorded for that line")
+end
+
+-- The voice that speaks this phrase ("scourge-male"), or nil for your own.
+function Casts.GetPhraseVoice(key, origText)
+    return readSetting("voices", key, origText)
+end
+
+-- Pass nil to go back to your character's own voice. Returns ok, err.
+function Casts.SetPhraseVoice(key, origText, voiceId)
+    return writeSetting("voices", key, origText, voiceId,
+        function(v) return ns.Voice and ns.Voice.IsVoiceId(v) or false end,
+        "that is not a voice")
 end
 
 -- What the picker offers, in two groups: the lines this spell's own phrases
@@ -416,6 +441,7 @@ function Casts.GetPhrases(key)
                 out[#out + 1] = {
                     text = text, orig = text, weight = Casts.GetWeight(key, text),
                     step = Casts.GetWeight(key, text), user = true,
+                    spoken = Casts.GetPhraseSpoken(key, text),
                     voice = Casts.GetPhraseVoice(key, text),
                 }
             end
@@ -437,6 +463,7 @@ function Casts.GetPhrases(key)
             text = shown, orig = entry.text, edited = (shown ~= entry.text),
             weight = override or base, step = override or base,
             pack = entry.pack, wildcard = entry.wildcard,
+            spoken = Casts.GetPhraseSpoken(key, entry.text),
             voice = Casts.GetPhraseVoice(key, entry.text),
         }
     end
@@ -695,11 +722,16 @@ function Casts.Speak(spellName, opts)
     local body, langId, spoken = Casts.Render(chosen.text, ctx, true)
     if not body then return nil end
 
-    -- Which clip this phrase borrows, handed over before the line is sent.
-    -- Playback rides on the emote coming back round, and by then which phrase
-    -- produced it is no longer knowable -- an emote body is just a string.
+    -- What this phrase was pinned to -- borrowed words, a borrowed voice, or
+    -- both -- handed over before the line is sent. Playback rides on the emote
+    -- coming back round, and by then which phrase produced it is no longer
+    -- knowable: an emote body is just a string.
     if ns.Voice and ns.Voice.NoteChoice then
-        ns.Voice.NoteChoice(body, Casts.GetPhraseVoice(key, chosen.orig or chosen.text))
+        local ident = chosen.orig or chosen.text
+        local line = Casts.GetPhraseSpoken(key, ident)
+        local voice = Casts.GetPhraseVoice(key, ident)
+        ns.Voice.NoteChoice(body,
+            (line or voice) and { line = line, voice = voice } or nil)
     end
 
     local now = GetTime and GetTime() or 0

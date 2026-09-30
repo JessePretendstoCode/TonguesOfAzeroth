@@ -505,6 +505,16 @@ local function migrateDB()
     if casts.voice == nil then casts.voice = false end
     if casts.voiceOthers == nil then casts.voiceOthers = true end
 
+    -- `casts.voices` held the borrowed WORDS back when that was the only thing
+    -- a phrase could be pinned to. Choosing the speaker is a second setting
+    -- now, and it is the one that deserves the name, so the words move to a
+    -- table of their own. Guarded on the destination being absent, so a save
+    -- that has already been through this is left alone.
+    if type(casts.voices) == "table" and casts.spoken == nil then
+        casts.spoken = casts.voices
+        casts.voices = nil
+    end
+
     -- One-time: enable all channel toggles (older saves may have some off).
     if not db.channelDefaultsVersion or db.channelDefaultsVersion < 2 then
         for ch, enabled in pairs(DEFAULT_CHANNELS) do

@@ -97,6 +97,74 @@ local BASE_RACE = {
 -- as a bug, where a plain voice just reads as a different person.
 local NEUTRAL = "common"
 
+-- Every voice a pack can carry, in the order the picker offers them. The token
+-- is the folder name and has to agree with what tools/Build-VoicePack.ps1
+-- renders into; the label is what people actually call the race, which is not
+-- always the same word -- the client calls the Undead "Scourge" and nobody
+-- else ever has.
+local RACES = {
+    { "human",    "Human" },
+    { "dwarf",    "Dwarf" },
+    { "nightelf", "Night Elf" },
+    { "gnome",    "Gnome" },
+    { "draenei",  "Draenei" },
+    { "worgen",   "Worgen" },
+    { "pandaren", "Pandaren" },
+    { "orc",      "Orc" },
+    { "scourge",  "Forsaken" },
+    { "tauren",   "Tauren" },
+    { "troll",    "Troll" },
+    { "bloodelf", "Blood Elf" },
+    { "goblin",   "Goblin" },
+    { "vulpera",  "Vulpera" },
+    { "dracthyr", "Dracthyr" },
+    { "earthen",  "Earthen" },
+    { "common",   "Common" },
+}
+Voice.RACES = RACES
+
+-- "scourge-male" back into "scourge", "male": the inverse of FolderFor, which
+-- is the form a voice is saved in. Matched against the two known endings rather
+-- than split on the last dash, because a race token is free to contain one.
+function Voice.SplitVoice(id)
+    if type(id) ~= "string" then return nil end
+    local race, sex = id:match("^(.+)%-(male)$")
+    if not race then race, sex = id:match("^(.+)%-(female)$") end
+    return race, sex
+end
+
+-- Whether this names a voice the build knows how to make. Guards what gets
+-- saved: a folder that never existed, or stopped existing, would otherwise sit
+-- in the settings looking chosen and play the neutral voice instead.
+function Voice.IsVoiceId(id)
+    local race = Voice.SplitVoice(id)
+    if not race then return false end
+    for _, r in ipairs(RACES) do
+        if r[1] == race then return true end
+    end
+    return false
+end
+
+-- The picker's list: every voice, named the way somebody would say it out loud,
+-- and flagged when its audio has not been built. The flag earns its place --
+-- an unbuilt voice falls back to the neutral pair, which sounds exactly like
+-- the choice having been ignored, and there is no other way to tell.
+function Voice.VoiceOptions()
+    local _, counts = Voice.InstalledVoices()
+    local out = {}
+    for _, r in ipairs(RACES) do
+        for _, sex in ipairs({ "male", "female" }) do
+            local id = r[1] .. "-" .. sex
+            out[#out + 1] = {
+                id = id,
+                name = (sex == "male" and "Male " or "Female ") .. r[2],
+                installed = (counts and counts[id]) and true or false,
+            }
+        end
+    end
+    return out
+end
+
 local function slug(text)
     if type(text) ~= "string" then return nil end
     text = text:lower():gsub("[^%a%d]", "")
@@ -333,33 +401,35 @@ end
 --=========================================================================--
 --  A line pointed at someone else's clip
 --=========================================================================--
--- Most phrases are voiced by looking up their own quoted words. A phrase the
--- player wrote has no clip of its own, so they can point it at one that exists
--- -- see Casts.SetPhraseVoice -- and that choice has to reach playback.
+-- Most phrases are voiced by looking up their own quoted words in the voice
+-- belonging to whoever cast them. Either half can be overridden per phrase --
+-- `{ line = , voice = }`, see Casts.SetPhraseSpoken and SetPhraseVoice -- and
+-- the two are independent: a line can keep its own words in somebody else's
+-- voice, borrow words and keep yours, or both.
 --
--- It cannot ride on the emote, which is only ever a string, so Casts hands it
--- over just before sending and the body it belongs to claims it here. Matched
--- on that exact body rather than simply consumed, because the client can refuse
--- to send a line at all: a choice left waiting in a variable would then attach
--- itself to whatever spoke next, which is somebody else's phrase wearing your
--- clip. Matching means an unclaimed choice is replaced rather than misapplied.
-local pendingBody, pendingLine = nil, nil
+-- The choice cannot ride on the emote, which is only ever a string, so Casts
+-- hands it over just before sending and the body it belongs to claims it here.
+-- Matched on that exact body rather than simply consumed, because the client
+-- can refuse to send a line at all: a choice left waiting in a variable would
+-- then attach itself to whatever spoke next, which is somebody else's phrase
+-- wearing your voice. Matching means an unclaimed choice is replaced rather
+-- than misapplied.
+local pendingBody, pendingChoice = nil, nil
 
-function Voice.NoteChoice(body, spoken)
-    pendingBody, pendingLine = body, spoken
+function Voice.NoteChoice(body, choice)
+    pendingBody, pendingChoice = body, choice
 end
 
 local function claimChoice(body)
     if pendingBody == nil or pendingBody ~= body then return nil end
-    local line = pendingLine
-    pendingBody, pendingLine = nil, nil
-    return line
+    local choice = pendingChoice
+    pendingBody, pendingChoice = nil, nil
+    return choice
 end
 
--- Speak an emote body: find its quoted spans and play them in order. `chosen`
--- is a line the player pointed this phrase at, which speaks in place of the
--- body's own words.
-function Voice.SpeakBody(body, race, sex, chosen)
+-- Speak an emote body: find its quoted spans and play them in order. `choice`
+-- is what the player pinned to this phrase, if anything.
+function Voice.SpeakBody(body, race, sex, choice)
     local spans = Voice.SpansOf(body)
     -- Still gated on there being quotes at all. The quotes are what mark a
     -- phrase as containing speech; borrowing a clip changes what that speech
@@ -375,11 +445,17 @@ function Voice.SpeakBody(body, race, sex, chosen)
         playing = nil
     end
 
-    -- One borrowed clip stands for the whole line, however many times the line
-    -- quotes. Splitting a choice across two spans would mean asking which of
-    -- them it was for, and the panel only ever asked the question once.
-    if chosen then
-        return Voice.PlayLine(chosen, race, sex) and 1 or 0
+    if choice then
+        -- A chosen voice replaces the speaker's own and applies either way,
+        -- including to a line still saying its own words.
+        local r, s = Voice.SplitVoice(choice.voice)
+        if r then race, sex = r, s end
+        -- One borrowed clip stands for the whole line, however many times the
+        -- line quotes. Splitting a choice across two spans would mean asking
+        -- which of them it was for, and the panel asks the question once.
+        if choice.line then
+            return Voice.PlayLine(choice.line, race, sex) and 1 or 0
+        end
     end
 
     local spoken = 0
@@ -457,16 +533,17 @@ function Voice.SpeakLocal(body)
     return Voice.SpeakBody(body, race, sex, claimChoice(body))
 end
 
--- Audition one line in your own voice, for the play button on the phrase panel.
--- Deliberately not gated on IsEnabled: pressing play is a direct request, and
--- refusing it because the feature is switched off would leave somebody picking
--- a voice they are not allowed to hear first.
-function Voice.Audition(spoken)
+-- Audition one line for the play button on the phrase panel, in `voiceId` or in
+-- your own voice when that is nil. Deliberately not gated on IsEnabled: pressing
+-- play is a direct request, and refusing it because the feature is switched off
+-- would leave somebody picking a voice they are not allowed to hear first.
+function Voice.Audition(spoken, voiceId)
     if playing and type(StopSound) == "function" then
         pcall(StopSound, playing)
         playing = nil
     end
-    local race, sex = Voice.PlayerVoice()
+    local race, sex = Voice.SplitVoice(voiceId)
+    if not race then race, sex = Voice.PlayerVoice() end
     return Voice.PlayLine(spoken, race, sex)
 end
 
