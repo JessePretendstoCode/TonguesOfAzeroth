@@ -8,11 +8,13 @@ All notable changes to Tongues of Azeroth are documented here.
   wording -- and nothing can be recorded in game, since the client indexes addon sound at
   login. So anything you wrote yourself was silent, and rewording a shipped line took its
   voice away, both without ever saying why.
-  Open a phrase for editing and it now carries a **Sounds like** picker: leave it on
-  *its own words*, or point the line at any of the 194 that were recorded. The lines this
-  spell already says come first, then the rest. **Play** auditions the choice in your own
-  character's voice, and the row shows what the phrase will read as in chat with its
-  `%tokens` filled in, updating as you type.
+  Every phrase now carries a **Sounds like** picker beneath it: leave it on *its own
+  words*, or point the line at any of the 194 that were recorded. The lines this spell
+  already says come first, then the rest. **Play** auditions the choice in your own
+  character's voice. The picker sits on every row rather than appearing only while you
+  edit, so which lines borrow a voice is readable down the whole list at once, and the
+  ones that do are coloured to stand out. Open a phrase for editing and it also shows
+  what the line will read as in chat with its `%tokens` filled in, updating as you type.
   The words on screen and the words you hear are allowed to disagree -- a line reading
   *"Let it all burn!"* can speak with *"Burn!"*. That is the trade the feature exists to
   offer, because the alternative is that nothing anybody writes is ever spoken. A line
