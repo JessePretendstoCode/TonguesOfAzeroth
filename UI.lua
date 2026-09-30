@@ -3155,20 +3155,36 @@ local function RefreshCasts()
         -- would be unfair is letting it be picked silently, since an unbuilt
         -- voice falls back to the neutral one and sounds like nothing happened.
         local voiceItems = { { value = "", text = "your own voice" } }
+        local installedById = {}
         for _, v in ipairs((ns.Voice and ns.Voice.VoiceOptions and ns.Voice.VoiceOptions()) or {}) do
+            installedById[v.id] = v.installed
             voiceItems[#voiceItems + 1] = {
                 value = v.id,
-                text = v.installed and v.name or (v.name .. "  (not installed)"),
+                label = v.name,
+                text = v.name .. (v.installed and "  |cff40dd60installed|r"
+                    or "  |cffdd4040not installed|r"),
             }
         end
+        -- Thirty-four entries of "Female Night Elf" do not fit in the width a
+        -- dropdown gets on a phrase row, and until the menu was allowed to be
+        -- wider than its button they wrapped and drew over each other.
+        row.voiceDrop.menuWidth = 250
         row.voiceDrop:SetItems(voiceItems)
         local voiceName = "your own voice"
         for _, it in ipairs(voiceItems) do
-            if it.value == phrase.voice then voiceName = it.text end
+            if it.value == phrase.voice then voiceName = it.label or it.text end
         end
         row.voiceDrop:SetSelected(phrase.voice or "", voiceName)
-        row.voiceDrop.label:SetTextColor(phrase.voice and 0.53 or 0.6,
-            phrase.voice and 0.8 or 0.6, phrase.voice and 1 or 0.6)
+        -- The button has room for the name but not the status, so the status is
+        -- the colour: green if the audio is there, red if picking it only gets
+        -- you the neutral stand-in.
+        if not phrase.voice then
+            row.voiceDrop.label:SetTextColor(0.6, 0.6, 0.6)
+        elseif installedById[phrase.voice] then
+            row.voiceDrop.label:SetTextColor(0.25, 0.87, 0.38)
+        else
+            row.voiceDrop.label:SetTextColor(0.87, 0.25, 0.25)
+        end
         row.voiceDrop.onSelect = function(value)
             local ok, err = Casts.SetPhraseVoice(key, text, value ~= "" and value or nil)
             if ok then

@@ -177,11 +177,18 @@ local function DB()
     t.points = t.points or {}
     if t.difficulty == nil then t.difficulty = "medium" end
     -- The trainer has its own language, independent of the chat speaking language.
-    if t.lang == nil or not Language.IsValid(t.lang) then
-        if TonguesOfAzerothDB.language and Language.IsValid(TonguesOfAzerothDB.language) then
-            t.lang = TonguesOfAzerothDB.language
+    -- A plain tongue is excluded on both branches: "none" passes English
+    -- through, so practising it would show you English and ask you to translate
+    -- it into English. It is a valid thing to SPEAK and a meaningless thing to
+    -- train, and since it is what a new character speaks, this is the ordinary
+    -- case rather than an edge one.
+    if t.lang == nil or not Language.IsValid(t.lang) or Language.IsPlain(t.lang) then
+        local chat = TonguesOfAzerothDB.language
+        if chat and Language.IsValid(chat) and not Language.IsPlain(chat) then
+            t.lang = chat
         else
-            t.lang = Language.DEFAULT
+            local first = Language.GetLanguages()[1]
+            t.lang = first and first.id or Language.FALLBACK
         end
     end
     return t

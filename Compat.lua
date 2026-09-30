@@ -839,6 +839,9 @@ function Compat.CreateDropdown(parent, width)
     label:SetPoint("LEFT", 8, 0)
     label:SetPoint("RIGHT", -20, 0)
     label:SetJustifyH("LEFT")
+    -- A dropdown is one line tall. Left to wrap, a long selection lays a second
+    -- line over whatever sits beneath the button.
+    if label.SetWordWrap then label:SetWordWrap(false) end
     dd.label = label
 
     local arrow = dd:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
@@ -866,6 +869,10 @@ function Compat.CreateDropdown(parent, width)
             -- Parented to UIParent (not dd) so the popup is never clipped when the
             -- dropdown lives inside a ScrollFrame; still anchored to dd below.
             menu = CreateFrame("Frame", nil, UIParent)
+            -- Published so the popup can be inspected once it exists. It is
+            -- built lazily and otherwise unreachable, which makes everything
+            -- about how a row is drawn impossible to check.
+            dd.menu = menu
             menu:SetFrameStrata("FULLSCREEN_DIALOG")
             menu:SetToplevel(true)
             menu:EnableMouse(true)
@@ -882,7 +889,12 @@ function Compat.CreateDropdown(parent, width)
         local total = #items
         local visible = math.max(1, math.min(total, maxVisible))
         local maxOffset = math.max(0, total - visible)
-        local w = dd:GetWidth()
+        -- The menu may be wider than the button it drops from. A dropdown is
+        -- sized to fit a row of controls; its entries are sized by whatever the
+        -- longest one says, and squeezing those into the button's width is what
+        -- makes a list unreadable. Callers set dd.menuWidth when they know the
+        -- list is wider than the space the button gets.
+        local w = math.max(dd:GetWidth(), tonumber(dd.menuWidth) or 0)
         menu:SetWidth(w)
         menu:SetHeight(visible * rowH + 8)
         menu:ClearAllPoints()
@@ -918,6 +930,11 @@ function Compat.CreateDropdown(parent, width)
                         t:SetPoint("LEFT", 8, 0)
                         t:SetPoint("RIGHT", -8, 0)
                         t:SetJustifyH("LEFT")
+                        -- Rows are a fixed height and butt up against each
+                        -- other, so an entry allowed to wrap does not push the
+                        -- next one down -- it draws straight over it, and the
+                        -- whole list turns to overlapping mush.
+                        if t.SetWordWrap then t:SetWordWrap(false) end
                         b.text = t
                         local h = b:CreateTexture(nil, "HIGHLIGHT")
                         h:SetAllPoints()
@@ -985,7 +1002,10 @@ function Compat.CreateDropdown(parent, width)
                                 end
                                 return
                             end
-                            dd:SetSelected(item.value, item.text)
+                            -- `label` lets a row say more than the button has
+                            -- room for: the entry can spell out "not installed"
+                            -- while the collapsed button just names the choice.
+                            dd:SetSelected(item.value, item.label or item.text)
                             closeMenu()
                             if dd.onSelect then dd.onSelect(item.value) end
                         end)

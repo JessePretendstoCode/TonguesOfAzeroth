@@ -35,12 +35,24 @@ local INTERVAL_JITTER = 45 -- roughly 2m15s to 3m45s
 local elapsed = 0
 local nextInterval = BASE_INTERVAL + math.random(-INTERVAL_JITTER, INTERVAL_JITTER)
 
+-- Named outright rather than read off Language.DEFAULT. This has always meant
+-- Shath'yar specifically -- it gates C'Thun and Yogg-Saron whispers -- and only
+-- happened to match because "oldgod" was once also the default tongue. When
+-- that default moved, borrowing it here would have silently pointed this at
+-- whatever a new character speaks.
+local OLD_GOD = "oldgod"
+
 local function isOldGodMode()
     if not TonguesOfAzerothDB then return false end
     return TonguesOfAzerothDB.inCharacter
-        and TonguesOfAzerothDB.language == Language.DEFAULT
+        and TonguesOfAzerothDB.language == OLD_GOD
         and TonguesOfAzerothDB.strength == 100
 end
+
+-- The module's only surface. It exists so the trigger can be asserted: the
+-- whole feature is an unannounced horror sound, so "when does this fire" is
+-- worth pinning down, and everything else here is a frame nobody can reach.
+ns.Whispers = { IsActive = isOldGodMode }
 
 local function playRandomWhisper()
     if not isOldGodMode() then return end

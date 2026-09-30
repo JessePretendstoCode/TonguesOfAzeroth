@@ -407,10 +407,15 @@ local function migrateDB()
     -- speaking from that old strength (only if you have no fluency in it yet) so
     -- you don't suddenly speak plain English in it. Deferred until the trainer
     -- module is loaded so the fluency store exists.
+    -- A plain tongue is never seeded. Fluency in "speak plainly" is not a thing
+    -- you can have, and a fresh install arrives here with language = "none" and
+    -- the default strength of 100 -- so without this guard, installing the addon
+    -- would hand a brand-new character 100% fluency in something.
     if not db.fluencyMigrated and ns.Trainer and ns.Trainer.SetFluency and ns.Trainer.GetProgress then
         db.fluencyMigrated = true
         local s = db.strength
-        if type(s) == "number" and s > 0 and db.language then
+        if type(s) == "number" and s > 0 and db.language
+            and not Language.IsPlain(db.language) then
             local _, _, cur = ns.Trainer.GetProgress(db.language)
             if (tonumber(cur) or 0) <= 0 then
                 ns.Trainer.SetFluency(db.language, s / 100)

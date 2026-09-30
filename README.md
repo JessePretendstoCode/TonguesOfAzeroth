@@ -21,6 +21,11 @@ Translation is **deterministic**: the same word in the same language always prod
 same output, so sentences stay internally consistent and any two people running the addon
 generate identical text.
 
+**Nothing happens until you ask it to.** A new character starts out of character, knowing
+no tongue, set to *None (speak plainly)* with no accent — installing the addon does not
+change a word you type. Pick a language, learn it in the trainer or set your fluency, and
+flip **in character** when you want to be heard in it.
+
 ---
 
 ## Features

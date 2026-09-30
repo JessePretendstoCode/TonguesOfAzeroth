@@ -3,6 +3,24 @@
 All notable changes to Tongues of Azeroth are documented here.
 
 ## [Unreleased]
+- **Fixed: a brand-new install spoke fluent Shath'yar.** A fresh character now starts
+  out of character, knowing no tongue, set to *None (speak plainly)*. It used to land on
+  Old God at 100%: `Language.DEFAULT` was still `"oldgod"` from back when the addon was
+  called Old God Tongues, a new save took its language from it, and the one-time fluency
+  migration then seeded that language to full from the default strength. Nothing was
+  *spoken* until you went in character, but the moment you did you were a fluent speaker
+  of a tongue you never chose.
+  The constant was doing two unrelated jobs and is now two: `Language.DEFAULT` is what a
+  character speaks unless they pick something, and `Language.FALLBACK` is what the engine
+  resolves an unknown id to -- which still has to be a real tongue, or a bad id would
+  quietly emit plain English and look like the translator had broken. Upgrades are
+  untouched: an existing character keeps the tongue and the fluency they had.
+- **The voice list is readable.** Its entries were longer than the dropdown was wide, and
+  menu rows are a fixed height that butt up against each other -- so "Male Night Elf (not
+  installed)" wrapped and drew straight over the row beneath it. A dropdown menu may now
+  be wider than the button it drops from, nothing in a dropdown wraps, and a row can say
+  more than the button has room for. **Installed** is green and **not installed** is red,
+  on the row and in the colour of the selection itself.
 - **The creed packs are gone; write your own.** Eight tickboxes -- the Horde, the
   Alliance, the Light, Elune, the ancestors, the elements, the fel, the shadow -- were
   never going to fit anybody exactly, and now that any line can be reworded and given any

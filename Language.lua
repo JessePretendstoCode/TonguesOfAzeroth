@@ -32,7 +32,23 @@ ns.Language = Language
 local floor = math.floor
 local strbyte, strlen, strsub, strupper, strlower = string.byte, string.len, string.sub, string.upper, string.lower
 
-Language.DEFAULT = "oldgod"
+-- What a character speaks until they choose otherwise. "None" is a real
+-- selection meaning "speak plainly", not an absence of one.
+--
+-- This used to be "oldgod", left over from when the addon was called Old God
+-- Tongues, and it put every new install into fluent Shath'yar: the settings
+-- default landed here, and the fluency migration then seeded it to 100% from
+-- the default strength. Installing an addon should not put words in anybody's
+-- mouth, least of all those ones.
+Language.DEFAULT = "none"
+
+-- What the ENGINE resolves an unknown or missing id to. Deliberately NOT the
+-- same constant: this one is reached by passing a bad id rather than by
+-- choosing anything, so it has to be a tongue that actually generates text --
+-- falling back to a plain one would silently emit untranslated English and
+-- look like the translator had broken.
+Language.FALLBACK = "oldgod"
+
 local MAX_WORD_LEN = 18 -- Blizzard caps parser lookups at 18 letters.
 
 --=========================================================================--
@@ -701,7 +717,7 @@ end
 --  Public API
 --=========================================================================--
 local function resolveLang(langId)
-    return LANGUAGES[langId or Language.DEFAULT] or LANGUAGES[Language.DEFAULT]
+    return LANGUAGES[langId or Language.FALLBACK] or LANGUAGES[Language.FALLBACK]
 end
 
 -- Every language worth showing. Hidden aliases (a second name for a tongue
@@ -965,7 +981,7 @@ end
 -- Translate a full string. Only alphabetic runs are converted; punctuation,
 -- numbers, spacing and links are left untouched.
 --   strength (0-100): fraction turned to the chosen tongue (default 100).
---   langId: which language to use (default Language.DEFAULT).
+--   langId: which language to use (an unknown id falls back to Language.FALLBACK).
 local ENCODE_CACHE = {} -- ENCODE_CACHE[langId][encodedText] = { english, strength }
 local SEGMENT_PLACEHOLDER = "\002"
 
@@ -1510,7 +1526,7 @@ end
 function Language.TranslateWord(word, langId)
     local result = origTranslateWord(word, langId)
     if result and result ~= word then
-        rememberTranslation(langId or Language.DEFAULT, word, result)
+        rememberTranslation(langId or Language.FALLBACK, word, result)
     end
     return result
 end
