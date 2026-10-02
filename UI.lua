@@ -69,12 +69,13 @@ local customShareInput
 local castPanel, castContent
 local castEnableCheck, castPetCheck, castChanceSlider, castGapSlider, castSpellGapSlider
 local castSpellDropdown, castMuteCheck, castNewInput, castNewLabel
+local castWeightHeader
 local castPreviewText, castStatus, castAddRow, castEmptyNote
 local castPackChecks = {}
 local castPackBottom
 local castPackAnchor
 local castFilterSpellbookCheck, castShowOtherPacksCheck
-local castVoiceCheck, castVoiceOthersCheck
+local castVoiceCheck
 local castRows = {}
 local castSelectedKey
 -- The reword in progress, or nil. Four things, and all four have to live here
@@ -2836,11 +2837,15 @@ local function castRow(index, parent)
     row.down = tinyButton("-")
     row.down:SetPoint("LEFT", row.line1, "LEFT", 0, 0)
     row.up = tinyButton("+")
-    row.up:SetPoint("LEFT", row.down, "RIGHT", 24, 0)
+    row.up:SetPoint("LEFT", row.down, "RIGHT", 38, 0)
 
+    -- Shown as the share of casts this line will take, not as the 0-5 weight
+    -- underneath it. The weight is a number that only means anything next to
+    -- the other weights in the same list, which is exactly the comparison a
+    -- reader should not have to do in their head.
     row.weight = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     row.weight:SetPoint("LEFT", row.down, "RIGHT", 0, 0)
-    row.weight:SetWidth(24)
+    row.weight:SetWidth(38)
     row.weight:SetJustifyH("CENTER")
 
     row.meta = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
@@ -2904,34 +2909,43 @@ local function castRow(index, parent)
     Compat.AddBorder(row.input, 0.6, 0.55, 0.85, 0.9)
     row.input:Hide()
 
-    -- The voice strip, always on show. It has to be readable down the whole
-    -- list at once: which lines borrow a voice and which speak their own is the
-    -- question this panel exists to answer, and answering it one row at a time
-    -- behind a click is not answering it. Indented under the phrase it belongs
-    -- to, because a 240px dropdown will not fit beside a phrase and leave
-    -- anything left to read the phrase in.
+    -- The voice strip, always on show. Which lines have a recording pinned to
+    -- them and which go out silent is the question this panel exists to answer,
+    -- and answering it one row at a time behind a click is not answering it.
+    -- Indented under the phrase it belongs to, because the pinned line is often
+    -- a sentence and will not fit beside a phrase.
     row.voiceLabel = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     row.voiceLabel:SetPoint("TOPLEFT", row, "TOPLEFT", 26, -ROW_LINE_H - 3)
     row.voiceLabel:SetText("Says")
 
-    -- Which words are spoken, and who speaks them. Two questions rather than
-    -- one, because they are genuinely independent: a line can keep its own
-    -- words in somebody else's voice as readily as the other way round.
-    row.spokenDrop = Compat.CreateDropdown(row, 200)
-    row.spokenDrop:SetPoint("LEFT", row.voiceLabel, "RIGHT", 6, 0)
-    row.spokenDrop:SetHeight(20)
-
-    row.inLabel = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    row.inLabel:SetPoint("LEFT", row.spokenDrop, "RIGHT", 8, 0)
-    row.inLabel:SetText("in")
-
-    row.voiceDrop = Compat.CreateDropdown(row, 150)
-    row.voiceDrop:SetPoint("LEFT", row.inLabel, "RIGHT", 6, 0)
-    row.voiceDrop:SetHeight(20)
+    -- A window rather than a dropdown. The catalogue runs to thousands of lines
+    -- across dozens of characters, which is not something you pour into a menu:
+    -- it wants a speaker to pick, a kind of line to narrow to, and a list to
+    -- scroll. See Compat.ShowLineBrowser.
+    row.voiceBrowse = tinyButton("Browse voice lines", 118)
+    row.voiceBrowse:ClearAllPoints()
+    row.voiceBrowse:SetPoint("LEFT", row.voiceLabel, "RIGHT", 8, 0)
 
     row.voicePlay = tinyButton("Play", 40)
     row.voicePlay:ClearAllPoints()
-    row.voicePlay:SetPoint("LEFT", row.voiceDrop, "RIGHT", 6, 0)
+    row.voicePlay:SetPoint("LEFT", row.voiceBrowse, "RIGHT", 6, 0)
+
+    -- Unpinning. Hidden while nothing is pinned, because a button that clears
+    -- an empty thing is a button that only ever raises the question of what it
+    -- would have done. It keeps its slot either way so the text beside it does
+    -- not shuffle sideways as rows are pinned and cleared.
+    row.voiceClear = tinyButton("x", 18)
+    row.voiceClear:ClearAllPoints()
+    row.voiceClear:SetPoint("LEFT", row.voicePlay, "RIGHT", 6, 0)
+    row.voiceClear:Hide()
+
+    -- What it is pinned to, spelled out beside the buttons. This is the only
+    -- place the choice is readable without opening anything, now that there is
+    -- no dropdown sitting here wearing its own label.
+    row.spokenText = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    row.spokenText:SetPoint("LEFT", row.voiceClear, "RIGHT", 8, 0)
+    row.spokenText:SetPoint("RIGHT", row, "RIGHT", -4, 0)
+    row.spokenText:SetJustifyH("LEFT")
 
     -- What the line will actually read as in chat, tokens filled in. This one
     -- really is an editing aid -- it answers "did I write that right", which is
@@ -2969,13 +2983,6 @@ local function RefreshCasts()
         castShowOtherPacksCheck:SetChecked(c.showOtherPacks and true or false)
     end
     if castVoiceCheck then castVoiceCheck:SetChecked(c.voice and true or false) end
-    if castVoiceOthersCheck then
-        castVoiceOthersCheck:SetChecked(c.voiceOthers and true or false)
-        -- Greyed rather than hidden when voices are off: the setting is still
-        -- true, it just has nothing to act on, and a control that vanishes
-        -- reads as one you imagined.
-        if c.voice then castVoiceOthersCheck:Enable() else castVoiceOthersCheck:Disable() end
-    end
 
     -- The captions are set here rather than left to OnValueChanged, which
     -- doesn't fire when the value is already what we're setting -- a slider
@@ -3024,6 +3031,27 @@ local function RefreshCasts()
     -- Lay the phrase rows out under the spell selector.
     local phrases = castSelectedKey and Casts.GetPhrases(castSelectedKey) or {}
     local anchor = castMuteCheck
+
+    -- The percentages are shares of this spell's own list, so they need the
+    -- total before any row can be drawn. Retired lines contribute nothing, and
+    -- a list that is entirely retired would divide by zero -- the 1 keeps the
+    -- arithmetic safe and every row reads "off" in that case anyway.
+    local castWeightTotal = 0
+    for _, p in ipairs(phrases) do castWeightTotal = castWeightTotal + (p.step or 0) end
+    if castWeightTotal == 0 then castWeightTotal = 1 end
+
+    -- The legend only makes sense above a list, so it comes and goes with one.
+    if castWeightHeader then
+        if #phrases > 0 then
+            castWeightHeader:ClearAllPoints()
+            castWeightHeader:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 4, -10)
+            castWeightHeader:SetPoint("RIGHT", castContent, "RIGHT", -24, 0)
+            castWeightHeader:Show()
+            anchor = castWeightHeader
+        else
+            castWeightHeader:Hide()
+        end
+    end
     for i, phrase in ipairs(phrases) do
         local row = castRow(i, castContent)
         row:ClearAllPoints()
@@ -3031,7 +3059,12 @@ local function RefreshCasts()
         row:SetPoint("RIGHT", castContent, "RIGHT", -24, 0)
 
         local step = phrase.step or 0
-        row.weight:SetText(tostring(step))
+        -- Out of the whole list, so the number answers "how often will I say
+        -- this one" rather than "what is this one set to". Retired lines read
+        -- as "off" rather than 0%: the two are the same arithmetic but one of
+        -- them says it was a decision.
+        row.weight:SetText(step == 0 and "off"
+            or string.format("%d%%", math.floor(step / castWeightTotal * 100 + 0.5)))
         local grey = step == 0
         if grey then
             row.weight:SetTextColor(0.5, 0.5, 0.5)
@@ -3053,17 +3086,13 @@ local function RefreshCasts()
             -- The row is wider than the column it can draw in, so the tooltip is
             -- also where you read a line that's too long to fit.
             GameTooltip:AddLine(phrase.text, 1, 1, 1, true)
-            if phrase.spoken or phrase.voice then
+            if phrase.spoken then
+                local heard = (ns.Voice and ns.Voice.GameText
+                    and ns.Voice.GameText(phrase.spoken)) or phrase.spoken
                 GameTooltip:AddLine(" ")
                 GameTooltip:AddLine("Pinned", 0.53, 0.8, 1)
-                if phrase.spoken then
-                    GameTooltip:AddLine("Says \"" .. phrase.spoken
-                        .. "\" out loud, whatever the words above read as.", 0.8, 0.8, 0.8, true)
-                end
-                if phrase.voice then
-                    GameTooltip:AddLine("Spoken in a " .. phrase.voice:gsub("%-", " ")
-                        .. " voice rather than your own.", 0.8, 0.8, 0.8, true)
-                end
+                GameTooltip:AddLine("Plays \"" .. heard
+                    .. "\" out loud, whatever the words above read as.", 0.8, 0.8, 0.8, true)
             end
             if phrase.edited then
                 GameTooltip:AddLine(" ")
@@ -3090,6 +3119,27 @@ local function RefreshCasts()
             RefreshCasts()
         end)
 
+        -- The percentage is what you steer by, but the thing being stored is a
+        -- weight of 0 to 5, and that is worth saying somewhere: it explains why
+        -- nudging one line moves the numbers on all the others.
+        local function weightTip(self)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:AddLine("How often this line is picked", 1, 1, 1)
+            GameTooltip:AddLine(string.format("Weight %d of %d, against %d across the list.",
+                step, Casts.MAX_WEIGHT, castWeightTotal), 0.8, 0.8, 0.8, true)
+            GameTooltip:AddLine("Raising one line lowers the share of every other, "
+                .. "because they divide the same casts between them.", 0.6, 0.6, 0.6, true)
+            if step == 0 then
+                GameTooltip:AddLine("At 0 this line is retired and never picked.", 1, 0.82, 0, true)
+            end
+            GameTooltip:Show()
+        end
+        local function hideTip() GameTooltip:Hide() end
+        row.down:SetScript("OnEnter", weightTip)
+        row.down:SetScript("OnLeave", hideTip)
+        row.up:SetScript("OnEnter", weightTip)
+        row.up:SetScript("OnLeave", hideTip)
+
         -- What the line will read as in chat once its %tokens are filled in,
         -- plus what it will sound like when the two differ. Refreshed straight
         -- from the edit box as it is typed in, rather than on the next full
@@ -3102,124 +3152,96 @@ local function RefreshCasts()
                 return
             end
             local note = ""
-            if phrase.spoken then
-                note = "   |cff88ccffheard as \"" .. phrase.spoken .. "\"|r"
+            if phrase.spoken and not template:find('"') then
+                -- A pin on a line with nothing in quotes never plays. Worth
+                -- saying outright: the pin is right there on the row looking
+                -- like it works.
+                note = "   |cffcc6666nothing in quotes, so the pinned line won't play|r"
             elseif not template:find('"') then
                 note = "   |cff909090nothing in quotes, so nothing is said aloud|r"
-            end
-            if phrase.voice then
-                note = note .. "   |cff88ccffin a " .. phrase.voice:gsub("%-", " ") .. " voice|r"
             end
             row.preview:SetText("|cffb0b0b0" .. rendered .. "|r" .. note)
         end
 
-        -- Both pickers, on every row whether or not it is being edited. Which
-        -- lines have been pinned to something is the question this panel exists
-        -- to answer, and it has to be answerable down the list at a glance.
-        --
-        -- The spell's own lines come first: two hundred entries is a list
-        -- nobody reads top to bottom, and the words somebody wants are nearly
-        -- always ones this spell already says.
-        local near, far = Casts.VoiceChoices(key)
-        local items = { { value = "", text = "its own words" } }
-        local function addGroup(title, lines)
-            if #lines == 0 then return end
-            items[#items + 1] = { text = title, header = true }
-            for _, line in ipairs(lines) do
-                items[#items + 1] = { value = line, text = '"' .. line .. '"' }
-            end
-        end
-        addGroup("This spell", near)
-        addGroup("Every recorded line", far)
-        row.spokenDrop:SetItems(items)
-        row.spokenDrop:SetSelected(phrase.spoken or "",
-            phrase.spoken and ('"' .. phrase.spoken .. '"') or "its own words")
-        -- Anything pinned is coloured, so the lines that no longer simply say
-        -- what they read stand out when you run an eye down the column.
-        row.spokenDrop.label:SetTextColor(phrase.spoken and 0.53 or 0.6,
-            phrase.spoken and 0.8 or 0.6, phrase.spoken and 1 or 0.6)
-        row.spokenDrop.onSelect = function(value)
-            local ok, err = Casts.SetPhraseSpoken(key, text, value ~= "" and value or nil)
-            if ok then
-                castStatusMsg(value ~= "" and ("Now says \"" .. value .. "\" out loud.")
-                    or "Back to its own words.", false)
-            else
-                castStatusMsg("Not set: " .. tostring(err) .. ".", true)
-            end
-            RefreshCasts()
+        -- What this phrase is pinned to, on every row whether or not it is
+        -- being edited. Which lines have a recording and which go out silent is
+        -- the question this panel exists to answer, and it has to be answerable
+        -- down the list at a glance.
+        local Voice = ns.Voice
+        local pinned = phrase.spoken
+        local said = pinned and Voice and Voice.GameText and Voice.GameText(pinned)
+        if pinned then
+            local who = Voice and Voice.GameId and ns.GameVoices
+                and ns.GameVoices.SpeakerById[Voice.GameId(pinned)]
+            row.spokenText:SetText("|cff88ccff\"" .. (said or pinned) .. "\"|r"
+                .. (who and ("  |cff707070" .. who .. "|r") or ""))
+            row.voiceClear:Show()
+        else
+            row.spokenText:SetText("|cff808080nothing pinned -- this line goes out silent|r")
+            row.voiceClear:Hide()
         end
 
-        -- Who says it. Unbuilt voices are labelled rather than hidden: the
-        -- pack is a separate download and races get rendered over time, so a
-        -- voice missing today is a voice you may already be planning for. What
-        -- would be unfair is letting it be picked silently, since an unbuilt
-        -- voice falls back to the neutral one and sounds like nothing happened.
-        local voiceItems = { { value = "", text = "your own voice" } }
-        local installedById = {}
-        for _, v in ipairs((ns.Voice and ns.Voice.VoiceOptions and ns.Voice.VoiceOptions()) or {}) do
-            installedById[v.id] = v.installed
-            voiceItems[#voiceItems + 1] = {
-                value = v.id,
-                label = v.name,
-                text = v.name .. (v.installed and "  |cff40dd60installed|r"
-                    or "  |cffdd4040not installed|r"),
-            }
-        end
-        -- Thirty-four entries of "Female Night Elf" do not fit in the width a
-        -- dropdown gets on a phrase row, and until the menu was allowed to be
-        -- wider than its button they wrapped and drew over each other.
-        row.voiceDrop.menuWidth = 250
-        row.voiceDrop:SetItems(voiceItems)
-        local voiceName = "your own voice"
-        for _, it in ipairs(voiceItems) do
-            if it.value == phrase.voice then voiceName = it.label or it.text end
-        end
-        row.voiceDrop:SetSelected(phrase.voice or "", voiceName)
-        -- The button has room for the name but not the status, so the status is
-        -- the colour: green if the audio is there, red if picking it only gets
-        -- you the neutral stand-in.
-        if not phrase.voice then
-            row.voiceDrop.label:SetTextColor(0.6, 0.6, 0.6)
-        elseif installedById[phrase.voice] then
-            row.voiceDrop.label:SetTextColor(0.25, 0.87, 0.38)
-        else
-            row.voiceDrop.label:SetTextColor(0.87, 0.25, 0.25)
-        end
-        row.voiceDrop.onSelect = function(value)
-            local ok, err = Casts.SetPhraseVoice(key, text, value ~= "" and value or nil)
-            if ok then
-                castStatusMsg(value ~= "" and ("Spoken by a " .. value:gsub("%-", " ") .. " voice.")
-                    or "Back to your own voice.", false)
-            else
-                castStatusMsg("Not set: " .. tostring(err) .. ".", true)
-            end
+        row.voiceClear:SetScript("OnClick", function()
+            Casts.SetPhraseSpoken(key, text, nil)
+            castStatusMsg("Unpinned. That line goes out silent again.", false)
             RefreshCasts()
-        end
+        end)
 
         row.voicePlay:SetScript("OnClick", function()
-            -- With nothing borrowed, audition what the line actually says.
-            -- That is the honest preview: if its own words were never
-            -- recorded, the silence is the answer to the question.
-            local line = phrase.spoken
-            if not line then
-                local template = (castEdit and castEdit.orig == text and castEdit.typed)
-                    or phrase.text
-                line = template:match('"([^"]*)"')
-            end
-            if not line or line:gsub("%s", "") == "" then
-                castStatusMsg("Nothing in quotes to say aloud.", true)
-            elseif not (ns.Voice and ns.Voice.Audition) then
+            if not pinned then
+                castStatusMsg("Nothing is pinned to that line yet -- press Browse voice lines.", true)
+            elseif not (Voice and Voice.Audition) then
                 castStatusMsg("The voice module isn't loaded.", true)
-            elseif ns.Voice.Audition(line, phrase.voice) then
-                castStatusMsg("Played \"" .. line .. "\".", false)
-            elseif Casts.HasClip(line) then
-                -- Recorded, but not in a voice that could be reached. Worth
-                -- separating from "never recorded": one is fixed by building
-                -- the voice, the other by picking different words.
-                castStatusMsg("That line is recorded, but the voice it would use isn't installed.", true)
+            elseif Voice.Audition(pinned) then
+                castStatusMsg("Played \"" .. (said or pinned) .. "\".", false)
             else
-                castStatusMsg("Nothing was recorded for \"" .. line .. "\" -- pick some words to its left.", true)
+                -- The catalogue is built from one build of the game and the
+                -- player may be running another. Worth saying which of the two
+                -- went wrong, because only one of them is fixable from here.
+                castStatusMsg("Your client doesn't seem to carry that recording.", true)
             end
+        end)
+
+        row.voiceBrowse:SetScript("OnClick", function()
+            local gv = ns.GameVoices
+            if not (gv and gv.Search) then
+                castStatusMsg("No game voice lines are indexed.", true)
+                return
+            end
+            Compat.ShowLineBrowser{
+                title = "Voice lines from the game",
+                groupAll = "All speakers",
+                groups = function()
+                    local out = {}
+                    for _, s in ipairs(gv.Speakers()) do
+                        -- The count belongs on the label: it is what tells you
+                        -- whether a speaker is worth opening before you open it.
+                        out[#out + 1] = { id = s.who,
+                            label = string.format("%s (%d)", s.who, s.count) }
+                    end
+                    return out
+                end,
+                kindAll = "Every kind",
+                kinds = function(who) return gv.Groups(who) end,
+                letters = function(who, kind) return gv.Letters(who, kind) end,
+                filter = function(who, kind, letter, q)
+                    return gv.Filter{ who = who, group = kind, letter = letter,
+                        query = q, limit = 2000 }
+                end,
+                onPlay = function(entry)
+                    if ns.Voice and ns.Voice.PlayGame then ns.Voice.PlayGame(entry.id) end
+                end,
+                onPick = function(entry)
+                    local ok, err = Casts.SetPhraseSpoken(key, text,
+                        ns.Voice and ns.Voice.GameRef(entry.id) or nil)
+                    if ok then
+                        castStatusMsg("Now says \"" .. entry.text .. "\" out loud.", false)
+                    else
+                        castStatusMsg("Not set: " .. tostring(err) .. ".", true)
+                    end
+                    RefreshCasts()
+                end,
+            }
         end)
 
         local editing = (castEdit ~= nil and castEdit.orig == text)
@@ -3239,7 +3261,13 @@ local function RefreshCasts()
             if castEdit.focus then
                 row.input:SetText(castEdit.typed or phrase.text)
                 row.input:SetFocus()
-                row.input:HighlightText()
+                -- Cursor at the start, nothing selected. These lines are long
+                -- enough to run past the right edge of the box, so landing at
+                -- the end means landing on a view scrolled away from the words
+                -- you clicked. Selecting the lot was worse again: the first
+                -- key you pressed replaced the phrase you meant to adjust.
+                row.input:HighlightText(0, 0)
+                row.input:SetCursorPosition(0)
                 castEdit.focus = nil
             elseif not row.input:HasFocus() and row.input:GetText() ~= castEdit.typed then
                 -- Redrawn while the cursor is somewhere else. Put the pending
@@ -3464,7 +3492,7 @@ local function BuildCastPanel()
     voiceHint:SetPoint("RIGHT", content, "RIGHT", -24, 0)
     voiceHint:SetJustifyH("LEFT")
     if voiceHint.SetWordWrap then voiceHint:SetWordWrap(true) end
-    voiceHint:SetText("Say the words in \"quotes\" out loud, in a voice matching the speaker's race and gender. The audio is a separate download; without it nothing changes and nothing breaks. |cffffd200/toa voice|r reports which folder your character reads from.")
+    voiceHint:SetText("Play a recording out loud when a phrase with \"quotes\" in it goes off. The recordings are the game's own -- boss lines, NPC chatter, grunts and death cries -- read by the people Blizzard hired, and already sitting in your client. Nothing is downloaded.")
 
     castVoiceCheck = Compat.CreateCheckbox(content, "Speak phrases out loud")
     castVoiceCheck:SetPoint("TOPLEFT", voiceHint, "BOTTOMLEFT", 0, -8)
@@ -3473,18 +3501,12 @@ local function BuildCastPanel()
         RefreshCasts()
     end)
 
-    castVoiceOthersCheck = Compat.CreateCheckbox(content, "Hear other players' voices too")
-    castVoiceOthersCheck:SetPoint("TOPLEFT", castVoiceCheck, "BOTTOMLEFT", 16, -6)
-    castVoiceOthersCheck:SetScript("OnClick", function(self)
-        castDB().voiceOthers = self:GetChecked() and true or false
-    end)
-
     local voiceNote = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-    voiceNote:SetPoint("TOPLEFT", castVoiceCheck, "BOTTOMLEFT", 0, -34)
+    voiceNote:SetPoint("TOPLEFT", castVoiceCheck, "BOTTOMLEFT", 0, -10)
     voiceNote:SetPoint("RIGHT", content, "RIGHT", -24, 0)
     voiceNote:SetJustifyH("LEFT")
     if voiceNote.SetWordWrap then voiceNote:SetWordWrap(true) end
-    voiceNote:SetText("|cffffd200While this is on, spoken words stay in plain English.|r A clip can't be recorded for every seed of every tongue, so voice and translation are a choice between two ways of sounding like someone else.")
+    voiceNote:SetText("|cffffd200A phrase stays silent until you pin a line to it.|r Pick one with |cffffd200Browse voice lines|r on the phrase itself, in the list above. Your tongue and accent keep working either way -- a recording says whatever Blizzard recorded it saying, so there is nothing for a translation to disagree with.")
 
     --  Packs -------------------------------------------------------------
     local packLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
@@ -3604,6 +3626,15 @@ local function BuildCastPanel()
         Casts.SetMuted(castSelectedKey, self:GetChecked() and true or false)
         RefreshCasts()
     end)
+
+    -- A legend for the number at the head of every phrase row. Without it the
+    -- column is a bare figure between two nudge buttons, and the one thing a
+    -- reader cannot work out from looking is what it is a figure of.
+    castWeightHeader = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+    castWeightHeader:SetPoint("RIGHT", content, "RIGHT", -24, 0)
+    castWeightHeader:SetJustifyH("LEFT")
+    if castWeightHeader.SetWordWrap then castWeightHeader:SetWordWrap(true) end
+    castWeightHeader:SetText("The |cffffd200%|r on each line is how often this spell picks it. Nudge it with |cffffd200-|r and |cffffd200+|r; take a line down to |cffffd200off|r to retire it without deleting it.")
 
     castEmptyNote = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     castEmptyNote:SetJustifyH("LEFT")

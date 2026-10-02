@@ -252,26 +252,18 @@ end
 --=========================================================================--
 --  Choosing what a line sounds like
 --=========================================================================--
--- Audio is a fixed set of clips rendered ahead of time, one per quoted span the
--- library shipped, each addressed by a hash of its exact wording. Nothing can be
--- rendered in game: the client indexes addon sound at login, and a player has no
--- speech synthesiser to hand. So a line you wrote yourself -- or reworded --
--- hashes to a clip nobody ever made, and simply goes unheard.
+-- Nothing can be rendered in game: the client indexes addon sound at login and
+-- a player has no speech synthesiser to hand, so there is no way to make a
+-- recording of whatever somebody happened to type. What there is instead is
+-- the client's own audio -- tens of thousands of lines already on disk, read by
+-- the people who were paid to read them -- addressed by FileDataID.
 --
--- This is the way out of that. Point a phrase at one of the clips that does
--- exist: the words on screen stay yours, and the voice borrows a line that was
--- rendered. The two are allowed to disagree. Picking "Burn!" to carry
--- `roars "Let it all burn!"` is a fair trade for a line that would otherwise be
--- silent, and refusing the mismatch would mean nothing anyone wrote could ever
--- be spoken at all.
+-- So a phrase does not speak its own words. It points at a recording, and the
+-- two are allowed to disagree: pinning Sylvanas' "Let them burn!" to carry
+-- `roars "Burn it all!"` is a fair trade for a line that would otherwise be
+-- silent, and insisting the two match would mean nothing could ever be spoken.
 --
--- Who says it is a separate question from what they say, and both are answered
--- here. Either can be set without the other: a line can keep its own words in a
--- Forsaken voice, borrow words in your own, or both.
---
--- Keyed by `orig`, like weights and edits, so the choice survives a reword --
--- which is exactly the moment it is worth the most, since rewording is what
--- takes a line's own voice away.
+-- Keyed by `orig`, like weights and edits, so the choice survives a reword.
 local function phraseMap(field, key, create)
     local c = castDB()
     if not (c and key) then return nil end
@@ -310,70 +302,30 @@ local function writeSetting(field, key, origText, value, valid, complaint)
     return true
 end
 
--- Read straight from the manifest rather than through Voice, so a phrase can be
--- given a voice with the audio addon absent. The choice is a saved preference,
--- not a claim that anything is installed to play it.
+-- A pinned line names a recording the client already carries, as
+-- "game:<fileDataId>". Checked against the generated index rather than by
+-- trying to play it: this asks whether the line is a real thing to pin, not
+-- whether this particular install can sound it today.
 local function hasClip(spoken)
-    local lines = ns.VoiceLines
     if type(spoken) ~= "string" or spoken == "" then return false end
-    return (lines and type(lines.ByText) == "table" and lines.ByText[spoken]) and true or false
+    local id = spoken:match("^game:(%d+)$")
+    if not id then return false end
+    local gv = ns.GameVoices
+    return (gv and gv.ById and gv.ById[tonumber(id)]) and true or false
 end
 
 Casts.HasClip = hasClip
 
--- The recorded words this phrase borrows, or nil to let its own words speak for
--- themselves -- which works only where they happen to match a clip.
+-- The recording pinned to this phrase, or nil for a phrase that says its piece
+-- in silence -- which is every phrase until somebody pins one.
 function Casts.GetPhraseSpoken(key, origText)
     return readSetting("spoken", key, origText)
 end
 
--- Pass nil to go back to the phrase's own words. Returns ok, err.
+-- Pass nil to go back to silence. Returns ok, err.
 function Casts.SetPhraseSpoken(key, origText, spoken)
     return writeSetting("spoken", key, origText, spoken,
-        hasClip, "nothing is recorded for that line")
-end
-
--- The voice that speaks this phrase ("scourge-male"), or nil for your own.
-function Casts.GetPhraseVoice(key, origText)
-    return readSetting("voices", key, origText)
-end
-
--- Pass nil to go back to your character's own voice. Returns ok, err.
-function Casts.SetPhraseVoice(key, origText, voiceId)
-    return writeSetting("voices", key, origText, voiceId,
-        function(v) return ns.Voice and ns.Voice.IsVoiceId(v) or false end,
-        "that is not a voice")
-end
-
--- What the picker offers, in two groups: the lines this spell's own phrases
--- already say, and then everything else that has a clip. Near ones first
--- because the one somebody wants is nearly always among the handful this spell
--- already speaks, and a flat list of two hundred is a list nobody reads.
---
--- Both the shipped wording and the displayed one are scanned. They differ on a
--- reworded line, and it is the shipped one that still has a clip -- so the line
--- a player is most likely to want back is the one only `orig` knows about.
-function Casts.VoiceChoices(key)
-    local near, far, seen = {}, {}, {}
-    local lines = ns.VoiceLines
-    if not (lines and type(lines.ByText) == "table") then return near, far end
-
-    for _, phrase in ipairs(Casts.GetPhrases(key)) do
-        for _, source in ipairs({ phrase.orig, phrase.text }) do
-            for span in tostring(source):gmatch('"([^"]*)"') do
-                if lines.ByText[span] and not seen[span] then
-                    seen[span] = true
-                    near[#near + 1] = span
-                end
-            end
-        end
-    end
-    for span in pairs(lines.ByText) do
-        if not seen[span] then far[#far + 1] = span end
-    end
-    table.sort(near)
-    table.sort(far)
-    return near, far
+        hasClip, "that is not a line the game ships")
 end
 
 function Casts.IsMuted(key)
@@ -441,7 +393,6 @@ function Casts.GetPhrases(key)
                     text = text, orig = text, weight = Casts.GetWeight(key, text),
                     step = Casts.GetWeight(key, text), user = true,
                     spoken = Casts.GetPhraseSpoken(key, text),
-                    voice = Casts.GetPhraseVoice(key, text),
                 }
             end
         end
@@ -463,7 +414,6 @@ function Casts.GetPhrases(key)
             weight = override or base, step = override or base,
             pack = entry.pack,
             spoken = Casts.GetPhraseSpoken(key, entry.text),
-            voice = Casts.GetPhraseVoice(key, entry.text),
         }
     end
 
@@ -564,15 +514,6 @@ end
 function Casts.Render(template, ctx, live)
     local body = substitute(template, ctx or {})
     if not body then return nil end
-
-    -- A voiced line stays in plain English, and that is the trade voice mode
-    -- makes rather than a shortcoming of it. Audio has to match a recorded
-    -- clip; a tongue seeds a different garbling for every line, so there is no
-    -- finite set of clips that could cover the translated forms. Leaving the
-    -- speech untranslated is what reduces a voice to 194 files. See Voice.lua.
-    if ns.Voice and ns.Voice.SuppressesTranslation() then
-        return ns.FitMessage(body), nil, {}
-    end
 
     local spoken, langId = {}, nil
     local named = false
@@ -713,16 +654,12 @@ function Casts.Speak(spellName, opts)
     local body, langId, spoken = Casts.Render(chosen.text, ctx, true)
     if not body then return nil end
 
-    -- What this phrase was pinned to -- borrowed words, a borrowed voice, or
-    -- both -- handed over before the line is sent. Playback rides on the emote
-    -- coming back round, and by then which phrase produced it is no longer
-    -- knowable: an emote body is just a string.
+    -- The recording this phrase was pinned to, handed over before the line is
+    -- sent. Playback rides on the emote coming back round, and by then which
+    -- phrase produced it is no longer knowable: an emote body is just a string.
     if ns.Voice and ns.Voice.NoteChoice then
-        local ident = chosen.orig or chosen.text
-        local line = Casts.GetPhraseSpoken(key, ident)
-        local voice = Casts.GetPhraseVoice(key, ident)
-        ns.Voice.NoteChoice(body,
-            (line or voice) and { line = line, voice = voice } or nil)
+        local line = Casts.GetPhraseSpoken(key, chosen.orig or chosen.text)
+        ns.Voice.NoteChoice(body, line and { line = line } or nil)
     end
 
     local now = GetTime and GetTime() or 0

@@ -1003,8 +1003,9 @@ function Compat.CreateDropdown(parent, width)
                                 return
                             end
                             -- `label` lets a row say more than the button has
-                            -- room for: the entry can spell out "not installed"
-                            -- while the collapsed button just names the choice.
+                            -- room for: the entry can spell out a count or a
+                            -- status while the collapsed button just names the
+                            -- choice.
                             dd:SetSelected(item.value, item.label or item.text)
                             closeMenu()
                             if dd.onSelect then dd.onSelect(item.value) end
@@ -1040,11 +1041,11 @@ function Compat.CreateDropdown(parent, width)
         self.items = items or {}
     end
     function dd:SetSelected(value, text)
-        self.selectedValue = value
+        self._selectedValue = value
         self.label:SetText(text or value or "")
     end
     function dd:GetValue()
-        return self.selectedValue
+        return self._selectedValue
     end
     dd.Close = closeMenu
 
@@ -1314,6 +1315,407 @@ function Compat.ShowConfirm(opts)
     f.text:SetText(opts.text or "")
     f.accept.label:SetText(opts.acceptText or (YES or "Yes"))
     f.cancel.label:SetText(opts.cancelText or (NO or "No"))
+    f:Show()
+    f:Raise()
+    return f
+end
+
+--=========================================================================--
+--  Line browser.
+--
+--  A searchable list, for picking one item out of thousands. The cast panel's
+--  dropdowns are fine for the player's own race barks -- a hundred lines, in
+--  five labelled groups -- but the game's NPC and boss dialogue runs to
+--  thousands, and no dropdown is a reasonable way through that.
+--
+--    Compat.ShowLineBrowser{
+--        title    = "Game voice lines",
+--        groups   = function() return { {id=,label=}, ... } end,   -- optional
+--        groupAll = "All speakers",
+--        letters  = function(groupId) return { A = 12, B = 3 } end, -- optional
+--        filter   = function(groupId, letter, query)
+--                       return { {id=,text=,who=}, ... }, truncated
+--                   end,
+--        onPlay   = function(entry) end,
+--        onPick   = function(entry) end,
+--    }
+--
+--  Navigated by narrowing rather than by typing. A search box is the right
+--  control for finding a line you can already quote, and the wrong one for
+--  finding out what is in there: it asks you to guess a word out of a corpus
+--  you have never read, and answers an empty list when you guess wrong. So the
+--  group picker and the A-Z strip are the way in, and the box is a sieve on
+--  top of them. Letters with nothing behind them are dimmed, which turns the
+--  strip into a map of where the lines are rather than a row of 27 guesses.
+--
+--  Rows are a fixed pool scrolled by moving an offset through the results,
+--  rather than a ScrollFrame with a child sized to the result count. Both work;
+--  this one cannot get the child height wrong, and a wrong child height is the
+--  failure that draws an empty list rather than an error.
+--=========================================================================--
+local browserFrame
+local BROWSER_LETTERS = "#ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+-- Keep the bar's range and position honest about the list behind it. Called
+-- on every refresh because the range depends on the result count, which
+-- changes with every narrowing.
+local function browserScrollbar(f)
+    local max = math.max(0, #(f.results or {}) - #f.rows)
+    f.scroll:SetMinMaxValues(0, max)
+    -- Guarded: setting a value fires OnValueChanged, which refreshes, which
+    -- comes back here. The flag makes that re-entry a no-op instead of a loop.
+    f._settingScroll = true
+    f.scroll:SetValue(math.min(f.offset or 0, max))
+    f._settingScroll = false
+    -- A bar with nowhere to go is shown greyed rather than hidden, so the list
+    -- does not change width as you narrow it.
+    local thumb = f.scroll:GetThumbTexture()
+    if thumb then thumb:SetAlpha(max > 0 and 1 or 0.25) end
+end
+
+local function browserRefresh(f, keepOffset)
+    if not keepOffset then f.offset = 0 end
+    local rows = f.rows
+    local results = f.results or {}
+    local shown = #rows
+
+    f.offset = math.max(0, math.min(f.offset or 0, math.max(0, #results - shown)))
+    browserScrollbar(f)
+
+    for i, row in ipairs(rows) do
+        local entry = results[i + f.offset]
+        if entry then
+            row._entry = entry
+            row.text:SetText(entry.text)
+            -- Who said it, when anybody did: the barks are the player's own
+            -- voice and have no speaker to name.
+            row.who:SetText(entry.who or "")
+            row:Show()
+        else
+            row._entry = nil
+            row:Hide()
+        end
+    end
+
+    local n = #results
+    if n == 0 then
+        f.status:SetText("Nothing here.")
+    else
+        f.status:SetText(string.format("%d line%s", n, n == 1 and "" or "s"))
+    end
+end
+
+local function browserApply(f)
+    f.query = f.input:GetText() or ""
+    if f._filter then
+        f.results, f.truncated = f._filter(f.group or "", f.kind or "",
+            f.letter or "", f.query)
+    else
+        f.results, f.truncated = {}, false
+    end
+    browserRefresh(f, false)
+end
+
+-- Repaint the strip for the group in play: which letters are reachable, and
+-- which one is selected.
+local function browserLetters(f)
+    local avail = (f._letters and f._letters(f.group or "", f.kind or "")) or {}
+    for _, btn in ipairs(f.letterBtns) do
+        local n = avail[btn.letter]
+        local selected = (f.letter == btn.letter)
+        btn._count = n
+        if selected then
+            btn.label:SetTextColor(1, 0.82, 0)
+        elseif n then
+            btn.label:SetTextColor(0.9, 0.9, 0.9)
+        else
+            btn.label:SetTextColor(0.35, 0.35, 0.35)
+        end
+        Compat.SolidTexture(btn.bg, selected and 0.35 or 0.18,
+            selected and 0.3 or 0.16, selected and 0.5 or 0.24, 1)
+    end
+end
+
+local function browserSetLetter(f, letter)
+    -- Clicking the selected letter clears it, which is the only way back to
+    -- the whole list once you have narrowed.
+    f.letter = (f.letter == letter) and "" or letter
+    browserLetters(f)
+    browserApply(f)
+end
+
+local function buildBrowser()
+    local ROWS, ROW_H = 14, 26
+    local f = CreateFrame("Frame", "TonguesOfAzerothLineBrowser", UIParent)
+    f:SetFrameStrata("FULLSCREEN_DIALOG")
+    f:SetSize(700, 192 + ROWS * ROW_H)
+    f:SetPoint("CENTER", 0, 40)
+    f:EnableMouse(true)
+    f:SetToplevel(true)
+    f:SetMovable(true)
+    f:RegisterForDrag("LeftButton")
+    f:SetScript("OnDragStart", f.StartMoving)
+    f:SetScript("OnDragStop", f.StopMovingOrSizing)
+    f:Hide()
+
+    local bg = f:CreateTexture(nil, "BACKGROUND")
+    bg:SetAllPoints()
+    Compat.SolidTexture(bg, 0.04, 0.04, 0.06, 0.97)
+    Compat.AddBorder(f, 0.5, 0.45, 0.7, 0.95)
+
+    local title = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    title:SetPoint("TOPLEFT", 18, -16)
+    f.title = title
+
+    local hint = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    hint:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -4)
+    hint:SetText("Pick a speaker and a letter to browse. Click a line to hear it; Use sets it.")
+
+    -- Narrowing is dropped rather than kept when it stops being reachable: a
+    -- letter that no longer has lines, or a kind of line this speaker does not
+    -- have, would otherwise show an empty list and leave you to work out why.
+    local function renarrow(f)
+        local kinds = (f._kinds and f._kinds(f.group)) or {}
+        local found = (f.kind == "")
+        for _, k in ipairs(kinds) do if k.name == f.kind then found = true end end
+        if not found then f.kind = "" end
+
+        local avail = (f._letters and f._letters(f.group, f.kind)) or {}
+        if f.letter ~= "" and not avail[f.letter] then f.letter = "" end
+
+        local items = { { value = "", text = f._kindAll or "Everything" } }
+        for _, k in ipairs(kinds) do
+            items[#items + 1] = { value = k.name,
+                text = string.format("%s (%d)", k.name, k.count) }
+        end
+        f.kindDrop:SetItems(items)
+        local label = f._kindAll or "Everything"
+        for _, it in ipairs(items) do if it.value == f.kind then label = it.text end end
+        f.kindDrop:SetSelected(f.kind, label)
+
+        browserLetters(f)
+        browserApply(f)
+    end
+    f.renarrow = renarrow
+
+    local groupDrop = Compat.CreateDropdown(f, 200)
+    groupDrop:SetPoint("TOPLEFT", hint, "BOTTOMLEFT", 0, -8)
+    groupDrop:SetHeight(22)
+    groupDrop.onSelect = function(value)
+        f.group = value or ""
+        renarrow(f)
+    end
+    f.groupDrop = groupDrop
+
+    -- What kind of line, within whoever is selected. This is the control that
+    -- makes a speaker with 290 lines usable: battle cries, threats and pain
+    -- are different things to go looking for.
+    local kindDrop = Compat.CreateDropdown(f, 180)
+    kindDrop:SetPoint("LEFT", groupDrop, "RIGHT", 8, 0)
+    kindDrop:SetHeight(22)
+    kindDrop.onSelect = function(value)
+        f.kind = value or ""
+        local avail = (f._letters and f._letters(f.group, f.kind)) or {}
+        if f.letter ~= "" and not avail[f.letter] then f.letter = "" end
+        browserLetters(f)
+        browserApply(f)
+    end
+    f.kindDrop = kindDrop
+
+    local input = CreateFrame("EditBox", "TonguesOfAzerothLineBrowserSearch", f,
+        "InputBoxTemplate")
+    input:SetPoint("LEFT", kindDrop, "RIGHT", 14, 0)
+    input:SetSize(150, 22)
+    input:SetAutoFocus(false)
+    input:SetScript("OnTextChanged", function() browserApply(f) end)
+    input:SetScript("OnEscapePressed", function(self) self:ClearFocus(); f:Hide() end)
+    input:SetScript("OnEnterPressed", function(self) self:ClearFocus() end)
+    f.input = input
+
+    local status = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    status:SetPoint("LEFT", input, "RIGHT", 10, 0)
+    f.status = status
+
+    -- The A-Z strip. One button per initial, dimmed where nothing files under
+    -- it, so the row doubles as a map of the catalogue.
+    f.letterBtns = {}
+    local LW = 21
+    for i = 1, #BROWSER_LETTERS do
+        local ch = BROWSER_LETTERS:sub(i, i)
+        local b = CreateFrame("Button", nil, f)
+        b:SetSize(LW - 1, 20)
+        if i == 1 then
+            b:SetPoint("TOPLEFT", groupDrop, "BOTTOMLEFT", 0, -8)
+        else
+            b:SetPoint("LEFT", f.letterBtns[i - 1], "RIGHT", 1, 0)
+        end
+        local bbg = b:CreateTexture(nil, "BACKGROUND")
+        bbg:SetAllPoints()
+        Compat.SolidTexture(bbg, 0.18, 0.16, 0.24, 1)
+        local bhl = b:CreateTexture(nil, "HIGHLIGHT")
+        bhl:SetAllPoints()
+        Compat.SolidTexture(bhl, 1, 1, 1, 0.15)
+        local bl = b:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        bl:SetPoint("CENTER")
+        bl:SetText(ch)
+        b.bg, b.label, b.letter = bbg, bl, ch
+        b:SetScript("OnClick", function(self)
+            -- A letter with nothing behind it is inert rather than hidden:
+            -- the strip has to stay in the same place to be readable.
+            if self._count then browserSetLetter(f, self.letter) end
+        end)
+        f.letterBtns[i] = b
+    end
+
+    f.rows = {}
+    for i = 1, ROWS do
+        local row = CreateFrame("Button", nil, f)
+        row:SetHeight(ROW_H)
+        if i == 1 then
+            row:SetPoint("TOPLEFT", f.letterBtns[1], "BOTTOMLEFT", 0, -8)
+        else
+            row:SetPoint("TOPLEFT", f.rows[i - 1], "BOTTOMLEFT", 0, 0)
+        end
+        -- Clear of the scrollbar, which lives in the right margin.
+        row:SetPoint("RIGHT", f, "RIGHT", -38, 0)
+
+        local hl = row:CreateTexture(nil, "HIGHLIGHT")
+        hl:SetAllPoints()
+        Compat.SolidTexture(hl, 1, 1, 1, 0.10)
+
+        local who = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+        who:SetPoint("LEFT", 4, 0)
+        who:SetWidth(150)
+        who:SetJustifyH("LEFT")
+        row.who = who
+
+        local text = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        text:SetPoint("LEFT", who, "RIGHT", 8, 0)
+        text:SetPoint("RIGHT", row, "RIGHT", -4, 0)
+        text:SetJustifyH("LEFT")
+        row.text = text
+
+        -- Click hears it, double-click takes it. Hearing one is the common
+        -- action by a wide margin -- the transcript tells you the words, so
+        -- the only open question is the delivery.
+        row:SetScript("OnClick", function(self)
+            if not self._entry then return end
+            f._selected = self._entry
+            if f._onPlay then f._onPlay(self._entry) end
+            for _, r in ipairs(f.rows) do
+                r.text:SetTextColor(r == self and 0.53 or 1, r == self and 0.8 or 1, 1)
+            end
+        end)
+        row:SetScript("OnDoubleClick", function(self)
+            if self._entry and f._onPick then f._onPick(self._entry); f:Hide() end
+        end)
+        f.rows[i] = row
+    end
+
+    -- A real bar rather than paging. Built from the base Slider type for the
+    -- usual reason: the scroll templates have been reworked more than once and
+    -- a missing one is a frame that does not appear at all.
+    local scroll = CreateFrame("Slider", nil, f)
+    scroll:SetOrientation("VERTICAL")
+    scroll:SetWidth(16)
+    scroll:SetPoint("TOPRIGHT", f.rows[1], "TOPRIGHT", 22, -2)
+    scroll:SetPoint("BOTTOMRIGHT", f.rows[ROWS], "BOTTOMRIGHT", 22, 2)
+    scroll:SetValueStep(1)
+    if scroll.SetObeyStepOnDrag then scroll:SetObeyStepOnDrag(true) end
+    scroll:SetMinMaxValues(0, 0)
+    scroll:SetValue(0)
+
+    local track = scroll:CreateTexture(nil, "BACKGROUND")
+    track:SetPoint("TOP", 0, 0)
+    track:SetPoint("BOTTOM", 0, 0)
+    track:SetWidth(6)
+    Compat.SolidTexture(track, 1, 1, 1, 0.18)
+
+    scroll:SetThumbTexture("Interface\\Buttons\\UI-SliderBar-Button-Vertical")
+    local thumb = scroll:GetThumbTexture()
+    if thumb then thumb:SetSize(16, 24) end
+
+    scroll:SetScript("OnValueChanged", function(self, value)
+        if f._settingScroll then return end
+        f.offset = math.floor(value + 0.5)
+        browserRefresh(f, true)
+    end)
+    f.scroll = scroll
+
+    -- The wheel moves the bar, so there is one source of truth for position
+    -- rather than two that can disagree.
+    f:EnableMouseWheel(true)
+    f:SetScript("OnMouseWheel", function(self, delta)
+        local _, max = self.scroll:GetMinMaxValues()
+        if (max or 0) <= 0 then return end
+        self.scroll:SetValue(math.max(0, math.min(max,
+            (self.offset or 0) - delta * 3)))
+    end)
+
+    local function makeButton(w)
+        local b = CreateFrame("Button", nil, f)
+        b:SetSize(w or 120, 26)
+        local bbg = b:CreateTexture(nil, "BACKGROUND"); bbg:SetAllPoints()
+        Compat.SolidTexture(bbg, 0.18, 0.16, 0.24, 1)
+        Compat.AddBorder(b, 0.5, 0.45, 0.7, 0.9)
+        local bhl = b:CreateTexture(nil, "HIGHLIGHT"); bhl:SetAllPoints()
+        Compat.SolidTexture(bhl, 1, 1, 1, 0.15)
+        local bl = b:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        bl:SetPoint("CENTER")
+        b.label = bl
+        return b
+    end
+
+    local use = makeButton()
+    use:SetPoint("BOTTOMRIGHT", f, "BOTTOM", -6, 14)
+    use.label:SetText("Use this line")
+    use:SetScript("OnClick", function()
+        if f._selected and f._onPick then f._onPick(f._selected) end
+        f:Hide()
+    end)
+
+    local cancel = makeButton()
+    cancel:SetPoint("BOTTOMLEFT", f, "BOTTOM", 6, 14)
+    cancel.label:SetText(CANCEL or "Cancel")
+    cancel:SetScript("OnClick", function() f:Hide() end)
+
+    if type(UISpecialFrames) == "table" then
+        tinsert(UISpecialFrames, "TonguesOfAzerothLineBrowser")
+    end
+    return f
+end
+
+function Compat.ShowLineBrowser(opts)
+    opts = opts or {}
+    browserFrame = browserFrame or buildBrowser()
+    local f = browserFrame
+    f.title:SetText(opts.title or "Voice lines")
+    f._filter = opts.filter
+    f._letters = opts.letters
+    f._kinds = opts.kinds
+    f._kindAll = opts.kindAll or "Every kind"
+    f._onPlay = opts.onPlay
+    f._onPick = opts.onPick
+    f._selected = nil
+    f.group = opts.group or ""
+    f.kind = opts.kind or ""
+    f.letter = opts.letter or ""
+    for _, r in ipairs(f.rows) do r.text:SetTextColor(1, 1, 1) end
+
+    local all = opts.groupAll or "Everything"
+    local items = { { value = "", text = all } }
+    for _, g in ipairs((opts.groups and opts.groups()) or {}) do
+        items[#items + 1] = { value = g.id, text = g.label }
+    end
+    f.groupDrop:SetItems(items)
+    local label = all
+    for _, it in ipairs(items) do if it.value == f.group then label = it.text end end
+    f.groupDrop:SetSelected(f.group, label)
+
+    -- Seeds the box without firing a filter per character; renarrow applies
+    -- once at the end, after the kind list and letter strip are built.
+    f.input:SetText(opts.query or "")
+    f.renarrow(f)
     f:Show()
     f:Raise()
     return f

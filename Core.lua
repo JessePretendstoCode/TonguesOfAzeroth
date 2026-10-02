@@ -502,22 +502,29 @@ local function migrateDB()
     if casts.packsSeeded == nil then casts.packsSeeded = false end
     if casts.filterSpellbook == nil then casts.filterSpellbook = true end
     if casts.showOtherPacks == nil then casts.showOtherPacks = false end
-    -- Voice packs: speak the quoted part of a phrase aloud. Off by default and
-    -- deliberately not seeded on, because the audio ships in a separate addon
-    -- most people won't have -- turning it on without that would only switch
-    -- translation off and give nothing back. Hearing other people defaults on,
-    -- since once you have a pack installed it costs nothing extra.
+    -- Speak a pinned phrase aloud. Off by default: a phrase stays silent until
+    -- the player goes and picks a line for it, so switching this on by itself
+    -- would change nothing and only look broken.
     if casts.voice == nil then casts.voice = false end
-    if casts.voiceOthers == nil then casts.voiceOthers = true end
+    casts.voiceOthers = nil
 
-    -- `casts.voices` held the borrowed WORDS back when that was the only thing
-    -- a phrase could be pinned to. Choosing the speaker is a second setting
-    -- now, and it is the one that deserves the name, so the words move to a
-    -- table of their own. Guarded on the destination being absent, so a save
-    -- that has already been through this is left alone.
-    if type(casts.voices) == "table" and casts.spoken == nil then
-        casts.spoken = casts.voices
-        casts.voices = nil
+    -- Two settings from the synthesised-voice era, both now meaningless.
+    -- `casts.voices` named a race and gender to render a line in; there is
+    -- nothing left to render. `casts.spoken` could hold either a recording id
+    -- or the literal words of a library phrase, and the words addressed a clip
+    -- that no longer exists -- so anything that is not an id is dropped. Left
+    -- in place it would sit in the panel looking chosen and play silence.
+    casts.voices = nil
+    if type(casts.spoken) == "table" then
+        for _, byText in pairs(casts.spoken) do
+            if type(byText) == "table" then
+                for text, pinned in pairs(byText) do
+                    if type(pinned) ~= "string" or not pinned:match("^game:%d+$") then
+                        byText[text] = nil
+                    end
+                end
+            end
+        end
     end
 
     -- The creed packs are gone. What a character believes is exactly the sort
@@ -2060,15 +2067,15 @@ local function castCommand(rest)
     end
 end
 
--- /toa voice. Mostly a diagnostic, because the interesting failure here is a
--- silent one: the pack is a folder of files the player assembled themselves,
--- and "I heard nothing" has four or five plausible causes that look identical
--- from the game. So `check` names the folder it wants, the file it looked for,
--- and the reload rule -- rather than reporting a boolean nobody can act on.
+-- /toa voice. There is nothing to install and nothing to assemble any more, so
+-- this is a short command: the switch, and a count of what the catalogue holds
+-- against what this client could actually sound. Those two numbers differ --
+-- the catalogue is built from one build of the game and a player on another
+-- may be missing files -- and that gap is the only failure worth reporting.
 local function voiceCommand(rest)
     local Voice = ns.Voice
     if not Voice then
-        Print("voice packs are unavailable (Voice.lua did not load).")
+        Print("voice is unavailable (Voice.lua did not load).")
         return
     end
     migrateDB()
@@ -2078,63 +2085,29 @@ local function voiceCommand(rest)
 
     if sub == "on" or sub == "off" then
         c.voice = (sub == "on")
-        Print("voice packs: " .. (c.voice and "|cff00ff00on|r" or "|cffff0000off|r"))
-        if c.voice then
-            Print("cast phrases will speak in plain English while this is on -- "
-                .. "a voice clip can't be recorded for every translation.")
-            if not c.enabled then
-                Print("cast phrases themselves are still |cffff0000off|r (/toa cast on).")
-            end
+        Print("spoken cast phrases: " .. (c.voice and "|cff00ff00on|r" or "|cffff0000off|r"))
+        if c.voice and not c.enabled then
+            Print("cast phrases themselves are still |cffff0000off|r (/toa cast on).")
         end
-        if ns.OnSettingsChanged then ns.OnSettingsChanged() end
-    elseif sub == "others" then
-        c.voiceOthers = not c.voiceOthers
-        Print("other players' voices: " .. (c.voiceOthers and "|cff00ff00on|r" or "|cffff0000off|r"))
         if ns.OnSettingsChanged then ns.OnSettingsChanged() end
     elseif sub == "test" then
-        local line = (arg ~= "" and arg) or Voice.SampleLine()
-        if not line then
-            Print("no voice lines are known (VoiceLines.lua did not load).")
+        local id = tonumber(arg)
+        if not id then
+            Print("usage: /toa voice test <fileDataId>")
+            Print("ids come from the Browse button on the Cast Phrases panel.")
             return
         end
-        local ok, path, tried, clip = Voice.Check(line)
-        if not clip then
-            Print("|cffffff00" .. line .. "|r isn't one of the lines a pack covers.")
-            Print("only the quoted part of a shipped phrase is voiced; try /toa voice test")
-            return
-        end
-        if ok then
-            Print("played |cffffff00" .. line .. "|r from " .. path)
-        else
-            Print("|cffffff00" .. line .. "|r is clip |cffffff00" .. clip .. "|r, but no file was found:")
-            for _, p in ipairs(tried) do Print("  " .. p) end
-        end
+        Print(Voice.PlayGame(id) and ("played |cffffff00" .. id .. "|r.")
+            or ("|cffff0000" .. id .. "|r would not play -- this client may not carry that file."))
     else
         local d = Voice.Describe()
-        Print("voice packs: " .. (d.enabled and "|cff00ff00on|r" or "|cffff0000off|r")
-            .. ", other players " .. (d.others and "on" or "off"))
-        Print("your voice: |cffffff00" .. d.folder .. "|r"
-            .. ((d.race and d.sex) and "" or "  |cff808080(race or gender unknown -- using the fallback)|r"))
-        Print("pack folder: " .. d.root .. "\\" .. d.folder .. "\\")
-        if not d.installed then
-            Print("|cffff0000the voice pack isn't loaded.|r Tick |cffffff00Tongues of Azeroth - Voices|r")
-            Print("in the AddOns list at character select and log back in. If it isn't")
-            Print("listed there at all, the pack isn't installed yet.")
-        else
-            Print(string.format("pack loaded with %d voice(s): %s",
-                #d.installed, table.concat(d.installed, ", ")))
-            local have = d.clipCounts and d.clipCounts[d.folder]
-            if have then
-                Print(string.format("|cff00ff00%s|r is installed (%d clips).", d.folder, have))
-            else
-                Print("|cffff9900" .. d.folder .. "|r isn't built yet -- your lines fall back to the common voice.")
-            end
-        end
-        Print(string.format("%d line(s) can be voiced; played %d, missing %d, unmapped %d this session.",
-            d.count, d.stats.played, d.stats.missing, d.stats.unmapped))
-        Print("audio must be in place |cffffff00before|r you log in or /reload -- the client")
-        Print("indexes addon sound at load, so a file dropped in now needs a reload.")
-        Print("usage: /toa voice [on|off|others|test [line]]")
+        Print("spoken cast phrases: " .. (d.enabled and "|cff00ff00on|r" or "|cffff0000off|r"))
+        Print(string.format("%d line(s) from the game are catalogued.", d.catalogue))
+        Print(string.format("played %d this session; %d phrase(s) had nothing pinned.",
+            d.stats.played, d.stats.unmapped))
+        Print("a phrase stays silent until you pin a line to it -- open the Cast")
+        Print("Phrases panel and use |cffffff00Browse voice lines|r on the line you want.")
+        Print("usage: /toa voice [on|off|test <fileDataId>]")
     end
 end
 

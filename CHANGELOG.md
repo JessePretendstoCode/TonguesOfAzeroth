@@ -15,49 +15,43 @@ All notable changes to Tongues of Azeroth are documented here.
   resolves an unknown id to -- which still has to be a real tongue, or a bad id would
   quietly emit plain English and look like the translator had broken. Upgrades are
   untouched: an existing character keeps the tongue and the fluency they had.
-- **The voice list is readable.** Its entries were longer than the dropdown was wide, and
-  menu rows are a fixed height that butt up against each other -- so "Male Night Elf (not
-  installed)" wrapped and drew straight over the row beneath it. A dropdown menu may now
-  be wider than the button it drops from, nothing in a dropdown wraps, and a row can say
-  more than the button has room for. **Installed** is green and **not installed** is red,
-  on the row and in the colour of the selection itself.
 - **The creed packs are gone; write your own.** Eight tickboxes -- the Horde, the
   Alliance, the Light, Elune, the ancestors, the elements, the fel, the shadow -- were
-  never going to fit anybody exactly, and now that any line can be reworded and given any
+  never going to fit anybody exactly, and now that any line can be reworded and given a
   voice, the better answer to "what does my character believe" is that you write it. The
   packs, their wildcard mechanism and the panel section they lived in are all removed, and
-  a creed left ticked in an old save is cleared on upgrade.
-  Their **words stayed**. Audio can only be rendered ahead of time and the **Says** picker
-  only offers lines that were, so dropping the twenty-one cries they spoke would have left
-  anybody writing their own *"For the Horde!"* with no way to make it audible -- which is
-  the one thing removing the packs was meant to make easier. They are no longer phrases,
-  but they are still voices: write the line, then point it at *"Lok'tar ogar!"*,
-  *"Elune-adore."*, *"Light guide us."* or any of the rest. The manifest is unchanged at
-  194 clips, so every rendered voice pack stays valid.
-- **A phrase you wrote can borrow a voice.** Audio is a fixed set of clips rendered
-  ahead of time, one per line the library ships, each addressed by a hash of its exact
-  wording -- and nothing can be recorded in game, since the client indexes addon sound at
-  login. So anything you wrote yourself was silent, and rewording a shipped line took its
-  voice away, both without ever saying why.
-  Every phrase now carries its own strip beneath it: **Says** *[its own words]* **in**
-  *[your own voice]*. The first picker chooses which of the 194 recorded lines is spoken,
-  with the lines this spell already says listed first and the rest after. The second
-  chooses who speaks it -- *Male Forsaken*, *Female Night Elf*, any race in either sex --
-  independently of the words, because your own words in somebody else's voice is as
-  ordinary a thing to want as the reverse. Voices nobody has rendered yet are offered but
-  marked *(not installed)*, since picking one falls back to a neutral stand-in and would
-  otherwise be silent about it. **Play** auditions exactly what the pair will sound like.
-  Both pickers sit on every row rather than appearing only while you
-  edit, so which lines have been pinned is readable down the whole list at once, and the
-  ones that have are coloured to stand out. Open a phrase for editing and it also shows
-  what the line will read as in chat with its `%tokens` filled in, updating as you type.
+  a creed left ticked in an old save is cleared on upgrade. Write your own
+  *"For the Horde!"* on whatever spell suits it and pin it to whichever of the game's
+  recordings suits the character shouting it.
+- **A phrase can be pinned to any line the game ships.** 2,329 recordings from 38
+  speakers -- Sylvanas, Kel'Thuzad, Nathanos, the Forsaken player voices, abominations,
+  ghouls, banshees -- nested under what kind of line each one is: battle cries, threats,
+  boasts, orders, mockery, farewells, attack grunts, pain, death cries. The grunts are
+  spelled out as what they actually are, so you are choosing *"RAAAGH!"* or *"GURGH!"*
+  rather than *Pain Sound 3*.
+  Nothing is downloaded, because nothing is shipped but numbers: the client already has
+  the audio on disk, and the addon plays it by file id. Every phrase row carries a
+  **Says** strip -- **Browse voice lines** opens the catalogue, **Play** auditions what is
+  pinned, and the pinned line is spelled out beside them with the name of whoever says it,
+  so which lines have sound is readable down the whole list at once rather than one row at
+  a time behind a click. The browser narrows by speaker, then by kind of line, then by
+  first letter, with a search box over the top and a scrollbar rather than pages.
   The words on screen and the words you hear are allowed to disagree -- a line reading
   *"Let it all burn!"* can speak with *"Burn!"*. That is the trade the feature exists to
-  offer, because the alternative is that nothing anybody writes is ever spoken. A line
-  that has been pinned says so on its row and in its tooltip, so it is never a mystery.
-  Both choices are keyed to the wording the pack shipped, so they survive rewording the
-  line -- which is the moment they are worth the most. They stay in your own settings and
-  are never sent, so nobody else's phrase is ever voiced by them.
+  offer, because the alternative is that nothing anybody writes is ever spoken. The pin is
+  keyed to the wording the pack shipped, so it survives rewording the line, which is the
+  moment it is worth the most. It stays in your own settings and is never sent.
+- **Sound no longer costs you your tongue.** Turning voices on used to turn translation
+  off for cast phrases, because no finite set of synthesised clips could cover every
+  garbled form a tongue produces. The game's own recordings have no such constraint: your
+  words translate as usual and the recording plays over the top. Accents keep working too.
+- **The synthesised voice packs are removed.** There was a second addon to download,
+  hundreds of megabytes of locally rendered text-to-speech, one clip per line per race and
+  gender. It does not hold a candle to the game's own voice actors, and the game has an
+  enormous amount of material already. With it go the choice of synthesised speaker, the
+  *hear other players* setting and the two dropdowns that sat on every phrase row. An old
+  save has all three cleared on upgrade, along with any pin that pointed at a rendered
+  clip rather than at a real recording.
 - **The lines contract the way people actually speak.** *"You have got this."* is not
   something anyone says out loud, and a handful of shipped lines read like that. Fourteen
   spoken lines and ten pieces of narration now contract: *"You've got this."*,
@@ -92,43 +86,27 @@ All notable changes to Tongues of Azeroth are documented here.
   dropping every non-matching group to zero, so a character on the default sheet reached
   one or two lines per spell -- on all 143 spells, without exception -- and one on any
   other Bearing reached about two and a half. Five and a half lines were written per
-  spell to deliver two. The other four were written, reviewed and rendered into every
-  voice pack for players who would never hear them.
+  spell to deliver two. The other four were written and reviewed for players who would
+  never hear them.
   So the number of lines you can actually hear per spell has not gone down, and what you
   hear is better: the surviving set was picked from all five Bearings, which means the
   fierce and warm readings that only some characters used to reach are now everyone's.
   Two or three is not a space budget either. A spell will not speak twice inside five
-  minutes, so a fourth line is one almost nobody reaches -- and one more clip to render
-  in every voice pack, which is why a complete voice is now 194 clips rather than 314.
+  minutes, so a fourth line is one almost nobody reaches.
   Per-phrase weights still do the work the sheet was reaching for, and more directly:
   raise a line you like, set one to zero to retire it, reword any of them. Anything you
   wrote yourself is untouched. Saved character sheets are discarded on upgrade rather
   than left in the file looking meaningful.
-- **Cast phrases can speak out loud.** Turn on **Voice** under Cast Phrases and the words
-  in `"quotes"` are played as audio, in a voice matching the speaker's race and gender.
-  Other players are voiced too, and that costs nothing extra: a chat line already carries
-  the sender's GUID, which is all it takes to look up what race and gender they are.
-  Turning voices on turns translation **off** for cast phrases. That is the bargain the
-  feature is built on rather than a shortcoming of it — a tongue re-garbles every line
-  from its own seed, so there is no finite set of recordings that could cover the
-  translated forms, and leaving speech in English is exactly what reduces a whole voice
-  to 194 clips. Accents stop applying for the same reason: nobody recorded "Feel dat?".
-  The audio ships separately, so until a pack is installed nothing changes and nothing
-  breaks — a missing clip is the normal case, not an error. `/toa voice` reports which
-  folder your character reads from, and `/toa voice test` names every path it looked in,
-  because otherwise every possible failure here sounds exactly the same: silence.
-  Note the client indexes addon audio at load, so clips added while you're playing need
-  a `/reload` before they'll play.
-  `/toa voice` also reports whether the pack addon is loaded at all and lists the voices
-  it contains, because "the pack isn't installed", "the pack is installed but switched
-  off in the AddOns list", and "your race's voice hasn't been built yet" are three
-  different problems that are otherwise indistinguishable from the silence they produce.
-  The pack itself is generated on your own machine and costs nothing: a local neural
-  text-to-speech engine reads the lines, and each race gets its own speaker rather than
-  one voice pitched up and down — a different voice changes *who* someone is, where a
-  pitch shift only changes how big they are. Pitch still applies on top, because it moves
-  the formants that carry body size, which is what makes a tauren read as a tauren rather
-  than as a slowed-down human.
+- **The number in front of each phrase says what it is.** It was a bare 1 to 5 between two
+  nudge buttons, which answered nothing: not what it counted, not what raising it would do,
+  not why nudging one line changed the figure on another. It now reads as a **percentage**
+  -- this line's share of the casts that speak -- with a line above the list saying so, and
+  a tooltip on the nudge buttons explaining that the thing being stored underneath is still
+  a weight, which is why the other numbers move with it. A retired line reads **off**
+  rather than 0%, because one of those is a decision and the other is a rounding.
+- **Clicking a line to edit it puts the cursor at the start.** It used to land at the end,
+  which is the wrong end of a sentence you are correcting -- and on a long line it scrolled
+  the beginning off screen before you had read it.
 - **Player names stay readable inside translated speech.** Say "Corvin, get back"
   in Demonic and Corvin now comes through as Corvin, the way a real language
   leaves a proper noun alone. Someone who can't read a word of the tongue can

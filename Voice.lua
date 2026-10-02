@@ -1,46 +1,42 @@
 --[[-------------------------------------------------------------------------
     Tongues of Azeroth - Voice.lua
-    Speaks the quoted part of a cast phrase out loud, in a voice matching the
-    speaker's race and gender:  Corvin snarls "Feel that?"  -- and you hear it.
+    Speaks a cast phrase out loud using a recording the game already ships:
+    Corvin snarls "Feel that?"  -- and you hear Sylvanas, or a grunt, or
+    whatever line was pinned to that phrase.
 
-    Six things decide the shape of this file.
+    Five things decide the shape of this file.
 
-      * Only the words in quotes are ever voiced. Narration is the part
-        onlookers are meant to read, and reading it aloud would turn a two-word
-        bark into a paragraph. This is the same split Casts.lua already makes,
-        so the audio and the text always agree about what was said.
+      * The audio is Blizzard's own, addressed by FileDataID. PlaySoundFile has
+        taken a number as readily as a path since patch 8.2, so a pinned line
+        is stored as "game:<fileDataId>" and played by handing that number
+        over. Nothing is downloaded and nothing is redistributed: the file is
+        already sitting in the player's client, which is also why it sounds
+        like the actor who recorded it.
 
-      * Voice mode turns translation OFF for cast phrases, and that is a
-        feature rather than a limitation. A voiced line has to match a recorded
-        clip, and there is no way to record "Zaq'roth!" for every seed of every
-        tongue -- the combinations are unbounded. Suppressing the tongue
-        collapses that to one clip per line per voice, which is 194 clips.
-        The accent goes with it for the same reason: "Feel dat?" is not a line
-        anybody recorded, so leaving accents on would silently match nothing.
+      * A phrase speaks only if something was pinned to it. There is no
+        rendering step and no fallback -- an unpinned phrase goes out as text,
+        exactly as it did before anyone turned sound on. Silence is the normal
+        state, not a failure.
+
+      * Only a phrase that quotes somebody is ever voiced. Narration is the
+        part onlookers are meant to read, and the quotes are what mark a line
+        as containing speech at all. This is the same split Casts.lua makes.
 
       * Playback is driven by CHAT_MSG_EMOTE, not by our own cast handler.
-        The emote is what everyone in range actually receives, so listening to
-        it means your line and a stranger's take the identical path, and a
-        phrase somebody typed by hand is voiced too. The one case it misses is
-        a line Blizzard refused to send at all (raid lockdown, or ToA standing
-        down in an instance); Casts.showLocally cues those directly.
+        The emote is what the server actually sent, so a line Blizzard refused
+        to deliver stays silent instead of being heard by its author alone.
+        Casts.showLocally cues the one case the event never carries.
 
       * It must be a real event handler, never a chat filter. Chat filters run
         once per chat frame registered for the event -- usually two or three --
         so playing a sound inside one plays it two or three times. This is the
         single easiest way to get this wrong, and it sounds like an echo.
 
-      * Audio ships in a SEPARATE addon folder. Addon updaters delete and
-        recreate the folder they manage, so anything living inside
-        TonguesOfAzeroth/ is destroyed by the next update -- and 300-odd clips
-        per race would dwarf the addon besides. A missing pack is the normal
-        case, not an error: PlaySoundFile simply reports that it won't play,
-        and the line goes out as text exactly as it does today.
-
-      * Files must exist before login. The client indexes addon audio at load,
-        so a clip dropped in while you are standing in Orgrimmar will not
-        play until you /reload. Worth knowing before concluding the addon is
-        broken; /toa voice check says so.
+    Nothing here suppresses translation. The old synthesised voices read your
+    words back to you, so a translated line would have said one thing and
+    sounded another; a game recording says whatever Blizzard recorded it
+    saying and never matched your words to begin with. Your tongue and your
+    accent therefore stay on while sound is playing.
 ---------------------------------------------------------------------------]]
 
 local ADDON, ns = ...
@@ -48,205 +44,17 @@ local ADDON, ns = ...
 local Voice = {}
 ns.Voice = Voice
 
---=========================================================================--
---  Where a voice pack lives
---=========================================================================--
--- One folder per voice, named race-gender, holding one file per clip id. The
--- ids come from VoiceLines.lua, which is generated from the phrase library, so
--- a pack is just a directory listing and needs no manifest of its own.
---
---     Interface\AddOns\TonguesOfAzerothVoices\troll-male\feel-that-69075941.ogg
---
--- Both extensions are tried because the client accepts both and they arrive by
--- different routes: a batch render writes .ogg, while a clip downloaded by
--- hand from a text-to-speech site is nearly always .mp3. Supporting the second
--- is what makes a pack buildable without installing anything.
-local PACK_ADDON = "TonguesOfAzerothVoices"
-local EXTENSIONS = { ".ogg", ".mp3" }
-
-Voice.PACK_ADDON = PACK_ADDON
-
 -- "Master" rather than "Dialog" or "SFX": those are muted by the sliders most
 -- people pull down to hear their music, and a voice line that vanishes with no
 -- explanation reads as a broken addon. This is speech the player asked for.
 local CHANNEL = "Master"
 
---=========================================================================--
---  Which voice a speaker uses
---=========================================================================--
--- Allied races fold onto the race they were built from. This is not a shortcut
--- taken to save effort -- a Void Elf *is* a Blood Elf who took a wrong turn,
--- and in the game's own voice work they share a voice set. Folding them here
--- takes a complete pack from 26 voices to 20, and means a new allied race in
--- some future patch inherits a sensible voice instead of falling silent.
-local BASE_RACE = {
-    voidelf            = "bloodelf",
-    lightforgeddraenei = "draenei",
-    highmountaintauren = "tauren",
-    nightborne         = "nightelf",
-    magharorc          = "orc",
-    darkirondwarf      = "dwarf",
-    zandalaritroll     = "troll",
-    kultiran           = "human",
-    mechagnome         = "gnome",
-    earthen            = "dwarf",
-}
-
--- The fallback when a race is unknown or its pack isn't installed. A neutral
--- pair is much better than silence: an unvoiced line among voiced ones reads
--- as a bug, where a plain voice just reads as a different person.
-local NEUTRAL = "common"
-
--- Every voice a pack can carry, in the order the picker offers them. The token
--- is the folder name and has to agree with what tools/Build-VoicePack.ps1
--- renders into; the label is what people actually call the race, which is not
--- always the same word -- the client calls the Undead "Scourge" and nobody
--- else ever has.
-local RACES = {
-    { "human",    "Human" },
-    { "dwarf",    "Dwarf" },
-    { "nightelf", "Night Elf" },
-    { "gnome",    "Gnome" },
-    { "draenei",  "Draenei" },
-    { "worgen",   "Worgen" },
-    { "pandaren", "Pandaren" },
-    { "orc",      "Orc" },
-    { "scourge",  "Forsaken" },
-    { "tauren",   "Tauren" },
-    { "troll",    "Troll" },
-    { "bloodelf", "Blood Elf" },
-    { "goblin",   "Goblin" },
-    { "vulpera",  "Vulpera" },
-    { "dracthyr", "Dracthyr" },
-    { "earthen",  "Earthen" },
-    { "common",   "Common" },
-}
-Voice.RACES = RACES
-
--- "scourge-male" back into "scourge", "male": the inverse of FolderFor, which
--- is the form a voice is saved in. Matched against the two known endings rather
--- than split on the last dash, because a race token is free to contain one.
-function Voice.SplitVoice(id)
-    if type(id) ~= "string" then return nil end
-    local race, sex = id:match("^(.+)%-(male)$")
-    if not race then race, sex = id:match("^(.+)%-(female)$") end
-    return race, sex
-end
-
--- Whether this names a voice the build knows how to make. Guards what gets
--- saved: a folder that never existed, or stopped existing, would otherwise sit
--- in the settings looking chosen and play the neutral voice instead.
-function Voice.IsVoiceId(id)
-    local race = Voice.SplitVoice(id)
-    if not race then return false end
-    for _, r in ipairs(RACES) do
-        if r[1] == race then return true end
-    end
-    return false
-end
-
--- The picker's list: every voice, named the way somebody would say it out loud,
--- and flagged when its audio has not been built. The flag earns its place --
--- an unbuilt voice falls back to the neutral pair, which sounds exactly like
--- the choice having been ignored, and there is no other way to tell.
-function Voice.VoiceOptions()
-    local _, counts = Voice.InstalledVoices()
-    local out = {}
-    for _, r in ipairs(RACES) do
-        for _, sex in ipairs({ "male", "female" }) do
-            local id = r[1] .. "-" .. sex
-            out[#out + 1] = {
-                id = id,
-                name = (sex == "male" and "Male " or "Female ") .. r[2],
-                installed = (counts and counts[id]) and true or false,
-            }
-        end
-    end
-    return out
-end
-
-local function slug(text)
-    if type(text) ~= "string" then return nil end
-    text = text:lower():gsub("[^%a%d]", "")
-    if text == "" then return nil end
-    return text
-end
-
--- englishRace as the client spells it ("NightElf", "Scourge") to the folder
--- name a pack uses. Unknown races pass through rather than being rejected, so
--- a pack can support something this table has never heard of.
-function Voice.RaceToken(englishRace)
-    local s = slug(englishRace)
-    if not s then return nil end
-    return BASE_RACE[s] or s
-end
-
--- 2 and 3 are male and female in every API that reports sex -- UnitSex,
--- GetPlayerInfoByGUID, the character-creation constants. 1 means "unknown",
--- which is what you get for a unit the client hasn't fully resolved, and is
--- deliberately not guessed at: a male voice on a female character is worse
--- than the neutral one.
-function Voice.SexToken(sex)
-    if sex == 3 then return "female" end
-    if sex == 2 then return "male" end
-    return nil
-end
-
--- Every value below can be a secret on Midnight, and a secret throws on any
--- operation at all -- including the comparison that would screen it. So each
--- one is asked about before it is used, and the whole read sits in a pcall
--- besides, because an unreadable speaker should cost a voice line and nothing
--- more. See Names.lua for the same pattern and why it can't be simplified.
+-- Every value off the client can be a secret on Midnight, and a secret throws
+-- on any operation at all -- including the comparison that would screen it. So
+-- it is asked about before it is used. See Names.lua for the same pattern and
+-- why it can't be simplified.
 local function isSecret(v)
     return ns.IsSecret and ns.IsSecret(v) or false
-end
-
-local function safeString(v)
-    if isSecret(v) then return nil end
-    if type(v) ~= "string" or v == "" then return nil end
-    return v
-end
-
-local function safeNumber(v)
-    if isSecret(v) then return nil end
-    if type(v) ~= "number" then return nil end
-    return v
-end
-
--- The voice for the player themselves. Always readable: your own unit is never
--- secret, whatever is happening around you.
-function Voice.PlayerVoice()
-    if type(UnitRace) ~= "function" then return nil end
-    local ok, race, sex = pcall(function()
-        local _, englishRace = UnitRace("player")
-        local s = type(UnitSex) == "function" and UnitSex("player") or nil
-        return englishRace, s
-    end)
-    if not ok then return nil end
-    return Voice.RaceToken(safeString(race)), Voice.SexToken(safeNumber(sex))
-end
-
--- The voice for somebody else, from the GUID their chat line carried. This is
--- the only thing a CHAT_MSG_* event says about a speaker beyond their name,
--- and it is enough: GetPlayerInfoByGUID answers with race and sex for any
--- player, anywhere, with no unit token and no query. Hearing other people's
--- voices costs nothing extra because of it.
-function Voice.VoiceForGUID(guid)
-    if isSecret(guid) then return nil end
-    if type(guid) ~= "string" or not guid:find("^Player%-") then return nil end
-    if type(GetPlayerInfoByGUID) ~= "function" then return nil end
-    local ok, _, _, _, englishRace, sex = pcall(GetPlayerInfoByGUID, guid)
-    if not ok then return nil end
-    return Voice.RaceToken(safeString(englishRace)), Voice.SexToken(safeNumber(sex))
-end
-
--- Folder name for a voice, with the neutral pair standing in for whatever we
--- couldn't work out. Sex has no neutral fallback of its own: a pack ships
--- common-male and common-female, and an unknown sex takes the male one purely
--- because something has to be picked and a coin flip would make the same
--- character sound different from line to line.
-function Voice.FolderFor(race, sex)
-    return (race or NEUTRAL) .. "-" .. (sex or "male")
 end
 
 --=========================================================================--
@@ -261,130 +69,88 @@ function Voice.IsEnabled()
     return (c and c.enabled and c.voice) and true or false
 end
 
-function Voice.HearsOthers()
-    local c = castDB()
-    return (c and c.enabled and c.voice and c.voiceOthers) and true or false
-end
-
--- Casts.Render asks this before it translates anything. Kept as its own name
--- rather than a bare IsEnabled() call at the call site, because the reason a
--- voiced line stays in English is worth being able to read off the condition.
-function Voice.SuppressesTranslation()
-    return Voice.IsEnabled()
-end
-
-
 --=========================================================================--
---  Finding a clip
+--  Lines the client already has
 --=========================================================================--
-function Voice.ClipId(spoken)
-    local lines = ns.VoiceLines
-    if not (lines and type(lines.ByText) == "table") then return nil end
+-- A pinned line names a recording by id, as "game:<fileDataId>". That is the
+-- whole address: there is no folder to look in and no alternative to fall back
+-- to, because the client either carries that file or it does not.
+local GAME_PREFIX = "game:"
+
+-- The FileDataID a pinned line names, or nil if it does not name one.
+function Voice.GameId(spoken)
     if type(spoken) ~= "string" then return nil end
-    return lines.ByText[spoken]
+    if spoken:sub(1, #GAME_PREFIX) ~= GAME_PREFIX then return nil end
+    return tonumber(spoken:sub(#GAME_PREFIX + 1))
 end
 
+function Voice.GameRef(id)
+    if type(id) ~= "number" then return nil end
+    return GAME_PREFIX .. tostring(id)
+end
 
--- Every path worth trying for one line in one voice, most specific first: the
--- speaker's own voice, then the neutral pair. Returned as a list rather than
--- played directly so /toa voice check can show exactly what was looked for --
--- "no audio" is otherwise indistinguishable from "wrong folder name", and that
--- is the one question anybody assembling a pack by hand needs answered.
-function Voice.Candidates(spoken, race, sex)
-    local clip = Voice.ClipId(spoken)
-    if not clip then return {}, nil end
+-- What a game recording says, so a pinned choice can be shown as words rather
+-- than as the number it is stored as.
+function Voice.GameText(spoken)
+    local id = Voice.GameId(spoken)
+    if not id then return nil end
+    local gv = ns.GameVoices
+    return gv and gv.ById and gv.ById[id] or nil
+end
 
-    local folders, seen = {}, {}
-    local function add(folder)
-        if folder and not seen[folder] then
-            seen[folder] = true
-            folders[#folders + 1] = folder
-        end
-    end
-    add(Voice.FolderFor(race, sex))
-    add(Voice.FolderFor(NEUTRAL, sex))
-
-    local paths = {}
-    for _, folder in ipairs(folders) do
-        for _, ext in ipairs(EXTENSIONS) do
-            paths[#paths + 1] = "Interface\\AddOns\\" .. PACK_ADDON .. "\\"
-                .. folder .. "\\" .. clip .. ext
-        end
-    end
-    return paths, clip
+-- Whether this line can be voiced at all. Kept as its own name because several
+-- callers ask that question and none of them care how it is answered.
+function Voice.ClipId(spoken)
+    if Voice.GameId(spoken) then return spoken end
+    return nil
 end
 
 --=========================================================================--
 --  Playing
 --=========================================================================--
--- A cast phrase can quote more than once ("Down!" ... "Now."), and the client
--- has no way to tell us when a clip finishes, so the second would land on top
--- of the first. Lines are queued and spaced by an estimate instead.
---
--- The estimate is deliberately crude. Measuring real durations would mean
--- shipping a length table per voice, generated alongside the audio, and it
--- would still be wrong for any pack somebody assembled by hand. Overlapping
--- speech is the only genuinely bad outcome here, so the estimate is allowed
--- to run long: a beat of silence between two barks costs nothing.
--- Measured against a real rendered voice: 314 clips averaging 1.17s for lines
--- averaging 11.4 characters, so under 10 characters a second of speech. The
--- pad keeps the estimate slightly long, which is the direction that costs a
--- beat of silence rather than two clips talking over each other.
---
--- Taken from the slowest voice rather than an average of all of them. Races
--- speak at different rates -- the heavy ones drawl -- and one constant has to
--- serve every pack, including hand-made ones. Guessing short is what makes two
--- clips talk over each other, so the guess is made against the slowest.
-local CHARS_PER_SECOND = 10
-local PAD = 0.35
-local MIN_GAP, MAX_GAP = 0.7, 5
-
-local function estimateSeconds(text)
-    local n = #text / CHARS_PER_SECOND + PAD
-    if n < MIN_GAP then return MIN_GAP end
-    if n > MAX_GAP then return MAX_GAP end
-    return n
-end
-
--- Diagnostics only; nothing branches on these. Kept because the single most
--- common state for this feature is "no pack installed", and a player deserves
--- to be told that rather than left wondering.
-Voice.stats = { played = 0, missing = 0, unmapped = 0 }
+-- Diagnostics only; nothing branches on these.
+Voice.stats = { played = 0, unmapped = 0 }
 
 local playing = nil     -- handle of the clip currently sounding, when known
 
--- Try each candidate in turn and stop at the first that plays. PlaySoundFile
--- returns false for a file that isn't there, which is the only way to ask
--- whether a pack is installed -- there is no directory listing in this API, so
--- attempting playback *is* the existence check.
-local function playFirst(paths)
+-- Cut off whatever is sounding rather than queueing behind it. Two people
+-- casting at once is the common case in a group, and waiting three seconds to
+-- hear the second is worse than not hearing the first finish. StopSound is
+-- absent on the older flavors, where clips simply overlap.
+local function stopCurrent()
+    if playing and type(StopSound) == "function" then
+        pcall(StopSound, playing)
+    end
+    playing = nil
+end
+
+-- Play a game recording by id. Returns whether it played, which is also the
+-- only way to know whether this client carries the file -- there is no
+-- directory listing in this API, so attempting playback *is* the existence
+-- check.
+function Voice.PlayGame(id)
+    if type(id) ~= "number" then return false end
     if type(PlaySoundFile) ~= "function" then return false end
-    for _, path in ipairs(paths) do
-        local ok, willPlay, handle = pcall(PlaySoundFile, path, CHANNEL)
-        if ok and willPlay then
-            playing = handle
-            return true, path
-        end
+    stopCurrent()
+    local ok, played, handle = pcall(PlaySoundFile, id, CHANNEL)
+    if ok and played then
+        playing = handle
+        Voice.stats.played = Voice.stats.played + 1
+        return true
     end
     return false
 end
 
--- Speak one already-extracted quoted span.
-function Voice.PlayLine(spoken, race, sex)
-    local paths, clip = Voice.Candidates(spoken, race, sex)
-    if not clip then
-        -- The line isn't in the manifest at all: a phrase the player reworded,
-        -- or one added since the pack was rendered. Not an error.
+-- Speak one pinned line.
+function Voice.PlayLine(spoken)
+    local id = Voice.GameId(spoken)
+    if not id then
+        -- Not a recording at all: a phrase with nothing pinned to it. Not an
+        -- error, and by far the most common case.
         Voice.stats.unmapped = Voice.stats.unmapped + 1
         return false
     end
-    local ok, path = playFirst(paths)
-    if ok then
-        Voice.stats.played = Voice.stats.played + 1
-        return true, path
-    end
-    Voice.stats.missing = Voice.stats.missing + 1
-    return false
+    return Voice.PlayGame(id)
 end
 
 -- Every quoted span in an emote body, in order. Mirrors the pattern Casts.lua
@@ -399,20 +165,14 @@ function Voice.SpansOf(body)
 end
 
 --=========================================================================--
---  A line pointed at someone else's clip
+--  A line pointed at a recording
 --=========================================================================--
--- Most phrases are voiced by looking up their own quoted words in the voice
--- belonging to whoever cast them. Either half can be overridden per phrase --
--- `{ line = , voice = }`, see Casts.SetPhraseSpoken and SetPhraseVoice -- and
--- the two are independent: a line can keep its own words in somebody else's
--- voice, borrow words and keep yours, or both.
---
--- The choice cannot ride on the emote, which is only ever a string, so Casts
+-- The pin cannot ride on the emote, which is only ever a string, so Casts
 -- hands it over just before sending and the body it belongs to claims it here.
 -- Matched on that exact body rather than simply consumed, because the client
 -- can refuse to send a line at all: a choice left waiting in a variable would
 -- then attach itself to whatever spoke next, which is somebody else's phrase
--- wearing your voice. Matching means an unclaimed choice is replaced rather
+-- wearing your sound. Matching means an unclaimed choice is replaced rather
 -- than misapplied.
 local pendingBody, pendingChoice = nil, nil
 
@@ -427,53 +187,18 @@ local function claimChoice(body)
     return choice
 end
 
--- Speak an emote body: find its quoted spans and play them in order. `choice`
--- is what the player pinned to this phrase, if anything.
-function Voice.SpeakBody(body, race, sex, choice)
-    local spans = Voice.SpansOf(body)
+-- Speak an emote body. `choice` is what the player pinned to this phrase.
+--
+-- One recording stands for the whole line, however many times the line quotes.
+-- Splitting a pin across two spans would mean asking which of them it was for,
+-- and the panel asks the question once.
+function Voice.SpeakBody(body, choice)
     -- Still gated on there being quotes at all. The quotes are what mark a
-    -- phrase as containing speech; borrowing a clip changes what that speech
-    -- sounds like, not whether the line has any.
-    if #spans == 0 then return 0 end
-
-    -- Anything already sounding is cut off rather than queued behind. Two
-    -- people casting at once is the common case in a group, and waiting three
-    -- seconds to hear the second is worse than not hearing the first finish.
-    -- StopSound is absent on the older flavors, where clips simply overlap.
-    if playing and type(StopSound) == "function" then
-        pcall(StopSound, playing)
-        playing = nil
-    end
-
-    if choice then
-        -- A chosen voice replaces the speaker's own and applies either way,
-        -- including to a line still saying its own words.
-        local r, s = Voice.SplitVoice(choice.voice)
-        if r then race, sex = r, s end
-        -- One borrowed clip stands for the whole line, however many times the
-        -- line quotes. Splitting a choice across two spans would mean asking
-        -- which of them it was for, and the panel asks the question once.
-        if choice.line then
-            return Voice.PlayLine(choice.line, race, sex) and 1 or 0
-        end
-    end
-
-    local spoken = 0
-    local delay = 0
-    for _, span in ipairs(spans) do
-        if Voice.ClipId(span) then
-            if delay <= 0 then
-                Voice.PlayLine(span, race, sex)
-            elseif type(C_Timer) == "table" and type(C_Timer.After) == "function" then
-                C_Timer.After(delay, function() Voice.PlayLine(span, race, sex) end)
-            else
-                break   -- no timer to schedule with: first span only
-            end
-            spoken = spoken + 1
-            delay = delay + estimateSeconds(span)
-        end
-    end
-    return spoken
+    -- phrase as containing speech; pinning a recording changes what that
+    -- speech sounds like, not whether the line has any.
+    if #Voice.SpansOf(body) == 0 then return 0 end
+    if not (choice and choice.line) then return 0 end
+    return Voice.PlayLine(choice.line) and 1 or 0
 end
 
 --=========================================================================--
@@ -483,7 +208,10 @@ end
 -- the client prepends the name when it draws the line -- which is exactly the
 -- string Casts.Render produced, so the quoted spans in it are the spans that
 -- were meant to be heard.
-local function onEmote(msg, sender, guid)
+--
+-- Only your own lines are voiced. A pin lives in your saved settings and never
+-- reaches anybody else, so there is nothing of a stranger's phrase to play.
+local function onEmote(msg, sender)
     if not Voice.IsEnabled() then return end
     if isSecret(msg) or isSecret(sender) then return end
     if type(msg) ~= "string" or msg == "" then return end
@@ -491,20 +219,9 @@ local function onEmote(msg, sender, guid)
 
     local me = UnitName and UnitName("player")
     if isSecret(me) then me = nil end
-    local mine = (type(me) == "string" and sender == me)
+    if type(me) ~= "string" or sender ~= me then return end
 
-    if not mine and not Voice.HearsOthers() then return end
-
-    local race, sex
-    if mine then
-        race, sex = Voice.PlayerVoice()
-    else
-        race, sex = Voice.VoiceForGUID(guid)
-    end
-    -- Only your own line can carry a borrowed clip: the choice never leaves
-    -- your saved settings, so another player's phrase is voiced by its words
-    -- alone, exactly as it was before.
-    Voice.SpeakBody(msg, race, sex, mine and claimChoice(msg) or nil)
+    Voice.SpeakBody(msg, claimChoice(msg))
 end
 
 Voice.OnEmote = onEmote
@@ -514,99 +231,35 @@ Voice.OnEmote = onEmote
 -- clip once per window. See the header.
 local frame = CreateFrame("Frame")
 frame:RegisterEvent("CHAT_MSG_EMOTE")
-frame:SetScript("OnEvent", function(_, event, msg, sender, ...)
+frame:SetScript("OnEvent", function(_, event, msg, sender)
     if event ~= "CHAT_MSG_EMOTE" then return end
-    -- The sender's GUID is the twelfth argument of CHAT_MSG_*; three are named
-    -- above, so it is the tenth of what's left. Read positionally because that
-    -- is the only way it is offered -- a layout that ever shifts costs the
-    -- speaker their own voice and nothing worse, since VoiceForGUID screens
-    -- what it gets for the "Player-" prefix.
-    onEmote(msg, sender, select(10, ...))
+    onEmote(msg, sender)
 end)
 
 -- The one line CHAT_MSG_EMOTE never delivers: a phrase Blizzard refused to
 -- send, which Casts prints locally instead. Called from there so the RP beat
--- still has its voice even inside a raid encounter.
+-- still has its sound even inside a raid encounter.
 function Voice.SpeakLocal(body)
     if not Voice.IsEnabled() then return 0 end
-    local race, sex = Voice.PlayerVoice()
-    return Voice.SpeakBody(body, race, sex, claimChoice(body))
+    return Voice.SpeakBody(body, claimChoice(body))
 end
 
--- Audition one line for the play button on the phrase panel, in `voiceId` or in
--- your own voice when that is nil. Deliberately not gated on IsEnabled: pressing
--- play is a direct request, and refusing it because the feature is switched off
--- would leave somebody picking a voice they are not allowed to hear first.
-function Voice.Audition(spoken, voiceId)
-    if playing and type(StopSound) == "function" then
-        pcall(StopSound, playing)
-        playing = nil
-    end
-    local race, sex = Voice.SplitVoice(voiceId)
-    if not race then race, sex = Voice.PlayerVoice() end
-    return Voice.PlayLine(spoken, race, sex)
+-- Audition a pinned line for the play button on the phrase panel. Deliberately
+-- not gated on IsEnabled: pressing play is a direct request, and refusing it
+-- because the feature is switched off would leave somebody picking a line they
+-- are not allowed to hear first.
+function Voice.Audition(spoken)
+    return Voice.PlayLine(spoken)
 end
 
 --=========================================================================--
 --  Diagnostics
 --=========================================================================--
--- What /toa voice check reports. Everything here answers a question somebody
--- assembling a pack by hand will have: which folder am I meant to create, what
--- do I call the file, and did the addon find it.
--- The pack addon ships a table naming the voices it installed. Reading it is
--- the only way to answer "is the pack there?" -- Lua gets no directory listing
--- in game, and PlaySoundFile only ever speaks about one exact filename. If the
--- table is missing the pack is either not installed or not enabled, and those
--- are the two failures worth calling out by name, because a player who has the
--- files on disk will otherwise go looking for a bug that isn't there.
-function Voice.InstalledVoices()
-    local info = _G[PACK_ADDON]
-    if type(info) ~= "table" or type(info.voices) ~= "table" then return nil end
-    local names = {}
-    for name in pairs(info.voices) do names[#names + 1] = name end
-    table.sort(names)
-    return names, info.voices
-end
-
 function Voice.Describe()
-    local race, sex = Voice.PlayerVoice()
-    local lines = ns.VoiceLines
-    local installed, counts = Voice.InstalledVoices()
+    local gv = ns.GameVoices
     return {
         enabled = Voice.IsEnabled(),
-        others = Voice.HearsOthers(),
-        race = race,
-        sex = sex,
-        folder = Voice.FolderFor(race, sex),
-        root = "Interface\\AddOns\\" .. PACK_ADDON,
-        count = lines and lines.COUNT or 0,
+        catalogue = (gv and gv.COUNT) or 0,
         stats = Voice.stats,
-        installed = installed,
-        clipCounts = counts,
     }
-end
-
--- A line that is definitely in the manifest, for "play me something" to use.
--- Picked by sorting rather than by taking whatever pairs() offers first, so
--- the same command demonstrates the same clip every time -- otherwise a player
--- comparing two runs has no idea whether the voice or the line changed.
-function Voice.SampleLine()
-    local lines = ns.VoiceLines
-    if not (lines and type(lines.ByText) == "table") then return nil end
-    local best
-    for text in pairs(lines.ByText) do
-        if best == nil or text < best then best = text end
-    end
-    return best
-end
-
--- Try a specific line and report the path that worked, or every path that
--- didn't. The second half is the useful one: it turns "nothing happened" into
--- a filename to compare against what is actually on disk.
-function Voice.Check(spoken)
-    local race, sex = Voice.PlayerVoice()
-    local paths, clip = Voice.Candidates(spoken, race, sex)
-    if not clip then return nil, nil, {} end
-    local ok, path = playFirst(paths)
-    return ok, path, paths, clip
 end

@@ -67,24 +67,20 @@ flip **in character** when you want to be heard in it.
   line to reword it in place, shipped ones included; it keeps what you type when you click
   away, and Escape (or the circle-slash on the row) puts it back. A pack line you've
   changed offers **Revert** where its pack name was, and keeps the weight you gave it.
-  A phrase you wrote has no recording of its own, so every line carries a strip beneath
-  it reading **Says** *[its own words]* **in** *[your own voice]*: point the line at any
-  of the 194 that were recorded, pick who says it — *Male Forsaken*, *Female Night Elf*,
-  any race in either sex — and **Play** auditions the pair. The two are independent, so
-  your own words in another race's voice works as readily as the other way round.
-  Editing a line also previews how it will read with its tokens filled in.
-- **Voice packs (optional).** Hear the words in `"quotes"` spoken aloud, in a voice
-  matching the speaker's race and gender — your own lines and other players' alike, since
-  a chat line carries the GUID their race and gender can be read from. The audio is a
-  separate download; without it nothing changes and nothing breaks.
-  Turning voices on turns translation **off** for cast phrases, and that trade is the
-  feature rather than a limitation: a tongue re-garbles every line from its own seed, so
-  no finite set of recordings could cover the translated forms. Leaving speech in English
-  is what reduces a whole voice to 194 clips. `/toa voice` reports which folder your
-  character reads from and, when nothing plays, every path it looked in.
-  Packs are generated locally and cost nothing — `tools/Build-VoicePack.ps1` reads the
-  lines with an offline text-to-speech engine and shapes each race with a pitch and
-  formant shift, so you can build or retune your own without an account anywhere.
+  Every line also carries a **Says** strip beneath it: **Browse voice lines** opens the
+  catalogue, **Play** auditions what is pinned, and the pinned line is spelled out beside
+  them with the name of whoever says it, so you can read down a list and see at a glance
+  which lines have sound and which go out silent. Editing a line previews how it will read
+  with its tokens filled in — and puts the cursor at the start of it, which is the end you
+  were going to correct.
+- **Sound, from the game's own voice actors.** 2,329 lines from 38 speakers, pinned to any
+  phrase you like: battle cries, threats, boasts, the grunts and death cries, all of it
+  nested under what kind of line it is so a speaker is a list you can read rather than a
+  wall. Nothing is downloaded, because nothing is shipped but numbers — the client already
+  has the audio on disk and the addon plays it by file id.
+  Nothing is synthesised and nothing is suppressed: your words still translate into
+  whatever tongue you are speaking, and the sound plays over the top. `/toa voice test
+  <id>` plays a file id directly if you want to go hunting for one yourself.
 - **Two or three lines per spell, all of them eligible.** Nothing to configure before the
   feature sounds right: every shipped line suits any character, so what you hear is what
   the pack ships. The bound is the throttle's doing rather than a budget — a spell won't
@@ -92,8 +88,8 @@ flip **in character** when you want to be heard in it.
   phrase weights are there when you want a favourite more often, or a line never again.
 - **Faction and faith are yours to write.** No pack names either, so a Blood Elf paladin
   and a draenei one can share a spell list and still sound like themselves. Write your own
-  `roars "For the Horde!"` on whatever spell suits it — and because the cries that used to
-  ship as creed packs kept their recordings, the **Says** picker can still give it a voice.
+  `roars "For the Horde!"` on whatever spell suits it, and pin it to whichever of the
+  game's recordings suits the character saying it.
   Per-phrase weights decide how often each line comes up, and a keybinding opens a spell's
   phrase list while you hover it on your action bars. Lines go out as emotes; see
   [Notes & limitations](#notes--limitations) for why that isn't a choice.

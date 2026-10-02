@@ -52,7 +52,7 @@
       Forsaken and a cheerful Gnome alike. Two or three is not a budget forced
       on us by space -- it is what the throttle makes useful. A spell will not
       speak twice inside five minutes, so a fourth line is one almost nobody
-      hears, and one more clip in every voice pack.
+      hears.
 
       Spend those two or three on DIFFERENT SHAPES rather than three readings of
       the same beat. The set that works is roughly: one that narrates with a
@@ -689,29 +689,12 @@ pack('professions', 'Professions & travel', 'The quiet, everyday casts.', {
 --@phrases-end@
 --=========================================================================--
 
--- Spoken lines with no phrase of their own.
---
--- These were the creed packs -- "For the Horde!", "Elune-adore." -- lines tied
--- to no spell, which rode along on whatever you already cast. The packs are
--- gone: what a character believes is exactly the sort of thing that should be
--- written rather than ticked, and a list of eight beliefs was never going to
--- cover anybody properly.
---
--- The words stay, because audio can only be rendered ahead of time and the
--- picker will only offer lines that were. Dropping these from the manifest
--- would mean somebody writing their own 'roars "For the Horde!"' had no way to
--- make it audible -- which is the one thing removing the packs was supposed to
--- make easier. So they are no longer phrases, but they are still voices.
-CastLibrary.EXTRA_SPOKEN = {
-    'For the Horde.', 'For the Horde!', 'Lok\'tar ogar!',
-    'For the Alliance.', 'For the Alliance!', 'Hold the line!',
-    'Light guide us.', 'The Light is with us!', 'The Light keep you.',
-    'Elune be with us.', 'Elune, give me strength!', 'Elune-adore.',
-    'The ancestors are watching.', 'For the ancestors!', 'Walk with the ancestors.',
-    'The elements are restless today.', 'The elements answer!',
-    'The fel doesn\'t tire.', 'Burn it all!',
-    'The shadow is patient.', 'Into the dark with you!',
-}
+-- The creed packs -- "For the Horde!", "Elune-adore." -- used to leave a list
+-- of spoken lines behind them here, kept because the synthesised audio for them
+-- had already been rendered and the picker would only offer lines that had. The
+-- synthesiser is gone and nothing is rendered ahead of time any more, so there
+-- is nothing for a list of bare words to be the key to. Write the line you want
+-- and pin it to one of the game's own recordings.
 
 function CastLibrary.GetPacks()
     return PACKS

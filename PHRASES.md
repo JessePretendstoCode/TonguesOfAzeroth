@@ -29,8 +29,7 @@ Gnome alike. There are no tone tags and no character sheet to filter them — a 
 earns its place in the two or three, or it is cut.
 
 The bound is not about space. The throttle will not let a spell speak twice inside five
-minutes, so a fourth line is one almost nobody hears, and one more clip to render in
-every voice pack.
+minutes, so a fourth line is one almost nobody hears.
 
 Spend the two or three on **different shapes** rather than three readings of the same
 beat: one that narrates with a concrete detail, one that speaks aloud, and — on a spell
@@ -41,9 +40,9 @@ worth it — one that is wry.
 - **200 of 362 lines (55%) speak aloud.** The quoted half is the only part the language
   engine gets to transform, so this is the number that decides whether the feature shows
   itself off. The target is roughly half.
-- **194 distinct spoken spans.** This is the size of a voice pack: one rendered clip per
-  span, per race and gender. Reusing a short span across two spells is a saving, not a
-  failure of imagination.
+- **173 distinct spoken spans.** Reusing a short span across two spells is a saving, not
+  a failure of imagination: the same two words in two spells read as a character with a
+  habit rather than as a library running short.
 - **76 of 143 spells carry the full three lines**; the rest make do with two, which is
   the right answer for a spell with only two things worth saying about it.
 - 159 of 362 lines use a `%` token.
@@ -931,40 +930,3 @@ worth it — one that is wry.
 
 - talks the magic into staying put, runes smoking on the metal.
 - argues with the magic until it settles.
-
----
-
-# Spoken lines with no phrase
-
-These were the creed packs — lines tied to no spell, which rode along on whatever you
-already cast. The packs are gone: what a character believes is exactly the sort of thing
-that wants writing rather than ticking, and eight tickboxes were never going to fit
-anybody properly.
-
-The words stayed. Audio can only be rendered ahead of time, and the **Says** picker only
-offers lines that were — so dropping these would leave somebody who writes their own
-`roars "For the Horde!"` with no way to make it audible, which is the one thing removing
-the packs was meant to make easier. They are no longer phrases, but they are still voices:
-write your own line and point it at one of these.
-
-- "For the Horde."
-- "For the Horde!"
-- "Lok'tar ogar!"
-- "For the Alliance."
-- "For the Alliance!"
-- "Hold the line!"
-- "Light guide us."
-- "The Light is with us!"
-- "The Light keep you."
-- "Elune be with us."
-- "Elune, give me strength!"
-- "Elune-adore."
-- "The ancestors are watching."
-- "For the ancestors!"
-- "Walk with the ancestors."
-- "The elements are restless today."
-- "The elements answer!"
-- "The fel doesn't tire."
-- "Burn it all!"
-- "The shadow is patient."
-- "Into the dark with you!"
