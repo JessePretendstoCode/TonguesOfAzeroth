@@ -2788,9 +2788,21 @@ end
 -- Editing adds a third strip, the preview of what the line will read as. Rows
 -- anchor to the row above, so a row that grows pushes the rest down.
 local ROW_LINE_H = 22
-local ROW_VOICE_H = 26
+local ROW_VOICE_H = 30
 local ROW_REST_H = ROW_LINE_H + ROW_VOICE_H
 local ROW_EDIT_H = ROW_REST_H + 18
+
+-- Three columns, shared by both strips of the row, because a row read down the
+-- list is read as columns whether or not it was built as any.
+--
+--   [ - 50% + ] [ the words ....................... ] [ what to do about it ]
+--   [   Says   ] [ who says it, and what ........... ] [ Browse  Play  x    ]
+--
+-- The phrase and the line it is pinned to start at the same x, so the eye goes
+-- down the words rather than stepping around the controls between them; the
+-- controls all end at the same right edge for the same reason.
+local ROW_TEXT_X = 84      -- clear of the - 50% + block
+local ROW_GUTTER = 96      -- Revert, or the name of the pack the line came from
 
 local function castRow(index, parent)
     if castRows[index] then return castRows[index] end
@@ -2848,13 +2860,13 @@ local function castRow(index, parent)
     row.weight:SetWidth(38)
     row.weight:SetJustifyH("CENTER")
 
-    row.meta = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    row.meta:SetPoint("LEFT", row.up, "RIGHT", 6, 0)
-    row.meta:SetWidth(88)
-    row.meta:SetJustifyH("LEFT")
-
+    -- The pack a line came from used to be named twice on the same row: once
+    -- prettily on the left of the phrase and once as its raw id on the right.
+    -- It is said on the right now, and only there -- the left-hand copy was
+    -- holding eighty-eight pixels open on every row, blank on all the ones you
+    -- wrote yourself, and pushing the words it labelled out of their own column.
     row.text = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    row.text:SetPoint("LEFT", row.meta, "RIGHT", 4, 0)
+    row.text:SetPoint("LEFT", row.line1, "LEFT", ROW_TEXT_X, 0)
     row.text:SetJustifyH("LEFT")
     if row.text.SetWordWrap then row.text:SetWordWrap(false) end
 
@@ -2862,7 +2874,9 @@ local function castRow(index, parent)
 
     row.action = tinyButton("Delete", 56)
     row.action:SetPoint("RIGHT", row.line1, "RIGHT", 0, 0)
-    row.text:SetPoint("RIGHT", row.action, "LEFT", -8, 0)
+    -- A fixed gutter rather than an anchor to whichever of the two is showing,
+    -- so the words end in the same place on every row.
+    row.text:SetPoint("RIGHT", row.line1, "RIGHT", -ROW_GUTTER, 0)
 
     -- Faint wash on hover, so the phrase reads as something you can click. It
     -- belongs to the strip rather than the row: a HIGHLIGHT texture only lights
@@ -2875,8 +2889,9 @@ local function castRow(index, parent)
     -- Names the pack a library line came from, where the Delete button would be.
     row.source = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     row.source:SetPoint("RIGHT", row.line1, "RIGHT", 0, 0)
-    row.source:SetWidth(56)
+    row.source:SetWidth(ROW_GUTTER - 8)
     row.source:SetJustifyH("RIGHT")
+    if row.source.SetWordWrap then row.source:SetWordWrap(false) end
 
     -- Editing happens where the line already is, so you can read it against its
     -- neighbours while rewording it. Built from a bare EditBox rather than
@@ -2915,8 +2930,31 @@ local function castRow(index, parent)
     -- Indented under the phrase it belongs to, because the pinned line is often
     -- a sentence and will not fit beside a phrase.
     row.voiceLabel = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    row.voiceLabel:SetPoint("TOPLEFT", row, "TOPLEFT", 26, -ROW_LINE_H - 3)
+    row.voiceLabel:SetPoint("TOPLEFT", row, "TOPLEFT", 26, -ROW_LINE_H - 5)
     row.voiceLabel:SetText("Says")
+
+    -- The three controls sit at the right, not between the label and the line
+    -- they act on. Two hundred pixels of button in front of the quote pushed it
+    -- so far across that it wrapped, and what fell onto the wrapped line was the
+    -- name of whoever says it -- the one word on the row worth reading.
+    --
+    -- Laid out right to left so they end flush with Revert on the strip above,
+    -- while still reading Browse, Play, x.
+    --
+    -- Unpinning is hidden while nothing is pinned, because a button that clears
+    -- an empty thing is a button that only ever raises the question of what it
+    -- would have done. It keeps its slot either way, so the two beside it do
+    -- not shuffle sideways as rows are pinned and cleared.
+    row.voiceClear = tinyButton("x", 18)
+    row.voiceClear:ClearAllPoints()
+    -- Flush with Revert on the strip above, not four pixels short of it.
+    row.voiceClear:SetPoint("RIGHT", row.line1, "RIGHT", 0, 0)
+    row.voiceClear:SetPoint("TOP", row.voiceLabel, "TOP", 0, 4)
+    row.voiceClear:Hide()
+
+    row.voicePlay = tinyButton("Play", 40)
+    row.voicePlay:ClearAllPoints()
+    row.voicePlay:SetPoint("RIGHT", row.voiceClear, "LEFT", -6, 0)
 
     -- A window rather than a dropdown. The catalogue runs to thousands of lines
     -- across dozens of characters, which is not something you pour into a menu:
@@ -2924,28 +2962,18 @@ local function castRow(index, parent)
     -- scroll. See Compat.ShowLineBrowser.
     row.voiceBrowse = tinyButton("Browse voice lines", 118)
     row.voiceBrowse:ClearAllPoints()
-    row.voiceBrowse:SetPoint("LEFT", row.voiceLabel, "RIGHT", 8, 0)
+    row.voiceBrowse:SetPoint("RIGHT", row.voicePlay, "LEFT", -6, 0)
 
-    row.voicePlay = tinyButton("Play", 40)
-    row.voicePlay:ClearAllPoints()
-    row.voicePlay:SetPoint("LEFT", row.voiceBrowse, "RIGHT", 6, 0)
-
-    -- Unpinning. Hidden while nothing is pinned, because a button that clears
-    -- an empty thing is a button that only ever raises the question of what it
-    -- would have done. It keeps its slot either way so the text beside it does
-    -- not shuffle sideways as rows are pinned and cleared.
-    row.voiceClear = tinyButton("x", 18)
-    row.voiceClear:ClearAllPoints()
-    row.voiceClear:SetPoint("LEFT", row.voicePlay, "RIGHT", 6, 0)
-    row.voiceClear:Hide()
-
-    -- What it is pinned to, spelled out beside the buttons. This is the only
-    -- place the choice is readable without opening anything, now that there is
-    -- no dropdown sitting here wearing its own label.
+    -- What it is pinned to, starting at the same x as the phrase above it, so
+    -- the two things a row says read as one column rather than two indents.
     row.spokenText = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    row.spokenText:SetPoint("LEFT", row.voiceClear, "RIGHT", 8, 0)
-    row.spokenText:SetPoint("RIGHT", row, "RIGHT", -4, 0)
+    row.spokenText:SetPoint("LEFT", row, "LEFT", ROW_TEXT_X, 0)
+    row.spokenText:SetPoint("TOP", row.voiceLabel, "TOP", 0, 0)
+    row.spokenText:SetPoint("RIGHT", row.voiceBrowse, "LEFT", -10, 0)
     row.spokenText:SetJustifyH("LEFT")
+    -- Never wrap: the row is a fixed height, so a second line draws over the
+    -- preview rather than making room for itself.
+    if row.spokenText.SetWordWrap then row.spokenText:SetWordWrap(false) end
 
     -- What the line will actually read as in chat, tokens filled in. This one
     -- really is an editing aid -- it answers "did I write that right", which is
@@ -2955,6 +2983,16 @@ local function castRow(index, parent)
     row.preview:SetPoint("RIGHT", row, "RIGHT", -4, 0)
     row.preview:SetJustifyH("LEFT")
     row.preview:Hide()
+
+    -- A hairline under each row. Every row is two strips that belong together
+    -- and sit directly above two more that don't, and nothing said which pairs
+    -- were which -- so eight lines of text read as eight rows rather than four.
+    -- Faint enough to be a grouping rather than a grid.
+    row.rule = row:CreateTexture(nil, "BACKGROUND")
+    row.rule:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", 2, 0)
+    row.rule:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", -2, 0)
+    row.rule:SetHeight(1)
+    Compat.SolidTexture(row.rule, 1, 1, 1, 0.07)
 
     castRows[index] = row
     return row
@@ -3055,7 +3093,9 @@ local function RefreshCasts()
     for i, phrase in ipairs(phrases) do
         local row = castRow(i, castContent)
         row:ClearAllPoints()
-        row:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", i == 1 and 4 or 0, i == 1 and -10 or -2)
+        -- Eight rather than two between rows: the hairline under each one needs
+        -- air on both sides to read as a divider instead of an underline.
+        row:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", i == 1 and 4 or 0, i == 1 and -10 or -8)
         row:SetPoint("RIGHT", castContent, "RIGHT", -24, 0)
 
         local step = phrase.step or 0
@@ -3069,16 +3109,15 @@ local function RefreshCasts()
         if grey then
             row.weight:SetTextColor(0.5, 0.5, 0.5)
             row.text:SetTextColor(0.5, 0.5, 0.5)
-            row.meta:SetTextColor(0.4, 0.4, 0.4)
+            row.source:SetTextColor(0.4, 0.4, 0.4)
         else
             row.weight:SetTextColor(1, 0.82, 0)
             row.text:SetTextColor(1, 1, 1)
-            row.meta:SetTextColor(0.55, 0.55, 0.55)
+            row.source:SetTextColor(0.55, 0.55, 0.55)
         end
         -- No marker for a borrowed voice here any more: the picker below the
         -- phrase names it outright, which is the whole point of it being on
         -- show, and saying it twice on one row only crowds the column.
-        row.meta:SetText(phraseSourceLabel(phrase))
         row.text:SetText(phrase.text)
 
         row.line1:SetScript("OnEnter", function(self)
@@ -3173,8 +3212,12 @@ local function RefreshCasts()
         if pinned then
             local who = Voice and Voice.GameId and ns.GameVoices
                 and ns.GameVoices.SpeakerById[Voice.GameId(pinned)]
-            row.spokenText:SetText("|cff88ccff\"" .. (said or pinned) .. "\"|r"
-                .. (who and ("  |cff707070" .. who .. "|r") or ""))
+            -- Who first, then what. The quote can be long and the row cannot
+            -- grow, so whichever comes last is the part that gets cut off --
+            -- and the speaker is both the shorter of the two and the reason
+            -- the line was picked. The whole quote is in the tooltip anyway.
+            row.spokenText:SetText((who and ("|cff707070" .. who .. "|r  ") or "")
+                .. "|cff88ccff\"" .. (said or pinned) .. "\"|r")
             row.voiceClear:Show()
         else
             row.spokenText:SetText("|cff808080nothing pinned -- this line goes out silent|r")
@@ -3381,7 +3424,9 @@ local function RefreshCasts()
             -- is how you retire one. The pack name doubles as the explanation.
             row.action:Hide()
             row.source:Show()
-            row.source:SetText(phrase.pack or "pack")
+            -- The pack's name, not its id: "Priest", not "priest". The id was
+            -- only ever here because the pretty version was over on the left.
+            row.source:SetText(phraseSourceLabel(phrase))
         end
 
         row:Show()
