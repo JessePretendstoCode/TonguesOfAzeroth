@@ -334,21 +334,19 @@ local function langItems()
     -- has a setting that says so rather than having to park on a tongue they
     -- are 0% fluent in and hope.
     --
-    -- It carries the only star in this list. Stars were deliberately moved off
-    -- these rows and onto the language rows below, because hunting seventy
-    -- entries to mark the handful that would have saved you the hunt is no
-    -- help -- but None has no row down there to be marked on. Those rows are
-    -- built from the primary languages, and None is hidden from that list by
-    -- design, so without this the one tongue you most want on your shortlist
-    -- is the one tongue you cannot put there. Right-clicking already worked;
-    -- nothing said so.
-    items[#items + 1] = { text = Language.GetLanguageName("none"), value = "none",
-                          toggle = isFav("none") }
+    -- Pinned rather than favoritable. A star here would be the only one in a
+    -- list the stars were deliberately moved out of, and it would be earning
+    -- its keep only to lift None to a position it already holds: being the
+    -- first row is exactly what a player favorites something to get.
+    items[#items + 1] = { text = Language.GetLanguageName("none"), value = "none" }
     local favs = (ns.GetFavorites and ns.GetFavorites()) or {}
     local favRows = {}
     for i = 1, #favs do
         local id = favs[i]
-        if not (ns.IsNativeLanguage and ns.IsNativeLanguage(id)) then
+        -- None is pinned above, so it must not come round again under the
+        -- header. Right-clicking any row still favorites it, which has always
+        -- meant None could be favorited and listed twice.
+        if id ~= "none" and not (ns.IsNativeLanguage and ns.IsNativeLanguage(id)) then
             favRows[#favRows + 1] = { text = Language.GetLanguageName(id), value = id }
         end
     end
@@ -1678,9 +1676,6 @@ local function BuildLearnedPanel()
         if ns.ToggleFavorite then ns.ToggleFavorite(value) end
         if ns.OnSettingsChanged then ns.OnSettingsChanged() else RefreshLearned() end
     end
-    -- Only rows that opt in with a `toggle` field draw a star, which here is
-    -- None and nothing else, so the list stays as uncluttered as it was.
-    langDropdown.onToggle = langDropdown.onAltClick
 
     -- Global learning method: passive (learn by hearing). The Trainer minigame is
     -- always available from its own panel; this toggles the automatic learning.
