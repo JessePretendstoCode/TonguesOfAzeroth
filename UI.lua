@@ -2846,10 +2846,10 @@ local function castRow(index, parent)
     row.up = tinyButton("+")
     row.up:SetPoint("LEFT", row.down, "RIGHT", 38, 0)
 
-    -- Shown as the share of casts this line will take, not as the 0-5 weight
-    -- underneath it. The weight is a number that only means anything next to
-    -- the other weights in the same list, which is exactly the comparison a
-    -- reader should not have to do in their head.
+    -- The 0-5 weight underneath, shown as a percentage of the most a line can
+    -- be favoured. The raw number means nothing on its own and "3" invites the
+    -- question "of what"; the percentage answers it without pretending the
+    -- lines are dividing a hundred between them.
     row.weight = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     row.weight:SetPoint("LEFT", row.down, "RIGHT", 0, 0)
     row.weight:SetWidth(38)
@@ -3065,14 +3065,6 @@ local function RefreshCasts()
     local phrases = castSelectedKey and Casts.GetPhrases(castSelectedKey) or {}
     local anchor = castMuteCheck
 
-    -- The percentages are shares of this spell's own list, so they need the
-    -- total before any row can be drawn. Retired lines contribute nothing, and
-    -- a list that is entirely retired would divide by zero -- the 1 keeps the
-    -- arithmetic safe and every row reads "off" in that case anyway.
-    local castWeightTotal = 0
-    for _, p in ipairs(phrases) do castWeightTotal = castWeightTotal + (p.step or 0) end
-    if castWeightTotal == 0 then castWeightTotal = 1 end
-
     -- The legend only makes sense above a list, so it comes and goes with one.
     if castWeightHeader then
         if #phrases > 0 then
@@ -3085,6 +3077,13 @@ local function RefreshCasts()
             castWeightHeader:Hide()
         end
     end
+    -- Only the tooltip needs this. The share a line ends up with is worth
+    -- knowing and is the wrong thing to steer by, so it is said on hover rather
+    -- than printed on the row: it moves when any other line moves, and a number
+    -- that changes because you edited something else cannot be aimed.
+    local castWeightTotal = 0
+    for _, p in ipairs(phrases) do castWeightTotal = castWeightTotal + (p.step or 0) end
+
     for i, phrase in ipairs(phrases) do
         local row = castRow(i, castContent)
         row:ClearAllPoints()
@@ -3094,12 +3093,17 @@ local function RefreshCasts()
         row:SetPoint("RIGHT", castContent, "RIGHT", -24, 0)
 
         local step = phrase.step or 0
-        -- Out of the whole list, so the number answers "how often will I say
-        -- this one" rather than "what is this one set to". Retired lines read
-        -- as "off" rather than 0%: the two are the same arithmetic but one of
-        -- them says it was a decision.
+        -- This line's own setting, not its slice of the list. Showing the slice
+        -- read as a budget: the numbers were forced to total 100, so nudging one
+        -- line moved every other line's number without anybody having touched
+        -- them, and no nudge was worth the same as the last one.
+        --
+        -- A weight says how heavily this line is favoured against the others and
+        -- nothing else. Two lines at 100% are a coin toss; 100% against 50% is
+        -- two times out of three. Retired lines read "off" rather than 0%: the
+        -- same arithmetic, but one of them says it was a decision.
         row.weight:SetText(step == 0 and "off"
-            or string.format("%d%%", math.floor(step / castWeightTotal * 100 + 0.5)))
+            or string.format("%d%%", math.floor(step / Casts.MAX_WEIGHT * 100 + 0.5)))
         local grey = step == 0
         if grey then
             row.weight:SetTextColor(0.5, 0.5, 0.5)
@@ -3153,18 +3157,22 @@ local function RefreshCasts()
             RefreshCasts()
         end)
 
-        -- The percentage is what you steer by, but the thing being stored is a
-        -- weight of 0 to 5, and that is worth saying somewhere: it explains why
-        -- nudging one line moves the numbers on all the others.
+        -- The row shows what this line is set to; the tooltip is where the
+        -- consequence goes. Both are worth having and only one of them is worth
+        -- putting a +/- against.
         local function weightTip(self)
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-            GameTooltip:AddLine("How often this line is picked", 1, 1, 1)
-            GameTooltip:AddLine(string.format("Weight %d of %d, against %d across the list.",
-                step, Casts.MAX_WEIGHT, castWeightTotal), 0.8, 0.8, 0.8, true)
-            GameTooltip:AddLine("Raising one line lowers the share of every other, "
-                .. "because they divide the same casts between them.", 0.6, 0.6, 0.6, true)
+            GameTooltip:AddLine("How much this line is favoured", 1, 1, 1)
+            GameTooltip:AddLine("A weight, not a budget. The lines do not have "
+                .. "to add up to anything, and changing one leaves the rest "
+                .. "where you set them.", 0.8, 0.8, 0.8, true)
             if step == 0 then
-                GameTooltip:AddLine("At 0 this line is retired and never picked.", 1, 0.82, 0, true)
+                GameTooltip:AddLine("At off this line is retired and never picked.",
+                    1, 0.82, 0, true)
+            elseif castWeightTotal > 0 then
+                GameTooltip:AddLine(string.format(
+                    "As the list stands, it comes up about %d%% of the time.",
+                    math.floor(step / castWeightTotal * 100 + 0.5)), 0.6, 0.6, 0.6, true)
             end
             GameTooltip:Show()
         end
@@ -3616,7 +3624,7 @@ local function BuildCastPanel()
     castWeightHeader:SetPoint("RIGHT", content, "RIGHT", -24, 0)
     castWeightHeader:SetJustifyH("LEFT")
     if castWeightHeader.SetWordWrap then castWeightHeader:SetWordWrap(true) end
-    castWeightHeader:SetText("The |cffffd200%|r on each line is how often this spell picks it. Nudge it with |cffffd200-|r and |cffffd200+|r; take a line down to |cffffd200off|r to retire it without deleting it.")
+    castWeightHeader:SetText("The |cffffd200%|r on each line is how much it is favoured, not a share of a hundred -- two lines at 100% are a coin toss. Nudge it with |cffffd200-|r and |cffffd200+|r; take a line down to |cffffd200off|r to retire it without deleting it.")
 
     castEmptyNote = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     castEmptyNote:SetJustifyH("LEFT")
