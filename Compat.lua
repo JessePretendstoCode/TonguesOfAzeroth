@@ -26,6 +26,55 @@ local Compat = {}
 ns.Compat = Compat
 
 --=========================================================================--
+--  A stopwatch, for waits that only happen in the game.
+--=========================================================================--
+-- Opening the line browser takes a reported fifteen seconds in play and four
+-- milliseconds under the test harness, frames and all. That gap is the whole
+-- problem: whatever costs the seconds is something the client does for real
+-- and a stub does for free, so reading the code cannot find it and timing it
+-- outside the game cannot either. This records what the client's own clock
+-- says, and `/toa timings` reads it back.
+--
+-- Left in rather than torn out once the cause is found: a catalogue that is
+-- about to grow from ninety-three speakers to several thousand will get slow
+-- again, and the next time it does, the measurement should already be there.
+local marks, markOrder = {}, {}
+
+function Compat.Mark(label, ms)
+    local m = marks[label]
+    if not m then
+        m = { n = 0, total = 0, worst = 0 }
+        marks[label] = m
+        markOrder[#markOrder + 1] = label
+    end
+    m.n = m.n + 1
+    m.total = m.total + ms
+    if ms > m.worst then m.worst = ms end
+end
+
+-- debugprofilestop is the client's millisecond clock. Outside the game there
+-- is no such thing, so the call is passed straight through rather than timed
+-- against a substitute that would measure the wrong machine.
+function Compat.Timed(label, fn, ...)
+    if type(debugprofilestop) ~= "function" then return fn(...) end
+    local t0 = debugprofilestop()
+    local a, b, c = fn(...)
+    Compat.Mark(label, debugprofilestop() - t0)
+    return a, b, c
+end
+
+-- Worst, not mean: a fifteen-second wait that happens once is invisible in an
+-- average taken over a dozen fast reopens, and the once is the complaint.
+function Compat.Timings()
+    local out = {}
+    for _, label in ipairs(markOrder) do
+        local m = marks[label]
+        out[#out + 1] = { label = label, count = m.n, total = m.total, worst = m.worst }
+    end
+    return out
+end
+
+--=========================================================================--
 --  Client tier detection (feature-detected).
 --=========================================================================--
 -- The Settings API exists on Retail, Forever and all current Classic flavors.
@@ -1064,7 +1113,12 @@ function Compat.CreateDropdown(parent, width)
     end
 
     dd:SetScript("OnClick", function()
-        if menu and menu:IsShown() then closeMenu() else openMenu() end
+        if menu and menu:IsShown() then
+            closeMenu()
+        else
+            Compat.Timed("dropdown: open menu (" .. #(dd.items or {}) .. " entries)",
+                openMenu)
+        end
     end)
     dd:HookScript("OnHide", closeMenu)
 
@@ -1731,7 +1785,9 @@ end
 
 function Compat.ShowLineBrowser(opts)
     opts = opts or {}
-    browserFrame = browserFrame or buildBrowser()
+    if not browserFrame then
+        browserFrame = Compat.Timed("browser: build the window once", buildBrowser)
+    end
     local f = browserFrame
     f.title:SetText(opts.title or "Voice lines")
     f._filter = opts.filter
@@ -1748,9 +1804,11 @@ function Compat.ShowLineBrowser(opts)
 
     local all = opts.groupAll or "Everything"
     local items = { { value = "", text = all } }
-    for _, g in ipairs((opts.groups and opts.groups()) or {}) do
-        items[#items + 1] = { value = g.id, text = g.label }
-    end
+    Compat.Timed("browser: list the speakers", function()
+        for _, g in ipairs((opts.groups and opts.groups()) or {}) do
+            items[#items + 1] = { value = g.id, text = g.label }
+        end
+    end)
     f.groupDrop:SetItems(items)
     local label = all
     for _, it in ipairs(items) do if it.value == f.group then label = it.text end end
@@ -1759,7 +1817,7 @@ function Compat.ShowLineBrowser(opts)
     -- Seeds the box without firing a filter per character; renarrow applies
     -- once at the end, after the kind list and letter strip are built.
     f.input:SetText(opts.query or "")
-    f.renarrow(f)
+    Compat.Timed("browser: narrow and fill the list", f.renarrow, f)
     f:Show()
     f:Raise()
     return f

@@ -2394,6 +2394,19 @@ local function handleSlash(input)
             Print("cycling walks |cffffff00every language you've learned|r.")
         end
         if ns.OnSettingsChanged then ns.OnSettingsChanged() end
+    elseif cmd == "timings" or cmd == "timing" then
+        -- Undocumented on purpose: this is for answering "why did that take so
+        -- long" with a number instead of a guess, not a setting anybody tunes.
+        local rows = ns.Compat.Timings()
+        if #rows == 0 then
+            Print("nothing timed yet. Open the thing that felt slow, then run this again.")
+        else
+            Print("slowest run of each step, in milliseconds:")
+            for _, r in ipairs(rows) do
+                Print(string.format("  |cffffd100%7.0f|r  %s |cff808080(%d run%s)|r",
+                    r.worst, r.label, r.count, r.count == 1 and "" or "s"))
+            end
+        end
     elseif cmd == "list" or cmd == "langs" then
         listLanguages()
     elseif cmd == "learned" then
