@@ -64,14 +64,19 @@ local function castDB()
     return TonguesOfAzerothDB and TonguesOfAzerothDB.casts
 end
 
--- Gated on the in-character switch as well as its own, so the mute reaches the
--- sound and not only the words. Audition is deliberately not: pressing Play on
--- the phrase panel is a direct request, and refusing it would leave somebody
--- picking a line they are not allowed to hear first.
+-- Gated on the in-character switch, so the mute reaches the sound and not only
+-- the words. Audition is deliberately not: pressing Play on the phrase panel is
+-- a direct request, and refusing it would leave somebody picking a line they are
+-- not allowed to hear first.
+--
+-- There is no separate "speak out loud" switch any more. A phrase is silent
+-- until a recording is pinned to it, so pinning already says yes and a second
+-- switch only gave the same answer twice -- in the arrangement where it was
+-- off by default, it was a switch whose job was to make the pinning not work.
 function Voice.IsEnabled()
     local c = castDB()
     if ns.IsInCharacter and not ns.IsInCharacter() then return false end
-    return (c and c.enabled and c.voice) and true or false
+    return (c and c.enabled) and true or false
 end
 
 --=========================================================================--

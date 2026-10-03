@@ -750,13 +750,3 @@ function CastLibrary.PackForPlayer()
     return CLASS_PACKS[token:upper()]
 end
 
--- Classes that can have a pet worth narrating, so switching the feature on can
--- tick the Pets pack for the people it applies to and nobody else.
-local PET_CLASSES = { HUNTER = true, WARLOCK = true, DEATHKNIGHT = true, MAGE = true }
-
-function CastLibrary.PlayerHasPetClass()
-    if type(UnitClass) ~= "function" then return false end
-    local ok, _, token = pcall(UnitClass, "player")
-    if not ok or type(token) ~= "string" then return false end
-    return PET_CLASSES[token:upper()] and true or false
-end

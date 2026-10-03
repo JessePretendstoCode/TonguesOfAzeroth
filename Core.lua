@@ -494,7 +494,9 @@ local function migrateDB()
     if casts.gap == nil then casts.gap = CAST_DEFAULTS.gap end
     if casts.spellGap == nil then casts.spellGap = CAST_DEFAULTS.spellGap end
     if casts.pets == nil then casts.pets = true end
-    -- Which library packs are opted in: { [packId] = true }.
+    -- Which library packs are switched off: { [packId] = false }. Absence means
+    -- on, so this is normally empty and there is no longer any panel that fills
+    -- it -- see Casts.IsPackEnabled.
     if type(casts.packs) ~= "table" then casts.packs = {} end
     -- Your own phrases: { [spellKey] = { { text = "...", weight = 3 }, ... } }.
     if type(casts.spells) ~= "table" then casts.spells = {} end
@@ -507,14 +509,23 @@ local function migrateDB()
     -- the same reach without the panel. Dropped rather than left in place so it
     -- does not sit in the saved file looking meaningful.
     casts.tone = nil
-    if casts.packsSeeded == nil then casts.packsSeeded = false end
     if casts.filterSpellbook == nil then casts.filterSpellbook = true end
-    if casts.showOtherPacks == nil then casts.showOtherPacks = false end
-    -- Speak a pinned phrase aloud. Off by default: a phrase stays silent until
-    -- the player goes and picks a line for it, so switching this on by itself
-    -- would change nothing and only look broken.
-    if casts.voice == nil then casts.voice = false end
+
+    -- Three settings that used to have panels and no longer do.
+    --
+    -- `voice` was a second yes for speaking a phrase aloud. A phrase is silent
+    -- until a recording is pinned to it, so pinning was already the answer, and
+    -- a switch that defaulted off existed mainly to stop the pinning working.
+    -- `packsSeeded` guarded a one-time tick of the obvious packs, which is moot
+    -- now that every pack is on unless refused. `showOtherPacks` revealed the
+    -- other classes' tickboxes, and there are no tickboxes.
+    --
+    -- Cleared rather than left behind: a value nothing reads and nothing can
+    -- set is just a thing in the saved file that looks like it means something.
+    casts.voice = nil
     casts.voiceOthers = nil
+    casts.packsSeeded = nil
+    casts.showOtherPacks = nil
 
     -- Two settings from the synthesised-voice era, both now meaningless.
     -- `casts.voices` named a race and gender to render a line in; there is
@@ -2040,7 +2051,6 @@ local function castCommand(rest)
 
     if sub == "on" or sub == "off" then
         c.enabled = (sub == "on")
-        if c.enabled and Casts.SeedDefaultPacks then Casts.SeedDefaultPacks() end
         Print("cast phrases: " .. (c.enabled and "|cff00ff00on|r" or "|cffff0000off|r"))
     elseif sub == "" or sub == "config" or sub == "ui" then
         if ns.OpenCastConfig then ns.OpenCastConfig() end
@@ -2108,11 +2118,13 @@ local function castCommand(rest)
     end
 end
 
--- /toa voice. There is nothing to install and nothing to assemble any more, so
--- this is a short command: the switch, and a count of what the catalogue holds
--- against what this client could actually sound. Those two numbers differ --
--- the catalogue is built from one build of the game and a player on another
--- may be missing files -- and that gap is the only failure worth reporting.
+-- /toa voice. There is nothing to install and nothing to assemble any more, and
+-- no switch either: a phrase is silent until a recording is pinned to it, so
+-- pinning is the only yes there has ever needed to be. What is left is a count
+-- of what the catalogue holds against what this client could actually sound.
+-- Those two numbers differ -- the catalogue is built from one build of the game
+-- and a player on another may be missing files -- and that gap is the only
+-- failure worth reporting.
 local function voiceCommand(rest)
     local Voice = ns.Voice
     if not Voice then
@@ -2120,18 +2132,10 @@ local function voiceCommand(rest)
         return
     end
     migrateDB()
-    local c = TonguesOfAzerothDB.casts
     local sub, arg = (rest or ""):match("^(%S*)%s*(.-)$")
     sub = string.lower(sub or "")
 
-    if sub == "on" or sub == "off" then
-        c.voice = (sub == "on")
-        Print("spoken cast phrases: " .. (c.voice and "|cff00ff00on|r" or "|cffff0000off|r"))
-        if c.voice and not c.enabled then
-            Print("cast phrases themselves are still |cffff0000off|r (/toa cast on).")
-        end
-        if ns.OnSettingsChanged then ns.OnSettingsChanged() end
-    elseif sub == "test" then
+    if sub == "test" then
         local id = tonumber(arg)
         if not id then
             Print("usage: /toa voice test <fileDataId>")
@@ -2148,7 +2152,7 @@ local function voiceCommand(rest)
             d.stats.played, d.stats.unmapped))
         Print("a phrase stays silent until you pin a line to it -- open the Cast")
         Print("Phrases panel and use |cffffff00Browse voice lines|r on the line you want.")
-        Print("usage: /toa voice [on|off|test <fileDataId>]")
+        Print("usage: /toa voice [test <fileDataId>]")
     end
 end
 

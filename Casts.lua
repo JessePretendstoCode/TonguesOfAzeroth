@@ -342,30 +342,33 @@ end
 --=========================================================================--
 --  Library packs
 --=========================================================================--
+-- On unless something says otherwise, which is the opposite of how this read
+-- before. Packs stopped being a thing players curate -- they are where a line
+-- was written, which PHRASES.md is grouped by and which each row names as its
+-- source -- so there is nothing left to opt into and no panel to opt in from.
+--
+-- Absence meaning "on" is what lets that happen without a migration: an
+-- existing save holds ticks for the one or two packs its owner opted into and
+-- nothing at all for the rest, and nothing at all is now the answer we want.
+--
+-- All of them on does not bury a priest in warlock spells. The spell list is
+-- already crossed with the player's spellbook, so a pack can only contribute
+-- spells its owner can actually cast. Choosing packs by class was applying
+-- that same filter a second time and worse -- by what you are rather than by
+-- what you know -- which is how a druid's travel-form lines ended up behind a
+-- tickbox labelled with somebody else's class.
 function Casts.IsPackEnabled(packId)
     local c = castDB()
-    return (c and c.packs[packId]) and true or false
+    if not c then return false end
+    return c.packs[packId] ~= false
 end
 
+-- Stores the refusal rather than erasing the tick, because erasing it now reads
+-- as consent.
 function Casts.SetPackEnabled(packId, enabled)
     local c = castDB()
     if not c then return end
-    c.packs[packId] = enabled and true or nil
-end
-
--- First time the feature is turned on, tick the obvious packs so something
--- actually speaks. Once only -- re-enabling must not undo deliberate unticks.
-function Casts.SeedDefaultPacks()
-    local c = castDB()
-    if not c or c.packsSeeded then return end
-    c.packsSeeded = true
-    local lib = ns.CastLibrary
-    if not lib then return end
-    local mine = lib.PackForPlayer and lib.PackForPlayer()
-    if mine then c.packs[mine] = true end
-    if lib.PlayerHasPetClass and lib.PlayerHasPetClass() then
-        c.packs.pets = true
-    end
+    c.packs[packId] = enabled and true or false
 end
 
 --=========================================================================--

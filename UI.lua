@@ -72,11 +72,7 @@ local castEnableCheck, castPetCheck, castChanceSlider, castGapSlider, castSpellG
 local castSpellDropdown, castMuteCheck, castNewInput, castNewLabel
 local castWeightHeader
 local castPreviewText, castStatus, castAddRow, castEmptyNote
-local castPackChecks = {}
-local castPackBottom
-local castPackAnchor
-local castFilterSpellbookCheck, castShowOtherPacksCheck
-local castVoiceCheck
+local castFilterSpellbookCheck
 local castRows = {}
 local castSelectedKey
 -- The reword in progress, or nil. Four things, and all four have to live here
@@ -2765,49 +2761,6 @@ local function phraseSourceLabel(phrase)
     return ""
 end
 
-local function layoutCastPacks()
-    if not (castPackAnchor and castPackBottom) then return end
-    local c = castDB()
-    local showOther = c and c.showOtherPacks
-    local mine = ns.CastLibrary and ns.CastLibrary.PackForPlayer()
-    local packs = (ns.CastLibrary and ns.CastLibrary.GetPacks()) or {}
-
-    local mainList = {}
-    for _, pack in ipairs(packs) do
-        local check = castPackChecks[pack.id]
-        if check then
-            if pack.kind == "universal" or pack.id == mine
-                or (pack.kind == "class" and showOther) then
-                mainList[#mainList + 1] = check
-                check:Show()
-            else
-                check:Hide()
-            end
-        end
-    end
-
-    -- colAnchor is the LEFT-hand checkbox of the row being filled, and it is
-    -- what everything below the grid hangs off. Anchoring to "the last checkbox
-    -- placed" instead looks equivalent and is not: on an even count that is a
-    -- right-hand checkbox, sitting 240px in, and every section below inherits
-    -- the indent. Both columns of a row are the same height, so the left one
-    -- gives the same vertical position with none of that.
-    local colAnchor = castPackAnchor
-    for i, check in ipairs(mainList) do
-        check:ClearAllPoints()
-        if i == 1 then
-            check:SetPoint("TOPLEFT", castPackAnchor, "BOTTOMLEFT", 0, -8)
-        elseif i % 2 == 1 then
-            check:SetPoint("TOPLEFT", colAnchor, "BOTTOMLEFT", 0, -2)
-        else
-            check:SetPoint("TOPLEFT", colAnchor, "TOPLEFT", 240, 0)
-        end
-        if i % 2 == 1 then colAnchor = check end
-    end
-    castPackBottom:ClearAllPoints()
-    castPackBottom:SetPoint("TOPLEFT", colAnchor, "BOTTOMLEFT", 0, 0)
-end
-
 -- Rows are created once and reused, so switching between a spell with two
 -- phrases and one with twelve doesn't leak frames.
 -- Every row is two strips: the phrase, and the voice it speaks in. The voice
@@ -3069,11 +3022,6 @@ local function RefreshCasts()
             castFilterSpellbookCheck:Disable()
         end
     end
-    if castShowOtherPacksCheck then
-        castShowOtherPacksCheck:SetChecked(c.showOtherPacks and true or false)
-    end
-    if castVoiceCheck then castVoiceCheck:SetChecked(c.voice and true or false) end
-
     -- The captions are set here rather than left to OnValueChanged, which
     -- doesn't fire when the value is already what we're setting -- a slider
     -- sitting at its saved value would otherwise show no caption at all.
@@ -3089,11 +3037,6 @@ local function RefreshCasts()
     setSlider(castChanceSlider, c.chance or cd.chance, (c.chance or cd.chance) .. "%")
     setSlider(castGapSlider, c.gap or cd.gap, seconds(c.gap or cd.gap))
     setSlider(castSpellGapSlider, c.spellGap or cd.spellGap, seconds(c.spellGap or cd.spellGap))
-
-    for packId, check in pairs(castPackChecks) do
-        check:SetChecked(Casts.IsPackEnabled(packId))
-    end
-    layoutCastPacks()
 
     -- A selection is never taken away: a spell picked by name, or by the
     -- keybind, has no phrases yet by definition, and dropping it would undo the
@@ -3558,9 +3501,7 @@ local function BuildCastPanel()
     castEnableCheck = Compat.CreateCheckbox(content, "Speak a phrase when I cast something")
     castEnableCheck:SetPoint("TOPLEFT", limits, "BOTTOMLEFT", 0, -16)
     castEnableCheck:SetScript("OnClick", function(self)
-        local enabled = self:GetChecked() and true or false
-        castDB().enabled = enabled
-        if enabled then Casts.SeedDefaultPacks() end
+        castDB().enabled = self:GetChecked() and true or false
         RefreshCasts()
     end)
 
@@ -3604,90 +3545,9 @@ local function BuildCastPanel()
     if throttleHint.SetWordWrap then throttleHint:SetWordWrap(true) end
     throttleHint:SetText("The two pauses are what keep a spammable spell from turning your emotes into a wall of text. A cast that rolls a phrase while either pause is running simply stays quiet.")
 
-    --  Voice ---------------------------------------------------------------
-    local voiceLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    voiceLabel:SetPoint("TOPLEFT", throttleHint, "BOTTOMLEFT", 0, -16)
-    voiceLabel:SetText("Voice")
-
-    local voiceHint = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-    voiceHint:SetPoint("TOPLEFT", voiceLabel, "BOTTOMLEFT", 0, -4)
-    voiceHint:SetPoint("RIGHT", content, "RIGHT", -24, 0)
-    voiceHint:SetJustifyH("LEFT")
-    if voiceHint.SetWordWrap then voiceHint:SetWordWrap(true) end
-    voiceHint:SetText("Play a recording out loud when a phrase with \"quotes\" in it goes off. The recordings are the game's own -- boss lines, NPC chatter, grunts and death cries -- read by the people Blizzard hired, and already sitting in your client. Nothing is downloaded.")
-
-    castVoiceCheck = Compat.CreateCheckbox(content, "Speak phrases out loud")
-    castVoiceCheck:SetPoint("TOPLEFT", voiceHint, "BOTTOMLEFT", 0, -8)
-    castVoiceCheck:SetScript("OnClick", function(self)
-        castDB().voice = self:GetChecked() and true or false
-        RefreshCasts()
-    end)
-
-    local voiceNote = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-    voiceNote:SetPoint("TOPLEFT", castVoiceCheck, "BOTTOMLEFT", 0, -10)
-    voiceNote:SetPoint("RIGHT", content, "RIGHT", -24, 0)
-    voiceNote:SetJustifyH("LEFT")
-    if voiceNote.SetWordWrap then voiceNote:SetWordWrap(true) end
-    voiceNote:SetText("|cffffd200A phrase stays silent until you pin a line to it.|r Pick one with |cffffd200Browse voice lines|r on the phrase itself, in the list above. Your tongue and accent keep working either way -- a recording says whatever Blizzard recorded it saying, so there is nothing for a translation to disagree with.")
-
-    --  Packs -------------------------------------------------------------
-    local packLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    packLabel:SetPoint("TOPLEFT", voiceNote, "BOTTOMLEFT", 0, -16)
-    packLabel:SetText("Phrase packs")
-
-    local packHint = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-    packHint:SetPoint("TOPLEFT", packLabel, "BOTTOMLEFT", 0, -4)
-    packHint:SetPoint("RIGHT", content, "RIGHT", -24, 0)
-    packHint:SetJustifyH("LEFT")
-    if packHint.SetWordWrap then packHint:SetWordWrap(true) end
-    packHint:SetText("Ready-made lines for spells you already cast. Tick one and its spells appear in the list below, where you can reword, reweight or retire any line. Packs match spells by English name.")
-
-    castShowOtherPacksCheck = Compat.CreateCheckbox(content, "Show other classes")
-    castShowOtherPacksCheck:SetPoint("TOPLEFT", packHint, "BOTTOMLEFT", 0, -8)
-    castShowOtherPacksCheck:SetScript("OnClick", function(self)
-        castDB().showOtherPacks = self:GetChecked() and true or false
-        RefreshCasts()
-    end)
-
-    castPackAnchor = castShowOtherPacksCheck
-
-    local packs = (ns.CastLibrary and ns.CastLibrary.GetPacks()) or {}
-    local mine = ns.CastLibrary and ns.CastLibrary.PackForPlayer()
-    local function addPackCheck(pack, label)
-        local check = Compat.CreateCheckbox(content, label or pack.name)
-        check:Hide()
-        local packId = pack.id
-        check:SetScript("OnClick", function(self)
-            Casts.SetPackEnabled(packId, self:GetChecked() and true or false)
-            RefreshCasts()
-        end)
-        if check.SetScript and pack.note then
-            check:HookScript("OnEnter", function(self)
-                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-                GameTooltip:AddLine(pack.name, 1, 1, 1)
-                GameTooltip:AddLine(pack.note, 0.8, 0.8, 0.8, true)
-                GameTooltip:AddLine(string.format("%d spells, %d phrases", pack.spells, pack.phrases),
-                    0.6, 0.6, 0.6)
-                GameTooltip:Show()
-            end)
-            check:HookScript("OnLeave", function() GameTooltip:Hide() end)
-        end
-        castPackChecks[pack.id] = check
-    end
-
-    for _, pack in ipairs(packs) do
-        local label = pack.name
-        if pack.id == mine then label = label .. " |cff00ff00(yours)|r" end
-        addPackCheck(pack, label)
-    end
-
-    castPackBottom = CreateFrame("Frame", nil, content)
-    castPackBottom:SetSize(1, 1)
-    castPackBottom:SetPoint("TOPLEFT", castPackAnchor, "BOTTOMLEFT", 0, 0)
-
     --  The spell being edited --------------------------------------------
     local spellLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    spellLabel:SetPoint("TOPLEFT", castPackBottom, "BOTTOMLEFT", 0, -20)
+    spellLabel:SetPoint("TOPLEFT", throttleHint, "BOTTOMLEFT", 0, -20)
     spellLabel:SetText("Spell")
 
     castFilterSpellbookCheck = Compat.CreateCheckbox(content, "Only show spells I can cast")
