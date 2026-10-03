@@ -654,10 +654,18 @@ end
 -- like every other addon's button: correct placement AND collectable /
 -- auto-hideable by minimap-button managers (SexyMap, etc.).
 local ldbIcon
+local ldbObject
 local LDB_NAME = "TonguesOfAzeroth"
--- Keep in step with `## IconTexture:` in the TOCs so the minimap button and the
--- addon list show the same scroll.
-local ICON = "Interface\\Icons\\INV_Scroll_03"
+-- Two icons, not one icon tinted. The button used to be a scroll, desaturated
+-- and washed green or red, which answers "am I in character" only if you
+-- already know the code; a speaker with sound coming out of it and a speaker
+-- with a cross through it answer it to anybody who glances at the minimap.
+--
+-- Keep ICON in step with `## IconTexture:` in the TOCs, so the addon list and
+-- the button show the same thing. Shipped with the addon rather than borrowed
+-- from Blizzard's icon set, because nothing in there is a speaker.
+local ICON = "Interface\\AddOns\\TonguesOfAzeroth\\Media\\ToA-Voice-On"
+local ICON_MUTED = "Interface\\AddOns\\TonguesOfAzeroth\\Media\\ToA-Voice-Off"
 
 -- In character / out of character at a glance, in one place so the minimap
 -- button and the floating bar can't disagree about which colors mean what.
@@ -670,18 +678,25 @@ local function stateTint()
     return c[1], c[2], c[3], d.inCharacter and true or false
 end
 
--- Tint the minimap icon by state. Hovering to read a tooltip is a poor way to
--- answer a question you ask constantly, so the button answers it on sight:
--- green while in character, red while out. Desaturating first means the tint
--- lands as a flat color rather than fighting the artwork underneath it.
+-- Swap the minimap icon by state. Hovering to read a tooltip is a poor way to
+-- answer a question you ask constantly, so the button answers it on sight.
+--
+-- The artwork carries the state now, so the old desaturate-and-tint has to be
+-- undone rather than merely stopped: a button that was greyed out before the
+-- upgrade stays greyed out until something sets it back.
 local function ApplyMinimapState()
+    local muted = not db().inCharacter
+    -- LibDBIcon rebuilds the button's texture from the data object, so the
+    -- object is where the choice has to live or the next refresh undoes it.
+    if ldbObject then ldbObject.icon = muted and ICON_MUTED or ICON end
+
     local btn = minimapButton
         or (ldbIcon and ldbIcon.GetMinimapButton and ldbIcon:GetMinimapButton(LDB_NAME))
     local icon = btn and btn.icon
     if not icon then return end
-    local r, g, b = stateTint()
-    if icon.SetDesaturated then pcall(icon.SetDesaturated, icon, true) end
-    icon:SetVertexColor(r, g, b)
+    if icon.SetDesaturated then pcall(icon.SetDesaturated, icon, false) end
+    icon:SetVertexColor(1, 1, 1)
+    icon:SetTexture(muted and ICON_MUTED or ICON)
 end
 
 local function ApplyMinimapShown()
@@ -786,6 +801,7 @@ local function setupLDBButton()
         if not okObj then return false end
         obj = made
     end
+    ldbObject = obj
 
     -- db.minimap doubles as LibDBIcon's saved table (it uses .hide + .minimapPos).
     local okReg = pcall(function() iconLib:Register(LDB_NAME, obj, db().minimap) end)
@@ -816,8 +832,9 @@ local function SetupMinimapButton()
     end
 
     -- Safety net for when the bundled libs are unavailable (a stripped install, or
-    -- LibStub losing a fight with another addon's copy): a dependency-free button,
-    -- using a built-in Blizzard icon so it renders without loose texture files.
+    -- LibStub losing a fight with another addon's copy): a dependency-free button
+    -- carrying the same two icons, which ship inside the addon and so are there
+    -- whatever happened to LibStub.
     if minimapButton then ApplyMinimapShown(); return end
     minimapButton = Compat.CreateMinimapButton("TonguesOfAzerothMinimapButton", {
         icon = ICON,
