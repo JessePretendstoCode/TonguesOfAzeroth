@@ -25,7 +25,9 @@
       * Playback is driven by CHAT_MSG_EMOTE, not by our own cast handler.
         The emote is what the server actually sent, so a line Blizzard refused
         to deliver stays silent instead of being heard by its author alone.
-        Casts.showLocally cues the one case the event never carries.
+        Casts.showLocally cues the one case the event never carries. The same
+        event is what makes a shared line safe to play: see "Other people's
+        lines" below.
 
       * It must be a real event handler, never a chat filter. Chat filters run
         once per chat frame registered for the event -- usually two or three --
@@ -43,6 +45,8 @@ local ADDON, ns = ...
 
 local Voice = {}
 ns.Voice = Voice
+
+local Compat = ns.Compat
 
 -- "Master" rather than "Dialog" or "SFX": those are muted by the sliders most
 -- people pull down to hear their music, and a voice line that vanishes with no
@@ -212,26 +216,185 @@ function Voice.SpeakBody(body, choice)
 end
 
 --=========================================================================--
+--  Other people's lines
+--=========================================================================--
+-- Sharing a pin ships an address, not a recording: the file is already sitting
+-- in the listener's client, and if their build does not carry it they hear
+-- nothing. Nothing is uploaded, downloaded or redistributed, which is the only
+-- reason this can exist at all.
+--
+-- What crosses the wire is half a line. The other half is the emote, and the
+-- emote is also the only honest proximity test the game offers: a guild message
+-- travels a continent, but you see somebody's emote exactly when you are near
+-- enough to read it. So an arriving pin is held until its emote shows up and
+-- dropped if it never does. That one rule is what keeps a guildmate three zones
+-- away from being a disembodied noise, and it costs nothing to enforce, because
+-- the emote was always what playback was keyed to.
+--
+-- The two halves travel separately and can land in either order, so the
+-- rendezvous is two-sided: a pin waits for an emote, and a recent emote is
+-- remembered in case the pin is the one that arrives late.
+local HEAR_WINDOW = 5   -- how long the two halves wait for each other, seconds
+-- One cast is broadcast to raid and guild both, so a guildmate in your raid
+-- receives it twice. The repeat has to be dropped rather than merely not
+-- played: a spare pin left lying around would attach itself to the next thing
+-- that player emotes, which is the same bug claimChoice exists to prevent.
+local ECHO_WINDOW = 1
+
+-- Which switch governs a pin, by the channel it arrived on. OFFICER is here
+-- because nothing stops a guild from routing through it, and someone in your
+-- officer chat is someone in your guild.
+local HEAR_SOURCE = {
+    PARTY = "PARTY",
+    RAID = "RAID",
+    GUILD = "GUILD",
+    OFFICER = "GUILD",
+    SAY = "NEARBY",
+    YELL = "NEARBY",
+    -- An instance group rewrites party and raid traffic into one chat type on
+    -- the way out, so which switch it answers to has to be asked of the group
+    -- rather than read off the message.
+    INSTANCE_CHAT = "GROUP",
+}
+
+-- Deliberately not gated on Voice.IsEnabled. Speaking and listening are
+-- separate halves: somebody who writes no phrases of their own still has every
+-- reason to hear the ones going on around them, and tying the two together
+-- would mean switching on a feature that puts text in other people's chat in
+-- order to hear sound in your own. The in-character switch still applies --
+-- it is the addon's mute, and a mute that let other people's audio through
+-- would not be one.
+function Voice.CanHear(channel)
+    if ns.IsInCharacter and not ns.IsInCharacter() then return false end
+    local c = castDB()
+    if not (c and type(c.hear) == "table") then return false end
+    local key = HEAR_SOURCE[channel]
+    if key == "GROUP" then
+        key = (Compat and Compat.InRaid and Compat.InRaid()) and "RAID" or "PARTY"
+    end
+    if not key then return false end
+    return c.hear[key] and true or false
+end
+
+-- CHAT_MSG_ADDON names its sender with the realm attached and CHAT_MSG_EMOTE
+-- usually does not, so the two halves are paired on the part they agree about.
+local function shortName(name)
+    if isSecret(name) or type(name) ~= "string" then return nil end
+    return name:match("^[^-]+")
+end
+
+local function myName()
+    return shortName(UnitName and UnitName("player"))
+end
+
+local heardPins = {}     -- [speaker] = { id = n, at = t, played = bool }
+local heardEmotes = {}   -- [speaker] = t
+
+local function clock()
+    return (GetTime and GetTime()) or 0
+end
+
+local function forget(store, cutoff)
+    for who, rec in pairs(store) do
+        local at = type(rec) == "table" and rec.at or rec
+        if at < cutoff then store[who] = nil end
+    end
+end
+
+-- A pin off the wire. Everything that could make this somebody else's problem
+-- is refused here rather than at playback, so by the time a clip is held there
+-- is nothing left to decide.
+function Voice.OnBroadcast(id, sender, channel)
+    if isSecret(id) or isSecret(channel) then return end
+    if type(id) ~= "number" then return end
+
+    local who = shortName(sender)
+    if not who then return end
+    -- Your own broadcast, handed straight back by the server. You have already
+    -- heard this one locally. Nothing observable depends on this today --
+    -- your own emote is answered by the speaking half of onEmote and never
+    -- reaches hearOther, so a pin filed under your own name is never claimed
+    -- by anything. It is here so that stays true by intent rather than by
+    -- accident, and test_voice says the same thing where the test would be.
+    local me = myName()
+    if me and who == me then return end
+
+    if not Voice.CanHear(channel) then return end
+
+    -- Only lines this build already offers. The catalogue is the list of
+    -- recordings the panel will let anybody pin, so anything outside it did not
+    -- come from a phrase somebody picked -- and an id is otherwise an open
+    -- invitation to play whatever file in the game is loudest or longest.
+    -- A sender on a newer catalogue is silently dropped, which is the right way
+    -- round: a line you cannot hear beats a line you cannot refuse.
+    local gv = ns.GameVoices
+    if not (gv and gv.ById and gv.ById[id]) then return end
+
+    local now = clock()
+    forget(heardPins, now - HEAR_WINDOW)
+    forget(heardEmotes, now - HEAR_WINDOW)
+
+    local pin = heardPins[who]
+    if pin and pin.id == id and (now - pin.at) <= ECHO_WINDOW then return end
+
+    if heardEmotes[who] then
+        heardEmotes[who] = nil
+        heardPins[who] = { id = id, at = now, played = true }
+        Voice.PlayGame(id)
+        return
+    end
+    heardPins[who] = { id = id, at = now, played = false }
+end
+
+-- The emote half, for somebody who is not you.
+local function hearOther(who)
+    if not who then return end
+    local now = clock()
+    forget(heardPins, now - HEAR_WINDOW)
+    forget(heardEmotes, now - HEAR_WINDOW)
+
+    local pin = heardPins[who]
+    if pin and not pin.played then
+        pin.played = true
+        Voice.PlayGame(pin.id)
+        return
+    end
+    heardEmotes[who] = now
+end
+
+--=========================================================================--
 --  Listening
 --=========================================================================--
 -- CHAT_MSG_EMOTE is the whole input. Its message is the emote body alone --
 -- the client prepends the name when it draws the line -- which is exactly the
 -- string Casts.Render produced, so the quoted spans in it are the spans that
 -- were meant to be heard.
---
--- Only your own lines are voiced. A pin lives in your saved settings and never
--- reaches anybody else, so there is nothing of a stranger's phrase to play.
 local function onEmote(msg, sender)
-    if not Voice.IsEnabled() then return end
     if isSecret(msg) or isSecret(sender) then return end
     if type(msg) ~= "string" or msg == "" then return end
     if not msg:find('"', 1, true) then return end
 
-    local me = UnitName and UnitName("player")
-    if isSecret(me) then me = nil end
-    if type(me) ~= "string" or sender ~= me then return end
+    local me = myName()
+    local who = shortName(sender)
+    if not (me and who) then return end
 
-    Voice.SpeakBody(msg, claimChoice(msg))
+    if who ~= me then
+        hearOther(who)
+        return
+    end
+
+    if not Voice.IsEnabled() then return end
+    local choice = claimChoice(msg)
+    Voice.SpeakBody(msg, choice)
+
+    -- Broadcast from here rather than from where the line was composed,
+    -- because this event is the proof the server accepted the emote. A pin
+    -- sent for a line that was never delivered would be a sound with nothing
+    -- to belong to, and the listener would hold it against whatever that
+    -- player said next.
+    if choice and choice.line and ns.BroadcastVoicePin then
+        ns.BroadcastVoicePin(Voice.GameId(choice.line))
+    end
 end
 
 Voice.OnEmote = onEmote
@@ -267,9 +430,21 @@ end
 --=========================================================================--
 function Voice.Describe()
     local gv = ns.GameVoices
+    local c = castDB()
+    -- Named by source rather than returned as the saved table, because the
+    -- question anyone asks of this is "why can I not hear him", and the answer
+    -- is a list of who you said yes to.
+    local hearing = {}
+    for _, key in ipairs({ "PARTY", "RAID", "GUILD", "NEARBY" }) do
+        if c and type(c.hear) == "table" and c.hear[key] then
+            hearing[#hearing + 1] = key:lower()
+        end
+    end
     return {
         enabled = Voice.IsEnabled(),
         catalogue = (gv and gv.COUNT) or 0,
         stats = Voice.stats,
+        hearing = hearing,
+        canHearNearby = (Compat and Compat.hasProximityAddonMessages) or false,
     }
 end

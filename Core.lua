@@ -126,6 +126,10 @@ local MAX_ADDON_PAYLOAD = 240
 -- Marker that distinguishes an in-game "here's a custom language" broadcast from
 -- the ordinary decode-sync payloads that share the same addon prefix.
 local LANG_SHARE_TAG = "TOAL1:"
+-- ...and the recording pinned to a cast phrase, as "TOAV1:<fileDataId>". The
+-- number addresses a file the receiving client already has, so this carries no
+-- audio and nothing is redistributed. See Voice.lua.
+local VOICE_TAG = "TOAV1:"
 
 local function addonDistribution(chatType, channel)
     chatType = normalizeChatType(chatType)
@@ -164,6 +168,35 @@ local function sendDecodePayload(original, encoded, langId, strength, chatType, 
         elseif Compat.InParty() then
             send("PARTY")
         end
+    end
+end
+
+-- Tell anyone who might be reading this emote which recording goes with it.
+--
+-- Sent on every channel that applies rather than on the single best one: a
+-- guildmate standing beside you need not be in your group, and the audience is
+-- whoever is actually there. That means a guildmate in your raid gets it twice,
+-- which only the receiver can sort out -- from here there is no way to know who
+-- hears which channel. Voice.lua drops the repeat.
+--
+-- Say carries addon traffic on the Classic flavors alone. It is the only way to
+-- reach a stranger standing next to you, and on Retail there is no way at all.
+function ns.BroadcastVoicePin(id)
+    if not Compat.canSendAddonMessage then return end
+    if type(id) ~= "number" then return end
+    local payload = VOICE_TAG .. tostring(id)
+    if #payload > MAX_ADDON_PAYLOAD then return end
+
+    if Compat.InRaid() then
+        Compat.SendAddonMessage(ADDON_PREFIX, payload, "RAID")
+    elseif Compat.InParty() then
+        Compat.SendAddonMessage(ADDON_PREFIX, payload, "PARTY")
+    end
+    if type(IsInGuild) == "function" and IsInGuild() then
+        Compat.SendAddonMessage(ADDON_PREFIX, payload, "GUILD")
+    end
+    if Compat.hasProximityAddonMessages then
+        Compat.SendAddonMessage(ADDON_PREFIX, payload, "SAY")
     end
 end
 
@@ -494,6 +527,22 @@ local function migrateDB()
     if casts.gap == nil then casts.gap = CAST_DEFAULTS.gap end
     if casts.spellGap == nil then casts.spellGap = CAST_DEFAULTS.spellGap end
     if casts.pets == nil then casts.pets = true end
+
+    -- Whose pinned recordings you are willing to hear. Pinning a line of your
+    -- own is the whole of the consent to hear yourself; it says nothing about
+    -- a stranger, so this is a separate answer and it is given per source.
+    --
+    -- On for the people you chose to be among and off for everyone else. That
+    -- is the split that decides whether an unfamiliar sound is a bit of
+    -- somebody's roleplay or a noise your game started making. Nearby does
+    -- nothing at all on Retail, which carries no addon traffic to a player you
+    -- are not grouped or guilded with.
+    if type(casts.hear) ~= "table" then casts.hear = {} end
+    if casts.hear.PARTY == nil then casts.hear.PARTY = true end
+    if casts.hear.RAID == nil then casts.hear.RAID = true end
+    if casts.hear.GUILD == nil then casts.hear.GUILD = true end
+    if casts.hear.NEARBY == nil then casts.hear.NEARBY = false end
+
     -- Which library packs are switched off: { [packId] = false }. Absence means
     -- on, so this is normally empty and there is no longer any panel that fills
     -- it -- see Casts.IsPackEnabled.
@@ -1463,11 +1512,18 @@ end
 chatFrame:RegisterEvent("CHAT_MSG_ADDON")
 chatFrame:SetScript("OnEvent", function(self, event, ...)
     if event == "CHAT_MSG_ADDON" then
-        local prefix, message, _, sender = ...
+        -- The channel is kept rather than skipped: it is what says whether a
+        -- voice pin came from your party, your guild or a stranger in earshot,
+        -- and those are answered separately.
+        local prefix, message, channel, sender = ...
         if isSecret(prefix) or isSecret(message) then return end
         if prefix == ADDON_PREFIX then
             if type(message) == "string" and message:sub(1, #LANG_SHARE_TAG) == LANG_SHARE_TAG then
                 handleLangShare(message:sub(#LANG_SHARE_TAG + 1), sender)
+            elseif type(message) == "string" and message:sub(1, #VOICE_TAG) == VOICE_TAG then
+                if ns.Voice and ns.Voice.OnBroadcast then
+                    ns.Voice.OnBroadcast(tonumber(message:sub(#VOICE_TAG + 1)), sender, channel)
+                end
             elseif Language.ImportDecodePayload then
                 Language.ImportDecodePayload(message)
             end
@@ -2094,7 +2150,7 @@ local function castCommand(rest)
     elseif sub == "list" then
         local keys = Casts.GetKeys()
         if #keys == 0 then
-            Print("no spells have phrases yet -- tick a pack in Cast Phrases, or add one.")
+            Print("no spells have phrases yet -- pick a spell in Cast Phrases and write one.")
             return
         end
         Print("spells with phrases:")
@@ -2176,6 +2232,16 @@ local function voiceCommand(rest)
         Print(string.format("%d line(s) from the game are catalogued.", d.catalogue))
         Print(string.format("played %d this session; %d phrase(s) had nothing pinned.",
             d.stats.played, d.stats.unmapped))
+        if #d.hearing == 0 then
+            Print("you are not listening for |cffffff00anyone else's|r pinned lines.")
+        else
+            Print("you hear pinned lines from |cffffff00" .. table.concat(d.hearing, ", ")
+                .. "|r -- and only when their emote reaches you.")
+        end
+        if not d.canHearNearby then
+            Print("|cff808080this version of the game only lets addons reach players you are"
+                .. " grouped or guilded with, so a stranger's line cannot arrive at all.|r")
+        end
         Print("a phrase stays silent until you pin a line to it -- open the Cast")
         Print("Phrases panel and use |cffffff00Browse voice lines|r on the line you want.")
         Print("usage: /toa voice [test <fileDataId>]")

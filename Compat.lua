@@ -335,6 +335,20 @@ function Compat.RegisterAddonMessagePrefix(prefix)
     end
 end
 
+-- Whether an addon message can be sent to whoever happens to be standing
+-- nearby. SAY and YELL carry addon traffic on the Classic flavors only: they
+-- were granted there in 1.13.3 in the same change that took CHANNEL away, and
+-- never came to Retail, where nothing an addon sends reaches a player it is
+-- not grouped or guilded with.
+--
+-- Asked by project rather than by interface number. Every flavor's build
+-- number climbs, so there is no threshold that keeps telling them apart.
+-- Unknown counts as "cannot", which costs a feature rather than spraying a
+-- chat type the server may object to.
+Compat.hasProximityAddonMessages =
+    (type(WOW_PROJECT_ID) == "number" and type(WOW_PROJECT_MAINLINE) == "number"
+        and WOW_PROJECT_ID ~= WOW_PROJECT_MAINLINE) or false
+
 --=========================================================================--
 --  Chat messaging lockdown (Midnight).
 --=========================================================================--
