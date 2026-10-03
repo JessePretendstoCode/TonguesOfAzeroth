@@ -1506,7 +1506,11 @@ end
 local function browserLetters(f)
     local avail = (f._letters and f._letters(f.group or "", f.kind or "")) or {}
     for _, btn in ipairs(f.letterBtns) do
-        local n = avail[btn.letter]
+        -- "All" carries the empty letter and is never dimmed: it is the way
+        -- back out of a narrowing, so it has to work from inside one -- and
+        -- most of all from inside one where every letter but the chosen one
+        -- has nothing behind it.
+        local n = (btn.letter == "") and (f._letters and 1 or nil) or avail[btn.letter]
         local selected = (f.letter == btn.letter)
         btn._count = n
         if selected then
@@ -1636,16 +1640,24 @@ local function buildBrowser()
 
     -- The A-Z strip. One button per initial, dimmed where nothing files under
     -- it, so the row doubles as a map of the catalogue.
+    --
+    -- "All" leads, carrying the empty letter. Clicking the selected letter
+    -- already clears it, but that is a thing you have to be told rather than
+    -- something the strip shows you -- every other button in the row narrows,
+    -- so the one that widens looks identical to the one you just pressed.
+    -- Given a speaker with four lines under A and none under B, there is also
+    -- nothing else left to click: every other letter is dimmed and inert, and
+    -- the way back to the whole list is the one button that isn't drawn.
     f.letterBtns = {}
     local LW = 21
-    for i = 1, #BROWSER_LETTERS do
-        local ch = BROWSER_LETTERS:sub(i, i)
+    for i = 0, #BROWSER_LETTERS do
+        local ch = (i == 0) and "" or BROWSER_LETTERS:sub(i, i)
         local b = CreateFrame("Button", nil, f)
-        b:SetSize(LW - 1, 20)
-        if i == 1 then
+        b:SetSize((i == 0) and 28 or (LW - 1), 20)
+        if i == 0 then
             b:SetPoint("TOPLEFT", groupDrop, "BOTTOMLEFT", 0, -8)
         else
-            b:SetPoint("LEFT", f.letterBtns[i - 1], "RIGHT", 1, 0)
+            b:SetPoint("LEFT", f.letterBtns[i], "RIGHT", 1, 0)
         end
         local bbg = b:CreateTexture(nil, "BACKGROUND")
         bbg:SetAllPoints()
@@ -1655,14 +1667,14 @@ local function buildBrowser()
         Compat.SolidTexture(bhl, 1, 1, 1, 0.15)
         local bl = b:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
         bl:SetPoint("CENTER")
-        bl:SetText(ch)
+        bl:SetText((i == 0) and "All" or ch)
         b.bg, b.label, b.letter = bbg, bl, ch
         b:SetScript("OnClick", function(self)
             -- A letter with nothing behind it is inert rather than hidden:
             -- the strip has to stay in the same place to be readable.
             if self._count then browserSetLetter(f, self.letter) end
         end)
-        f.letterBtns[i] = b
+        f.letterBtns[i + 1] = b
     end
 
     f.rows = {}
