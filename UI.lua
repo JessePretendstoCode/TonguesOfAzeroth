@@ -3211,18 +3211,37 @@ local function RefreshCasts()
             Compat.ShowLineBrowser{
                 title = "Voice lines from the game",
                 groupAll = "All speakers",
+                -- Opens on your own character's voice rather than on all
+                -- ninety-three speakers. Most of the time the line you want is
+                -- one your character already says, and starting from the whole
+                -- catalogue makes you scroll past ninety-two strangers to
+                -- reach it. "All speakers" is still one click away.
+                group = (gv.MyVoices and gv.MyVoices()[1]) or nil,
                 groups = function()
-                    local out = {}
-                    for _, s in ipairs(gv.Speakers()) do
-                        -- The count belongs on the label: it is what tells you
-                        -- whether a speaker is worth opening before you open it.
-                        out[#out + 1] = { id = s.who,
-                            label = string.format("%s (%d)", s.who, s.count) }
+                    local out, mine = {}, {}
+                    for _, who in ipairs(gv.MyVoices and gv.MyVoices() or {}) do
+                        mine[who] = true
+                    end
+                    -- Your own voices first, marked, then everyone else in the
+                    -- order the catalogue lists them.
+                    for _, pass in ipairs({ true, false }) do
+                        for _, s in ipairs(gv.Speakers()) do
+                            if (mine[s.who] or false) == pass then
+                                -- The count belongs on the label: it is what
+                                -- tells you whether a speaker is worth opening
+                                -- before you open it.
+                                out[#out + 1] = { id = s.who, label =
+                                    string.format("%s (%d)%s", s.who, s.count,
+                                        pass and "  -- your character" or "") }
+                            end
+                        end
                     end
                     return out
                 end,
                 kindAll = "Every kind",
-                kinds = function(who) return gv.Groups(who) end,
+                -- Families, with their groups indented underneath. Thirty-one
+                -- headings in a flat list is more than anyone reads down.
+                kinds = function(who) return gv.BrowseList(who) end,
                 letters = function(who, kind) return gv.Letters(who, kind) end,
                 filter = function(who, kind, letter, q)
                     return gv.Filter{ who = who, group = kind, letter = letter,

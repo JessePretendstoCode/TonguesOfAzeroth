@@ -1475,9 +1475,19 @@ local function buildBrowser()
     -- letter that no longer has lines, or a kind of line this speaker does not
     -- have, would otherwise show an empty list and leave you to work out why.
     local function renarrow(f)
+        -- Two shapes are accepted. A caller with a flat list of headings gives
+        -- { name, count } and lets the label be built here; one with levels to
+        -- show -- families and the groups indented under them -- gives
+        -- { id, label } already formatted, because the indentation is its
+        -- business and not this frame's.
         local kinds = (f._kinds and f._kinds(f.group)) or {}
+        local function kindValue(k) return k.id or k.name end
+        local function kindLabel(k)
+            return k.label or string.format("%s (%d)", k.name, k.count or 0)
+        end
+
         local found = (f.kind == "")
-        for _, k in ipairs(kinds) do if k.name == f.kind then found = true end end
+        for _, k in ipairs(kinds) do if kindValue(k) == f.kind then found = true end end
         if not found then f.kind = "" end
 
         local avail = (f._letters and f._letters(f.group, f.kind)) or {}
@@ -1485,8 +1495,7 @@ local function buildBrowser()
 
         local items = { { value = "", text = f._kindAll or "Everything" } }
         for _, k in ipairs(kinds) do
-            items[#items + 1] = { value = k.name,
-                text = string.format("%s (%d)", k.name, k.count) }
+            items[#items + 1] = { value = kindValue(k), text = kindLabel(k) }
         end
         f.kindDrop:SetItems(items)
         local label = f._kindAll or "Everything"

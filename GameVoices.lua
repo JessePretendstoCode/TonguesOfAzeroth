@@ -37,7 +37,7 @@ ns.GameVoices = GameVoices
 -- the wordless sounds are not a guess: those filenames do say what they are.
 GameVoices.Characters = {
     { who = "Abomination", groups = {
-        { name = "Battle cries", lines = {
+        { name = "Battle cries", family = "Fighting", lines = {
             { id = 2061558, text = "AHHH! AHHH! AHHH! AHHH!" },
             { id = 3721390, text = "ALL ABOARD!" },
             { id = 3435730, text = "BEHOLD TRUE POWER!" },
@@ -73,7 +73,27 @@ GameVoices.Characters = {
             { id = 3481770, text = "YOU MAY BROWSE THROUGH MY REFUSE" },
             { id = 3481702, text = "YOU WILL BE FORGOTTEN!" },
         } },
-        { name = "Threats", lines = {
+        { name = "Battle roars", family = "Fighting", lines = {
+            { id = 3637876, text = "RAAAGH!" },
+            { id = 3637874, text = "RRR!" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 3637889, text = "AAAGH!" },
+            { id = 3637878, text = "AHHH!" },
+            { id = 543364, text = "GRRR!" },
+            { id = 3592557, text = "HA!" },
+            { id = 3592572, text = "HEH!" },
+            { id = 2061541, text = "HUH!" },
+            { id = 3592539, text = "KAAARRR!" },
+            { id = 3637895, text = "MWAH!" },
+            { id = 2061550, text = "ROAR ROAR!" },
+            { id = 3637897, text = "ROAR!" },
+            { id = 3592536, text = "SHIII!" },
+            { id = 3637901, text = "UGH!" },
+            { id = 3637893, text = "YEAH!" },
+            { id = 2061542, text = "YES!" },
+        } },
+        { name = "Threats", family = "Menace", lines = {
             { id = 3481700, text = "Bow before my might!" },
             { id = 3481778, text = "I would gladly purchase your spare parts!" },
             { id = 3435716, text = "If you challenge me, you will lose!" },
@@ -86,7 +106,7 @@ GameVoices.Characters = {
             { id = 3431026, text = "You have my attention." },
             { id = 4070060, text = "Your bones will snap!" },
         } },
-        { name = "Boasts", lines = {
+        { name = "Boasts", family = "Menace", lines = {
             { id = 3430816, text = "I always get my cut." },
             { id = 3431286, text = "I am broken." },
             { id = 3481774, text = "I am feeling generous today!" },
@@ -101,7 +121,7 @@ GameVoices.Characters = {
             { id = 3748563, text = "I will wear your skin as a girdle!" },
             { id = 3435710, text = "My name will echo through the ages." },
         } },
-        { name = "Orders", lines = {
+        { name = "Orders", family = "Orders and warnings", lines = {
             { id = 3430836, text = "Attack" },
             { id = 3431042, text = "Find what you need and take it." },
             { id = 3721380, text = "Get a load of this!" },
@@ -116,24 +136,35 @@ GameVoices.Characters = {
             { id = 3721401, text = "Let's make some magic!" },
             { id = 3725535, text = "Stay vigilant! Spies skulk among our ranks!" },
         } },
-        { name = "Victory", lines = {
+        { name = "Victory", family = "Fighting", lines = {
             { id = 3430792, text = "They'll pay for underestimating me." },
         } },
-        { name = "Dark magic", lines = {
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 3637957, text = "AAA!" },
+            { id = 3592629, text = "AAARGH!" },
+            { id = 3637967, text = "ACHOO!" },
+            { id = 3592644, text = "BOOF!" },
+            { id = 2061571, text = "COUGH COUGH!" },
+            { id = 2061573, text = "DUUU!" },
+            { id = 3637955, text = "NNN!" },
+            { id = 2061560, text = "NOOO!" },
+            { id = 3592647, text = "OH!" },
+        } },
+        { name = "Dark magic", family = "Fighting", lines = {
             { id = 3515614, text = "Blightbone make master proud!" },
             { id = 3515607, text = "Blightbone will fight!" },
             { id = 3721383, text = "Mama Tobelen welcomes your weary bones!" },
             { id = 3721388, text = "May your soul be safe!" },
             { id = 3721386, text = "This may be a soul-changing experience!" },
         } },
-        { name = "Loyalty", lines = {
+        { name = "Loyalty", family = "Manners", lines = {
             { id = 3430802, text = "How can I serve?" },
             { id = 3721385, text = "I've got the finest food in Maldraxxus, try some!" },
             { id = 3430794, text = "Victory for Maldraxxus!" },
             { id = 3430814, text = "Who stitched you together?" },
             { id = 3431270, text = "Witness the fury of Maldraxxus!" },
         } },
-        { name = "Conversation", lines = {
+        { name = "Conversation", family = "Feelings", lines = {
             { id = 3748280, text = "A few explosions should do just the trick." },
             { id = 3748292, text = "A new spell! I can't wait to see it in action!" },
             { id = 3481684, text = "A worthy fall." },
@@ -239,53 +270,40 @@ GameVoices.Characters = {
             { id = 3721395, text = "You're tough! You'll be fine." },
             { id = 3430833, text = "You've met Stitches! He's my hero!" },
         } },
-        { name = "Attack grunts", lines = {
-            { id = 3637889, text = "AAAGH!" },
-            { id = 3637878, text = "AHHH!" },
-            { id = 543364, text = "GRRR!" },
-            { id = 3592557, text = "HA!" },
-            { id = 3592572, text = "HEH!" },
-            { id = 2061541, text = "HUH!" },
-            { id = 3592539, text = "KAAARRR!" },
-            { id = 3637895, text = "MWAH!" },
-            { id = 2061550, text = "ROAR ROAR!" },
-            { id = 3637897, text = "ROAR!" },
-            { id = 3592536, text = "SHIII!" },
-            { id = 3637901, text = "UGH!" },
-            { id = 3637893, text = "YEAH!" },
-            { id = 2061542, text = "YES!" },
-        } },
-        { name = "Pain", lines = {
-            { id = 3637957, text = "AAA!" },
-            { id = 3592629, text = "AAARGH!" },
-            { id = 3637967, text = "ACHOO!" },
-            { id = 3592644, text = "BOOF!" },
-            { id = 2061571, text = "COUGH COUGH!" },
-            { id = 2061573, text = "DUUU!" },
-            { id = 3637955, text = "NNN!" },
-            { id = 2061560, text = "NOOO!" },
-            { id = 3592647, text = "OH!" },
-        } },
-        { name = "Battle roars", lines = {
-            { id = 3637876, text = "RAAAGH!" },
-            { id = 3637874, text = "RRR!" },
-        } },
     } },
     { who = "Alexandros Mograine", groups = {
-        { name = "Battle cries", lines = {
+        { name = "Battle cries", family = "Fighting", lines = {
             { id = 3622560, text = "CREXUS'S WILL BE DONE" },
             { id = 3733909, text = "HONORLESS COWARD!" },
             { id = 3622573, text = "I AM NOT ABOVE TURNING YOU TO ASH!" },
             { id = 3733906, text = "I WILL BURY MY BLADE IN YOUR SKULL, TRAITOR! FOR KREXUS!" },
         } },
-        { name = "Threats", lines = {
+        { name = "Battle roars", family = "Fighting", lines = {
+            { id = 3773039, text = "ARGH!" },
+            { id = 3773031, text = "GRRR!" },
+            { id = 3773037, text = "HMMM!" },
+            { id = 3773035, text = "HUH!" },
+            { id = 3773033, text = "UGH!" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 3773053, text = "HA!" },
+            { id = 3773061, text = "HAH!" },
+            { id = 3773055, text = "HEH!" },
+            { id = 3773045, text = "HIYAH!" },
+            { id = 3773063, text = "HOO!" },
+            { id = 3773049, text = "HUUU!" },
+            { id = 3773041, text = "HYAH!" },
+            { id = 3773051, text = "PHEW!" },
+            { id = 3773043, text = "YEAH!" },
+        } },
+        { name = "Threats", family = "Menace", lines = {
             { id = 543514, text = "Darion Mograine! You are barely of age to hold a sword, let alone battle the undead hordes of Lordaeron. I could not bear losing you. Even the thought..." },
             { id = 3622558, text = "I will not suffer this corruption any longer!" },
             { id = 3733863, text = "Maw Walker, you have returned!" },
             { id = 543513, text = "My son, there will come a day when you will command the Ashbringer and with it meet out justice across this land. I have no doubt that when that day finally comes, you will bring pride to our people and that Lordaeron will be a better place because of you. But my son, that day is not today." },
             { id = 3733908, text = "You cannot win, Vyraz. You are outnumbered!" },
         } },
-        { name = "Boasts", lines = {
+        { name = "Boasts", family = "Menace", lines = {
             { id = 3622563, text = "I await the next battle." },
             { id = 3730913, text = "I can scarcely believe it! The mantle of the Primus!" },
             { id = 3622572, text = "I have little patience for these games!" },
@@ -293,14 +311,28 @@ GameVoices.Characters = {
             { id = 3622567, text = "My blade is ready!" },
             { id = 543517, text = "My son, my dear, beautiful boy." },
         } },
-        { name = "Orders", lines = {
+        { name = "Orders", family = "Orders and warnings", lines = {
             { id = 3730909, text = "Come, Maw Walker. Let us search the fallen Margrave stores." },
             { id = 543516, text = "Do not forget." },
             { id = 4072391, text = "Forward Necrolords! Burn these traitors to ash!" },
             { id = 3733896, text = "Go on, Maw Walker. I... would like a moment to reflect." },
             { id = 3730912, text = "Wait, this could be something. What say you, Maw Walker?" },
         } },
-        { name = "Conversation", lines = {
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 3773101, text = "AAARGH!" },
+            { id = 3773117, text = "BOO!" },
+            { id = 3773103, text = "HOHOHO!" },
+            { id = 3773121, text = "OH!" },
+            { id = 3773115, text = "OOF!" },
+        } },
+        { name = "Death cries", family = "Hurt and dying", lines = {
+            { id = 3773085, text = "AHHH!" },
+            { id = 3773081, text = "DAAAHHH AAAHHH..." },
+            { id = 3773079, text = "GAH GAHHH!" },
+            { id = 3773087, text = "NO!" },
+            { id = 3773083, text = "YEAH UGHHH!" },
+        } },
+        { name = "Conversation", family = "Feelings", lines = {
             { id = 3622561, text = "Ambition is nothing without honor." },
             { id = 3733873, text = "An ambush! Cut them down!" },
             { id = 4062773, text = "And I am proud of you, my son." },
@@ -344,60 +376,19 @@ GameVoices.Characters = {
             { id = 3728876, text = "Xandria, are you prepared for the true fight?" },
             { id = 3728895, text = "Xandria, I implore you to take Garmel's heart." },
         } },
-        { name = "Attack grunts", lines = {
-            { id = 3773053, text = "HA!" },
-            { id = 3773061, text = "HAH!" },
-            { id = 3773055, text = "HEH!" },
-            { id = 3773045, text = "HIYAH!" },
-            { id = 3773063, text = "HOO!" },
-            { id = 3773049, text = "HUUU!" },
-            { id = 3773041, text = "HYAH!" },
-            { id = 3773051, text = "PHEW!" },
-            { id = 3773043, text = "YEAH!" },
-        } },
-        { name = "Pain", lines = {
-            { id = 3773101, text = "AAARGH!" },
-            { id = 3773117, text = "BOO!" },
-            { id = 3773103, text = "HOHOHO!" },
-            { id = 3773121, text = "OH!" },
-            { id = 3773115, text = "OOF!" },
-        } },
-        { name = "Death cries", lines = {
-            { id = 3773085, text = "AHHH!" },
-            { id = 3773081, text = "DAAAHHH AAAHHH..." },
-            { id = 3773079, text = "GAH GAHHH!" },
-            { id = 3773087, text = "NO!" },
-            { id = 3773083, text = "YEAH UGHHH!" },
-        } },
-        { name = "Battle roars", lines = {
-            { id = 3773039, text = "ARGH!" },
-            { id = 3773031, text = "GRRR!" },
-            { id = 3773037, text = "HMMM!" },
-            { id = 3773035, text = "HUH!" },
-            { id = 3773033, text = "UGH!" },
-        } },
     } },
     { who = "Anub'arak", groups = {
-        { name = "Battle cries", lines = {
+        { name = "Battle cries", family = "Fighting", lines = {
             { id = 543937, text = "ETERNAL AGONY AWAITS YOU!" },
         } },
-        { name = "Dark magic", lines = {
-            { id = 543981, text = "This place will serve as your tomb!" },
-        } },
-        { name = "Falling in battle", lines = {
-            { id = 543933, text = "I have failed you, master." },
-        } },
-        { name = "Conversation", lines = {
-            { id = 543953, text = "Never thought I would be free of him." },
-        } },
-        { name = "Attack grunts", lines = {
+        { name = "Attack grunts", family = "Fighting", lines = {
             { id = 543956, text = "HIYAH!" },
             { id = 543969, text = "HMMM!" },
             { id = 543930, text = "NNN!" },
             { id = 543958, text = "RAAAGH!" },
             { id = 543925, text = "YEAH!" },
         } },
-        { name = "Pain", lines = {
+        { name = "Pain", family = "Hurt and dying", lines = {
             { id = 543929, text = "AAA!" },
             { id = 543939, text = "AHHH!" },
             { id = 543972, text = "DAAH!" },
@@ -410,9 +401,18 @@ GameVoices.Characters = {
             { id = 543963, text = "UGH AHHH!" },
             { id = 543931, text = "UGH!" },
         } },
+        { name = "Falling in battle", family = "Hurt and dying", lines = {
+            { id = 543933, text = "I have failed you, master." },
+        } },
+        { name = "Dark magic", family = "Fighting", lines = {
+            { id = 543981, text = "This place will serve as your tomb!" },
+        } },
+        { name = "Conversation", family = "Feelings", lines = {
+            { id = 543953, text = "Never thought I would be free of him." },
+        } },
     } },
     { who = "Anub'Rekhan", groups = {
-        { name = "Conversation", lines = {
+        { name = "Conversation", family = "Feelings", lines = {
             { id = 544001, text = "Ahhhh, welcome to my parlor." },
             { id = 544002, text = "Just a little taste." },
             { id = 544000, text = "There is no way out." },
@@ -420,19 +420,19 @@ GameVoices.Characters = {
         } },
     } },
     { who = "Apothecary Faranell", groups = {
-        { name = "Battle cries", lines = {
+        { name = "Battle cries", family = "Fighting", lines = {
             { id = 4489368, text = "I AM FORSAKEN" },
         } },
-        { name = "Dark magic", lines = {
-            { id = 4492153, text = "It's working! The Plague Eaters are consuming the blight!" },
-        } },
-        { name = "Greetings", lines = {
+        { name = "Greetings", family = "Manners", lines = {
             { id = 4489367, text = "Hello!" },
         } },
-        { name = "Farewells", lines = {
+        { name = "Farewells", family = "Manners", lines = {
             { id = 4489365, text = "Goodbye." },
         } },
-        { name = "Conversation", lines = {
+        { name = "Dark magic", family = "Fighting", lines = {
+            { id = 4492153, text = "It's working! The Plague Eaters are consuming the blight!" },
+        } },
+        { name = "Conversation", family = "Feelings", lines = {
             { id = 4489364, text = "A little of this... A little of that..." },
             { id = 4489370, text = "Do you know who I am?" },
             { id = 4489369, text = "Do you need something?" },
@@ -445,27 +445,36 @@ GameVoices.Characters = {
         } },
     } },
     { who = "Arthas", groups = {
-        { name = "Threats", lines = {
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 544366, text = "HYAH!" },
+            { id = 544333, text = "UGH!" },
+        } },
+        { name = "Threats", family = "Menace", lines = {
             { id = 4072758, text = "Uther, do you have a moment?" },
         } },
-        { name = "Boasts", lines = {
+        { name = "Boasts", family = "Menace", lines = {
             { id = 4072757, text = "I do what I must for Lordaeron." },
             { id = 544357, text = "I will not allow this plague to spread." },
         } },
-        { name = "Orders", lines = {
+        { name = "Orders", family = "Orders and warnings", lines = {
             { id = 1503752, text = "Back!" },
         } },
-        { name = "Dark magic", lines = {
-            { id = 1397155, text = "See the spirits writhe and twist." },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 544374, text = "AHHH!" },
+            { id = 544385, text = "ARGH!" },
+            { id = 544342, text = "GAH!" },
         } },
-        { name = "Falling in battle", lines = {
+        { name = "Falling in battle", family = "Hurt and dying", lines = {
             { id = 544337, text = "Argh! Damn you, Malganis! Cough. Cough. Cough. Father. Jaina. I have failed, Lordaeron." },
             { id = 1397165, text = "The darkness does not die." },
         } },
-        { name = "Greetings", lines = {
+        { name = "Greetings", family = "Manners", lines = {
             { id = 1503738, text = "HEY!" },
         } },
-        { name = "Conversation", lines = {
+        { name = "Dark magic", family = "Fighting", lines = {
+            { id = 1397155, text = "See the spirits writhe and twist." },
+        } },
+        { name = "Conversation", family = "Feelings", lines = {
             { id = 544384, text = "A small sacrifice for the greater good." },
             { id = 1397163, text = "Even the mighty are rendered nameless by time." },
             { id = 1397164, text = "Every king must kneel before death." },
@@ -485,27 +494,16 @@ GameVoices.Characters = {
             { id = 1397159, text = "Yet you do as he commands." },
             { id = 1397160, text = "You exist by his whim alone." },
         } },
-        { name = "Attack grunts", lines = {
-            { id = 544366, text = "HYAH!" },
-            { id = 544333, text = "UGH!" },
-        } },
-        { name = "Pain", lines = {
-            { id = 544374, text = "AHHH!" },
-            { id = 544385, text = "ARGH!" },
-            { id = 544342, text = "GAH!" },
-        } },
     } },
     { who = "Banshee", groups = {
-        { name = "Battle cries", lines = {
+        { name = "Battle cries", family = "Fighting", lines = {
             { id = 1243396, text = "ASHARA, FORGIVE ME!" },
         } },
-        { name = "Conversation", lines = {
-            { id = 1243400, text = "Frondus did this to us!" },
-            { id = 544839, text = "How long has it been?" },
-            { id = 1243398, text = "Join us! Join us forever!" },
-            { id = 1243402, text = "Why has the queen forsaken us?" },
+        { name = "Battle roars", family = "Fighting", lines = {
+            { id = 1250645, text = "GASP!" },
+            { id = 1250644, text = "SIGH..." },
         } },
-        { name = "Attack grunts", lines = {
+        { name = "Attack grunts", family = "Fighting", lines = {
             { id = 1250654, text = "AHH!" },
             { id = 1250653, text = "HAAA!" },
             { id = 1250662, text = "HAHAHAHA!" },
@@ -513,42 +511,723 @@ GameVoices.Characters = {
             { id = 1250656, text = "HI!" },
             { id = 1250661, text = "HUUU!" },
         } },
-        { name = "Pain", lines = {
+        { name = "Pain", family = "Hurt and dying", lines = {
             { id = 544833, text = "AHHH!" },
             { id = 1250684, text = "OHHH!" },
             { id = 1250678, text = "OOOH!" },
             { id = 544830, text = "UGH!" },
         } },
-        { name = "Death cries", lines = {
+        { name = "Death cries", family = "Hurt and dying", lines = {
             { id = 544831, text = "AAA!" },
         } },
-        { name = "Battle roars", lines = {
-            { id = 1250645, text = "GASP!" },
-            { id = 1250644, text = "SIGH..." },
+        { name = "Conversation", family = "Feelings", lines = {
+            { id = 1243400, text = "Frondus did this to us!" },
+            { id = 544839, text = "How long has it been?" },
+            { id = 1243398, text = "Join us! Join us forever!" },
+            { id = 1243402, text = "Why has the queen forsaken us?" },
         } },
-        { name = "Noticing you", lines = {
+        { name = "Noticing you", family = "Orders and warnings", lines = {
             { id = 1250671, text = "AH!" },
             { id = 1250670, text = "GRRR!" },
         } },
     } },
     { who = "Blightshard Shaper", groups = {
-        { name = "Battle cries", lines = {
+        { name = "Battle cries", family = "Fighting", lines = {
             { id = 1372980, text = "COUGHS" },
             { id = 1372962, text = "RIP THEM APART!" },
         } },
-        { name = "Dark magic", lines = {
+        { name = "Dark magic", family = "Fighting", lines = {
             { id = 1276070, text = "Mother of worms, ARISE!" },
             { id = 1276100, text = "She comes! Naraxes will feast on your bones!" },
         } },
-        { name = "Conversation", lines = {
+        { name = "Conversation", family = "Feelings", lines = {
             { id = 1372981, text = "Here!" },
             { id = 1372978, text = "RAWR!" },
             { id = 1372971, text = "woof" },
             { id = 1276104, text = "Yes! Ahahahaha! Wait! No! Ahhh! Ahhh!" },
         } },
     } },
+    { who = "Blood Elf - feminine voice", race = "Blood Elf", sex = "female", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 539261, text = "And not allah but laurie!" },
+            { id = 539415, text = "FOR ANASTERION!" },
+            { id = 1387385, text = "For the Horde!" },
+            { id = 1385139, text = "Grrrrrr" },
+            { id = 1385127, text = "Hi-yah!" },
+            { id = 1385124, text = "HUAAH!" },
+            { id = 1385142, text = "HUH?!" },
+            { id = 1385125, text = "Hya!" },
+            { id = 539328, text = "REMEMBER THE SUNWELL!" },
+            { id = 539270, text = "The Sindorai will prevail!" },
+        } },
+        { name = "Battle roars", family = "Fighting", lines = {
+            { id = 539269, text = "For the glory of Quel'Thalas!" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 1385119, text = "GAAAHHH!" },
+            { id = 1385121, text = "GAH!" },
+            { id = 539437, text = "HA!" },
+            { id = 1385117, text = "HIII!" },
+            { id = 539451, text = "HMPH!" },
+            { id = 539447, text = "HUUUH!" },
+            { id = 539438, text = "YEAH!" },
+        } },
+        { name = "Casting", family = "Fighting", lines = {
+            { id = 1385131, text = "HEEE!" },
+            { id = 1385130, text = "HIYA!" },
+            { id = 1385135, text = "VROOOYAH!" },
+            { id = 1385133, text = "WHAAA!" },
+            { id = 1385136, text = "YAAA!" },
+            { id = 1385137, text = "YEAH YEAH!" },
+        } },
+        { name = "Threats", family = "Menace", lines = {
+            { id = 1385150, text = "I will end you!" },
+        } },
+        { name = "Mockery", family = "Menace", lines = {
+            { id = 1385149, text = "You're not worth my time." },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 539312, text = "ATTACK MY ENEMY!" },
+            { id = 539383, text = "Fire!" },
+            { id = 539303, text = "FOCUS YOUR ATTACK HERE!" },
+            { id = 539385, text = "Follow me." },
+            { id = 539346, text = "I will go first." },
+            { id = 539196, text = "I will lead." },
+            { id = 539343, text = "Stay here." },
+            { id = 539388, text = "Support my attack!" },
+            { id = 539200, text = "UNLEASH HELL!" },
+            { id = 539288, text = "Wait for me." },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 539335, text = "Fall back!" },
+            { id = 539301, text = "Pull back! Pull back!" },
+            { id = 539450, text = "Sigh..." },
+            { id = 539318, text = "Survival first!" },
+            { id = 539370, text = "Watch out!" },
+        } },
+        { name = "Calls for aid", family = "Orders and warnings", lines = {
+            { id = 539367, text = "HEAL" },
+            { id = 539220, text = "HEAL ME!" },
+            { id = 539194, text = "Help me!" },
+            { id = 539421, text = "Help now!" },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 539319, text = "I am low on mana." },
+            { id = 539365, text = "My mana is nearly gone." },
+        } },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 539435, text = "AHEM!" },
+            { id = 539441, text = "AHHH!" },
+            { id = 951048, text = "OOF!" },
+            { id = 539443, text = "OW!" },
+            { id = 539448, text = "UH!" },
+        } },
+        { name = "Death cries", family = "Hurt and dying", lines = {
+            { id = 951038, text = "UGH UGH UGH!" },
+            { id = 951024, text = "UGH UGH!" },
+            { id = 951030, text = "UGHHH!" },
+            { id = 951036, text = "UHUHHH!" },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 539260, text = "Our destiny awaits." },
+            { id = 539305, text = "Quel'Thalas shines once again." },
+            { id = 539221, text = "Senu Amanore" },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 539189, text = "Al diyel shalah" },
+            { id = 539167, text = "Be well." },
+            { id = 539259, text = "May the gates of Quel'Thalas be open to you always." },
+            { id = 539245, text = "Stand tall." },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 539304, text = "by no means." },
+            { id = 539420, text = "Mm-hmm." },
+            { id = 539309, text = "Mmm." },
+            { id = 539176, text = "NEVER" },
+            { id = 539337, text = "No." },
+            { id = 539263, text = "Precisely." },
+            { id = 539389, text = "Right." },
+            { id = 539324, text = "Yes." },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 539181, text = "I am grateful." },
+            { id = 539275, text = "I will not forget your kindness." },
+            { id = 539299, text = "It was no trouble." },
+            { id = 539410, text = "Many thanks." },
+            { id = 1385148, text = "Sorry that happened." },
+            { id = 539215, text = "You are welcome." },
+            { id = 539315, text = "You would have done the same, I'm sure." },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 539399, text = "Fate is kind to you." },
+            { id = 539175, text = "How fortunate." },
+            { id = 539286, text = "Well deserved." },
+        } },
+        { name = "Flirts", family = "Fun", lines = {
+            { id = 539282, text = "Do you believe in love at first sight, or should I walk by again?" },
+            { id = 539419, text = "I'm addicted to you, baby." },
+            { id = 539407, text = "I'm the girl the ESRB warned you about." },
+            { id = 539204, text = "Is that a manna worm in your pocket, or are you just happy to see me?" },
+            { id = 539252, text = "My man-o-tap brings all the boys to the yard." },
+            { id = 539206, text = "No, no, I won't do that. But my sister will." },
+            { id = 539290, text = "Normally I only ride on epic mounts, but let's talk." },
+        } },
+        { name = "Losing patience", family = "Fun", lines = {
+            { id = 539256, text = "Do you think the expansion will make me fat?" },
+            { id = 539237, text = "How can I miss you if you don't go away?" },
+            { id = 539211, text = "Mirrors can't talk. Luckily for you, they can't laugh either." },
+            { id = 539249, text = "So you mean I'm stuck with this hair color?" },
+            { id = 539351, text = "Ugh, I hate Thunder Bluff. You can't find a good burger anywhere." },
+            { id = 539195, text = "Ugh, so I went to this troll spa the other day, and I wound up with dreadlocks and a frigging bone in my nose. I mean, come on, who pays for that?" },
+        } },
+        { name = "Clowning", family = "Fun", lines = {
+            { id = 539432, text = "Baa! Baa! Baa! Baa!" },
+        } },
+        { name = "Cheers", family = "Fun", lines = {
+            { id = 539232, text = "WOO!" },
+        } },
+        { name = "Laughter", family = "Fun", lines = {
+            { id = 539267, text = "HAHAHAHA!" },
+        } },
+        { name = "Sighs", family = "Feelings", lines = {
+            { id = 539187, text = "UGH!" },
+        } },
+        { name = "Surprise", family = "Feelings", lines = {
+            { id = 1385147, text = "That did not go well at all." },
+        } },
+        { name = "Pleading", family = "Menace", lines = {
+            { id = 539198, text = "Please, oh, oh, please." },
+        } },
+    } },
+    { who = "Blood Elf - masculine voice", race = "Blood Elf", sex = "male", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 1385101, text = "Ahem." },
+            { id = 1385087, text = "AHHH!" },
+            { id = 539373, text = "ANORAL A BELLORI!" },
+            { id = 539359, text = "FOR ANASTERION!" },
+            { id = 539363, text = "FOR THE GLORY OF QUEL'THALAS!" },
+            { id = 1387386, text = "for the Horde." },
+            { id = 1385102, text = "Fuuuuuuu" },
+            { id = 1385103, text = "Grrrr!" },
+            { id = 1385106, text = "Grrrrrr!" },
+            { id = 1385092, text = "Ha!" },
+            { id = 1385089, text = "HAAAAA!" },
+            { id = 1385088, text = "HMMMMMMM" },
+            { id = 1385105, text = "Hrrrrrrr" },
+            { id = 1385104, text = "Hrrrrrrraaaagh!" },
+            { id = 539209, text = "REMEMBER THE SUNWELL!" },
+            { id = 539210, text = "THE SIN DOOR I WILL PREVAIL!" },
+        } },
+        { name = "Battle roars", family = "Fighting", lines = {
+            { id = 539230, text = "NOOO!" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 1385084, text = "HAH UGH!" },
+            { id = 1385109, text = "HIYA!" },
+            { id = 1385085, text = "HRRR!" },
+            { id = 539462, text = "HYA!" },
+            { id = 539463, text = "HYAH!" },
+            { id = 539455, text = "HYUH!" },
+            { id = 539468, text = "YEAH!" },
+        } },
+        { name = "Casting", family = "Fighting", lines = {
+            { id = 1385097, text = "FUUU!" },
+            { id = 1385093, text = "GRRR!" },
+            { id = 1385096, text = "HMMM!" },
+            { id = 1385099, text = "RRR!" },
+            { id = 1385095, text = "UUU!" },
+        } },
+        { name = "Threats", family = "Menace", lines = {
+            { id = 1385113, text = "I will end you." },
+        } },
+        { name = "Mockery", family = "Menace", lines = {
+            { id = 1385112, text = "You're not worth my time." },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 539234, text = "ATTACK THIS ENEMY!" },
+            { id = 539294, text = "ATTACK WHERE I DO!" },
+            { id = 539357, text = "Fall in behind me!" },
+            { id = 539231, text = "FIRE!" },
+            { id = 539395, text = "Follow my lead!" },
+            { id = 539327, text = "I will lead." },
+            { id = 539236, text = "JOIN MY ATTACK!" },
+            { id = 539242, text = "Stay here." },
+            { id = 539368, text = "UNLEASH HELL!" },
+            { id = 539354, text = "Wait." },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 539374, text = "Back! Pull back!" },
+            { id = 539358, text = "Be on your guard!" },
+            { id = 539197, text = "Survival first!" },
+            { id = 539326, text = "The tide has turned against us!" },
+        } },
+        { name = "Calls for aid", family = "Orders and warnings", lines = {
+            { id = 539265, text = "HEAL ME!" },
+            { id = 539306, text = "HEAL!" },
+            { id = 539332, text = "Help me!" },
+            { id = 539336, text = "Help, now!" },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 539414, text = "I AM LOW ON MANOR" },
+            { id = 539246, text = "My mana is nearly gone." },
+        } },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 539473, text = "AAH!" },
+            { id = 539460, text = "GAH!" },
+            { id = 951074, text = "GAHHH!" },
+            { id = 539467, text = "OOF!" },
+            { id = 539472, text = "OW!" },
+            { id = 539469, text = "UGH!" },
+        } },
+        { name = "Death cries", family = "Hurt and dying", lines = {
+            { id = 951064, text = "AHHH! UGH! UGH! UGH! OH!" },
+            { id = 539454, text = "EW OH!" },
+            { id = 539461, text = "GAHHH OHHH!" },
+            { id = 951060, text = "OH OH!" },
+            { id = 951068, text = "UGH UGH UGH!" },
+            { id = 951058, text = "UGH UGH!" },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 539381, text = "All hail the Sindorai!" },
+            { id = 539289, text = "Dorelle and Adiel" },
+            { id = 539166, text = "Our destiny awaits." },
+            { id = 539406, text = "Quel'Thalas shines once again." },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 539254, text = "Al dear shalah!" },
+            { id = 539257, text = "Be well." },
+            { id = 539247, text = "May the gates of Quel'Thalas be open to you always." },
+            { id = 539177, text = "Stand tall." },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 539411, text = "By no means." },
+            { id = 539427, text = "Exactly!" },
+            { id = 539323, text = "Hmm..." },
+            { id = 539396, text = "Mm-hmm..." },
+            { id = 539377, text = "NEVER!" },
+            { id = 539434, text = "No." },
+            { id = 539320, text = "Right!" },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 539369, text = "I am grateful." },
+            { id = 539426, text = "I will not forget." },
+            { id = 539169, text = "I'm sure you would have done the same." },
+            { id = 539314, text = "It was no trouble." },
+            { id = 1385111, text = "Sorry that happened." },
+            { id = 539285, text = "You are welcome." },
+            { id = 539223, text = "You have my thanks." },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 539356, text = "CONGRATULATIONS!" },
+            { id = 539179, text = "Fate is kind to you." },
+            { id = 539400, text = "Well deserved." },
+        } },
+        { name = "Flirts", family = "Fun", lines = {
+            { id = 539387, text = "Hey, why don't you come over here and... Oh, watch the hair!" },
+            { id = 539207, text = "I know every rose has its thorn, but if you would just pour some sugar on me, we could rock and roll all night and partay every day." },
+            { id = 539174, text = "Want to see my good side? That was a trick question. All I have are good sides." },
+            { id = 539425, text = "You know what I love about your eyes? When I look deep enough, I can see my own reflection." },
+            { id = 539217, text = "You look almost as good as I do." },
+            { id = 539409, text = "Your eyes are like the sun well, before the explosion that doomed us all, of course." },
+        } },
+        { name = "Losing patience", family = "Fun", lines = {
+            { id = 539317, text = "Don't you wish your girlfriend was hot like me?" },
+            { id = 539283, text = "Give me the serenity to accept the things I cannot change, courage to change the things I can, and the wisdom to... Ooh, just give me some freakin' magic before I kill somebody!" },
+            { id = 539353, text = "I could really use a scrunchie. Yeah, you heard me." },
+            { id = 539161, text = "I'm trying to cut back on Arcane Magic. Look, I got the patch." },
+            { id = 539431, text = "The problem with these Horde characters is that they lack sophistication." },
+            { id = 539165, text = "We're allied with the tauren? Fantastic! We'll be having steak twice a week." },
+        } },
+        { name = "Clowning", family = "Fun", lines = {
+            { id = 539313, text = "Bwah! Bwah Bwah Bwah bwah" },
+            { id = 539203, text = "CHUCA CHUCA CHUCA CH" },
+            { id = 539190, text = "PFFT PFFT PFFT PFFT" },
+        } },
+        { name = "Cheers", family = "Fun", lines = {
+            { id = 539228, text = "HAHAHA WHOO!" },
+            { id = 539422, text = "YES!" },
+        } },
+        { name = "Laughter", family = "Fun", lines = {
+            { id = 539287, text = "Ha Ha Ha ha" },
+        } },
+        { name = "Weeping", family = "Feelings", lines = {
+            { id = 539355, text = "Eheh, heh, heh, heh, heh." },
+        } },
+        { name = "Sighs", family = "Feelings", lines = {
+            { id = 539170, text = "SIGH..." },
+        } },
+        { name = "Yawns", family = "Feelings", lines = {
+            { id = 539271, text = "OH!" },
+        } },
+        { name = "Surprise", family = "Feelings", lines = {
+            { id = 1385110, text = "That did not go well at all." },
+        } },
+        { name = "Pleading", family = "Menace", lines = {
+            { id = 539281, text = "Please, please!" },
+        } },
+    } },
+    { who = "Blood Elf Demon Hunter - feminine voice", race = "Blood Elf", sex = "female", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 1389813, text = "Aaaargh!" },
+            { id = 1389816, text = "AHHHHHH" },
+            { id = 1316241, text = "AHHHHHHH" },
+            { id = 1389818, text = "Cya!" },
+            { id = 1389815, text = "Daaagh!" },
+            { id = 1389814, text = "D'ah!" },
+            { id = 1284731, text = "FIGHT FIRE WITH FIRE!" },
+            { id = 1389731, text = "FIND THE HARD!" },
+            { id = 1313580, text = "FOR THE HARD!" },
+            { id = 1284728, text = "FOR VENGEANCE!" },
+            { id = 1284729, text = "FOREVER DONE!" },
+            { id = 1389754, text = "Haha" },
+            { id = 1389772, text = "Hee-Ya!" },
+            { id = 1389750, text = "Hi-yah!" },
+            { id = 1389817, text = "Hooyah!" },
+            { id = 1389749, text = "Hwaaaah!" },
+            { id = 1389752, text = "KRAH!" },
+            { id = 1389765, text = "RUUUUUUU" },
+            { id = 1389747, text = "SHUT UP!" },
+            { id = 1284730, text = "The Illidari will prevail!" },
+            { id = 1284732, text = "VENGEANCE WILL BE MINE!" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 1389784, text = "CHIII!" },
+            { id = 1303297, text = "FUUU!" },
+            { id = 1389834, text = "HA CHA!" },
+            { id = 1389830, text = "HA HA!" },
+            { id = 1389839, text = "HA SHAAA!" },
+            { id = 1389833, text = "HA TAAH!" },
+            { id = 1303289, text = "HA!" },
+            { id = 1389831, text = "HAH DAAAGH!" },
+            { id = 1389835, text = "HAH PAH!" },
+            { id = 1389838, text = "HAH UGH!" },
+            { id = 1303287, text = "HEH HEH!" },
+            { id = 1303290, text = "HEH!" },
+            { id = 1389733, text = "HEY!" },
+            { id = 1303291, text = "HMPH!" },
+            { id = 1389837, text = "HUH HUHAHHH!" },
+            { id = 1303294, text = "HUH!" },
+            { id = 1303292, text = "HYA!" },
+            { id = 1389832, text = "HYAH YAH!" },
+            { id = 1389737, text = "OOF!" },
+            { id = 1303293, text = "PHEW!" },
+            { id = 1303296, text = "ROAR!" },
+            { id = 1303295, text = "UGH!" },
+            { id = 1303298, text = "YEAH!" },
+            { id = 1389735, text = "YES!" },
+        } },
+        { name = "Casting", family = "Fighting", lines = {
+            { id = 1389759, text = "AAA!" },
+            { id = 1389828, text = "AAARGH HAH!" },
+            { id = 1389821, text = "AHHH AHHH!" },
+            { id = 1389822, text = "GASP HUH AHHH!" },
+            { id = 1389824, text = "GRRR!" },
+            { id = 1389758, text = "HAAA!" },
+            { id = 1389755, text = "HEEE!" },
+            { id = 1389762, text = "HIYA!" },
+            { id = 1389756, text = "HMMM!" },
+            { id = 1389763, text = "HOOOYAAH!" },
+            { id = 1389819, text = "HUH HUH GAH!" },
+            { id = 1389825, text = "HUH HYAH!" },
+            { id = 1389827, text = "HUH YEAH!" },
+            { id = 1389829, text = "MMM!" },
+            { id = 1389761, text = "NOOO!" },
+            { id = 1389757, text = "OOO!" },
+            { id = 1389823, text = "RRR!" },
+            { id = 1389820, text = "UGH HUUU!" },
+        } },
+        { name = "Threats", family = "Menace", lines = {
+            { id = 1389792, text = "I WILL END YOU!" },
+        } },
+        { name = "Mockery", family = "Menace", lines = {
+            { id = 1389791, text = "You're not worth my time." },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 1284725, text = "Attack my enemy!" },
+            { id = 1284763, text = "Fire!" },
+            { id = 1284727, text = "FOCUS YOUR ATTACK HERE!" },
+            { id = 1284745, text = "Follow me." },
+            { id = 1284746, text = "I will go first." },
+            { id = 1284744, text = "I will lead." },
+            { id = 1284652, text = "Stay here." },
+            { id = 1284726, text = "Support my attack!" },
+            { id = 1284764, text = "Unleash hell!" },
+            { id = 1284651, text = "Wait for me." },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 1284737, text = "Back! Pull back!" },
+            { id = 1284738, text = "Fall back!" },
+            { id = 1284736, text = "Live to fight another day!" },
+            { id = 1284759, text = "WATCH OUT!" },
+        } },
+        { name = "Calls for aid", family = "Orders and warnings", lines = {
+            { id = 1284751, text = "Heal me!" },
+            { id = 1284752, text = "Heal!" },
+            { id = 1284757, text = "Help me!" },
+            { id = 1284758, text = "Help now!" },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 1284765, text = "I'm low on mana." },
+            { id = 1284766, text = "My mana is nearly gone." },
+        } },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 1389798, text = "AH!" },
+            { id = 1303311, text = "AHEM!" },
+            { id = 1389796, text = "D'OH!" },
+            { id = 1303309, text = "EH!" },
+            { id = 1389807, text = "GAAAH!" },
+            { id = 1303315, text = "GAH!" },
+            { id = 1389808, text = "GOOO!" },
+            { id = 1303306, text = "MEH!" },
+            { id = 1303310, text = "NYEH!" },
+            { id = 1303318, text = "OW!" },
+        } },
+        { name = "Death cries", family = "Hurt and dying", lines = {
+            { id = 1303304, text = "AHHH OOF OOF!" },
+            { id = 1389775, text = "AHHH UGH UGH!" },
+            { id = 1303302, text = "AHHH!" },
+            { id = 1303301, text = "GAH OOF!" },
+            { id = 1303303, text = "UGH UGH UGH!" },
+            { id = 1303305, text = "UGH UGH!" },
+            { id = 1389776, text = "UGH! UGH! UGH! UGH!" },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 1284755, text = "Greetings" },
+            { id = 1284756, text = "SINU AMENORI" },
+            { id = 1284753, text = "Vengeance awaits." },
+            { id = 1284754, text = "Victory to the Illidari!" },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 1284747, text = "Evil never rests." },
+            { id = 1284749, text = "Keep your blades sharp." },
+            { id = 1284750, text = "Remember our sacrifice." },
+            { id = 1284748, text = "Stay vigilant." },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 1284760, text = "By no means." },
+            { id = 1313585, text = "Mm-hmm." },
+            { id = 1284762, text = "Never." },
+            { id = 1284654, text = "Precisely." },
+            { id = 1284655, text = "Right." },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 1284648, text = "I am grateful." },
+            { id = 1284658, text = "It was no trouble." },
+            { id = 1284650, text = "Many thanks." },
+            { id = 1389790, text = "Sorry that happened." },
+            { id = 1284649, text = "You have my thanks." },
+            { id = 1284657, text = "You would have done the same, I'm sure." },
+            { id = 1284656, text = "You're welcome." },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 1284733, text = "Fate is kind to you." },
+            { id = 1284735, text = "How fortunate." },
+            { id = 1284734, text = "Well deserved." },
+        } },
+        { name = "Flirts", family = "Fun", lines = {
+            { id = 1284743, text = "Baby, I am prepared." },
+            { id = 1284739, text = "I like you. You remind me of this dreadlord I dated once. Shame I had to kill him." },
+            { id = 1284741, text = "I take on the powers of the demons I've killed. Did I tell you I've slain a whole army of succubi?" },
+            { id = 1284742, text = "I'd love to show you my twisting nether." },
+            { id = 1284740, text = "You ever go full fell?" },
+        } },
+        { name = "Losing patience", family = "Fun", lines = {
+            { id = 1284646, text = "Being a conduit for chaos is terrible for my hair." },
+            { id = 1284643, text = "Do not play hard to get. I always catch my prey." },
+            { id = 1284647, text = "Fight fire with fire! Unless it's really fire, then you should probably use water." },
+            { id = 1284645, text = "I only wear black, and very, very dark grey." },
+            { id = 1284644, text = "Of course these are real. You mean the tattoos, right?" },
+            { id = 1284767, text = "Well, what do you know? Your other senses do get stronger. You really need to shower, by the way." },
+        } },
+        { name = "Clowning", family = "Fun", lines = {
+            { id = 1313588, text = "Chugga, Chugga, Chugga, choo, choo." },
+            { id = 1316556, text = "PFFT!" },
+        } },
+        { name = "Cheers", family = "Fun", lines = {
+            { id = 1313578, text = "HA HA HA!" },
+            { id = 1313579, text = "HAHAHAHA!" },
+            { id = 1313575, text = "YAY!" },
+        } },
+        { name = "Laughter", family = "Fun", lines = {
+            { id = 1313584, text = "HEHEHEHE..." },
+        } },
+        { name = "Weeping", family = "Feelings", lines = {
+            { id = 1313708, text = "Heh Heh Heh heh" },
+        } },
+        { name = "Yawns", family = "Feelings", lines = {
+            { id = 1536192, text = "SIGH!" },
+        } },
+        { name = "Surprise", family = "Feelings", lines = {
+            { id = 1389789, text = "That did not go well at all." },
+        } },
+        { name = "Pleading", family = "Menace", lines = {
+            { id = 1313577, text = "No." },
+            { id = 1313576, text = "Please!" },
+        } },
+    } },
+    { who = "Blood Elf Demon Hunter - masculine voice", race = "Blood Elf", sex = "male", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 1502202, text = "AHHHHHHH" },
+            { id = 1306473, text = "CHAOS!" },
+            { id = 1306472, text = "Death to our enemies!" },
+            { id = 1306470, text = "For Illidan!" },
+            { id = 1306460, text = "FOR THE HORDE!" },
+            { id = 1306471, text = "For the Illidari!" },
+            { id = 1306469, text = "For vengeance!" },
+            { id = 1502205, text = "HAAAAA" },
+            { id = 1502207, text = "HAAAGH!" },
+            { id = 1502210, text = "HAHAHA" },
+            { id = 1502211, text = "HMMMMMMM" },
+            { id = 1502206, text = "HUH-HUH-HUH!" },
+            { id = 1502208, text = "HUUUUUUU" },
+            { id = 1502201, text = "RAAAGH!" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 1306368, text = "DAAARRR!" },
+            { id = 1306369, text = "D'AHHH!" },
+            { id = 1306361, text = "GAH!" },
+            { id = 1502218, text = "GRR GAH!" },
+            { id = 1502213, text = "GRRR!" },
+            { id = 1306367, text = "HA!" },
+            { id = 1306372, text = "HAAARRR!" },
+            { id = 1306364, text = "HIYA!" },
+            { id = 1306370, text = "HIYAH!" },
+            { id = 1502212, text = "HMMM!" },
+            { id = 1495049, text = "HO!" },
+            { id = 1502220, text = "HRRRGH GAH!" },
+            { id = 1502214, text = "HUH GAH!" },
+            { id = 1306360, text = "HUH!" },
+            { id = 1306373, text = "HURRAH!" },
+            { id = 1495056, text = "ROAR!" },
+            { id = 1502216, text = "UGH UGH!" },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 1306464, text = "Attack my enemy!" },
+            { id = 1306515, text = "Fire!" },
+            { id = 1306492, text = "Follow my lead." },
+            { id = 1306516, text = "Give them hell." },
+            { id = 1306493, text = "I'll lead the way." },
+            { id = 1306491, text = "I'll take the lead." },
+            { id = 1306466, text = "On my target, now!" },
+            { id = 1306533, text = "Stay here." },
+            { id = 1306465, text = "Take on my opponent!" },
+            { id = 1306532, text = "Wait..." },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 1306483, text = "Back to the shadows!" },
+            { id = 1306506, text = "Evil lurks nearby." },
+            { id = 1306482, text = "PULL BACK!" },
+            { id = 1306481, text = "Retreat!" },
+        } },
+        { name = "Calls for aid", family = "Orders and warnings", lines = {
+            { id = 1306498, text = "Heal me." },
+            { id = 1306499, text = "Hee-yah!" },
+            { id = 1306505, text = "Help now!" },
+            { id = 1306504, text = "I need assistance." },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 1306517, text = "I am low on mana." },
+            { id = 1306518, text = "My Man-Eye is nearly gone." },
+        } },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 1306388, text = "AHEM!" },
+            { id = 1495075, text = "ARGHHH!" },
+            { id = 1495076, text = "GOOOM!" },
+            { id = 1495072, text = "GRR!" },
+            { id = 1306390, text = "HAAAH!" },
+            { id = 1306392, text = "KAAAH!" },
+            { id = 1495063, text = "OOF!" },
+            { id = 1495071, text = "UGH!" },
+            { id = 1495064, text = "Where is this from?" },
+        } },
+        { name = "Death cries", family = "Hurt and dying", lines = {
+            { id = 1306376, text = "AHHH!" },
+            { id = 1306378, text = "Gah! Ugh! Ugh... There..." },
+            { id = 1306377, text = "HA OOOH!" },
+            { id = 1306375, text = "OW!" },
+            { id = 1306374, text = "RAAAGH! UGH! UGH! UGH!" },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 1306501, text = "All hail the Illidari!" },
+            { id = 1306502, text = "Darkness calls." },
+            { id = 1306500, text = "Fate awaits." },
+            { id = 1306503, text = "You are not prepared." },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 1306494, text = "Be well." },
+            { id = 1306496, text = "Farewell." },
+            { id = 1306495, text = "Stay vigilant." },
+            { id = 1306497, text = "We will meet again." },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 1306509, text = "By no means." },
+            { id = 1306535, text = "Exactly." },
+            { id = 1306514, text = "Hmm" },
+            { id = 1306512, text = "Mm-hmm." },
+            { id = 1306511, text = "Never." },
+            { id = 1306510, text = "No." },
+            { id = 1306536, text = "Right." },
+            { id = 1306513, text = "Yes." },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 1306539, text = "Don't mention it." },
+            { id = 1306528, text = "I am CRATEFUL." },
+            { id = 1306530, text = "I am in your debt." },
+            { id = 1306529, text = "I will not forget." },
+            { id = 1306538, text = "It was nothing." },
+            { id = 1306537, text = "You are welcome." },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 1306478, text = "Impressive." },
+            { id = 1306477, text = "Not bad." },
+            { id = 1306479, text = "You've done well." },
+        } },
+        { name = "Flirts", family = "Fun", lines = {
+            { id = 1306486, text = "Are you sure you're not part demon? I find myself wanting to stalk you." },
+            { id = 1306489, text = "I can't tell if I'm burning with desire, or if it's just my immolation aura." },
+            { id = 1306485, text = "I hope you like tattoos, because they're permanent. If you don't believe me, you could try rubbing them off." },
+            { id = 1306490, text = "I would never betray you." },
+            { id = 1306484, text = "If you looked like me, you wouldn't wear a shirt either." },
+            { id = 1306488, text = "I've only got eyes for you, baby." },
+            { id = 1306487, text = "Want me to talk dirty? I do speak nathrezim, you know." },
+        } },
+        { name = "Losing patience", family = "Fun", lines = {
+            { id = 1306525, text = "A dreadlord, an infernal, and a Doomguard walked into a bar. So I killed them all." },
+            { id = 1306519, text = "Darkness called, but I wasn't home, so he left a message." },
+            { id = 1306521, text = "Do these horns make me look evil?" },
+            { id = 1306522, text = "I actually got these tattoos before I went to prison." },
+            { id = 1306524, text = "I eat demons for breakfast and vengeance for lunch, but I usually skip dinner because vengeance has a lot of calories." },
+            { id = 1306523, text = "In a blind taste test, people said I tasted like charcoal and vengeance." },
+            { id = 1306526, text = "Oh it's all fun and games, until someone pokes an eye out." },
+            { id = 1306520, text = "You know, I could really use a manicure." },
+        } },
+        { name = "Clowning", family = "Fun", lines = {
+            { id = 1306476, text = "BAK BAK BAK KAAAAA!" },
+            { id = 1306531, text = "Chugga, Chugga, Chugga, choo choo!" },
+            { id = 1306527, text = "PFFFTTT!" },
+        } },
+        { name = "Cheers", family = "Fun", lines = {
+            { id = 1306475, text = "HAHA!" },
+        } },
+        { name = "Laughter", family = "Fun", lines = {
+            { id = 1306508, text = "Ha Ha Ha ha!" },
+        } },
+        { name = "Weeping", family = "Feelings", lines = {
+            { id = 1306480, text = "Oh, Oh, Oh, oh" },
+        } },
+        { name = "Yawns", family = "Feelings", lines = {
+            { id = 1536193, text = "UUU!" },
+        } },
+        { name = "Affection", family = "Feelings", lines = {
+            { id = 1306507, text = "MWAH!" },
+        } },
+        { name = "Pleading", family = "Menace", lines = {
+            { id = 1306467, text = "Grrrrrr" },
+            { id = 1306468, text = "Mmm! Mmm-hmm!" },
+        } },
+    } },
     { who = "Crok Scourgebane", groups = {
-        { name = "Attack grunts", lines = {
+        { name = "Attack grunts", family = "Fighting", lines = {
             { id = 546494, text = "GRR!" },
             { id = 546499, text = "HA!" },
             { id = 546500, text = "MMM!" },
@@ -557,7 +1236,7 @@ GameVoices.Characters = {
             { id = 546510, text = "YAH!" },
             { id = 546474, text = "YEAH!" },
         } },
-        { name = "Pain", lines = {
+        { name = "Pain", family = "Hurt and dying", lines = {
             { id = 546477, text = "AHHH!" },
             { id = 546488, text = "GAH!" },
             { id = 546508, text = "HEY!" },
@@ -569,7 +1248,7 @@ GameVoices.Characters = {
         } },
     } },
     { who = "Darion Mograine", groups = {
-        { name = "Battle cries", lines = {
+        { name = "Battle cries", family = "Fighting", lines = {
             { id = 3729228, text = "AMBUSH!" },
             { id = 1411960, text = "COWARD BEFORE THE FOUR HORSEMEN!" },
             { id = 1411961, text = "CRUSH OUR ENEMIES!" },
@@ -579,7 +1258,23 @@ GameVoices.Characters = {
             { id = 3671138, text = "SPEAK THEMED!" },
             { id = 551850, text = "YOU SEEK DEATH!" },
         } },
-        { name = "Threats", lines = {
+        { name = "Battle roars", family = "Fighting", lines = {
+            { id = 3733162, text = "GRRR!" },
+            { id = 3733074, text = "RAAAGH!" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 3733084, text = "ACHOO!" },
+            { id = 546805, text = "HA!" },
+            { id = 3733086, text = "HEH!" },
+            { id = 546862, text = "HEY!" },
+            { id = 3733094, text = "HMPH!" },
+            { id = 546798, text = "HYAH!" },
+            { id = 3733088, text = "PFFT!" },
+            { id = 546808, text = "RUFF!" },
+            { id = 546834, text = "YEAH!" },
+            { id = 3733102, text = "ZAP!" },
+        } },
+        { name = "Threats", family = "Menace", lines = {
             { id = 3670048, text = "Fight your way out of here. We will meet you ahead" },
             { id = 1413156, text = "It is done against your strength the Legion will surely fall" },
             { id = 3670221, text = "Not if we end you first" },
@@ -587,33 +1282,48 @@ GameVoices.Characters = {
             { id = 3670049, text = "Regroup with your fellow knights. We will not be far behind." },
             { id = 3729229, text = "You will pay for tormenting my father, fiend!" },
         } },
-        { name = "Boasts", lines = {
+        { name = "Boasts", family = "Menace", lines = {
             { id = 3670098, text = "I hope our allies didn't end up in the belly of that... thing." },
             { id = 4324082, text = "I must endure, for the legacy of Mograine!" },
             { id = 3670099, text = "I suggest we try not to get eaten." },
             { id = 1413937, text = "I will obey, Deathlord. But know this." },
             { id = 551849, text = "None shall pass!" },
         } },
-        { name = "Orders", lines = {
+        { name = "Mockery", family = "Menace", lines = {
+            { id = 551852, text = "I...am...released. Perhaps it's not too late to... NOW! I...need...more...time!" },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
             { id = 3733146, text = "Get him off!" },
             { id = 3670096, text = "Hold what's that up ahead?" },
             { id = 4323838, text = "HOLD! I am myself again!" },
             { id = 3670058, text = "Let's get moving, before reinforcements arrive." },
             { id = 3670101, text = "Let's move on." },
         } },
-        { name = "Mockery", lines = {
-            { id = 551852, text = "I...am...released. Perhaps it's not too late to... NOW! I...need...more...time!" },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 546782, text = "AHEM!" },
+            { id = 546813, text = "AHHH!" },
+            { id = 546794, text = "ARGH!" },
+            { id = 3733132, text = "DAAAGH!" },
+            { id = 3733134, text = "FUUU!" },
+            { id = 3733150, text = "GAH!" },
+            { id = 546796, text = "UGH!" },
+            { id = 3733144, text = "YES!" },
         } },
-        { name = "Dark magic", lines = {
-            { id = 3707827, text = "We cannot leave these innocent souls alone to their fate." },
+        { name = "Death cries", family = "Hurt and dying", lines = {
+            { id = 3733116, text = "AAA!" },
+            { id = 3733118, text = "AHHH AHHH!" },
+            { id = 3733112, text = "NO NO!" },
         } },
-        { name = "Loyalty", lines = {
-            { id = 546824, text = "We exist only to serve him." },
-        } },
-        { name = "Farewells", lines = {
+        { name = "Farewells", family = "Manners", lines = {
             { id = 3707787, text = "Speak! How do we leave this place?" },
         } },
-        { name = "Conversation", lines = {
+        { name = "Dark magic", family = "Fighting", lines = {
+            { id = 3707827, text = "We cannot leave these innocent souls alone to their fate." },
+        } },
+        { name = "Loyalty", family = "Manners", lines = {
+            { id = 546824, text = "We exist only to serve him." },
+        } },
+        { name = "Conversation", family = "Feelings", lines = {
             { id = 546825, text = "All is not lost. Not yet." },
             { id = 4323844, text = "As expected from you, Deathlord. Well struck." },
             { id = 1413953, text = "At last, the four horsemen shall have their leader." },
@@ -679,44 +1389,185 @@ GameVoices.Characters = {
             { id = 3707785, text = "Your arrival is timely." },
             { id = 3671137, text = "You're coming with us!" },
         } },
-        { name = "Attack grunts", lines = {
-            { id = 3733084, text = "ACHOO!" },
-            { id = 546805, text = "HA!" },
-            { id = 3733086, text = "HEH!" },
-            { id = 546862, text = "HEY!" },
-            { id = 3733094, text = "HMPH!" },
-            { id = 546798, text = "HYAH!" },
-            { id = 3733088, text = "PFFT!" },
-            { id = 546808, text = "RUFF!" },
-            { id = 546834, text = "YEAH!" },
-            { id = 3733102, text = "ZAP!" },
+    } },
+    { who = "Dark Iron Dwarf - feminine voice", race = "Dark Iron Dwarf", sex = "female", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 1906540, text = "AHHHHHH" },
+            { id = 1906530, text = "AHHHHHHH" },
+            { id = 1901874, text = "FOR THE ALLIANCE!" },
+            { id = 1906526, text = "HAAAAAA" },
         } },
-        { name = "Pain", lines = {
-            { id = 546782, text = "AHEM!" },
-            { id = 546813, text = "AHHH!" },
-            { id = 546794, text = "ARGH!" },
-            { id = 3733132, text = "DAAAGH!" },
-            { id = 3733134, text = "FUUU!" },
-            { id = 3733150, text = "GAH!" },
-            { id = 546796, text = "UGH!" },
-            { id = 3733144, text = "YES!" },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 1906510, text = "HA!" },
+            { id = 1906522, text = "HAAA!" },
+            { id = 1906517, text = "HEY!" },
+            { id = 1906521, text = "HOOO!" },
+            { id = 1906561, text = "HUAGH!" },
+            { id = 1906513, text = "HUAH!" },
+            { id = 1906562, text = "HUH!" },
+            { id = 1906511, text = "HYAH!" },
+            { id = 1906515, text = "WAH!" },
         } },
-        { name = "Death cries", lines = {
-            { id = 3733116, text = "AAA!" },
-            { id = 3733118, text = "AHHH AHHH!" },
-            { id = 3733112, text = "NO NO!" },
+        { name = "Casting", family = "Fighting", lines = {
+            { id = 1906536, text = "HUUU!" },
+            { id = 1906538, text = "HUUUH!" },
         } },
-        { name = "Battle roars", lines = {
-            { id = 3733162, text = "GRRR!" },
-            { id = 3733074, text = "RAAAGH!" },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 1901873, text = "FOLLOW ME!" },
+            { id = 1901881, text = "OPEN FIRE!" },
+            { id = 1901871, text = "THIS WAY!" },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 1901869, text = "EVERYONE, RETREAT!" },
+            { id = 1901868, text = "You need to fall back!" },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 1901939, text = "I must have more rage!" },
+            { id = 1901935, text = "I need mana first!" },
+            { id = 1901996, text = "I need to recover mana!" },
+            { id = 1901937, text = "Mana is needed!" },
+            { id = 1901924, text = "My fury is low!" },
+            { id = 1901936, text = "My mana is low!" },
+            { id = 1901933, text = "Not enough energy!" },
+            { id = 1901923, text = "NOT ENOUGH FURY!" },
+            { id = 1901938, text = "Not enough rage!" },
+        } },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 1906569, text = "AH!" },
+            { id = 1906575, text = "EH!" },
+            { id = 1906576, text = "GAH!" },
+            { id = 1906571, text = "OH!" },
+            { id = 1906574, text = "OOF!" },
+            { id = 1906567, text = "UGH!" },
+        } },
+        { name = "Death cries", family = "Hurt and dying", lines = {
+            { id = 1906542, text = "AHHH!" },
+            { id = 1906546, text = "BAAA!" },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 1901987, text = "Good to see ya!" },
+            { id = 1901986, text = "Greetings!" },
+            { id = 1901985, text = "State your business!" },
+            { id = 1901988, text = "Well met!" },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 1901984, text = "Farewell!" },
+            { id = 1901983, text = "OFF WITH YA!" },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 1901993, text = "Mm-hmm." },
+            { id = 1901991, text = "Not a chance!" },
+            { id = 1901992, text = "That's right!" },
+            { id = 1901989, text = "Uh-uh. No." },
+            { id = 1901994, text = "Yep." },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 1902007, text = "I'm very grateful." },
+            { id = 1902012, text = "T'was my pleasure." },
+            { id = 1901995, text = "Ugh! What a blunder!" },
+            { id = 1902008, text = "You have my thanks!" },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 1901971, text = "Not bad at all!" },
+            { id = 1901972, text = "That's impressive!" },
+            { id = 1901973, text = "Very nice." },
+        } },
+        { name = "Pleading", family = "Menace", lines = {
+            { id = 1901970, text = "I ASK MERCY!" },
+            { id = 1901968, text = "I'M BEGGIN' HERE!" },
+        } },
+    } },
+    { who = "Dark Iron Dwarf - masculine voice", race = "Dark Iron Dwarf", sex = "male", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 1906599, text = "AHHHHHH" },
+            { id = 1906601, text = "FLYER!" },
+            { id = 1902387, text = "FOR THE ALLIANCE!" },
+            { id = 1906612, text = "HRRRRRRR" },
+            { id = 1906600, text = "NOOOOOO" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 1906585, text = "HA!" },
+            { id = 1906598, text = "HRRR!" },
+            { id = 1906590, text = "HUH!" },
+            { id = 1906636, text = "HUUU UUU UUU!" },
+            { id = 1906639, text = "HUUUUUUU UUUUUU UUUUUU UUUUUU" },
+            { id = 1906586, text = "HWAH!" },
+            { id = 1906588, text = "HYAH!" },
+            { id = 1906596, text = "RAWR!" },
+            { id = 1906584, text = "UGH!" },
+            { id = 1906594, text = "YEAH!" },
+        } },
+        { name = "Casting", family = "Fighting", lines = {
+            { id = 1906606, text = "HUUU!" },
+            { id = 1906608, text = "RRR!" },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 1902386, text = "FOLLOW ME!" },
+            { id = 1902394, text = "OPEN FIRE!" },
+            { id = 1902384, text = "This way!" },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 1902382, text = "Everyone retreat!" },
+            { id = 1902381, text = "You need to fall back!" },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 1902454, text = "I AM OUT OF RAGE!" },
+            { id = 1902452, text = "I must have more rage!" },
+            { id = 1902448, text = "I need mana first!" },
+            { id = 1902509, text = "I need to recover mana!" },
+            { id = 1902450, text = "Mana is needed!" },
+            { id = 1902437, text = "My fury is low!" },
+            { id = 1902449, text = "My mana is low!" },
+            { id = 1902451, text = "Not enough rage!" },
+        } },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 1906654, text = "BOOOM!" },
+            { id = 1906649, text = "GAH!" },
+            { id = 1906646, text = "OOF!" },
+            { id = 1906651, text = "YES!" },
+        } },
+        { name = "Death cries", family = "Hurt and dying", lines = {
+            { id = 1906613, text = "AHHH UGH!" },
+            { id = 1906614, text = "AHHH!" },
+            { id = 1906616, text = "GRRR!" },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 1902500, text = "Good to see ya!" },
+            { id = 1902499, text = "Greetings!" },
+            { id = 1902498, text = "State your business!" },
+            { id = 1902501, text = "Well met!" },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 1902497, text = "Farewell!" },
+            { id = 1902496, text = "OFF WITH YA!" },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 1902446, text = "NO ENOUGH ENERGY!" },
+            { id = 1902502, text = "NO!" },
+            { id = 1902504, text = "Not a chance!" },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 1902520, text = "I'm very grateful." },
+            { id = 1902525, text = "T'was my pleasure!" },
+            { id = 1902508, text = "What a blunder!" },
+            { id = 1902521, text = "You have my thanks." },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 1902484, text = "Not bad at all!" },
+            { id = 1902485, text = "That's impressive!" },
+            { id = 1902486, text = "Very nice!" },
+        } },
+        { name = "Pleading", family = "Menace", lines = {
+            { id = 1902483, text = "I ask mercy!" },
+            { id = 1902481, text = "I'M BEGGIN' YA HERE!" },
         } },
     } },
     { who = "Dark Ranger", groups = {
-        { name = "Battle cries", lines = {
+        { name = "Battle cries", family = "Fighting", lines = {
             { id = 2399912, text = "FOR THE DARK LADY" },
             { id = 2444875, text = "MEH! YAH!" },
         } },
-        { name = "Threats", lines = {
+        { name = "Threats", family = "Menace", lines = {
             { id = 2407212, text = "Or you will die here, in the swamp, alone." },
             { id = 2399836, text = "You have already lost." },
             { id = 2399932, text = "You have no chance." },
@@ -725,7 +1576,7 @@ GameVoices.Characters = {
             { id = 2399830, text = "You will lose, as I did." },
             { id = 2407211, text = "You will throw down your weapon at once and come with us." },
         } },
-        { name = "Boasts", lines = {
+        { name = "Boasts", family = "Menace", lines = {
             { id = 2399945, text = "I see only darkness." },
             { id = 2399924, text = "I serve the Banshee Queen." },
             { id = 2399926, text = "I watch. I listen." },
@@ -733,30 +1584,30 @@ GameVoices.Characters = {
             { id = 2407121, text = "My good sir, can you help us?" },
             { id = 2407078, text = "My poor, sweet daughter lost her puppy." },
         } },
-        { name = "Orders", lines = {
+        { name = "Mockery", family = "Menace", lines = {
+            { id = 2407073, text = "FOOLS" },
+            { id = 2399822, text = "I claim your worthless life!" },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
             { id = 2407213, text = "Kill the traitor and all who stand with him!" },
             { id = 2407075, text = "Let's get to it." },
             { id = 2407040, text = "Let's keep moving. Be on the lookout for anything suspicious." },
             { id = 2399918, text = "Stay sharp, stay ready." },
         } },
-        { name = "Mockery", lines = {
-            { id = 2407073, text = "FOOLS" },
-            { id = 2399822, text = "I claim your worthless life!" },
+        { name = "Falling in battle", family = "Hurt and dying", lines = {
+            { id = 2399824, text = "The darkness will take you!" },
         } },
-        { name = "Dark magic", lines = {
+        { name = "Despair", family = "Hurt and dying", lines = {
+            { id = 2399814, text = "We are all slaves to this torment." },
+        } },
+        { name = "Dark magic", family = "Fighting", lines = {
             { id = 2399816, text = "The shadows draw near." },
         } },
-        { name = "Loyalty", lines = {
+        { name = "Loyalty", family = "Manners", lines = {
             { id = 2399938, text = "Forgive me, Dark Lady." },
             { id = 2407037, text = "Of course, my lady." },
         } },
-        { name = "Falling in battle", lines = {
-            { id = 2399824, text = "The darkness will take you!" },
-        } },
-        { name = "Despair", lines = {
-            { id = 2399814, text = "We are all slaves to this torment." },
-        } },
-        { name = "Conversation", lines = {
+        { name = "Conversation", family = "Feelings", lines = {
             { id = 2399810, text = "All things must end." },
             { id = 2399804, text = "Believe in nothing" },
             { id = 2444941, text = "CHA!" },
@@ -805,24 +1656,24 @@ GameVoices.Characters = {
         } },
     } },
     { who = "Dark Ranger Velonara", groups = {
-        { name = "Threats", lines = {
+        { name = "Threats", family = "Menace", lines = {
             { id = 5226955, text = "Do you have to do that?" },
         } },
-        { name = "Boasts", lines = {
+        { name = "Boasts", family = "Menace", lines = {
             { id = 4489333, text = "I stand with the Forsaken." },
             { id = 4489332, text = "My bow is ready." },
             { id = 4492179, text = "My fellow Dark Rangers and I are with you." },
         } },
-        { name = "Orders", lines = {
+        { name = "Orders", family = "Orders and warnings", lines = {
             { id = 5226951, text = "Do not chase, their time will come." },
         } },
-        { name = "Greetings", lines = {
+        { name = "Greetings", family = "Manners", lines = {
             { id = 4489331, text = "Well met." },
         } },
-        { name = "Farewells", lines = {
+        { name = "Farewells", family = "Manners", lines = {
             { id = 4500969, text = "Adiel Shaddaa. Farewell." },
         } },
-        { name = "Conversation", lines = {
+        { name = "Conversation", family = "Feelings", lines = {
             { id = 4489327, text = "Adi El Shalah" },
             { id = 4489330, text = "May your aim be true." },
             { id = 5226953, text = "Our determination." },
@@ -834,27 +1685,27 @@ GameVoices.Characters = {
         } },
     } },
     { who = "Domina Blightarrow", groups = {
-        { name = "Battle cries", lines = {
+        { name = "Battle cries", family = "Fighting", lines = {
             { id = 3485264, text = "FEAR THE DAGGER IN THE DARK!" },
             { id = 3485267, text = "THIS CHANGES NOTHING. YOU WILL STILL PARISH." },
         } },
-        { name = "Threats", lines = {
+        { name = "Threats", family = "Menace", lines = {
             { id = 3485263, text = "My blades will rend your flesh!" },
             { id = 3485256, text = "There is no hope left for you." },
             { id = 3485254, text = "You will not stop me!" },
         } },
-        { name = "Boasts", lines = {
+        { name = "Boasts", family = "Menace", lines = {
             { id = 3485260, text = "I need no poisons to finish you!" },
             { id = 3485262, text = "I strike unseen." },
             { id = 3485268, text = "I will slay you where you stand!" },
         } },
-        { name = "Dark magic", lines = {
+        { name = "Dark magic", family = "Fighting", lines = {
             { id = 3485265, text = "Your demise comes from the shadows." },
         } },
-        { name = "Loyalty", lines = {
+        { name = "Loyalty", family = "Manners", lines = {
             { id = 3485251, text = "Soon all of Maldraxxus will join you." },
         } },
-        { name = "Conversation", lines = {
+        { name = "Conversation", family = "Feelings", lines = {
             { id = 3485266, text = "A lucky strike! Nothing more!" },
             { id = 3485261, text = "A single scratch is all it will take." },
             { id = 3485259, text = "Death from above!" },
@@ -864,8 +1715,649 @@ GameVoices.Characters = {
             { id = 3485257, text = "Such easy prey!" },
         } },
     } },
+    { who = "Dracthyr - feminine voice", race = "Dracthyr", sex = "female", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 4758483, text = "ATTACK!" },
+            { id = 4758481, text = "Charge!" },
+            { id = 4758482, text = "Fight as one!" },
+            { id = 4758492, text = "FOR THE ALLIANCE!" },
+            { id = 4758493, text = "FOR THE HORDE!" },
+            { id = 4758484, text = "NOW WE STRIKE!" },
+            { id = 4758485, text = "To battle!" },
+        } },
+        { name = "Battle roars", family = "Fighting", lines = {
+            { id = 4741001, text = "AHHH!" },
+            { id = 4741003, text = "HRRRAAAGH!" },
+            { id = 4739523, text = "ROAR!" },
+        } },
+        { name = "Threats", family = "Menace", lines = {
+            { id = 4758615, text = "It is unwise to anger a dragon." },
+        } },
+        { name = "Mockery", family = "Menace", lines = {
+            { id = 4758611, text = "Huh, you're no dragon!" },
+            { id = 4758832, text = "You're no dragon!" },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 4758477, text = "Attack this one!" },
+            { id = 4758502, text = "DO NOT MOVE!" },
+            { id = 4758480, text = "Focus your attacks!" },
+            { id = 4758491, text = "Follow me!" },
+            { id = 4758490, text = "I will take point." },
+            { id = 4758479, text = "On my target!" },
+            { id = 4758500, text = "OPEN FIRE!" },
+            { id = 4758501, text = "Remain here." },
+            { id = 4758489, text = "This way!" },
+            { id = 4758499, text = "UNLEASH FIRE!" },
+            { id = 4758642, text = "Unleash Spire!" },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 4758486, text = "Fall back!" },
+            { id = 4758487, text = "Signal a retreat!" },
+            { id = 4758498, text = "Target incoming!" },
+            { id = 4758488, text = "Withdraw!" },
+        } },
+        { name = "Calls for aid", family = "Orders and warnings", lines = {
+            { id = 4758495, text = "HEAL MY WOUNDS!" },
+            { id = 4758497, text = "Help me!" },
+            { id = 4758494, text = "I am wounded!" },
+            { id = 4758496, text = "I need assistance!" },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 4758601, text = "Hold position. I need mana." },
+            { id = 4758557, text = "I am out of essence." },
+            { id = 4758554, text = "I lack sufficient energy." },
+            { id = 4758562, text = "I must have more rage." },
+            { id = 4758602, text = "I must regain mana." },
+            { id = 4758556, text = "I must restore my essence." },
+            { id = 4758558, text = "I need mana first." },
+            { id = 4758560, text = "Manner is needed." },
+            { id = 4758555, text = "My essence is low." },
+            { id = 4758559, text = "My mana is low." },
+            { id = 4758553, text = "Not enough energy." },
+            { id = 4758561, text = "Not enough rage." },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 4758593, text = "Hello and welcome." },
+            { id = 4758592, text = "Honored to meet you." },
+            { id = 4758590, text = "I offer greetings." },
+            { id = 4758591, text = "Well met!" },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 4758589, text = "Fight well!" },
+            { id = 4758588, text = "In Kinship, we find purpose." },
+            { id = 4758586, text = "May your wings guide you home." },
+            { id = 4758587, text = "Until our paths cross again." },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 4758597, text = "Agreed." },
+            { id = 4758596, text = "I think not." },
+            { id = 4758598, text = "Just so." },
+            { id = 4758594, text = "NEGATIVE" },
+            { id = 4758595, text = "Not a chance." },
+            { id = 4758599, text = "So be it." },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 4758617, text = "Anything for an ally." },
+            { id = 4758614, text = "Belan-shi" },
+            { id = 4758835, text = "Belen Shieh" },
+            { id = 4758612, text = "Most appreciated." },
+            { id = 4758618, text = "Of course." },
+            { id = 4758840, text = "She'll done." },
+            { id = 4758610, text = "That was... regrettable." },
+            { id = 4758619, text = "Xialdan" },
+            { id = 4758613, text = "You have my gratitude." },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 4758578, text = "Flawless execution." },
+            { id = 4758577, text = "Nicely done." },
+            { id = 4758576, text = "WELL EARNED!" },
+        } },
+        { name = "Jokes", family = "Fun", lines = {
+            { id = 4758606, text = "I get bored easily. The day really seems to drag on." },
+            { id = 4758605, text = "I never really have a plan. I prefer to wing it." },
+            { id = 4758609, text = "I showed my tail to one of those wolf people, but they just looked sad and walked away. I wonder why." },
+            { id = 4758830, text = "I showed my tale to one of those wolf people, but they just looked sad and walked away. I wonder why." },
+            { id = 4758824, text = "The Dracthyr are excellent musicians. We really know our scales." },
+            { id = 4758603, text = "The Drakthir are excellent musicians, we really know our scales." },
+            { id = 4758607, text = "Think your morning birth is bad? Mine sets things on fire." },
+            { id = 4758828, text = "Think your morning breath is bad? Mine sets things on fire." },
+            { id = 4758608, text = "What do dragons and onions have in common? They both have layers. Get it? Layers." },
+            { id = 4758604, text = "What do you call a Drakthir who can juggle? Talented." },
+            { id = 4758825, text = "What do you call a Drakthir who can juggle? Talon Ted!" },
+        } },
+        { name = "Flirts", family = "Fun", lines = {
+            { id = 4758584, text = "Cold-blooded? Not a chance. How about I warm things up for you?" },
+            { id = 4758580, text = "Do you believe in love at first flight?" },
+            { id = 4758582, text = "I want to be the wind beneath your wings." },
+            { id = 4758579, text = "Those claws look heavy. How about you let me hold one?" },
+            { id = 4758585, text = "What's my type? Tall, scaly, and brooding, of course." },
+            { id = 4758581, text = "You must be an updraft, cause you make my heart soar!" },
+            { id = 4758583, text = "You must be tired, because you've been flying through my mind all day." },
+        } },
+        { name = "Clowning", family = "Fun", lines = {
+            { id = 4740977, text = "Bwah! Bwah! Bwah! Bwah!" },
+            { id = 4739521, text = "BZZZ!" },
+            { id = 4739531, text = "Chugga, Chugga, Chugga, choo choo!" },
+            { id = 4741007, text = "Chugga, Chugga, Chugga, woo woo!" },
+            { id = 4739495, text = "Maaak bak bak bak bak!" },
+            { id = 4740999, text = "PFFTTT!" },
+        } },
+        { name = "Cheers", family = "Fun", lines = {
+            { id = 4740969, text = "AH HA HA!" },
+            { id = 4739489, text = "AHH!" },
+            { id = 4740971, text = "HAAA!" },
+            { id = 4739491, text = "HYAH!" },
+            { id = 4740973, text = "WOO!" },
+        } },
+        { name = "Laughter", family = "Fun", lines = {
+            { id = 4739515, text = "Ha Ha Ha ha" },
+            { id = 4740993, text = "HAHAHAHA!" },
+        } },
+        { name = "Weeping", family = "Feelings", lines = {
+            { id = 4739499, text = "HAHAHA!" },
+            { id = 4740981, text = "HEHEHE!" },
+            { id = 4739497, text = "MWAHAHAHA!" },
+            { id = 4739501, text = "Oh, ho, ho, ho, ho" },
+            { id = 4740983, text = "UGHHH!" },
+        } },
+        { name = "Sighs", family = "Feelings", lines = {
+            { id = 4739527, text = "SIGH..." },
+        } },
+        { name = "Affection", family = "Feelings", lines = {
+            { id = 4739511, text = "MMM!" },
+            { id = 4739513, text = "MWAH!" },
+        } },
+        { name = "Pleading", family = "Menace", lines = {
+            { id = 4758574, text = "Have mercy!" },
+            { id = 4758573, text = "Please! I beg of you!" },
+            { id = 4758575, text = "Show compassion!" },
+        } },
+    } },
+    { who = "Dracthyr - masculine voice", race = "Dracthyr", sex = "male", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 4758197, text = "ATTACK!" },
+            { id = 4758195, text = "Charge!" },
+            { id = 4758196, text = "Fight as one!" },
+            { id = 4758206, text = "FOR THE ALLIANCE!" },
+            { id = 4758207, text = "FOR THE HORDE!" },
+            { id = 4758198, text = "NOW WE STRIKE!" },
+            { id = 4758199, text = "To battle!" },
+        } },
+        { name = "Battle roars", family = "Fighting", lines = {
+            { id = 4738597, text = "BLAAARRR!" },
+            { id = 4737555, text = "RAAAGH!" },
+        } },
+        { name = "Threats", family = "Menace", lines = {
+            { id = 4758329, text = "It is unwise to anger a dragon." },
+        } },
+        { name = "Mockery", family = "Menace", lines = {
+            { id = 4758325, text = "You're no dragon." },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 4758188, text = "Attack this one!" },
+            { id = 4758216, text = "DO NOT MOVE" },
+            { id = 4758191, text = "FOCUS YOUR ATTACKS!" },
+            { id = 4758205, text = "FOLLOW ME!" },
+            { id = 4758204, text = "I will take point." },
+            { id = 4758190, text = "On my target!" },
+            { id = 4758214, text = "OPEN FIRE" },
+            { id = 4758215, text = "Remain here." },
+            { id = 4758203, text = "This way!" },
+            { id = 4758213, text = "Unleash fire!" },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 4758200, text = "FALL BACK!" },
+            { id = 4758201, text = "Signal a retreat" },
+            { id = 4758212, text = "Target incoming." },
+            { id = 4758202, text = "Withdraw!" },
+        } },
+        { name = "Calls for aid", family = "Orders and warnings", lines = {
+            { id = 4758209, text = "Heal my wounds!" },
+            { id = 4758211, text = "Help me!" },
+            { id = 4758208, text = "I AM WOUNDED" },
+            { id = 4758210, text = "I need assistance!" },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 4758315, text = "Hold position. I need mana." },
+            { id = 4758271, text = "I AM OUT OF ESSENCE" },
+            { id = 4758268, text = "I lack sufficient energy." },
+            { id = 4758276, text = "I must have more rage." },
+            { id = 4758316, text = "I must regain mana." },
+            { id = 4758270, text = "I must restore my essence." },
+            { id = 4758272, text = "I need mana first." },
+            { id = 4758274, text = "Mana is needed." },
+            { id = 4758417, text = "Manner is needed." },
+            { id = 4758269, text = "My essence is low." },
+            { id = 4758273, text = "My mana is low." },
+            { id = 4758267, text = "Not enough energy." },
+            { id = 4758275, text = "Not enough rage." },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 4758307, text = "Hello and welcome." },
+            { id = 4758306, text = "Honored to meet you." },
+            { id = 4758304, text = "I offer greetings." },
+            { id = 4758305, text = "Well met." },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 4758444, text = "Fair skies and strong winds, friend." },
+            { id = 4758301, text = "Fair skies and strong winds." },
+            { id = 4758303, text = "FIGHT WELL" },
+            { id = 4758302, text = "In Kinship we find purpose." },
+            { id = 4758300, text = "May your wings guide you home." },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 4758311, text = "Agreed." },
+            { id = 4758310, text = "I think not." },
+            { id = 4758312, text = "Just so." },
+            { id = 4758308, text = "Negative" },
+            { id = 4758309, text = "Not a chance." },
+            { id = 4758452, text = "Not a Jens." },
+            { id = 4758313, text = "So be it." },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 4758331, text = "Anything for an ally." },
+            { id = 4758328, text = "Belon Shee" },
+            { id = 4758471, text = "Belong she." },
+            { id = 4758326, text = "Most appreciated." },
+            { id = 4758332, text = "Of course." },
+            { id = 4758333, text = "She all done." },
+            { id = 4758324, text = "That was... regrettable." },
+            { id = 4758327, text = "You have my gratitude." },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 4758292, text = "Flawless execution." },
+            { id = 4758291, text = "Nicely done." },
+            { id = 4758290, text = "WELL EARNED" },
+        } },
+        { name = "Jokes", family = "Fun", lines = {
+            { id = 4758317, text = "A bronze dragon is never late, nor are they early. They arrive precisely when they mean to." },
+            { id = 4758322, text = "Can you believe there was a dragon living in Stormwind, and nobody realized it? You'd think the smell of sulfur would have given her away." },
+            { id = 4758321, text = "Is it hot in here, or is it just the immense plume of fire coming out of my mouth?" },
+            { id = 4758320, text = "My favorite place is the library. You could say I'm a real bookworm. Get it? Worm." },
+            { id = 4758318, text = "One time I sneezed inside a cheese shop. That's how I discovered my love for fondue." },
+            { id = 4758319, text = "They say dragons can grow up to 50 feet, but I've never met one with more than four." },
+            { id = 4758323, text = "You can never have too many Drakthir. We scale really well." },
+            { id = 4758466, text = "You can never have too many Drakthyr. We scale really well." },
+        } },
+        { name = "Flirts", family = "Fun", lines = {
+            { id = 4758299, text = "Careful, my kiss can melt your heart. Literally." },
+            { id = 4758298, text = "I look good from scale to tail." },
+            { id = 4758297, text = "Let's ask a bronze dragon to turn back time, so I can fall for you all over again." },
+            { id = 4758293, text = "One look at you, and my head's in the clouds." },
+            { id = 4758295, text = "When I see you, I lose all my fire resistance." },
+            { id = 4758296, text = "With you and me together, the sky's the limit." },
+            { id = 4758294, text = "You bring the dungeon, and I'll bring the dragon." },
+        } },
+        { name = "Clowning", family = "Fun", lines = {
+            { id = 4737553, text = "BRRR!" },
+            { id = 4738563, text = "Bwah! Bwah! Bwah! Bwah!" },
+            { id = 4737531, text = "Bwak! Bwak! Bwak! Bwak!" },
+            { id = 4737561, text = "Chugga, Chugga, Chugga, whoo, whoo!" },
+            { id = 4738593, text = "PFFTTT!" },
+        } },
+        { name = "Cheers", family = "Fun", lines = {
+            { id = 4738561, text = "AHA!" },
+            { id = 4737525, text = "AHH!" },
+            { id = 4738557, text = "GRRR HEHEHEH!" },
+            { id = 4737529, text = "HAHA!" },
+            { id = 4738559, text = "ROAR!" },
+            { id = 4737527, text = "YEAH!" },
+        } },
+        { name = "Laughter", family = "Fun", lines = {
+            { id = 4738589, text = "Ha Ha Ha ha!" },
+            { id = 4738591, text = "HEHEHEH!" },
+            { id = 4737549, text = "HEHEHEHE!" },
+        } },
+        { name = "Weeping", family = "Feelings", lines = {
+            { id = 4738567, text = "AHHH!" },
+            { id = 4738565, text = "OHHH!" },
+            { id = 4737533, text = "UUU!" },
+        } },
+        { name = "Sighs", family = "Feelings", lines = {
+            { id = 4738599, text = "SIGH..." },
+            { id = 4737559, text = "UGH!" },
+        } },
+        { name = "Yawns", family = "Feelings", lines = {
+            { id = 4738613, text = "NNN!" },
+        } },
+        { name = "Affection", family = "Feelings", lines = {
+            { id = 4738587, text = "MWAH!" },
+        } },
+        { name = "Pleading", family = "Menace", lines = {
+            { id = 4758288, text = "Have mercy!" },
+            { id = 4758287, text = "Please, I beg of you." },
+            { id = 4758289, text = "Show compassion!" },
+        } },
+    } },
+    { who = "Draenei - feminine voice", race = "Draenei", sex = "female", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 539511, text = "FETTABAI AKAHACHI!" },
+            { id = 539551, text = "For Argos!" },
+            { id = 1387387, text = "For the Alliance!" },
+            { id = 539475, text = "FOR THE NARU! FOR THE LIGHTS!" },
+            { id = 1385372, text = "Grrrrrr!" },
+            { id = 1385387, text = "HAAAAA" },
+            { id = 1385386, text = "HAAAGH!" },
+            { id = 1385384, text = "HUH? UH!" },
+        } },
+        { name = "Battle roars", family = "Fighting", lines = {
+            { id = 539693, text = "Courage! Do not falter!" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 1385399, text = "AHEM!" },
+            { id = 1385400, text = "AHH AHHH!" },
+            { id = 539766, text = "BOO!" },
+            { id = 951082, text = "DUH!" },
+            { id = 1385401, text = "HA AH!" },
+            { id = 539749, text = "HA!" },
+            { id = 1385394, text = "HEH AHEM!" },
+            { id = 1385393, text = "HEH OOF!" },
+            { id = 1385396, text = "HEH UGH!" },
+            { id = 1385398, text = "HEY UGH!" },
+            { id = 1385395, text = "HMPH UGH!" },
+            { id = 539764, text = "HUH!" },
+            { id = 951084, text = "HYAH!" },
+            { id = 539754, text = "NNNAAA!" },
+            { id = 539756, text = "WOO!" },
+            { id = 539765, text = "YEAH!" },
+        } },
+        { name = "Casting", family = "Fighting", lines = {
+            { id = 1385382, text = "AAA!" },
+            { id = 1385378, text = "HEEELLL!" },
+            { id = 1385377, text = "HUUU!" },
+            { id = 1385381, text = "RRR!" },
+            { id = 1385376, text = "Ugh, Ugh, Ugh, ugh!" },
+            { id = 1385380, text = "UUU!" },
+        } },
+        { name = "Threats", family = "Menace", lines = {
+            { id = 1385405, text = "You will fall by my hand!" },
+        } },
+        { name = "Mockery", family = "Menace", lines = {
+            { id = 1385404, text = "You're no match for me." },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 539724, text = "Allow me to lead." },
+            { id = 539527, text = "ATTACK HERE!" },
+            { id = 539647, text = "ATTACK MY FOE!" },
+            { id = 539634, text = "Attack with me!" },
+            { id = 539504, text = "FIRE!" },
+            { id = 539487, text = "Follow me!" },
+            { id = 539613, text = "I will lead the way." },
+            { id = 539515, text = "OPEN FIRE!" },
+            { id = 539660, text = "Remain here." },
+            { id = 539610, text = "Wait here." },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 539526, text = "Protect yourself!" },
+            { id = 539653, text = "Retreat!" },
+            { id = 539510, text = "We must fall back!" },
+            { id = 539532, text = "withdraw" },
+        } },
+        { name = "Calls for aid", family = "Orders and warnings", lines = {
+            { id = 539539, text = "HEAL ME!" },
+            { id = 539477, text = "Help me!" },
+            { id = 539535, text = "Help! Please!" },
+            { id = 539665, text = "Would you heal me?" },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 539561, text = "I am low on mana." },
+            { id = 539745, text = "I require mana!" },
+        } },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 951110, text = "AH!" },
+            { id = 539750, text = "GAH!" },
+            { id = 539748, text = "OOF!" },
+        } },
+        { name = "Death cries", family = "Hurt and dying", lines = {
+            { id = 951092, text = "AHH AHH!" },
+            { id = 951100, text = "AHHH AHH AHHH!" },
+            { id = 951102, text = "DAAHHH UGH!" },
+            { id = 951096, text = "GAAH UGH!" },
+            { id = 951090, text = "GAAHHH!" },
+            { id = 951098, text = "GAH OOF!" },
+            { id = 539753, text = "UGH!" },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 539590, text = "Akiankor." },
+            { id = 539480, text = "for the good of all." },
+            { id = 539581, text = "May the Nauru bless you and yours." },
+            { id = 539700, text = "Peace and Prosperity" },
+            { id = 539656, text = "We stand united." },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 539744, text = "Anteana Korkura" },
+            { id = 539632, text = "Go in peace." },
+            { id = 539721, text = "May the light guide you." },
+            { id = 539616, text = "The Naru's blessings be upon you." },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 539619, text = "Absolutely." },
+            { id = 539742, text = "Definitely not." },
+            { id = 539628, text = "Hmm." },
+            { id = 539483, text = "Mm-hmm." },
+            { id = 539728, text = "Never!" },
+            { id = 539567, text = "NO" },
+            { id = 539694, text = "Without a doubt." },
+            { id = 539617, text = "Yes." },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 539666, text = "anytime." },
+            { id = 539630, text = "I am in your debt." },
+            { id = 539568, text = "my humble appreciation." },
+            { id = 539484, text = "My pleasure." },
+            { id = 1385403, text = "My sincere apologies." },
+            { id = 539530, text = "You are most welcome." },
+            { id = 539618, text = "You honor me." },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 539720, text = "Congratulations!" },
+            { id = 539497, text = "I am most happy for you." },
+            { id = 539676, text = "Well done!" },
+        } },
+        { name = "Flirts", family = "Fun", lines = {
+            { id = 539476, text = "Are you thinking what I am thinking? Good! Bring ample supply of butter and goblin jumper cables." },
+            { id = 539652, text = "I want you to... PFFT, GAAH! My... GAAH! PFFT, GAAH! PFFT, GAAH!" },
+            { id = 539531, text = "Oh, darling, I love it when you say..." },
+            { id = 539500, text = "Okay, for mating ritual we will need four, no, five sheep, one gnome and staff of domination. Put gnome in bag, beat bag with staff and meet me after gnome is tenderized." },
+            { id = 539540, text = "The nights are so chilly on this planet." },
+        } },
+        { name = "Losing patience", family = "Fun", lines = {
+            { id = 539706, text = "How exactly do you crash into a planet? That's what I want to know." },
+            { id = 539565, text = "I have a wonderful recipe. Bring two gnomes, two eggs. Beat the gnomes, separate the eggs. Where was it? Details." },
+            { id = 539673, text = "Look at my hoof! Does this crack look infected to you?" },
+            { id = 539603, text = "Single draenei female seeks blacksmith with grinding wheel to take care of me and my gorgeous hooves." },
+            { id = 539646, text = "Stop and ask for directions, I told him. But no! It's interdimensional, he says. What can go wrong?" },
+            { id = 539667, text = "This planet has a tremendous supply of sandstone. The inhabitants must be wealthy beyond their dreams." },
+            { id = 539635, text = "Why does everyone have trouble with the name of our people? It sounds just like it is spelled." },
+            { id = 539478, text = "Yes, they are real. And they can cut glass." },
+        } },
+        { name = "Clowning", family = "Fun", lines = {
+            { id = 539713, text = "PLLL!" },
+        } },
+        { name = "Cheers", family = "Fun", lines = {
+            { id = 539601, text = "WHOO!" },
+        } },
+        { name = "Laughter", family = "Fun", lines = {
+            { id = 539719, text = "HAHAHA!" },
+        } },
+        { name = "Sighs", family = "Feelings", lines = {
+            { id = 539682, text = "SIGH..." },
+        } },
+        { name = "Yawns", family = "Feelings", lines = {
+            { id = 539585, text = "AHHH!" },
+        } },
+        { name = "Affection", family = "Feelings", lines = {
+            { id = 539670, text = "MWAH!" },
+        } },
+        { name = "Surprise", family = "Feelings", lines = {
+            { id = 1385406, text = "By the light of the Naaru!" },
+            { id = 1385402, text = "That was not my intent." },
+        } },
+        { name = "Pleading", family = "Menace", lines = {
+            { id = 539512, text = "Please, I beg you, please, please!" },
+        } },
+    } },
+    { who = "Draenei - masculine voice", race = "Draenei", sex = "male", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 539642, text = "Feta Vai Aka Hachi!" },
+            { id = 539671, text = "FOR ARGUS!" },
+            { id = 1387388, text = "FOR THE ALLIANCE!" },
+            { id = 539575, text = "FOR THE LIGHT! FOR THE NARROW!" },
+            { id = 1385423, text = "HAAAAA!" },
+            { id = 1385420, text = "HRAH!" },
+            { id = 1385421, text = "Hwaaah!" },
+            { id = 1385425, text = "RAAAGH!" },
+            { id = 1385435, text = "RAH!" },
+            { id = 1385436, text = "Rawr!" },
+            { id = 539736, text = "THE LEGION MUST FALL!" },
+            { id = 1385410, text = "YAAH!" },
+        } },
+        { name = "Battle roars", family = "Fighting", lines = {
+            { id = 539502, text = "YAAA!" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 1385415, text = "AHH!" },
+            { id = 539777, text = "HA!" },
+            { id = 1385411, text = "HIYA!" },
+            { id = 1385417, text = "HURRAH!" },
+            { id = 539767, text = "NYAH!" },
+            { id = 539779, text = "YEAH!" },
+        } },
+        { name = "Casting", family = "Fighting", lines = {
+            { id = 1385428, text = "RRR!" },
+            { id = 1385432, text = "UUU!" },
+        } },
+        { name = "Threats", family = "Menace", lines = {
+            { id = 1385441, text = "You will fall by my hand!" },
+        } },
+        { name = "Mockery", family = "Menace", lines = {
+            { id = 1385440, text = "You're no match for me!" },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 539691, text = "Allow me to lead!" },
+            { id = 539641, text = "Attack here!" },
+            { id = 539586, text = "ATTACK MY FOE!" },
+            { id = 539606, text = "FIRE NOW!" },
+            { id = 539679, text = "I will lead." },
+            { id = 539602, text = "I will take point." },
+            { id = 539546, text = "Open fire!" },
+            { id = 539570, text = "Please, wait!" },
+            { id = 539645, text = "REINFORCE MY ATTACK!" },
+            { id = 539636, text = "Wait here!" },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 539580, text = "Fall back and regroup!" },
+            { id = 539582, text = "Retreat!" },
+            { id = 539493, text = "Stand ready!" },
+            { id = 539594, text = "Withdraw!" },
+        } },
+        { name = "Calls for aid", family = "Orders and warnings", lines = {
+            { id = 539707, text = "Heal me, please." },
+            { id = 539681, text = "Heal me." },
+            { id = 539725, text = "Help me!" },
+            { id = 539542, text = "Please! Help!" },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 539678, text = "I am nearly out of mana." },
+            { id = 539499, text = "I need mana." },
+        } },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 539769, text = "AH!" },
+            { id = 951138, text = "ARGH!" },
+            { id = 539778, text = "D'AH!" },
+            { id = 539775, text = "DUH!" },
+            { id = 539773, text = "GAH!" },
+            { id = 539789, text = "UGHHH!" },
+        } },
+        { name = "Death cries", family = "Hurt and dying", lines = {
+            { id = 951124, text = "Ah! Ah! Ah! Ah!" },
+            { id = 951122, text = "AHHH UGH..." },
+            { id = 539787, text = "AHHH!" },
+            { id = 951132, text = "HIYAH UGH UGH!" },
+            { id = 951126, text = "HUHAHHH HUHAHHH!" },
+            { id = 951128, text = "UGH UGH!" },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 539558, text = "Acheon Core" },
+            { id = 539597, text = "for the good of all." },
+            { id = 539557, text = "May the Naru bless you." },
+            { id = 539523, text = "Peace and prosperity." },
+            { id = 539548, text = "We stand united." },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 539496, text = "Go in peace." },
+            { id = 539738, text = "May the light guide your path." },
+            { id = 539638, text = "May the Nauru watch over you." },
+            { id = 539508, text = "May your blessings be many." },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 539697, text = "ABSOLUTELY NOT!" },
+            { id = 539687, text = "Correct." },
+            { id = 539577, text = "Mm-hmm!" },
+            { id = 539717, text = "Mmm" },
+            { id = 539737, text = "NO" },
+            { id = 539626, text = "No, thank you." },
+            { id = 539514, text = "Without a doubt." },
+            { id = 539545, text = "Yes." },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 539517, text = "DO NOT GIVE IT ANOTHER THOUGHT!" },
+            { id = 539607, text = "I am in your debt." },
+            { id = 539564, text = "My deepest gratitude." },
+            { id = 539579, text = "My humble appreciation." },
+            { id = 539640, text = "My pleasure." },
+            { id = 1385439, text = "Oh, my sincere apologies." },
+            { id = 539482, text = "You are most welcome." },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 539486, text = "CONGRATULATIONS!" },
+            { id = 539661, text = "Nicely done!" },
+            { id = 539716, text = "The light shines upon you." },
+        } },
+        { name = "Flirts", family = "Fun", lines = {
+            { id = 539605, text = "I will now speak words of love to you in the language of our people. Umwah-ha-guh-h-h-h-h!" },
+            { id = 539489, text = "My nondescript facial appendages quiver with anticipation every time I see you." },
+            { id = 539501, text = "Would you be offended if I said you have a beautiful transgoto? The other one? Oh, that's not bad either." },
+            { id = 539520, text = "You know, I had a girlfriend, but I lost her in the crash. That is the bad news. The good news is, I'm available!" },
+            { id = 539518, text = "You know, what happens in Shadowmoon Valley, stays in Shadowmoon Valley." },
+        } },
+        { name = "Losing patience", family = "Fun", lines = {
+            { id = 539718, text = "I love this planet. I come here, I see cow and chicken and ride little horses. This planet has everything!" },
+            { id = 539554, text = "We did not realize, but in Naru language, Exodar means defective-elek-turd." },
+            { id = 539587, text = "We have it all figured out. Step one, we land the Exodar. Step three, we defeat Legion and go home. There is only one detail missing." },
+            { id = 539534, text = "What do you mean there's an octopus on my face?" },
+            { id = 539555, text = "When we arrived here, I lost many jewels that had been in my family for generations. If you could get your hands on my family jewels, I would be deeply appreciative." },
+            { id = 539492, text = "You know, our tales add to our natural balance and agility, ha!" },
+        } },
+        { name = "Clowning", family = "Fun", lines = {
+            { id = 539685, text = "MAK MAK MAK MAK! MAK MAK MAK MAK!" },
+            { id = 539549, text = "PFFTTT!" },
+        } },
+        { name = "Cheers", family = "Fun", lines = {
+            { id = 539639, text = "WOOOHOO!" },
+        } },
+        { name = "Laughter", family = "Fun", lines = {
+            { id = 539604, text = "AHAHAHA!" },
+        } },
+        { name = "Sighs", family = "Feelings", lines = {
+            { id = 539495, text = "SIGH..." },
+        } },
+        { name = "Yawns", family = "Feelings", lines = {
+            { id = 539621, text = "UGH!" },
+        } },
+        { name = "Affection", family = "Feelings", lines = {
+            { id = 539655, text = "AAA!" },
+        } },
+        { name = "Surprise", family = "Feelings", lines = {
+            { id = 1385442, text = "By the light of the Naru." },
+            { id = 1385438, text = "That was not my intent." },
+        } },
+        { name = "Pleading", family = "Menace", lines = {
+            { id = 539704, text = "Please, Please, Please, I beg you!" },
+        } },
+    } },
     { who = "Drust", groups = {
-        { name = "Battle cries", lines = {
+        { name = "Battle cries", family = "Fighting", lines = {
             { id = 3798482, text = "AHHH! AHHH! Ugh!" },
             { id = 3798484, text = "AHHH! Ugh! AHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH" },
             { id = 1986635, text = "COUGH COUGH COUGH" },
@@ -886,50 +2378,20 @@ GameVoices.Characters = {
             { id = 1862566, text = "YOU WILL BE ENDED!" },
             { id = 2126264, text = "YOU WILL JOIN HER SUFFERING!" },
         } },
-        { name = "Threats", lines = {
-            { id = 1992412, text = "All of Kul Tiras will suffer! You are only the first!" },
-            { id = 1862569, text = "Intruders will perish!" },
-            { id = 2126270, text = "You are too late to save her." },
-            { id = 1862571, text = "You will be hunted!" },
-            { id = 2130802, text = "You will be next!" },
-            { id = 1969134, text = "You will bow to Gorak Tul!" },
-            { id = 2130796, text = "You will never take our prize!" },
-            { id = 2126260, text = "You will pay!" },
-            { id = 2126271, text = "You will share her fate." },
-            { id = 1862568, text = "You will soak the Earth with your blood!" },
-            { id = 2130799, text = "Your screams will be unending!" },
+        { name = "Battle roars", family = "Fighting", lines = {
+            { id = 1986605, text = "AHAHAHAHAHA!" },
+            { id = 3611541, text = "BOOM!" },
+            { id = 3799027, text = "HAAA!" },
+            { id = 3799036, text = "HEY!" },
+            { id = 3798430, text = "HRRR!" },
+            { id = 1986596, text = "MWAHAHAHA!" },
+            { id = 3798524, text = "NAH!" },
+            { id = 1986602, text = "OOORRR!" },
+            { id = 2143801, text = "RAWR!" },
+            { id = 2143805, text = "ROAR!" },
+            { id = 2143829, text = "RRR!" },
         } },
-        { name = "Boasts", lines = {
-            { id = 1969138, text = "I return to throes." },
-        } },
-        { name = "Dark magic", lines = {
-            { id = 2126259, text = "An outsider dares to desecrate these bones!" },
-        } },
-        { name = "Despair", lines = {
-            { id = 2130807, text = "Hope is lost." },
-            { id = 2126269, text = "Torment awaits you all." },
-        } },
-        { name = "Conversation", lines = {
-            { id = 1862573, text = "A final death." },
-            { id = 2130806, text = "Flame the flesh!" },
-            { id = 2126261, text = "Gorak Tool will break you." },
-            { id = 2126683, text = "Gross consumes all! She is ours!" },
-            { id = 2143812, text = "Grrr! Grrr! GRRRRRRRRRRRRRR" },
-            { id = 3799080, text = "HUAGH! Aaaagh... Aaaagh..." },
-            { id = 3799087, text = "Hwah! Hwah! Hwah!" },
-            { id = 2126266, text = "Proudmoore is ours!" },
-            { id = 2126262, text = "Proudmoore's daughter is ours! Interloper!" },
-            { id = 3798383, text = "Roar! Roar! Roar!" },
-            { id = 2130797, text = "She belongs to Gorak Dool!" },
-            { id = 1969135, text = "The Trust will reclaim this land!" },
-            { id = 1969142, text = "This is not the end." },
-            { id = 1862567, text = "This land is not yours!" },
-            { id = 2126263, text = "Thros will consume you!" },
-            { id = 1862575, text = "Vengeance was to be ours!" },
-            { id = 1862574, text = "We will drive you out." },
-            { id = 1862572, text = "We will... reclaim..." },
-        } },
-        { name = "Attack grunts", lines = {
+        { name = "Attack grunts", family = "Fighting", lines = {
             { id = 2143792, text = "AHHH!" },
             { id = 1986612, text = "BAAA!" },
             { id = 3798462, text = "DUH!" },
@@ -958,7 +2420,23 @@ GameVoices.Characters = {
             { id = 3798269, text = "VROOM!" },
             { id = 3611571, text = "WHOOSH!" },
         } },
-        { name = "Pain", lines = {
+        { name = "Threats", family = "Menace", lines = {
+            { id = 1992412, text = "All of Kul Tiras will suffer! You are only the first!" },
+            { id = 1862569, text = "Intruders will perish!" },
+            { id = 2126270, text = "You are too late to save her." },
+            { id = 1862571, text = "You will be hunted!" },
+            { id = 2130802, text = "You will be next!" },
+            { id = 1969134, text = "You will bow to Gorak Tul!" },
+            { id = 2130796, text = "You will never take our prize!" },
+            { id = 2126260, text = "You will pay!" },
+            { id = 2126271, text = "You will share her fate." },
+            { id = 1862568, text = "You will soak the Earth with your blood!" },
+            { id = 2130799, text = "Your screams will be unending!" },
+        } },
+        { name = "Boasts", family = "Menace", lines = {
+            { id = 1969138, text = "I return to throes." },
+        } },
+        { name = "Pain", family = "Hurt and dying", lines = {
             { id = 1986670, text = "BLEH!" },
             { id = 2143832, text = "BOO!" },
             { id = 3611709, text = "BRRR!" },
@@ -981,7 +2459,7 @@ GameVoices.Characters = {
             { id = 2143797, text = "WOOF!" },
             { id = 2143828, text = "YEAH!" },
         } },
-        { name = "Death cries", lines = {
+        { name = "Death cries", family = "Hurt and dying", lines = {
             { id = 1986633, text = "AHHH AHHH!" },
             { id = 3798480, text = "AHHH OOF!" },
             { id = 1986630, text = "ARGHHH!" },
@@ -991,27 +2469,426 @@ GameVoices.Characters = {
             { id = 2143823, text = "PLLL!" },
             { id = 3798285, text = "VRAAAGH VRAAAGH!" },
         } },
-        { name = "Battle roars", lines = {
-            { id = 1986605, text = "AHAHAHAHAHA!" },
-            { id = 3611541, text = "BOOM!" },
-            { id = 3799027, text = "HAAA!" },
-            { id = 3799036, text = "HEY!" },
-            { id = 3798430, text = "HRRR!" },
-            { id = 1986596, text = "MWAHAHAHA!" },
-            { id = 3798524, text = "NAH!" },
-            { id = 1986602, text = "OOORRR!" },
-            { id = 2143801, text = "RAWR!" },
-            { id = 2143805, text = "ROAR!" },
-            { id = 2143829, text = "RRR!" },
+        { name = "Despair", family = "Hurt and dying", lines = {
+            { id = 2130807, text = "Hope is lost." },
+            { id = 2126269, text = "Torment awaits you all." },
         } },
-        { name = "Noticing you", lines = {
+        { name = "Dark magic", family = "Fighting", lines = {
+            { id = 2126259, text = "An outsider dares to desecrate these bones!" },
+        } },
+        { name = "Conversation", family = "Feelings", lines = {
+            { id = 1862573, text = "A final death." },
+            { id = 2130806, text = "Flame the flesh!" },
+            { id = 2126261, text = "Gorak Tool will break you." },
+            { id = 2126683, text = "Gross consumes all! She is ours!" },
+            { id = 2143812, text = "Grrr! Grrr! GRRRRRRRRRRRRRR" },
+            { id = 3799080, text = "HUAGH! Aaaagh... Aaaagh..." },
+            { id = 3799087, text = "Hwah! Hwah! Hwah!" },
+            { id = 2126266, text = "Proudmoore is ours!" },
+            { id = 2126262, text = "Proudmoore's daughter is ours! Interloper!" },
+            { id = 3798383, text = "Roar! Roar! Roar!" },
+            { id = 2130797, text = "She belongs to Gorak Dool!" },
+            { id = 1969135, text = "The Trust will reclaim this land!" },
+            { id = 1969142, text = "This is not the end." },
+            { id = 1862567, text = "This land is not yours!" },
+            { id = 2126263, text = "Thros will consume you!" },
+            { id = 1862575, text = "Vengeance was to be ours!" },
+            { id = 1862574, text = "We will drive you out." },
+            { id = 1862572, text = "We will... reclaim..." },
+        } },
+        { name = "Noticing you", family = "Orders and warnings", lines = {
             { id = 2143815, text = "AAA!" },
             { id = 1986650, text = "HEH HEH!" },
             { id = 1986653, text = "OH YEAH!" },
         } },
     } },
+    { who = "Dwarf - feminine voice", race = "Dwarf", sex = "female", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 539986, text = "by NURDEN'S BEARD!" },
+            { id = 540007, text = "Charge!" },
+            { id = 1512964, text = "FOR THE ALLIANCE!" },
+        } },
+        { name = "Battle roars", family = "Fighting", lines = {
+            { id = 539992, text = "AAA!" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 539799, text = "HA!" },
+        } },
+        { name = "Threats", family = "Menace", lines = {
+            { id = 1512968, text = "I'm gonna rough you up." },
+        } },
+        { name = "Mockery", family = "Menace", lines = {
+            { id = 1512967, text = "Your mum's a bearded ogre and your father's a trog!" },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 539976, text = "Attack this one!" },
+            { id = 539997, text = "FOLLOW ME!" },
+            { id = 540004, text = "I'll lead the way." },
+            { id = 539978, text = "JOIN MY ATTACK!" },
+            { id = 540019, text = "OPEN FIRE!" },
+            { id = 539979, text = "Shoot to kill!" },
+            { id = 539963, text = "Stay here." },
+            { id = 540013, text = "Wait here." },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 540005, text = "DANGER APPROACHING!" },
+            { id = 539971, text = "Heads up!" },
+            { id = 539803, text = "Huh?" },
+            { id = 540000, text = "Run away!" },
+            { id = 540009, text = "RUN!" },
+        } },
+        { name = "Calls for aid", family = "Orders and warnings", lines = {
+            { id = 539974, text = "HEAL ME" },
+            { id = 540015, text = "Help me!" },
+            { id = 540006, text = "I need healin'!" },
+            { id = 539972, text = "I need help!" },
+            { id = 540018, text = "TEND ME WOUNDS!" },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 539980, text = "I need more mana!" },
+            { id = 539983, text = "I've got no mana!" },
+        } },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 539800, text = "AH!" },
+            { id = 539790, text = "AHHH!" },
+            { id = 539796, text = "OH!" },
+            { id = 539791, text = "OHHH!" },
+        } },
+        { name = "Death cries", family = "Hurt and dying", lines = {
+            { id = 539804, text = "AHH OH!" },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 539988, text = "Greetings!" },
+            { id = 540021, text = "Hi there!" },
+            { id = 540020, text = "How are ya?" },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 539966, text = "Goodbye!" },
+            { id = 539984, text = "See ya!" },
+            { id = 539975, text = "So long!" },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 540011, text = "Damn straight!" },
+            { id = 540012, text = "Get pants!" },
+            { id = 540003, text = "No." },
+            { id = 539996, text = "Not a chance!" },
+            { id = 539982, text = "Of course!" },
+            { id = 540002, text = "SURE!" },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 539991, text = "Ah, you're nice." },
+            { id = 1512966, text = "I'm sorry." },
+            { id = 539990, text = "May your generosity be returned to you one hundredfold." },
+            { id = 539987, text = "My pleasure!" },
+            { id = 540016, text = "NO PROBLEM" },
+            { id = 539973, text = "Thank you." },
+            { id = 539985, text = "Thanks a lot!" },
+            { id = 539967, text = "You're welcome." },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 540008, text = "Brilliant!" },
+            { id = 539981, text = "CONGRATULATIONS!" },
+            { id = 539965, text = "Oh, that's great!" },
+            { id = 539994, text = "Way to go!" },
+        } },
+        { name = "Flirts", family = "Fun", lines = {
+            { id = 540001, text = "Enough with your flirting, I know you think all dwarven women look the same." },
+            { id = 539964, text = "I like tall men." },
+            { id = 539998, text = "I like to see YOU in a kilt!" },
+            { id = 539969, text = "I won't fall for any bad pick-up line. You've got to try two or three at least." },
+            { id = 540010, text = "I'll have you know I can flatten steel with my thighs!" },
+        } },
+        { name = "Losing patience", family = "Fun", lines = {
+            { id = 540017, text = "I don't like to be underground. It reminds me of death." },
+            { id = 539968, text = "I give myself a Dutch oven pedicure every night. I've got no foot fungus at all. My toes are pristine." },
+            { id = 539993, text = "I light my ale like I light my men, dark and rich." },
+            { id = 539999, text = "It's like my father always used to say, shut up and get out." },
+            { id = 539970, text = "My uncle has brass balls. No, really!" },
+            { id = 539989, text = "No, they're not real, but thanks for noticing." },
+        } },
+        { name = "Clowning", family = "Fun", lines = {
+            { id = 539805, text = "Bwah! Bwah Bwah Bwah bwah!" },
+            { id = 539995, text = "PFFFTTT!" },
+        } },
+        { name = "Laughter", family = "Fun", lines = {
+            { id = 539798, text = "HAHAHAHA!" },
+        } },
+        { name = "Weeping", family = "Feelings", lines = {
+            { id = 539792, text = "OH HEHEHE WHYYY!" },
+        } },
+        { name = "Sighs", family = "Feelings", lines = {
+            { id = 539794, text = "SIGH..." },
+        } },
+        { name = "Surprise", family = "Feelings", lines = {
+            { id = 1512965, text = "Aye, I might have mucked this one up a wee bit." },
+        } },
+    } },
+    { who = "Dwarf - masculine voice", race = "Dwarf", sex = "male", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 540085, text = "Charge!" },
+            { id = 540088, text = "FOR KAZMODAN!" },
+            { id = 1512853, text = "FOR THE ALLIANCE!" },
+        } },
+        { name = "Battle roars", family = "Fighting", lines = {
+            { id = 540087, text = "YEAH!" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 539888, text = "AHHH!" },
+            { id = 539880, text = "HA!" },
+            { id = 539874, text = "HYAH!" },
+            { id = 539877, text = "NYAH!" },
+        } },
+        { name = "Threats", family = "Menace", lines = {
+            { id = 1512857, text = "I'm gonna rough you up!" },
+        } },
+        { name = "Mockery", family = "Menace", lines = {
+            { id = 1512856, text = "Your mum's a bearded ogre and your father's a trog!" },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 540068, text = "Attack this one!" },
+            { id = 540048, text = "FIRE!" },
+            { id = 540053, text = "FOLLOW ME!" },
+            { id = 540043, text = "Follow me, quick!" },
+            { id = 540046, text = "Help me with this cretin!" },
+            { id = 540057, text = "I'll lead the way!" },
+            { id = 540036, text = "Join my attack!" },
+            { id = 540064, text = "OPEN FIRE!" },
+            { id = 540031, text = "Stay here." },
+            { id = 540060, text = "STAY PUT!" },
+            { id = 540023, text = "Wait here." },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 540059, text = "DANGER OF PRUTIN!" },
+            { id = 540061, text = "Heads up!" },
+            { id = 540079, text = "LET'S RUN!" },
+            { id = 540037, text = "Run away!" },
+            { id = 540081, text = "RUN!" },
+        } },
+        { name = "Calls for aid", family = "Orders and warnings", lines = {
+            { id = 540080, text = "heal me" },
+            { id = 540035, text = "Help me!" },
+            { id = 540069, text = "I need healin'!" },
+            { id = 540041, text = "I need help!" },
+            { id = 540089, text = "TEND ME WOUNDS!" },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 540066, text = "I need more mana!" },
+            { id = 540027, text = "I've got no mana." },
+        } },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 539887, text = "MMM!" },
+            { id = 539876, text = "UGH!" },
+        } },
+        { name = "Death cries", family = "Hurt and dying", lines = {
+            { id = 539885, text = "HUUU!" },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 540072, text = "Greetings!" },
+            { id = 540082, text = "Hello!" },
+            { id = 540073, text = "How are ya?" },
+            { id = 540077, text = "How's it hangin'?" },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 540033, text = "Farewell." },
+            { id = 540071, text = "See ya!" },
+            { id = 540090, text = "Till we meet again!" },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 540044, text = "Damn straight!" },
+            { id = 540054, text = "NO" },
+            { id = 540040, text = "No way." },
+            { id = 540074, text = "Not on your life!" },
+            { id = 540062, text = "Sure!" },
+            { id = 540056, text = "Uh-uh!" },
+            { id = 540047, text = "Yes." },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 540034, text = "Ah, you're nice." },
+            { id = 540078, text = "Don't mention it." },
+            { id = 1512855, text = "I'm sorry!" },
+            { id = 540075, text = "May your generosity be returned to you a hundredfold!" },
+            { id = 540038, text = "My pleasure." },
+            { id = 540026, text = "No problem." },
+            { id = 540091, text = "Thank you!" },
+            { id = 540028, text = "Thanks a lot!" },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 540065, text = "CONGRATULATIONS!" },
+            { id = 540058, text = "Fantastic!" },
+            { id = 540039, text = "P R O W I E N T" },
+            { id = 540063, text = "Way to go!" },
+            { id = 540042, text = "Well done!" },
+        } },
+        { name = "Flirts", family = "Fun", lines = {
+            { id = 540052, text = "Enough of this chit-chat, let's get to it then!" },
+            { id = 540086, text = "I must be asleep, cause you're a dream come true. Also, I'm slightly damp." },
+            { id = 540051, text = "Let's get on with it then. I've got a quest to do in fifteen minutes." },
+            { id = 540025, text = "Where are you from? Not that it matters." },
+            { id = 540045, text = "You look pretty. I like your hair. Here's a drink. Are you ready now?" },
+            { id = 540029, text = "You'd like to run your hands through my beard, wouldn't you?" },
+        } },
+        { name = "Losing patience", family = "Fun", lines = {
+            { id = 540067, text = "Ah, winter. Yes, winter." },
+            { id = 540050, text = "I don't drink any more. Course I don't drink any less either." },
+            { id = 540030, text = "I don't have a drinking problem. I drink, I get drunk, I fall down, no problem!" },
+            { id = 540049, text = "I like my beer like I like my women, stout and bitter." },
+            { id = 540084, text = "Oh, I'm just a social drinker. Every time someone says I'll have a drink, I say, so shall I." },
+            { id = 540032, text = "Ugh, I'm having a wardrobe malfunction! Ooh, there's me hammer." },
+        } },
+        { name = "Clowning", family = "Fun", lines = {
+            { id = 539884, text = "BAKA! BAKA! BAKA! BAKA!" },
+            { id = 540083, text = "PFFTTT!" },
+            { id = 539881, text = "Whoo! Whoo! Chugga, Chugga, Chugga, chugga" },
+        } },
+        { name = "Laughter", family = "Fun", lines = {
+            { id = 539883, text = "HAHAHAHA!" },
+        } },
+        { name = "Sighs", family = "Feelings", lines = {
+            { id = 539873, text = "SIGH..." },
+        } },
+        { name = "Surprise", family = "Feelings", lines = {
+            { id = 1512854, text = "I might have mucked this one up a wee bit." },
+        } },
+    } },
+    { who = "Earthen - feminine voice", race = "Earthen", sex = "female", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 5705691, text = "FOR THE ALLIANCE!" },
+            { id = 5735663, text = "FOR THE HORDE!" },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 5705700, text = "Follow me." },
+            { id = 5705635, text = "OPEN FIRE!" },
+            { id = 5705683, text = "This way." },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 5705612, text = "Everyone, retreat!" },
+            { id = 5705606, text = "Fall back!" },
+        } },
+        { name = "Calls for aid", family = "Orders and warnings", lines = {
+            { id = 5705671, text = "I'm wounded!" },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 5721743, text = "I must have more rage." },
+            { id = 5721739, text = "I need mana first." },
+            { id = 5721728, text = "My fury is low." },
+            { id = 5721740, text = "My mana is low." },
+            { id = 5721737, text = "Not enough energy." },
+            { id = 5721727, text = "Not enough fury." },
+            { id = 5721742, text = "Not enough rage." },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 5714813, text = "Well met." },
+            { id = 5714816, text = "Your presence is acknowledged." },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 5715359, text = "Goodbye." },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 5714759, text = "Mm-hmm." },
+            { id = 5714781, text = "No." },
+            { id = 5715353, text = "Nope." },
+            { id = 5714772, text = "Right." },
+            { id = 5715347, text = "Yep." },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 5714568, text = "You have my thanks." },
+        } },
+        { name = "Clowning", family = "Fun", lines = {
+            { id = 6021042, text = "BBB!" },
+            { id = 6021050, text = "MMM!" },
+            { id = 6021041, text = "Nick Nick Nick Nick" },
+        } },
+        { name = "Cheers", family = "Fun", lines = {
+            { id = 6021054, text = "AAA!" },
+            { id = 6021039, text = "HA!" },
+            { id = 6021040, text = "WOOO!" },
+            { id = 6021055, text = "WOOOHOOHOOHOO!" },
+        } },
+        { name = "Laughter", family = "Fun", lines = {
+            { id = 6006814, text = "Ha Ha Ha ha!" },
+            { id = 6006815, text = "Heh Heh Heh heh..." },
+            { id = 6006813, text = "HOHOHOHO!" },
+        } },
+        { name = "Weeping", family = "Feelings", lines = {
+            { id = 6021044, text = "AHHH!" },
+            { id = 6021043, text = "Oh, Oh, Oh, oh..." },
+        } },
+        { name = "Affection", family = "Feelings", lines = {
+            { id = 6021048, text = "MWAH!" },
+        } },
+        { name = "Idle", family = "Feelings", lines = {
+            { id = 6021056, text = "SIGH..." },
+        } },
+    } },
+    { who = "Earthen - masculine voice", race = "Earthen", sex = "male", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 5705674, text = "FOR THE ALLIANCE!" },
+            { id = 5735789, text = "FOR THE HORDE!" },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 5705703, text = "Follow me." },
+            { id = 5705632, text = "OPEN FIRE!" },
+            { id = 5705686, text = "This way." },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 5705615, text = "Everyone, retreat!" },
+            { id = 5705609, text = "Fall back!" },
+        } },
+        { name = "Calls for aid", family = "Orders and warnings", lines = {
+            { id = 5705668, text = "I'M WOUNDED!" },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 5721443, text = "I must have more rage." },
+            { id = 5721439, text = "I need mana first." },
+            { id = 5721428, text = "My fury is low." },
+            { id = 5721440, text = "My mana is low." },
+            { id = 5721437, text = "Not enough energy." },
+            { id = 5721427, text = "Not enough fury." },
+            { id = 5721442, text = "Not enough rage." },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 5714803, text = "Well met." },
+            { id = 5714810, text = "Your presence is acknowledged." },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 5714762, text = "Mm-hmm." },
+            { id = 5714784, text = "No." },
+            { id = 5715356, text = "Nope." },
+            { id = 5714765, text = "Right." },
+            { id = 5715350, text = "Yep." },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 5714565, text = "You have my thanks." },
+        } },
+        { name = "Clowning", family = "Fun", lines = {
+            { id = 6021059, text = "Haha, bawk, bawk, bawk, bawk!" },
+            { id = 6021065, text = "RRR!" },
+        } },
+        { name = "Cheers", family = "Fun", lines = {
+            { id = 6021058, text = "HAHA!" },
+            { id = 6021057, text = "HEH HEH!" },
+            { id = 6021069, text = "YAAAY!" },
+        } },
+        { name = "Laughter", family = "Fun", lines = {
+            { id = 6006817, text = "Ha Ha Ha ha!" },
+            { id = 6006816, text = "HA HA HA!" },
+        } },
+        { name = "Weeping", family = "Feelings", lines = {
+            { id = 6021061, text = "Oh, hm, hm, hm, hm." },
+            { id = 6021060, text = "Uh, heh, heh, heh, heh." },
+        } },
+        { name = "Sighs", family = "Feelings", lines = {
+            { id = 6021066, text = "SIGH..." },
+        } },
+        { name = "Affection", family = "Feelings", lines = {
+            { id = 6021063, text = "MWAH!" },
+        } },
+        { name = "Idle", family = "Feelings", lines = {
+            { id = 6021070, text = "MMM!" },
+        } },
+    } },
     { who = "Forsaken", groups = {
-        { name = "Battle cries", lines = {
+        { name = "Battle cries", family = "Fighting", lines = {
             { id = 1242604, text = "FOR SILVAMUS!" },
             { id = 1242580, text = "FOR SILVONUS!" },
             { id = 1242592, text = "FOR THE DARK LADY!" },
@@ -1019,18 +2896,18 @@ GameVoices.Characters = {
             { id = 1242626, text = "No... NOOOOO!" },
             { id = 1242594, text = "NOW YOU DIE!" },
         } },
-        { name = "Threats", lines = {
+        { name = "Threats", family = "Menace", lines = {
             { id = 563113, text = "And you are..." },
             { id = 1242590, text = "You will suffer as we have!" },
         } },
-        { name = "Boasts", lines = {
+        { name = "Boasts", family = "Menace", lines = {
             { id = 563123, text = "I haven't got all day." },
             { id = 1242584, text = "I will feast on your bones!" },
         } },
-        { name = "Loyalty", lines = {
+        { name = "Loyalty", family = "Manners", lines = {
             { id = 1242600, text = "Dark Lady!" },
         } },
-        { name = "Conversation", lines = {
+        { name = "Conversation", family = "Feelings", lines = {
             { id = 1242588, text = "Abandon hope!" },
             { id = 1415459, text = "ACHOO!" },
             { id = 1242582, text = "Death to the living!" },
@@ -1053,12 +2930,269 @@ GameVoices.Characters = {
             { id = 1415440, text = "What?" },
             { id = 1415437, text = "YEAH!" },
         } },
-        { name = "Noticing you", lines = {
+        { name = "Noticing you", family = "Orders and warnings", lines = {
             { id = 563102, text = "YES!" },
         } },
     } },
+    { who = "Forsaken - feminine voice", race = "Forsaken", sex = "female", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 1385492, text = "Aaaargh!" },
+            { id = 1385500, text = "AH-CHOO!" },
+            { id = 1385503, text = "AHHH! UGH!" },
+            { id = 1385487, text = "AHHHHHHH" },
+            { id = 542725, text = "FOR THE FORSAKEN!" },
+            { id = 1387400, text = "FOR THE HORDE!" },
+            { id = 1385493, text = "FUUUUUUU" },
+            { id = 1385490, text = "HAAARRRRRR" },
+            { id = 1385499, text = "RAWR!" },
+            { id = 542712, text = "REND FLESH WITH ME!" },
+            { id = 1385506, text = "RRRRRR" },
+            { id = 1385501, text = "RRRRRR-MAAH!" },
+        } },
+        { name = "Battle roars", family = "Fighting", lines = {
+            { id = 542680, text = "HAAA!" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 1385511, text = "AHHH AHHH!" },
+            { id = 1385512, text = "AHHH BOO!" },
+            { id = 542525, text = "EW!" },
+            { id = 1385514, text = "HUH AHHH!" },
+            { id = 1385510, text = "HWAH AHHH!" },
+            { id = 1385509, text = "HWAH UGH!" },
+            { id = 542516, text = "UGH!" },
+            { id = 1385517, text = "WHOA UGH!" },
+        } },
+        { name = "Casting", family = "Fighting", lines = {
+            { id = 1385497, text = "AAA!" },
+        } },
+        { name = "Threats", family = "Menace", lines = {
+            { id = 1385485, text = "You're about to be dead. Real dead." },
+        } },
+        { name = "Mockery", family = "Menace", lines = {
+            { id = 1385484, text = "You smell worse than my grave ever did." },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 542676, text = "Don't move." },
+            { id = 542721, text = "FIRE!" },
+            { id = 542714, text = "FOLLOW!" },
+            { id = 542702, text = "Help me attack!" },
+            { id = 542683, text = "Join the slaughter!" },
+            { id = 542679, text = "Open fire!" },
+            { id = 542717, text = "Stay here." },
+            { id = 542695, text = "This way." },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 542677, text = "DANGER!" },
+            { id = 542708, text = "INCOMING!" },
+            { id = 542707, text = "Move your carcass!" },
+            { id = 542689, text = "RUUUUUUU UUUUUU" },
+        } },
+        { name = "Calls for aid", family = "Orders and warnings", lines = {
+            { id = 542728, text = "Bind my wounds." },
+            { id = 542692, text = "HEAL ME!" },
+            { id = 542716, text = "Help me!" },
+            { id = 542733, text = "Need your help!" },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 542687, text = "I need mana!" },
+            { id = 542686, text = "My mana is exhausted!" },
+        } },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 542522, text = "UUUHUHUH!" },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 542699, text = "Hello!" },
+            { id = 542722, text = "Hey." },
+            { id = 542678, text = "Hi there." },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 542685, text = "Good luck." },
+            { id = 542710, text = "Goodbye." },
+            { id = 542730, text = "It's been real." },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 542723, text = "I don't think so." },
+            { id = 542718, text = "I suppose so." },
+            { id = 542681, text = "No." },
+            { id = 542675, text = "Not on your life." },
+            { id = 542703, text = "Why not?" },
+            { id = 542729, text = "Yes." },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 542701, text = "Anytime." },
+            { id = 542719, text = "Gee, thanks!" },
+            { id = 542731, text = "How generous!" },
+            { id = 1385483, text = "Sorry, get over it!" },
+            { id = 542715, text = "Thank you." },
+            { id = 542696, text = "This doesn't mean I don't like you." },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 542684, text = "CONGRATULATIONS!" },
+            { id = 542694, text = "It's always somebody else." },
+            { id = 542726, text = "Today certainly is your day." },
+            { id = 542724, text = "Well, aren't you lucky?" },
+        } },
+        { name = "Flirts", family = "Fun", lines = {
+            { id = 542734, text = "I can't wait to suck the juice out of your eyeballs." },
+            { id = 542704, text = "I don't care that much about romance. I fell in love before and look what happened to me." },
+            { id = 542706, text = "I don't need to get funky, I'm already there." },
+            { id = 542682, text = "Nice butt." },
+            { id = 542720, text = "One good thing about being dead, biological clock seems to have stopped." },
+            { id = 542711, text = "Us undead girls really know how to have a good time, because after all, what's the worst thing that could happen?" },
+        } },
+        { name = "Losing patience", family = "Fun", lines = {
+            { id = 542732, text = "Ah, doorknails." },
+            { id = 542688, text = "I heard a knee slapper once, and skipped my kneecap right across a lake!" },
+            { id = 542727, text = "I'd paint my toenails, but I'm not sure where they fell off." },
+            { id = 542700, text = "I'm in a rotten mood." },
+            { id = 542693, text = "This stinks." },
+            { id = 542705, text = "Yes, they're real. They're not mine, but they're real." },
+            { id = 542690, text = "You don't need deodorant when you don't have any armpits!" },
+            { id = 542713, text = "You know, once you're dead, nothing smells bad anymore. Rotten eggs, no problem. Dead fish, like a spring breeze!" },
+        } },
+        { name = "Clowning", family = "Fun", lines = {
+            { id = 542517, text = "Bwah! Bwah! Bwah! Bwah!" },
+            { id = 542526, text = "choo choo chugga chugga chugga choo choo" },
+            { id = 542698, text = "PFFFTTT!" },
+        } },
+        { name = "Cheers", family = "Fun", lines = {
+            { id = 542697, text = "Power to the Forsaken!" },
+        } },
+        { name = "Laughter", family = "Fun", lines = {
+            { id = 542518, text = "AHAHAHA!" },
+        } },
+        { name = "Weeping", family = "Feelings", lines = {
+            { id = 542519, text = "AHHH!" },
+        } },
+        { name = "Sighs", family = "Feelings", lines = {
+            { id = 542524, text = "SIGH..." },
+        } },
+        { name = "Yawns", family = "Feelings", lines = {
+            { id = 542529, text = "OH!" },
+        } },
+        { name = "Surprise", family = "Feelings", lines = {
+            { id = 1385486, text = "by the Dark Lady. What is this?" },
+            { id = 1385482, text = "That... didn't go so well, did it?" },
+        } },
+    } },
+    { who = "Forsaken - masculine voice", race = "Forsaken", sex = "male", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 542762, text = "FOR THE FORSAKEN" },
+            { id = 542738, text = "Rend flesh with me." },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 542598, text = "HMM!" },
+            { id = 542597, text = "HMMM!" },
+            { id = 542608, text = "OH!" },
+            { id = 542607, text = "RRR!" },
+        } },
+        { name = "Threats", family = "Menace", lines = {
+            { id = 1383718, text = "You're about to be dead. Real dead." },
+        } },
+        { name = "Mockery", family = "Menace", lines = {
+            { id = 1383717, text = "You smell worse than my grave ever did." },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 542774, text = "Help me attack!" },
+            { id = 542771, text = "I will lead the way." },
+            { id = 542756, text = "Join my fight!" },
+            { id = 542776, text = "Open Fire!" },
+            { id = 542763, text = "Shoot to kill!" },
+            { id = 542782, text = "Stay here." },
+            { id = 542744, text = "This way!" },
+            { id = 542755, text = "Wait." },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 542751, text = "DANGER!" },
+            { id = 542745, text = "Incoming!" },
+            { id = 542767, text = "Move your carcass!" },
+            { id = 542785, text = "TURN BACK!" },
+        } },
+        { name = "Calls for aid", family = "Orders and warnings", lines = {
+            { id = 542748, text = "HEAL ME!" },
+            { id = 542765, text = "Heal my flesh!" },
+            { id = 542739, text = "Help me." },
+            { id = 542784, text = "I need help." },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 542778, text = "I need mana." },
+            { id = 542772, text = "My mana is drained." },
+        } },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 542594, text = "UGH!" },
+        } },
+        { name = "Death cries", family = "Hurt and dying", lines = {
+            { id = 542596, text = "EWWW!" },
+            { id = 542603, text = "OOOHHH!" },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 542752, text = "Greetings." },
+            { id = 542761, text = "Hello." },
+            { id = 542764, text = "Hi there." },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 542768, text = "Goodbye." },
+            { id = 542769, text = "Have a bad day." },
+            { id = 542736, text = "Stay Optimistic." },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 542741, text = "Certainly." },
+            { id = 542780, text = "I don't think so." },
+            { id = 542789, text = "I suppose so." },
+            { id = 542749, text = "No." },
+            { id = 542743, text = "Not on your life." },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 542737, text = "Appreciated." },
+            { id = 542770, text = "Don't mention it." },
+            { id = 542779, text = "Gee thanks." },
+            { id = 542787, text = "I am in your debt." },
+            { id = 1383716, text = "Sorry, get over it." },
+            { id = 542758, text = "Yeah." },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 542747, text = "CONGRATULATIONS!" },
+            { id = 542735, text = "Good job." },
+            { id = 542775, text = "Well done." },
+        } },
+        { name = "Flirts", family = "Fun", lines = {
+            { id = 542786, text = "Check my breath. Is it bad enough for you?" },
+            { id = 542777, text = "Don't mind the drool, it's just embalming fluid." },
+            { id = 542759, text = "I don't smell that bad for a dead dude, do I?" },
+            { id = 542742, text = "If rot was hot, I'd be a volcano." },
+            { id = 542760, text = "Once you go dead, you never go back." },
+            { id = 542754, text = "You have beautiful skin. No maggot holes at all." },
+        } },
+        { name = "Losing patience", family = "Fun", lines = {
+            { id = 542757, text = "Anyone have any odorant? Either wet dog, fresh garbage, or low tide would do." },
+            { id = 542766, text = "Hey diddle diddle, the mucus and the spittle, the corpse sank in the lagoon. The murloc said, to see such a sight, and the dwarf spanked the baboon." },
+            { id = 542753, text = "I can't stand the smell of Orcs." },
+            { id = 542788, text = "I'm dead and I'm pissed." },
+            { id = 542773, text = "Roses are gray, violets are gray, I'm dead and colorblind." },
+        } },
+        { name = "Clowning", family = "Fun", lines = {
+            { id = 542609, text = "Bwak Bwak Bwak bwak! Bwak Bwak Bwak bwak! Bwak Bwak Bwak bwak!" },
+        } },
+        { name = "Cheers", family = "Fun", lines = {
+            { id = 542783, text = "Power to the Forsaken!" },
+            { id = 542781, text = "YES!" },
+        } },
+        { name = "Weeping", family = "Feelings", lines = {
+            { id = 542601, text = "Ha Ha Ha ha" },
+        } },
+        { name = "Sighs", family = "Feelings", lines = {
+            { id = 542610, text = "SIGH..." },
+        } },
+        { name = "Yawns", family = "Feelings", lines = {
+            { id = 542606, text = "AHHH!" },
+        } },
+        { name = "Surprise", family = "Feelings", lines = {
+            { id = 1383719, text = "By the Dark Lady, what is this?" },
+            { id = 1383715, text = "That didn't go so well, did it?" },
+        } },
+    } },
     { who = "Forsaken Deathguard", groups = {
-        { name = "Conversation", lines = {
+        { name = "Conversation", family = "Feelings", lines = {
             { id = 1380724, text = "BAH!" },
             { id = 1380722, text = "Here!" },
             { id = 1380730, text = "Hi-yah!" },
@@ -1071,146 +3205,13 @@ GameVoices.Characters = {
             { id = 1380718, text = "YEAH!" },
         } },
     } },
-    { who = "Forsaken player voice (female)", groups = {
-        { name = "Battle cries", lines = {
-            { id = 542677, text = "DANGER!" },
-            { id = 542721, text = "FIRE!" },
-            { id = 542725, text = "FOR THE FORSAKEN!" },
-            { id = 542702, text = "Help me attack!" },
-            { id = 542708, text = "INCOMING!" },
-            { id = 542683, text = "Join the slaughter!" },
-            { id = 542679, text = "Open fire!" },
-            { id = 542712, text = "REND FLESH WITH ME!" },
-        } },
-        { name = "Orders", lines = {
-            { id = 542676, text = "Don't move." },
-            { id = 542714, text = "FOLLOW!" },
-            { id = 542707, text = "Move your carcass!" },
-            { id = 542689, text = "RUN!" },
-            { id = 542717, text = "Stay here." },
-            { id = 542695, text = "This way." },
-        } },
-        { name = "Calls for aid", lines = {
-            { id = 542728, text = "Bind my wounds." },
-            { id = 542692, text = "HEAL ME!" },
-            { id = 542716, text = "Help me!" },
-            { id = 542687, text = "I need mana!" },
-            { id = 542686, text = "My mana is exhausted!" },
-            { id = 542733, text = "Need your help!" },
-        } },
-        { name = "Jibes", lines = {
-            { id = 542732, text = "Ah, doorknails." },
-            { id = 542734, text = "I can't wait to suck the juice out of your eyeballs." },
-            { id = 542706, text = "I don't need to get funky, I'm already there." },
-            { id = 542727, text = "I'd paint my toenails, but I'm not sure where they fell off." },
-            { id = 542700, text = "I'm in a rotten mood." },
-            { id = 542682, text = "Nice butt." },
-            { id = 542693, text = "This stinks." },
-            { id = 542705, text = "Yes, they're real. They're not mine, but they're real." },
-            { id = 542690, text = "You don't need deodorant when you don't have any armpits!" },
-        } },
-        { name = "Courtesies", lines = {
-            { id = 542701, text = "Anytime." },
-            { id = 542684, text = "CONGRATULATIONS!" },
-            { id = 542719, text = "Gee, thanks!" },
-            { id = 542685, text = "Good luck." },
-            { id = 542710, text = "Goodbye." },
-            { id = 542699, text = "Hello!" },
-            { id = 542678, text = "Hi there." },
-            { id = 542731, text = "How generous!" },
-            { id = 542723, text = "I don't think so." },
-            { id = 542718, text = "I suppose so." },
-            { id = 542694, text = "It's always somebody else." },
-            { id = 542730, text = "It's been real." },
-            { id = 542675, text = "Not on your life." },
-            { id = 542697, text = "Power to the Forsaken!" },
-            { id = 542715, text = "Thank you." },
-            { id = 542696, text = "This doesn't mean I don't like you." },
-            { id = 542726, text = "Today certainly is your day." },
-            { id = 542724, text = "Well, aren't you lucky?" },
-            { id = 542703, text = "Why not?" },
-            { id = 542691, text = "Wicked." },
-            { id = 542729, text = "Yes." },
-        } },
-    } },
-    { who = "Forsaken player voice (male)", groups = {
-        { name = "Battle cries", lines = {
-            { id = 542751, text = "DANGER!" },
-            { id = 542762, text = "FOR THE FORSAKEN" },
-            { id = 542774, text = "Help me attack!" },
-            { id = 542745, text = "Incoming!" },
-            { id = 542756, text = "Join my fight!" },
-            { id = 542776, text = "Open Fire!" },
-            { id = 542738, text = "Rend flesh with me." },
-            { id = 542763, text = "Shoot to kill!" },
-            { id = 1547656, text = "You smell worse than my grave ever did." },
-            { id = 1547657, text = "You're about to be dead. Real dead." },
-        } },
-        { name = "Orders", lines = {
-            { id = 542771, text = "I will lead the way." },
-            { id = 542767, text = "Move your carcass!" },
-            { id = 542782, text = "Stay here." },
-            { id = 542744, text = "This way!" },
-            { id = 542785, text = "TURN BACK!" },
-            { id = 542755, text = "Wait." },
-        } },
-        { name = "Calls for aid", lines = {
-            { id = 542748, text = "HEAL ME!" },
-            { id = 542765, text = "Heal my flesh!" },
-            { id = 542739, text = "Help me." },
-            { id = 542784, text = "I need help." },
-            { id = 542778, text = "I need mana." },
-            { id = 542772, text = "My mana is drained." },
-        } },
-        { name = "Jibes", lines = {
-            { id = 1547658, text = "By the Dark Lady, what is this?" },
-            { id = 542786, text = "Check my breath. Is it bad enough for you?" },
-            { id = 542777, text = "Don't mind the drool, it's just embalming fluid." },
-            { id = 542753, text = "I can't stand the smell of Orcs." },
-            { id = 542759, text = "I don't smell that bad for a dead dude, do I?" },
-            { id = 542742, text = "If rot was hot, I'd be a volcano." },
-            { id = 542788, text = "I'm dead and I'm pissed." },
-            { id = 542760, text = "Once you go dead, you never go back." },
-            { id = 542773, text = "Roses are gray, violets are gray, I'm dead and colorblind." },
-            { id = 1547655, text = "Sorry, get over it." },
-            { id = 1547654, text = "That didn't go so well, did it?" },
-            { id = 542754, text = "You have beautiful skin. No maggot holes at all." },
-        } },
-        { name = "Courtesies", lines = {
-            { id = 542737, text = "Appreciated." },
-            { id = 542741, text = "Certainly." },
-            { id = 542747, text = "CONGRATULATIONS!" },
-            { id = 542770, text = "Don't mention it." },
-            { id = 542779, text = "Gee thanks." },
-            { id = 542735, text = "Good job." },
-            { id = 542768, text = "Goodbye." },
-            { id = 542752, text = "Greetings." },
-            { id = 542769, text = "Have a bad day." },
-            { id = 542761, text = "Hello." },
-            { id = 542764, text = "Hi there." },
-            { id = 542787, text = "I am in your debt." },
-            { id = 542780, text = "I don't think so." },
-            { id = 542789, text = "I suppose so." },
-            { id = 542743, text = "Not on your life." },
-            { id = 542783, text = "Power to the Forsaken!" },
-            { id = 542736, text = "Stay Optimistic." },
-            { id = 542775, text = "Well done." },
-            { id = 542758, text = "Yeah." },
-            { id = 542781, text = "Yes." },
-        } },
-    } },
     { who = "Geist", groups = {
-        { name = "Conversation", lines = {
-            { id = 556703, text = "Ha ha ha ha!" },
-            { id = 556698, text = "Heh heh heh." },
-            { id = 556699, text = "Ugh! Ugh! Ugh!" },
-        } },
-        { name = "Attack grunts", lines = {
+        { name = "Attack grunts", family = "Fighting", lines = {
             { id = 556695, text = "HUH!" },
             { id = 556689, text = "UGH!" },
             { id = 556690, text = "VROOM!" },
         } },
-        { name = "Pain", lines = {
+        { name = "Pain", family = "Hurt and dying", lines = {
             { id = 556700, text = "AHHH!" },
             { id = 556696, text = "AWW!" },
             { id = 556693, text = "GRRR!" },
@@ -1218,9 +3219,14 @@ GameVoices.Characters = {
             { id = 556697, text = "PFFT!" },
             { id = 556704, text = "YEAH!" },
         } },
+        { name = "Conversation", family = "Feelings", lines = {
+            { id = 556703, text = "Ha ha ha ha!" },
+            { id = 556698, text = "Heh heh heh." },
+            { id = 556699, text = "Ugh! Ugh! Ugh!" },
+        } },
     } },
     { who = "Ghoul", groups = {
-        { name = "Battle cries", lines = {
+        { name = "Battle cries", family = "Fighting", lines = {
             { id = 549796, text = "BLAH BLAH BLAH BLAH" },
             { id = 3462613, text = "FOR THE PRINCE" },
             { id = 3462661, text = "NO ESCAPING THE LIGHT!" },
@@ -1233,12 +3239,24 @@ GameVoices.Characters = {
             { id = 3462663, text = "YOU TWO WILL BURN!" },
             { id = 3462664, text = "YOU, TOO, WILL BURN!" },
         } },
-        { name = "Threats", lines = {
+        { name = "Battle roars", family = "Fighting", lines = {
+            { id = 549809, text = "RRR!" },
+            { id = 556730, text = "WAAAGH!" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 556729, text = "AH!" },
+            { id = 556716, text = "ARGH!" },
+            { id = 549801, text = "GRRR!" },
+            { id = 549793, text = "RAWR!" },
+            { id = 549810, text = "ROAR!" },
+            { id = 556717, text = "YEAH!" },
+        } },
+        { name = "Threats", family = "Menace", lines = {
             { id = 3512705, text = "Cannot hide if you died." },
             { id = 3512706, text = "You cannot hide if you died!" },
             { id = 3462659, text = "Your eyes will crumble to dust!" },
         } },
-        { name = "Boasts", lines = {
+        { name = "Boasts", family = "Menace", lines = {
             { id = 3462629, text = "I find better for you next time." },
             { id = 3462596, text = "I hate light! Love, Moorwalker!" },
             { id = 3462608, text = "I help! I fill!" },
@@ -1247,19 +3265,31 @@ GameVoices.Characters = {
             { id = 3462621, text = "I scare away! Oh, no!" },
             { id = 3462615, text = "I was beautiful once." },
         } },
-        { name = "Orders", lines = {
+        { name = "Orders", family = "Orders and warnings", lines = {
             { id = 556720, text = "Get out of here!" },
             { id = 3462623, text = "Stay away from Sire." },
             { id = 3462635, text = "Stay close." },
         } },
-        { name = "Dark magic", lines = {
-            { id = 3462627, text = "Keep to shadows!" },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 556739, text = "ACHOO!" },
+            { id = 549804, text = "AHHH!" },
+            { id = 549800, text = "MMM!" },
+            { id = 549795, text = "RAAAGH!" },
         } },
-        { name = "Greetings", lines = {
+        { name = "Death cries", family = "Hurt and dying", lines = {
+            { id = 556733, text = "AHH!" },
+            { id = 556727, text = "EEE!" },
+            { id = 556714, text = "EW AHH!" },
+            { id = 556715, text = "UGH!" },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
             { id = 3462594, text = "Greetings, esteemed gawker!" },
             { id = 3462593, text = "Greetings, esteemed maw-walker." },
         } },
-        { name = "Conversation", lines = {
+        { name = "Dark magic", family = "Fighting", lines = {
+            { id = 3462627, text = "Keep to shadows!" },
+        } },
+        { name = "Conversation", family = "Feelings", lines = {
             { id = 3462631, text = "Buy more, buy soon." },
             { id = 3462601, text = "dreadful, dreadful" },
             { id = 3462603, text = "Forgive my appearance." },
@@ -1291,36 +3321,968 @@ GameVoices.Characters = {
             { id = 3462597, text = "You're powerful. Stop playing, yes?" },
             { id = 3512745, text = "Zhan, Xin, Zhan" },
         } },
-        { name = "Attack grunts", lines = {
-            { id = 556729, text = "AH!" },
-            { id = 556716, text = "ARGH!" },
-            { id = 549801, text = "GRRR!" },
-            { id = 549793, text = "RAWR!" },
-            { id = 549810, text = "ROAR!" },
-            { id = 556717, text = "YEAH!" },
-        } },
-        { name = "Pain", lines = {
-            { id = 556739, text = "ACHOO!" },
-            { id = 549804, text = "AHHH!" },
-            { id = 549800, text = "MMM!" },
-            { id = 549795, text = "RAAAGH!" },
-        } },
-        { name = "Death cries", lines = {
-            { id = 556733, text = "AHH!" },
-            { id = 556727, text = "EEE!" },
-            { id = 556714, text = "EW AHH!" },
-            { id = 556715, text = "UGH!" },
-        } },
-        { name = "Battle roars", lines = {
-            { id = 549809, text = "RRR!" },
-            { id = 556730, text = "WAAAGH!" },
-        } },
-        { name = "Noticing you", lines = {
+        { name = "Noticing you", family = "Orders and warnings", lines = {
             { id = 556708, text = "HUH!" },
         } },
     } },
+    { who = "Gnome - feminine voice", race = "Gnome", sex = "female", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 1385463, text = "AAAAAAA" },
+            { id = 1385444, text = "Aaaah!" },
+            { id = 1385449, text = "Ah!" },
+            { id = 1385461, text = "AHHH!" },
+            { id = 1385458, text = "AHHHHHHH" },
+            { id = 540452, text = "Charge forth!" },
+            { id = 540425, text = "for Gnomeregan!" },
+            { id = 1387389, text = "FOR THE ALLIANCE!" },
+            { id = 1385460, text = "MMMMMM" },
+            { id = 1385462, text = "Oh, yeeeaaah!" },
+            { id = 1385446, text = "RRRRRR" },
+        } },
+        { name = "Battle roars", family = "Fighting", lines = {
+            { id = 540457, text = "ROAR!" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 1385454, text = "HUH UGH!" },
+            { id = 1385455, text = "MMMHMM!" },
+            { id = 1385456, text = "OH!" },
+            { id = 1385452, text = "UGH UGH!" },
+        } },
+        { name = "Casting", family = "Fighting", lines = {
+            { id = 1385469, text = "AAA!" },
+            { id = 1385467, text = "EEE!" },
+            { id = 1385466, text = "GRRR!" },
+            { id = 1385465, text = "HUUU!" },
+            { id = 1385470, text = "MOO!" },
+        } },
+        { name = "Threats", family = "Menace", lines = {
+            { id = 1385475, text = "Get ready to die, Simpleton!" },
+        } },
+        { name = "Mockery", family = "Menace", lines = {
+            { id = 1385474, text = "I've taken on uglier and dumber than you! Mm. But not many." },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 540435, text = "Can I get some help over here?" },
+            { id = 540412, text = "Fire now!" },
+            { id = 540419, text = "Follow me." },
+            { id = 540413, text = "Hey, help me attack over here!" },
+            { id = 540438, text = "Shoot!" },
+            { id = 540450, text = "Stay here for a moment." },
+            { id = 540451, text = "Wait here, please." },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 540447, text = "Danger Approaches!" },
+            { id = 540441, text = "Let's get out of here!" },
+            { id = 540458, text = "Retreat!" },
+            { id = 540453, text = "Run!" },
+        } },
+        { name = "Calls for aid", family = "Orders and warnings", lines = {
+            { id = 540459, text = "Can I get some help?" },
+            { id = 540430, text = "I need help!" },
+            { id = 540439, text = "Please heal me." },
+            { id = 540461, text = "Please help me!" },
+            { id = 540431, text = "Would you please heal me?" },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 540455, text = "I'm short on mana!" },
+            { id = 540442, text = "My mana is running low!" },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 540428, text = "Greetings!" },
+            { id = 540421, text = "Hello." },
+            { id = 540436, text = "Hi there!" },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 540460, text = "Farewell." },
+            { id = 540416, text = "Goodbye!" },
+            { id = 540407, text = "I'll always treasure our time together." },
+            { id = 540414, text = "It's been quite an experience." },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 540418, text = "Certainly." },
+            { id = 540433, text = "I don't think so." },
+            { id = 540446, text = "indubitably." },
+            { id = 540440, text = "No way." },
+            { id = 540429, text = "Not on your life!" },
+            { id = 540422, text = "Of course!" },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 540448, text = "Anything for a friend." },
+            { id = 540417, text = "Anytime!" },
+            { id = 540408, text = "How generous!" },
+            { id = 540437, text = "How kind of you." },
+            { id = 540410, text = "Much appreciated." },
+            { id = 1385473, text = "My bad." },
+            { id = 540411, text = "You're welcome." },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 540432, text = "Congratulations!" },
+            { id = 540420, text = "Excellent!" },
+            { id = 540449, text = "Way to go!" },
+            { id = 540415, text = "Wonderful!" },
+        } },
+        { name = "Flirts", family = "Fun", lines = {
+            { id = 540427, text = "At this time, I think you should purchase me an alcoholic beverage and engage in diminutive conversation with me in hopes of establishing a rapport." },
+            { id = 540409, text = "I do not find you completely disagreeable." },
+            { id = 540444, text = "You are cute!" },
+            { id = 540454, text = "Your ability to form a complete sentence is a plus." },
+        } },
+        { name = "Losing patience", family = "Fun", lines = {
+            { id = 540424, text = "I apologize profusely for any inconvenience my murderous rampage may have caused." },
+            { id = 540423, text = "I've discovered that getting pummeled by a blunt weapon can be quite painful." },
+            { id = 540443, text = "Someday, I hope to find the nuggets on a chicken." },
+            { id = 540426, text = "You know, squirrels can be deadly when cornered." },
+        } },
+        { name = "Clowning", family = "Fun", lines = {
+            { id = 540456, text = "PFFT!" },
+            { id = 540271, text = "Whoo! Chugga, Chugga, Chugga, chugga! Whoo!" },
+        } },
+        { name = "Cheers", family = "Fun", lines = {
+            { id = 540434, text = "HOORAY!" },
+        } },
+        { name = "Weeping", family = "Feelings", lines = {
+            { id = 540273, text = "HEHEHEHE!" },
+        } },
+        { name = "Sighs", family = "Feelings", lines = {
+            { id = 540266, text = "SIGH..." },
+        } },
+        { name = "Yawns", family = "Feelings", lines = {
+            { id = 540269, text = "AAAHHH..." },
+        } },
+        { name = "Surprise", family = "Feelings", lines = {
+            { id = 1385472, text = "The plan seems to have malfunctioned." },
+            { id = 1385476, text = "Zoinks! Did you see that?" },
+        } },
+    } },
+    { who = "Gnome - masculine voice", race = "Gnome", sex = "male", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 540509, text = "Attack!" },
+            { id = 540515, text = "For Gnomeregan!" },
+            { id = 1512970, text = "For the Alliance!" },
+            { id = 540491, text = "GET HIM!" },
+        } },
+        { name = "Threats", family = "Menace", lines = {
+            { id = 1512974, text = "Get ready to die, Simpleton!" },
+        } },
+        { name = "Mockery", family = "Menace", lines = {
+            { id = 1512973, text = "I've taken on uglier and dumber than you, but not many." },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 540486, text = "Follow me!" },
+            { id = 540487, text = "Help me attack over here!" },
+            { id = 540500, text = "Hurry! Fire!" },
+            { id = 540474, text = "I'll lead the way." },
+            { id = 540473, text = "Please, join my fight!" },
+            { id = 540519, text = "SHOOT!" },
+            { id = 540481, text = "Stay here for a moment." },
+            { id = 540489, text = "Wait here, please!" },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 540475, text = "Danger approaches!" },
+            { id = 540480, text = "Let's get out of here!" },
+            { id = 540465, text = "RETREAT!" },
+            { id = 540479, text = "RUN!" },
+        } },
+        { name = "Calls for aid", family = "Orders and warnings", lines = {
+            { id = 540502, text = "Could you help? Please!" },
+            { id = 540478, text = "Please heal me!" },
+            { id = 540513, text = "Please, help me!" },
+            { id = 540504, text = "Would you please heal me?" },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 540498, text = "I need some mana!" },
+            { id = 540518, text = "I'm short on mana!" },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 540505, text = "Greetings!" },
+            { id = 540490, text = "Hello!" },
+            { id = 540485, text = "Hi there!" },
+            { id = 540469, text = "Salutations!" },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 540510, text = "Farewell!" },
+            { id = 540482, text = "Goodbye!" },
+            { id = 540511, text = "I'll miss you." },
+            { id = 540516, text = "It's been fun!" },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 540477, text = "Affirmative!" },
+            { id = 540506, text = "I don't think so." },
+            { id = 540483, text = "Indubitably!" },
+            { id = 540514, text = "No way!" },
+            { id = 540496, text = "No!" },
+            { id = 540471, text = "Sure!" },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 540472, text = "Allow me to express my deepest thanks." },
+            { id = 540488, text = "Anytime!" },
+            { id = 540466, text = "I am in your debt!" },
+            { id = 1512972, text = "My bad!" },
+            { id = 540462, text = "No problem!" },
+            { id = 540507, text = "Thank you!" },
+            { id = 540499, text = "You're welcome!" },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 540476, text = "CONGRATULATIONS!" },
+            { id = 540512, text = "Good job!" },
+            { id = 540501, text = "WELL DONE" },
+        } },
+        { name = "Flirts", family = "Fun", lines = {
+            { id = 540470, text = "Everyone keeps talking about beer goggles. I can't find the plans for them anywhere." },
+            { id = 540503, text = "Hey, nice apparatus!" },
+            { id = 540484, text = "I have a number of inventions I'd like to show you back at my place." },
+            { id = 540508, text = "I like large posteriors, and I cannot prevaricate." },
+        } },
+        { name = "Losing patience", family = "Fun", lines = {
+            { id = 540467, text = "I do hope to find some interesting gadgets around here. I do love tinkering with things." },
+            { id = 540464, text = "I had an idea for a device that you could put small pieces of bread in to cook, but in the end, I really didn't think there would be much of a market for it." },
+            { id = 540492, text = "I look bigger in those mirrors where things look bigger." },
+            { id = 540468, text = "I think that last vendor short-changed me. Oh, oh, that was a bad one." },
+            { id = 540495, text = "I'd like to give a shout-out to my boys in Gnomeregan! Keepin' it real, Big T, Snoop Pup, and Little Deez! Y'all are short, but you're real, baby!" },
+            { id = 540517, text = "You know, I really wish I had a garden where I could put a couple of human statues." },
+        } },
+        { name = "Clowning", family = "Fun", lines = {
+            { id = 540494, text = "BRRR!" },
+            { id = 540270, text = "Suck, Suck, Suck, suck" },
+            { id = 540275, text = "Woohoo! Chicka Chicka Chicka chick" },
+        } },
+        { name = "Cheers", family = "Fun", lines = {
+            { id = 540493, text = "HOORAY!" },
+        } },
+        { name = "Laughter", family = "Fun", lines = {
+            { id = 540267, text = "AH HA HA! AH HA HA HA HA!" },
+        } },
+        { name = "Weeping", family = "Feelings", lines = {
+            { id = 540264, text = "AHHH!" },
+        } },
+        { name = "Sighs", family = "Feelings", lines = {
+            { id = 540277, text = "SIGH!" },
+        } },
+        { name = "Yawns", family = "Feelings", lines = {
+            { id = 540274, text = "AAA!" },
+        } },
+        { name = "Affection", family = "Feelings", lines = {
+            { id = 540276, text = "MWAH!" },
+        } },
+        { name = "Surprise", family = "Feelings", lines = {
+            { id = 1512971, text = "The plan seems to have malfunctioned?" },
+            { id = 1512975, text = "Zoinks, did you see that?" },
+        } },
+    } },
+    { who = "Goblin - feminine voice", race = "Goblin", sex = "female", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 1385054, text = "AHHHHHHH" },
+            { id = 541793, text = "ATTACK!" },
+            { id = 1385057, text = "CAW!" },
+            { id = 541850, text = "EXPLOSI TIME!" },
+            { id = 541779, text = "Focus on!" },
+            { id = 541753, text = "For money and beachfront property!" },
+            { id = 1387390, text = "For the Horde!" },
+            { id = 1385074, text = "GAAH!" },
+            { id = 1385072, text = "HA HA!" },
+            { id = 1385075, text = "HAAAAA" },
+            { id = 1385056, text = "Haaaaaa" },
+            { id = 1385068, text = "Heheheha!" },
+            { id = 1385073, text = "Hi-yah!" },
+            { id = 1385060, text = "HOO-AH!" },
+            { id = 1385059, text = "HOO-SAH-HOO-SAH!" },
+            { id = 1385070, text = "NNNNNNN" },
+            { id = 541851, text = "You got goblins on your side. Nothing can go wrong." },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 1385052, text = "HAHA!" },
+            { id = 1385049, text = "YAAH!" },
+        } },
+        { name = "Casting", family = "Fighting", lines = {
+            { id = 1385067, text = "AHHH!" },
+            { id = 1385061, text = "HEYYY!" },
+            { id = 1385065, text = "HMMM!" },
+            { id = 1385062, text = "HUUU!" },
+        } },
+        { name = "Threats", family = "Menace", lines = {
+            { id = 1385079, text = "You're gonna pay for this, with interest!" },
+        } },
+        { name = "Mockery", family = "Menace", lines = {
+            { id = 1385078, text = "Angels with dirty faces, eh? Heh Heh Heh heh!" },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 541732, text = "Back me up here!" },
+            { id = 541772, text = "Fire!" },
+            { id = 541759, text = "Kill it!" },
+            { id = 541847, text = "Let's go!" },
+            { id = 541855, text = "See this thing here? Attack it!" },
+            { id = 541748, text = "Stay here" },
+            { id = 541752, text = "Stay put, I'll be back!" },
+            { id = 541810, text = "This way to glory!" },
+            { id = 541829, text = "Unleash Goblin Fury!" },
+            { id = 541823, text = "You coming?" },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 541737, text = "Go, go, go!" },
+            { id = 541857, text = "I've got a foolproof plan. RUN!" },
+            { id = 541856, text = "You wait here, while I run for my life!" },
+        } },
+        { name = "Calls for aid", family = "Orders and warnings", lines = {
+            { id = 541852, text = "Am I gonna have to do all the work? Help!" },
+            { id = 541802, text = "Can you lend me a hand, friend?" },
+            { id = 541756, text = "HEAL!" },
+            { id = 541739, text = "I'm dying here!" },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 541787, text = "I got nothing left!" },
+            { id = 541789, text = "I'm dry, not a drop of mana!" },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 541801, text = "explosive" },
+            { id = 541777, text = "How's it going?" },
+            { id = 541751, text = "KAZAN!" },
+            { id = 541767, text = "What's up?" },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 541798, text = "Don't let the door hit you where the cataclysm split you." },
+            { id = 541776, text = "Later!" },
+            { id = 541844, text = "Peace... or not." },
+            { id = 541762, text = "See ya!" },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 541842, text = "Hmm" },
+            { id = 541743, text = "Mhm." },
+            { id = 541849, text = "No way!" },
+            { id = 541806, text = "Not a chance!" },
+            { id = 541820, text = "Not on your life." },
+            { id = 541812, text = "Of course!" },
+            { id = 541809, text = "Positively, 100% yes!" },
+            { id = 541730, text = "Yeah!" },
+            { id = 541755, text = "Yep." },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 541749, text = "How generous!" },
+            { id = 541794, text = "I owe you one." },
+            { id = 541845, text = "It was my pleasure." },
+            { id = 541729, text = "Thanks" },
+            { id = 1385077, text = "What do you want, an apology? Fine! Sorry!" },
+            { id = 541821, text = "You got it." },
+            { id = 541758, text = "You're welcome!" },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 541735, text = "Amazing work!" },
+            { id = 541781, text = "Super Frog-A-Lag-A-Listic!" },
+            { id = 541819, text = "You're doing great!" },
+        } },
+        { name = "Jokes", family = "Fun", lines = {
+            { id = 541825, text = "At first you don't succeed, blow it up again." },
+            { id = 541807, text = "I don't make jokes. I make money." },
+            { id = 541734, text = "I'm a free spirit. I don't like to be tied down. What? You mean literally? Oh no, totally into that." },
+            { id = 541745, text = "I'm a modern goblin woman, independent. I still let men do nice things for me, but I stopped giving them any credit." },
+            { id = 541728, text = "Listen, babe, you gotta keep up. The world is changing. Everything these days is now, now, now, faster, faster, faster, me, me, me, murder, murder, murder!" },
+            { id = 541784, text = "My adventure portfolio is up, but most of my liquid assets right now are tied up in post-dividend superannuity, remortgagement futures, bought on margin! It's a sure thing!" },
+            { id = 541841, text = "Out of the way, you nubgoblin!" },
+            { id = 541770, text = "Skip to step three, profit." },
+            { id = 541757, text = "With the right bribes, anything is street legal." },
+            { id = 541867, text = "Yes, I'm a gold digger. And copper and silver." },
+        } },
+        { name = "Flirts", family = "Fun", lines = {
+            { id = 541782, text = "Does this turn you on?" },
+            { id = 541838, text = "How about you and me go out on the town and buy me some expensive jewelry?" },
+            { id = 541866, text = "If you liked it, you should have put a larger, more elaborate ring on it." },
+            { id = 541778, text = "I'm a full-service kinda gal." },
+            { id = 541808, text = "I'm short and good with my hands. How can you resist?" },
+            { id = 541774, text = "Is that your wallet? Are you just glad to see me? Both, I hope!" },
+            { id = 541740, text = "Let's get together and compare our figures." },
+            { id = 541736, text = "Let's make sweet, sweet profit together." },
+            { id = 541833, text = "So then, he asked me to go up on him." },
+            { id = 541830, text = "Wait till you try a piece of this shortcake." },
+        } },
+        { name = "Clowning", family = "Fun", lines = {
+            { id = 541814, text = "AHHH! AHHH! AHHH! AHH!" },
+            { id = 541854, text = "PBBB!" },
+        } },
+        { name = "Laughter", family = "Fun", lines = {
+            { id = 541840, text = "HAHAHAHA!" },
+        } },
+        { name = "Weeping", family = "Feelings", lines = {
+            { id = 541796, text = "HAHAHAHAAA!" },
+        } },
+        { name = "Affection", family = "Feelings", lines = {
+            { id = 541868, text = "MWAH!" },
+        } },
+        { name = "Surprise", family = "Feelings", lines = {
+            { id = 1385076, text = "Looks like I screwed up. Big time." },
+            { id = 1385080, text = "You see this? I don't believe it." },
+        } },
+    } },
+    { who = "Goblin - masculine voice", race = "Goblin", sex = "male", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 1385351, text = "AHHHHHHH" },
+            { id = 541896, text = "attack" },
+            { id = 541947, text = "BOKUZON!" },
+            { id = 541934, text = "EXPLOSION TIME!" },
+            { id = 541938, text = "For money and beachfront property!" },
+            { id = 1387391, text = "For the Horde!" },
+            { id = 1385339, text = "Gah!" },
+            { id = 1385350, text = "HEEEEEE" },
+            { id = 1385355, text = "Hi!" },
+            { id = 1385352, text = "HOOOOMP!" },
+            { id = 1385354, text = "HOOOOO!" },
+            { id = 1385356, text = "HUAAAH!" },
+            { id = 1385340, text = "HUH-RAH!" },
+            { id = 1385353, text = "HYAAAAAA" },
+            { id = 1385338, text = "Hyah!" },
+            { id = 1385335, text = "HYAH! UGH!" },
+            { id = 1385341, text = "RAWR!" },
+            { id = 1385337, text = "YEAH!" },
+            { id = 1385336, text = "Yee-jah!" },
+            { id = 541930, text = "You got goblins on your side, nothing can go wrong." },
+        } },
+        { name = "Battle roars", family = "Fighting", lines = {
+            { id = 541959, text = "NOOO!" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 1385344, text = "HUH NAH!" },
+            { id = 1385347, text = "HURRAH!" },
+            { id = 1385342, text = "HWAH!" },
+            { id = 1385343, text = "HYAH GAH!" },
+        } },
+        { name = "Casting", family = "Fighting", lines = {
+            { id = 1385358, text = "AHHH YEAH!" },
+            { id = 1385364, text = "AWWW!" },
+            { id = 1385360, text = "EEERRR!" },
+            { id = 1385357, text = "HUUU!" },
+            { id = 1385361, text = "MMM!" },
+            { id = 1385362, text = "OH YEAH!" },
+            { id = 1385363, text = "ZZZAP!" },
+        } },
+        { name = "Threats", family = "Menace", lines = {
+            { id = 1385368, text = "Oh, you're gonna pay for this. With interest!" },
+        } },
+        { name = "Mockery", family = "Menace", lines = {
+            { id = 1385367, text = "Oh, oh, you think you're tough, huh pal? Forget you, maggot!" },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 541966, text = "FIRE!" },
+            { id = 541991, text = "Hey, back me up here!" },
+            { id = 541882, text = "Hey, you see this thing here? Attack it!" },
+            { id = 541919, text = "KILL IT!" },
+            { id = 541885, text = "Let's go!" },
+            { id = 542007, text = "STAY HERE!" },
+            { id = 541899, text = "Stay put, I'll be back." },
+            { id = 541988, text = "This way to glory." },
+            { id = 541974, text = "Unleash Goblin Fury!" },
+            { id = 541918, text = "You comment?" },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 541986, text = "Go, go, go!" },
+            { id = 542009, text = "I've got a foolproof plan. Run!" },
+            { id = 541908, text = "You wait here while I run for my life." },
+        } },
+        { name = "Calls for aid", family = "Orders and warnings", lines = {
+            { id = 541995, text = "Am I gonna have to do all the work? Help me here!" },
+            { id = 541913, text = "Can you lend me a hand, friend?" },
+            { id = 541949, text = "Healed!" },
+            { id = 541917, text = "I'M DYING HERE!" },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 541973, text = "I got nothing left!" },
+            { id = 541999, text = "I'm dry, not a drop of man!" },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 541892, text = "EXPLOSIVE!" },
+            { id = 541970, text = "How's it going?" },
+            { id = 541923, text = "KAZAN!" },
+            { id = 541950, text = "What's up?" },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 541920, text = "Don't let the door hit you where the cataclysm split you." },
+            { id = 541929, text = "Later." },
+            { id = 541888, text = "Peace... or not." },
+            { id = 541887, text = "See ya!" },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 541961, text = "No way!" },
+            { id = 541900, text = "Not a chance!" },
+            { id = 541905, text = "Not on your life." },
+            { id = 541877, text = "Of course!" },
+            { id = 541983, text = "Positively 100% yes." },
+            { id = 542008, text = "Um" },
+            { id = 541927, text = "Yep." },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 541987, text = "Eh, I owe you one." },
+            { id = 541975, text = "Oh, how generous!" },
+            { id = 541992, text = "Thanks." },
+            { id = 1385366, text = "What do you want, an apology? Fine. Sorry." },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 542005, text = "Amazing work." },
+            { id = 542000, text = "Oh, super-frag-a-lag-a-listic!" },
+            { id = 541935, text = "You're doing great." },
+        } },
+        { name = "Jokes", family = "Fun", lines = {
+            { id = 541978, text = "Heh, I dabbled in gold farming, but I couldn't get the coins to sprout. Heh heh heh." },
+            { id = 541921, text = "I am the little friend. Say hello!" },
+            { id = 541933, text = "I don't know where you nubgoblin!" },
+            { id = 541996, text = "I don't make jokes, I make money." },
+            { id = 541941, text = "My family comes from a long line of goblin sappers leaving their mark. My grandfather's was 30 meters across." },
+            { id = 541969, text = "One word, plastics." },
+            { id = 542024, text = "Ooh, I got it. What if we were to organize crime?" },
+            { id = 541932, text = "Skip to step three, profit!" },
+            { id = 541945, text = "When in doubt, blow it up!" },
+            { id = 541943, text = "Yeah, she told me to tie her up and do whatever I wanted to her, so I took a stereo." },
+        } },
+        { name = "Flirts", family = "Fun", lines = {
+            { id = 541937, text = "Does this turn you on?" },
+            { id = 542002, text = "Ever rode a rocket before? Mine's huge!" },
+            { id = 542019, text = "Honey, I got all kinds of toys in my utility belt." },
+            { id = 542021, text = "How much?" },
+            { id = 541901, text = "I got what you need." },
+            { id = 541904, text = "I like my women the way I like my fuses, short, fast, and ready to blow." },
+            { id = 541910, text = "Let me buy you a drink. No way, you buy me a drink. Now you know what, just give me the money." },
+            { id = 541965, text = "Let's make sweet, sweet profit together." },
+            { id = 542015, text = "Oh baby, you know how to turn my gears." },
+            { id = 541953, text = "Whoa, baby, you are a bombshell if I ever saw one. And trust me, I know my bomb." },
+        } },
+        { name = "Clowning", family = "Fun", lines = {
+            { id = 542017, text = "CHUGA CHUGA CHUGA CHOO CHOO" },
+            { id = 541952, text = "RRR!" },
+            { id = 542016, text = "We got a freakin' chicken over here, buck buck buck buck!" },
+        } },
+        { name = "Cheers", family = "Fun", lines = {
+            { id = 541890, text = "WHOA!" },
+        } },
+        { name = "Laughter", family = "Fun", lines = {
+            { id = 541940, text = "Ha Ha Ha ha!" },
+            { id = 541894, text = "HAHAHA!" },
+            { id = 541985, text = "HAHAHAHA!" },
+            { id = 541902, text = "HEHEHEHE!" },
+        } },
+        { name = "Weeping", family = "Feelings", lines = {
+            { id = 541915, text = "Ah, boo hoo hoo hoo!" },
+            { id = 541954, text = "MUHAHAHA!" },
+            { id = 542003, text = "Oh, wah, wah, wah." },
+        } },
+        { name = "Affection", family = "Feelings", lines = {
+            { id = 541924, text = "MWAH MWAH MWAH!" },
+        } },
+        { name = "Surprise", family = "Feelings", lines = {
+            { id = 1385365, text = "Oh, it looks like I screwed up. Big time." },
+            { id = 1385369, text = "You see this? I don't believe it." },
+        } },
+        { name = "Pleading", family = "Menace", lines = {
+            { id = 541998, text = "Come on, come on!" },
+            { id = 541967, text = "D-D-D-d" },
+            { id = 541886, text = "Gimme a break over here!" },
+            { id = 542012, text = "Please!" },
+            { id = 541906, text = "You got it!" },
+        } },
+    } },
+    { who = "Highmountain Tauren - feminine voice", race = "Highmountain Tauren", sex = "female", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 1835375, text = "Aaaargh!" },
+            { id = 1835386, text = "AHHHHHHH" },
+            { id = 1835388, text = "BROOMS!" },
+            { id = 1730494, text = "For the Horde!" },
+            { id = 1835373, text = "FUUUUUUU" },
+            { id = 1835389, text = "HAAAAAAARRRRRRR" },
+            { id = 1730498, text = "Remember the Earth Mother's lessons." },
+            { id = 1835374, text = "TAAARRRRRR" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 1835362, text = "CAH!" },
+            { id = 1835360, text = "HA!" },
+            { id = 1835404, text = "HUAGH!" },
+            { id = 1835358, text = "HUH!" },
+            { id = 1835407, text = "HUUU!" },
+            { id = 1835368, text = "HWAH!" },
+            { id = 1835366, text = "HYAH!" },
+            { id = 1835364, text = "MMM!" },
+            { id = 1835361, text = "PHEW!" },
+            { id = 1835372, text = "ROAR!" },
+            { id = 1835371, text = "YAAH!" },
+        } },
+        { name = "Casting", family = "Fighting", lines = {
+            { id = 1835381, text = "HUUUGGGHHH!" },
+            { id = 1835383, text = "OOO!" },
+            { id = 1835382, text = "UUU!" },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 1730357, text = "ATTACK MY ENEMY!" },
+            { id = 1730359, text = "On my target!" },
+            { id = 1730514, text = "OPEN FIRE!" },
+        } },
+        { name = "Calls for aid", family = "Orders and warnings", lines = {
+            { id = 1730499, text = "Heal me!" },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 1730426, text = "I must have more rage." },
+            { id = 1730422, text = "I need mana first." },
+            { id = 1730411, text = "My fury is low." },
+            { id = 1730423, text = "My mana is low." },
+            { id = 1730420, text = "Not enough energy." },
+            { id = 1730410, text = "Not enough fury." },
+            { id = 1730425, text = "Not enough rage." },
+        } },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 1835411, text = "OOF!" },
+        } },
+        { name = "Death cries", family = "Hurt and dying", lines = {
+            { id = 1835395, text = "GAAAH!" },
+            { id = 1835394, text = "GAAHHH!" },
+            { id = 1835393, text = "GOOO!" },
+            { id = 1835391, text = "HEEE!" },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 1730502, text = "Warm greetings to you." },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 1730077, text = "We are Highmountain. Unless you're leaving. Then we're... Goodbye, Mountain!" },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 1730539, text = "Correct." },
+            { id = 1730513, text = "Indeed." },
+            { id = 1730540, text = "It is so." },
+            { id = 1730509, text = "No chance." },
+            { id = 1730511, text = "Right." },
+            { id = 1730538, text = "Yes." },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 1730518, text = "A thousand thanks." },
+            { id = 1730519, text = "I am grateful." },
+            { id = 1730541, text = "You are welcome." },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 1730369, text = "Impressive indeed." },
+            { id = 1730368, text = "Nicely done!" },
+        } },
+    } },
+    { who = "Highmountain Tauren - masculine voice", race = "Highmountain Tauren", sex = "male", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 1835457, text = "AHHHHHHH" },
+            { id = 1730868, text = "FOR THE HORDE" },
+            { id = 1835455, text = "Grrrrrrr" },
+            { id = 1835456, text = "RAAAAAHHH!" },
+            { id = 1835442, text = "RRRRRR" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 1835434, text = "AHHH!" },
+            { id = 1835427, text = "HAH!" },
+            { id = 1835478, text = "HMM!" },
+            { id = 1835477, text = "HMMM!" },
+            { id = 1835422, text = "HMPH!" },
+            { id = 1835479, text = "MMM!" },
+            { id = 1835433, text = "RAWR!" },
+            { id = 1835421, text = "ROAR!" },
+            { id = 1835423, text = "ROOF!" },
+            { id = 1835431, text = "RRR!" },
+            { id = 1835435, text = "RRRAH!" },
+            { id = 1835425, text = "UGH!" },
+            { id = 1835481, text = "VRRR!" },
+            { id = 1835432, text = "YEAH!" },
+        } },
+        { name = "Casting", family = "Fighting", lines = {
+            { id = 1835447, text = "HUUUUUU UUUUUUU UUUUUUU UUUUUUU UUUuuuuuu" },
+            { id = 1835448, text = "NNN!" },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 1730865, text = "Follow me." },
+            { id = 1730888, text = "OPEN FIRE!" },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 1730881, text = "An incoming threat!" },
+            { id = 1730863, text = "SOUND THE RETREAT!" },
+        } },
+        { name = "Calls for aid", family = "Orders and warnings", lines = {
+            { id = 1730873, text = "Heal me." },
+            { id = 1730879, text = "Help me!" },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 1730800, text = "I must have more rage." },
+            { id = 1730796, text = "I need mana first." },
+            { id = 1730890, text = "Mana is needed." },
+            { id = 1730785, text = "My fury is low." },
+            { id = 1730797, text = "My mana is low." },
+            { id = 1730794, text = "Not enough energy." },
+            { id = 1730784, text = "Not enough fury." },
+            { id = 1730799, text = "Not enough rage." },
+        } },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 1835491, text = "D'OH!" },
+            { id = 1835497, text = "GAAAH!" },
+            { id = 1835487, text = "GAH!" },
+            { id = 1835498, text = "GOOO!" },
+        } },
+        { name = "Death cries", family = "Hurt and dying", lines = {
+            { id = 1835461, text = "HUUU!" },
+            { id = 1835459, text = "NOOO!" },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 1730875, text = "Hello." },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 1730869, text = "Goodbye." },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 1730913, text = "Correct." },
+            { id = 1730887, text = "Indeed." },
+            { id = 1730914, text = "It is so." },
+            { id = 1730740, text = "Never yield." },
+            { id = 1730882, text = "NO!" },
+            { id = 1730885, text = "Right." },
+            { id = 1730912, text = "Yes." },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 1730892, text = "A thousand thanks." },
+            { id = 1730877, text = "You are welcome here." },
+            { id = 1730915, text = "You are welcome." },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 1730743, text = "I'm impressed." },
+            { id = 1730742, text = "Job well done." },
+        } },
+    } },
+    { who = "Human - feminine voice", race = "Human", sex = "female", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 540623, text = "Attack!" },
+            { id = 1502108, text = "For the Alliance!" },
+            { id = 540618, text = "To battle!" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 540530, text = "HA!" },
+            { id = 540532, text = "YEAH!" },
+        } },
+        { name = "Threats", family = "Menace", lines = {
+            { id = 1410367, text = "I'm going to hurt you a lot." },
+        } },
+        { name = "Mockery", family = "Menace", lines = {
+            { id = 1410366, text = "Face me, coward." },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 540627, text = "Ate my attack!" },
+            { id = 540619, text = "Attack over here!" },
+            { id = 540660, text = "FIRE" },
+            { id = 540631, text = "Follow me." },
+            { id = 540653, text = "I'll lead the way." },
+            { id = 540652, text = "Stay here." },
+            { id = 540637, text = "Stay put." },
+            { id = 540609, text = "Wait here!" },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 540621, text = "Guard yourself!" },
+            { id = 540661, text = "on your guard." },
+            { id = 540646, text = "Retreat!" },
+            { id = 540616, text = "RUN!" },
+        } },
+        { name = "Calls for aid", family = "Orders and warnings", lines = {
+            { id = 540647, text = "HEAL ME" },
+            { id = 540649, text = "Help me!" },
+            { id = 540642, text = "I need healing." },
+            { id = 540630, text = "I need help!" },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 540644, text = "I need more mana." },
+            { id = 540645, text = "I'm out of mana!" },
+        } },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 540527, text = "AH!" },
+            { id = 540537, text = "OH!" },
+            { id = 540539, text = "UGH!" },
+        } },
+        { name = "Death cries", family = "Hurt and dying", lines = {
+            { id = 540526, text = "HA AH!" },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 540657, text = "Greetings!" },
+            { id = 540608, text = "Hello." },
+            { id = 540629, text = "Hi!" },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 540606, text = "Goodbye!" },
+            { id = 540636, text = "It's been fun!" },
+            { id = 540611, text = "Till we meet again." },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 540607, text = "I don't think so." },
+            { id = 540658, text = "No way." },
+            { id = 540614, text = "No." },
+            { id = 540605, text = "Sure." },
+            { id = 540632, text = "Why not?" },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 540656, text = "Anytime." },
+            { id = 540659, text = "How generous." },
+            { id = 540635, text = "Much appreciated." },
+            { id = 540651, text = "No problem." },
+            { id = 1410365, text = "Sorry about all this." },
+            { id = 540650, text = "Thank you." },
+            { id = 540620, text = "You're welcome." },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 540654, text = "Congratulations!" },
+            { id = 540640, text = "Excellent" },
+            { id = 540655, text = "Huzzah!" },
+        } },
+        { name = "Flirts", family = "Fun", lines = {
+            { id = 540648, text = "I need a hero." },
+            { id = 540625, text = "My turnoffs are rude people, mean people, and people who aren't nice." },
+            { id = 540612, text = "You've got me all of flutter!" },
+        } },
+        { name = "Losing patience", family = "Fun", lines = {
+            { id = 540633, text = "Do you ever feel like you're not in charge of your own destiny, like you're being controlled by an invisible hand?" },
+            { id = 540643, text = "I can't find anywhere to get my nails done." },
+            { id = 540639, text = "I can't wait till this quest is done and I can look for another Garibaldi artifact!" },
+            { id = 540634, text = "I like to fart in the tub." },
+            { id = 540622, text = "Me and my girlfriends exchange clothes all the time. We're all the same size." },
+            { id = 540617, text = "Sometimes, I have trouble controlling the volume of my voice!" },
+            { id = 540638, text = "Westfall makes my ass itch." },
+            { id = 540641, text = "Why does everyone automatically assume I know tailoring and cooking?" },
+        } },
+        { name = "Clowning", family = "Fun", lines = {
+            { id = 540626, text = "BRRR!" },
+            { id = 540538, text = "Bwah! Bwah! Bwah! Bwah!" },
+            { id = 540535, text = "WOO! WOO! Chica Chica Chica WOO! WOO!" },
+        } },
+        { name = "Cheers", family = "Fun", lines = {
+            { id = 540628, text = "YES!" },
+        } },
+        { name = "Laughter", family = "Fun", lines = {
+            { id = 540540, text = "HEHEHEHE!" },
+        } },
+        { name = "Sighs", family = "Feelings", lines = {
+            { id = 540524, text = "SIGH..." },
+        } },
+        { name = "Yawns", family = "Feelings", lines = {
+            { id = 540531, text = "AHHH!" },
+        } },
+        { name = "Surprise", family = "Feelings", lines = {
+            { id = 1410364, text = "Oops. Try again, I suppose." },
+            { id = 1410368, text = "You don't see that every day." },
+        } },
+    } },
+    { who = "Human - masculine voice", race = "Human", sex = "male", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 540696, text = "Charge!" },
+            { id = 1502109, text = "For the Alliance!" },
+            { id = 540717, text = "To battle!" },
+        } },
+        { name = "Battle roars", family = "Fighting", lines = {
+            { id = 540697, text = "ROAR!" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 540723, text = "MMM!" },
+            { id = 540732, text = "UGH!" },
+        } },
+        { name = "Threats", family = "Menace", lines = {
+            { id = 1410372, text = "I'm going to hurt you. A lot." },
+        } },
+        { name = "Mockery", family = "Menace", lines = {
+            { id = 1410371, text = "Face me, coward!" },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 540686, text = "Aid my attack!" },
+            { id = 540713, text = "Attack over here!" },
+            { id = 540688, text = "Fire at will!" },
+            { id = 540714, text = "FIRE!" },
+            { id = 540711, text = "Follow me!" },
+            { id = 540705, text = "I'll lead the way." },
+            { id = 540687, text = "Stay here." },
+            { id = 540718, text = "Stay put." },
+            { id = 540719, text = "Wait here!" },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 540701, text = "Guard yourself!" },
+            { id = 540727, text = "HA!" },
+            { id = 540735, text = "HUH" },
+            { id = 540670, text = "On your guard!" },
+            { id = 540678, text = "retreat" },
+            { id = 540692, text = "RUN!" },
+        } },
+        { name = "Calls for aid", family = "Orders and warnings", lines = {
+            { id = 540671, text = "Aid me!" },
+            { id = 540706, text = "Heal me!" },
+            { id = 540668, text = "I need healing!" },
+            { id = 540693, text = "I require aid." },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 540675, text = "I'm out of mana." },
+            { id = 540704, text = "My mana is low." },
+        } },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 540733, text = "AHEM!" },
+            { id = 540725, text = "OH!" },
+            { id = 540728, text = "OOF!" },
+        } },
+        { name = "Death cries", family = "Hurt and dying", lines = {
+            { id = 540722, text = "GRRR!" },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 540664, text = "Good tidings." },
+            { id = 540681, text = "Hail!" },
+            { id = 540674, text = "Hi!" },
+            { id = 540665, text = "Well met!" },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 540685, text = "Farewell!" },
+            { id = 540720, text = "It's been fun!" },
+            { id = 540721, text = "Till we meet again." },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 540702, text = "Certainly." },
+            { id = 540700, text = "I don't think so." },
+            { id = 540683, text = "Nay." },
+            { id = 540673, text = "NO" },
+            { id = 540698, text = "NOT" },
+            { id = 540709, text = "Sounds fine." },
+            { id = 540667, text = "Uh huh." },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 540677, text = "Always glad to help!" },
+            { id = 540669, text = "at your service." },
+            { id = 540682, text = "How generous!" },
+            { id = 540662, text = "How kind of you." },
+            { id = 540666, text = "Nothing you wouldn't have done for me." },
+            { id = 1410370, text = "Sorry about all this." },
+            { id = 540672, text = "Thank you." },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 540703, text = "CONGRATULATIONS!" },
+            { id = 540676, text = "Excellent!" },
+            { id = 540712, text = "Wonderful!" },
+        } },
+        { name = "Flirts", family = "Fun", lines = {
+            { id = 540684, text = "Are you tired, cause you've been running through my mind all day." },
+            { id = 540691, text = "Hey babycakes." },
+            { id = 540708, text = "How ya doin'?" },
+            { id = 540715, text = "If I said you had a good body, would you hold it against me?" },
+            { id = 540689, text = "What's your sign?" },
+            { id = 540690, text = "Your tag's showing. It says, uh, made in heaven." },
+        } },
+        { name = "Losing patience", family = "Fun", lines = {
+            { id = 540699, text = "A duck walked into an apothecary and he said, give me some chapstick and put it on my bill." },
+            { id = 540680, text = "A guy walked up to me and said, I'm a teepee, I'm a wigwam, I'm a teepee, I'm a wigwam. I said, relax man, you're too tense." },
+            { id = 540663, text = "Cover for me! I got a whiz behind a tree." },
+            { id = 540679, text = "How does a tauren hide in a cherry tree? He paints his hooves red." },
+            { id = 540716, text = "So, an orc walks into a bar with a parrot on his shoulder. The bartender says, hey, where'd you get that? The parrot says, Durotar, they got them all over the place." },
+        } },
+        { name = "Clowning", family = "Fun", lines = {
+            { id = 540738, text = "Bawk, Bawk, Bawk, bawk." },
+            { id = 540695, text = "PFFTTT!" },
+            { id = 540734, text = "WOO WOO CHUG CHUG CHUG WOO WOO" },
+        } },
+        { name = "Laughter", family = "Fun", lines = {
+            { id = 540739, text = "Ha Ha Ha ha!" },
+        } },
+        { name = "Sighs", family = "Feelings", lines = {
+            { id = 540729, text = "SIGH..." },
+        } },
+        { name = "Yawns", family = "Feelings", lines = {
+            { id = 540740, text = "HUUU!" },
+        } },
+        { name = "Surprise", family = "Feelings", lines = {
+            { id = 1410369, text = "Oops. Try again, I suppose." },
+            { id = 1410373, text = "You don't see that every day." },
+        } },
+    } },
     { who = "Kel'Thuzad", groups = {
-        { name = "Battle cries", lines = {
+        { name = "Battle cries", family = "Fighting", lines = {
             { id = 6119162, text = "ENOUGH!" },
             { id = 4078417, text = "FOOLS. YOU CANNOT KILL A LITCH." },
             { id = 4078394, text = "FREEZE AND SHATTER!" },
@@ -1335,7 +4297,18 @@ GameVoices.Characters = {
             { id = 3735701, text = "THE RITUAL BEGINS, OPEN THE ANIMAL FLOWS!" },
             { id = 4078398, text = "THE SHADOWS BECKING!" },
         } },
-        { name = "Threats", lines = {
+        { name = "Battle roars", family = "Fighting", lines = {
+            { id = 4195390, text = "NOOO!" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 4195410, text = "GRRR!" },
+            { id = 4195402, text = "HA!" },
+            { id = 553130, text = "HMM!" },
+            { id = 4195400, text = "HUH!" },
+            { id = 553155, text = "YEAH!" },
+            { id = 4195404, text = "YES!" },
+        } },
+        { name = "Threats", family = "Menace", lines = {
             { id = 3757585, text = "Destroy these meddlers!" },
             { id = 6119157, text = "Did the Council send you to seize my tomes again?" },
             { id = 3731965, text = "Interlopers! You will not escape your fate!" },
@@ -1350,7 +4323,7 @@ GameVoices.Characters = {
             { id = 4078392, text = "Your souls will rot in the frozen wastes!" },
             { id = 4078413, text = "You've meddled with my affairs for the last time!" },
         } },
-        { name = "Boasts", lines = {
+        { name = "Boasts", family = "Menace", lines = {
             { id = 4078391, text = "I am power incarnate!" },
             { id = 6119710, text = "I do not have time for pleasantries." },
             { id = 4078405, text = "I shall return again and again!" },
@@ -1363,31 +4336,50 @@ GameVoices.Characters = {
             { id = 4078389, text = "None can resist my power!" },
             { id = 4078407, text = "Through death, my power grows!" },
         } },
-        { name = "Orders", lines = {
+        { name = "Mockery", family = "Menace", lines = {
+            { id = 4078410, text = "Did you really think you had won? Ignorant fools!" },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
             { id = 553126, text = "Do not rejoice. Your victory is a hollow one, for I shall return with powers beyond your imagining." },
             { id = 3735687, text = "Do not waste my time speaking of lackeys one of my reagent" },
             { id = 6119729, text = "Take your leave, then." },
         } },
-        { name = "Mockery", lines = {
-            { id = 4078410, text = "Did you really think you had won? Ignorant fools!" },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 553133, text = "AHEM!" },
+            { id = 553105, text = "AHHH!" },
+            { id = 4195454, text = "ARGH!" },
+            { id = 553118, text = "ARGHHH!" },
+            { id = 4195458, text = "COUGH!" },
+            { id = 4195448, text = "EW!" },
+            { id = 4195452, text = "GAH!" },
+            { id = 4195450, text = "HEHE!" },
+            { id = 4195456, text = "OH!" },
+            { id = 553121, text = "RAAAGH!" },
+            { id = 553128, text = "RRR!" },
+            { id = 553107, text = "UGH!" },
+            { id = 553114, text = "UUU!" },
         } },
-        { name = "Dark magic", lines = {
+        { name = "Death cries", family = "Hurt and dying", lines = {
+            { id = 553140, text = "AAA!" },
+            { id = 4195436, text = "GAH UGH!" },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 4078402, text = "Welcome to the Frozen Abyss!" },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 6119723, text = "Begone!" },
+        } },
+        { name = "Dark magic", family = "Fighting", lines = {
             { id = 4078387, text = "Can you feel the chill in your bones?" },
             { id = 3735521, text = "Death's victory draws nigh!" },
             { id = 3735667, text = "Enough reflection. It is time we prepared for the ritual." },
             { id = 3735628, text = "fall into shadow" },
             { id = 4078396, text = "Servants of the frozen waste, arise!" },
         } },
-        { name = "Loyalty", lines = {
+        { name = "Loyalty", family = "Manners", lines = {
             { id = 3735630, text = "You whelps deserve to be in chains" },
         } },
-        { name = "Greetings", lines = {
-            { id = 4078402, text = "Welcome to the Frozen Abyss!" },
-        } },
-        { name = "Farewells", lines = {
-            { id = 6119723, text = "Begone!" },
-        } },
-        { name = "Conversation", lines = {
+        { name = "Conversation", family = "Feelings", lines = {
             { id = 3735522, text = "All proceeds according to plan" },
             { id = 3735726, text = "Alone? No." },
             { id = 6119704, text = "Another interruption?" },
@@ -1424,39 +4416,139 @@ GameVoices.Characters = {
             { id = 3735629, text = "You should never have entered my domain!" },
             { id = 6119720, text = "You would not understand my experiments anyway!" },
         } },
-        { name = "Attack grunts", lines = {
-            { id = 4195410, text = "GRRR!" },
-            { id = 4195402, text = "HA!" },
-            { id = 553130, text = "HMM!" },
-            { id = 4195400, text = "HUH!" },
-            { id = 553155, text = "YEAH!" },
-            { id = 4195404, text = "YES!" },
+    } },
+    { who = "Kul Tiran - feminine voice", race = "Kul Tiran", sex = "female", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 2735372, text = "AHHHHHH" },
+            { id = 2735375, text = "AHHHHHHH" },
+            { id = 2531526, text = "FOR THE ALLIANCE!" },
         } },
-        { name = "Pain", lines = {
-            { id = 553133, text = "AHEM!" },
-            { id = 553105, text = "AHHH!" },
-            { id = 4195454, text = "ARGH!" },
-            { id = 553118, text = "ARGHHH!" },
-            { id = 4195458, text = "COUGH!" },
-            { id = 4195448, text = "EW!" },
-            { id = 4195452, text = "GAH!" },
-            { id = 4195450, text = "HEHE!" },
-            { id = 4195456, text = "OH!" },
-            { id = 553121, text = "RAAAGH!" },
-            { id = 553128, text = "RRR!" },
-            { id = 553107, text = "UGH!" },
-            { id = 553114, text = "UUU!" },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 2735353, text = "FAAA!" },
+            { id = 2735359, text = "HA!" },
+            { id = 2735357, text = "HIYA!" },
+            { id = 2735355, text = "HWAH!" },
+            { id = 2735367, text = "WAH!" },
         } },
-        { name = "Death cries", lines = {
-            { id = 553140, text = "AAA!" },
-            { id = 4195436, text = "GAH UGH!" },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 2531514, text = "FOCUS YOUR ASSULT!" },
+            { id = 2531533, text = "Open fire!" },
+            { id = 2531534, text = "STAY PUT" },
+            { id = 2531523, text = "This way!" },
         } },
-        { name = "Battle roars", lines = {
-            { id = 4195390, text = "NOOO!" },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 2531520, text = "Fall back!" },
+            { id = 2531521, text = "TIME TO RETREAT!" },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 2531617, text = "Hang on, I need mana." },
+            { id = 2531028, text = "I must have more rage." },
+            { id = 2531024, text = "I need mana first." },
+            { id = 2531026, text = "Mana is needed." },
+            { id = 2531013, text = "My fury is low." },
+            { id = 2531025, text = "My mana is low." },
+            { id = 2531022, text = "Not enough energy." },
+            { id = 2531012, text = "Not enough fury." },
+            { id = 2531027, text = "Not enough rage." },
+            { id = 2531618, text = "Wait while I regain mana!" },
+        } },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 2735415, text = "OOF!" },
+            { id = 2735413, text = "UGH!" },
+        } },
+        { name = "Death cries", family = "Hurt and dying", lines = {
+            { id = 2735381, text = "AAAHHH!" },
+            { id = 2735382, text = "AHHH!" },
+            { id = 2735380, text = "HWAH UGH!" },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 2531606, text = "Good to see you." },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 2531613, text = "I see." },
+            { id = 2531610, text = "Nope." },
+            { id = 2531611, text = "Not a chance." },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 2531665, text = "Thank you kindly." },
+            { id = 2531703, text = "There's one thing I can never forgive Lady Jaina for. Losing her accent." },
+            { id = 2531664, text = "You have my gratitude." },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 2531539, text = "Nicely done!" },
+        } },
+        { name = "Cheers", family = "Fun", lines = {
+            { id = 2735379, text = "Woohoo! Hey! Ha Ha Ha ha!" },
+            { id = 2735378, text = "Yay! Yay! Ha ha." },
+        } },
+    } },
+    { who = "Kul Tiran - masculine voice", race = "Kul Tiran", sex = "male", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 2735452, text = "AHHHHHH" },
+            { id = 2735449, text = "AHHHHHHH" },
+            { id = 2735451, text = "ARRRRRR" },
+            { id = 2531757, text = "FOR THE ALLIANCE!" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 2735427, text = "AHHH!" },
+            { id = 2735429, text = "HA!" },
+            { id = 2735423, text = "HAAA!" },
+            { id = 2735432, text = "HELL!" },
+            { id = 2735431, text = "HI!" },
+            { id = 2735434, text = "HUH!" },
+            { id = 2735425, text = "HYAH!" },
+            { id = 2735436, text = "YEAH!" },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 2531745, text = "FOCUS YOUR ASSULT!" },
+            { id = 2531802, text = "OPEN FIRE!" },
+            { id = 2531803, text = "STAY PUT!" },
+            { id = 2531754, text = "This way!" },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 2531751, text = "Fall back!" },
+            { id = 2531752, text = "TIME TO RETREAT!" },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 2531878, text = "Hang on, I need mana." },
+            { id = 2491995, text = "I must have more rage." },
+            { id = 2491999, text = "I need mana first." },
+            { id = 2492010, text = "My fury is low." },
+            { id = 2491998, text = "My mana is low." },
+            { id = 2492001, text = "Not enough energy." },
+            { id = 2491996, text = "Not enough rage." },
+        } },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 2735481, text = "AAARGH!" },
+            { id = 2735494, text = "AH!" },
+            { id = 2735488, text = "GAH!" },
+            { id = 2735485, text = "GRR!" },
+            { id = 2735487, text = "OH!" },
+            { id = 2735486, text = "OOF!" },
+            { id = 2735489, text = "RAWR!" },
+            { id = 2735493, text = "UGH!" },
+            { id = 2735480, text = "UGHHH!" },
+        } },
+        { name = "Death cries", family = "Hurt and dying", lines = {
+            { id = 2735453, text = "HUUU!" },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 2531901, text = "Good to see you!" },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 2531874, text = "I see." },
+            { id = 2531871, text = "Nope." },
+            { id = 2531872, text = "Not a chance." },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 2531849, text = "Thank you Kindly!" },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 2531808, text = "Nicely done!" },
         } },
     } },
     { who = "Lich", groups = {
-        { name = "Battle cries", lines = {
+        { name = "Battle cries", family = "Fighting", lines = {
             { id = 3814298, text = "HEH HEH HEH" },
             { id = 3380500, text = "I WILL BE RE-ANIMATED" },
             { id = 3621443, text = "I WILL HARVEST YOUR SKIN!" },
@@ -1466,7 +4558,29 @@ GameVoices.Characters = {
             { id = 4078351, text = "THE TIME IS NEARLY UPON US" },
             { id = 3380447, text = "UNTIL WE ARE REANIMATED AGAIN!" },
         } },
-        { name = "Threats", lines = {
+        { name = "Battle roars", family = "Fighting", lines = {
+            { id = 3814090, text = "AHHH!" },
+            { id = 553978, text = "ARGH!" },
+            { id = 560663, text = "GRRR!" },
+            { id = 3814250, text = "HRRR!" },
+            { id = 3814094, text = "RAWR!" },
+            { id = 3814244, text = "RRR!" },
+            { id = 3814248, text = "YEAH!" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 3814100, text = "AHA!" },
+            { id = 3814098, text = "HA!" },
+            { id = 553982, text = "HAAA!" },
+            { id = 3814118, text = "HAH!" },
+            { id = 3814270, text = "HEY!" },
+            { id = 3814096, text = "HIYAH!" },
+            { id = 3814256, text = "HMMM!" },
+            { id = 3814114, text = "HMPH!" },
+            { id = 3814106, text = "HO!" },
+            { id = 3814112, text = "HUH!" },
+            { id = 3814252, text = "SHIII!" },
+        } },
+        { name = "Threats", family = "Menace", lines = {
             { id = 3380451, text = "Be bold, and your enemies will falter!" },
             { id = 3743332, text = "Spies? You will regret this, pests!" },
             { id = 3380495, text = "There is no hope left for you!" },
@@ -1478,7 +4592,7 @@ GameVoices.Characters = {
             { id = 3482841, text = "Your souls are mine to claim!" },
             { id = 3482845, text = "Your suffering grants me strength!" },
         } },
-        { name = "Boasts", lines = {
+        { name = "Boasts", family = "Menace", lines = {
             { id = 3380504, text = "I did not expect you to best me." },
             { id = 3380455, text = "I find value in you." },
             { id = 3743121, text = "I see you!" },
@@ -1488,11 +4602,29 @@ GameVoices.Characters = {
             { id = 3380487, text = "My magic has no equal!" },
             { id = 4060701, text = "My tormentor will curse the day he crossed me!" },
         } },
-        { name = "Mockery", lines = {
+        { name = "Mockery", family = "Menace", lines = {
             { id = 3482837, text = "Perhaps I can make use of you later." },
             { id = 3621431, text = "So you fools have discovered us at last!" },
         } },
-        { name = "Dark magic", lines = {
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 3814322, text = "BOOM!" },
+            { id = 3814158, text = "COUGH!" },
+            { id = 3814160, text = "GAH!" },
+            { id = 553981, text = "NO!" },
+            { id = 560656, text = "OH!" },
+            { id = 3814146, text = "OHHH!" },
+            { id = 3814314, text = "OOF!" },
+            { id = 553980, text = "UGH!" },
+            { id = 553973, text = "WHOA!" },
+        } },
+        { name = "Death cries", family = "Hurt and dying", lines = {
+            { id = 3814132, text = "AHHH UGH..." },
+            { id = 3814284, text = "BLEUHGHHHGHHH!" },
+            { id = 3814282, text = "HIYA!" },
+            { id = 553972, text = "ROAR!" },
+            { id = 3814288, text = "YES!" },
+        } },
+        { name = "Dark magic", family = "Fighting", lines = {
             { id = 3482838, text = "Ah, another soul for the taking!" },
             { id = 3380506, text = "As the Margrave wills." },
             { id = 3380441, text = "In service of the Margrave." },
@@ -1501,10 +4633,10 @@ GameVoices.Characters = {
             { id = 3380463, text = "The Margrave's benevolence upon you." },
             { id = 4078348, text = "What? Margrave! Stop this treachery!" },
         } },
-        { name = "Loyalty", lines = {
+        { name = "Loyalty", family = "Manners", lines = {
             { id = 3380508, text = "Primus, preserve me." },
         } },
-        { name = "Conversation", lines = {
+        { name = "Conversation", family = "Feelings", lines = {
             { id = 3637818, text = "A futile effort." },
             { id = 3380510, text = "A mere setback." },
             { id = 3380459, text = "An equivalent exchange." },
@@ -1543,59 +4675,587 @@ GameVoices.Characters = {
             { id = 3482836, text = "Your demise was inevitable!" },
             { id = 3380489, text = "Your existence ends here!" },
         } },
-        { name = "Attack grunts", lines = {
-            { id = 3814100, text = "AHA!" },
-            { id = 3814098, text = "HA!" },
-            { id = 553982, text = "HAAA!" },
-            { id = 3814118, text = "HAH!" },
-            { id = 3814270, text = "HEY!" },
-            { id = 3814096, text = "HIYAH!" },
-            { id = 3814256, text = "HMMM!" },
-            { id = 3814114, text = "HMPH!" },
-            { id = 3814106, text = "HO!" },
-            { id = 3814112, text = "HUH!" },
-            { id = 3814252, text = "SHIII!" },
-        } },
-        { name = "Pain", lines = {
-            { id = 3814322, text = "BOOM!" },
-            { id = 3814158, text = "COUGH!" },
-            { id = 3814160, text = "GAH!" },
-            { id = 553981, text = "NO!" },
-            { id = 560656, text = "OH!" },
-            { id = 3814146, text = "OHHH!" },
-            { id = 3814314, text = "OOF!" },
-            { id = 553980, text = "UGH!" },
-            { id = 553973, text = "WHOA!" },
-        } },
-        { name = "Death cries", lines = {
-            { id = 3814132, text = "AHHH UGH..." },
-            { id = 3814284, text = "BLEUHGHHHGHHH!" },
-            { id = 3814282, text = "HIYA!" },
-            { id = 553972, text = "ROAR!" },
-            { id = 3814288, text = "YES!" },
-        } },
-        { name = "Battle roars", lines = {
-            { id = 3814090, text = "AHHH!" },
-            { id = 553978, text = "ARGH!" },
-            { id = 560663, text = "GRRR!" },
-            { id = 3814250, text = "HRRR!" },
-            { id = 3814094, text = "RAWR!" },
-            { id = 3814244, text = "RRR!" },
-            { id = 3814248, text = "YEAH!" },
-        } },
-        { name = "Noticing you", lines = {
+        { name = "Noticing you", family = "Orders and warnings", lines = {
             { id = 553975, text = "VROOM!" },
         } },
     } },
+    { who = "Lightforged Draenei - feminine voice", race = "Lightforged Draenei", sex = "female", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 1835537, text = "AHHHHHH" },
+            { id = 1835535, text = "AHHHHHHH" },
+            { id = 1731242, text = "For the Alliance!" },
+            { id = 1835518, text = "HAAAAA!" },
+            { id = 1835517, text = "HAAAAAAARRRRRR" },
+            { id = 1835520, text = "HYAAH!" },
+            { id = 1835521, text = "NAH!" },
+            { id = 1835533, text = "RAWR!" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 1835513, text = "AHHH!" },
+            { id = 1835512, text = "ARGHHH!" },
+            { id = 1835502, text = "HA!" },
+            { id = 1835563, text = "HMPH!" },
+            { id = 1835505, text = "HUAH!" },
+            { id = 1835503, text = "HUH!" },
+            { id = 1835514, text = "YEAH!" },
+        } },
+        { name = "Casting", family = "Fighting", lines = {
+            { id = 1835529, text = "HUUU!" },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 1731239, text = "This way." },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 1731236, text = "RETREAT!" },
+            { id = 1731246, text = "Strive for peace, but stand ready for war." },
+        } },
+        { name = "Calls for aid", family = "Orders and warnings", lines = {
+            { id = 1731247, text = "HEAL ME!" },
+            { id = 1731253, text = "Help me!" },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 1731174, text = "I must have more rage." },
+            { id = 1731170, text = "I need mana first." },
+            { id = 1731265, text = "I need mana." },
+            { id = 1731264, text = "Mana is needed." },
+            { id = 1731159, text = "My fury is low." },
+            { id = 1731171, text = "My mana is low." },
+            { id = 1731168, text = "Not enough energy." },
+            { id = 1731158, text = "Not enough fury." },
+            { id = 1731173, text = "Not enough rage." },
+        } },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 1835581, text = "AH!" },
+            { id = 1835589, text = "AWWW!" },
+            { id = 1835578, text = "HEY!" },
+            { id = 1835575, text = "OOF!" },
+            { id = 1835582, text = "Thank you for watching!" },
+            { id = 1835580, text = "UGH!" },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 1731249, text = "Greetings!" },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 1731243, text = "Farewell." },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 1731287, text = "Affirmative." },
+            { id = 1905276, text = "Never have I witnessed such a wonder!" },
+            { id = 1730178, text = "No, I do not have a glowing stamp above my tail" },
+            { id = 1731259, text = "Right!" },
+            { id = 1731286, text = "Yes." },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 1731267, text = "Thank you, friend." },
+            { id = 1731266, text = "The light thanks you." },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 1731116, text = "Impressive!" },
+            { id = 1731118, text = "Well done indeed!" },
+        } },
+    } },
+    { who = "Lightforged Draenei - masculine voice", race = "Lightforged Draenei", sex = "male", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 1731616, text = "FOR THE ALLIANCE" },
+            { id = 1835609, text = "Yaaaaaa" },
+            { id = 1835614, text = "YEAHHHHHH" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 1835601, text = "GAH!" },
+            { id = 1835595, text = "HA!" },
+            { id = 1835602, text = "HAH!" },
+            { id = 1835663, text = "HUUUUUUU UUUUUUU UUUUUU UUUUUU" },
+            { id = 1835592, text = "HWAH!" },
+            { id = 1835598, text = "HYAH!" },
+            { id = 1835593, text = "RAAH!" },
+            { id = 1835606, text = "ROAR!" },
+            { id = 1835596, text = "YAH!" },
+            { id = 1835604, text = "YEAH!" },
+        } },
+        { name = "Casting", family = "Fighting", lines = {
+            { id = 1835622, text = "AHHH!" },
+            { id = 1835623, text = "HUUU!" },
+            { id = 1835627, text = "UUU!" },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 1731479, text = "FOCUS YOUR STRIKES!" },
+            { id = 1731613, text = "Follow me." },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 1731610, text = "Retreat!" },
+            { id = 1731620, text = "Strive for peace, but stand ready for war." },
+        } },
+        { name = "Calls for aid", family = "Orders and warnings", lines = {
+            { id = 1731621, text = "Heal me!" },
+            { id = 1731627, text = "Help me!" },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 1731548, text = "I must have more rage." },
+            { id = 1731544, text = "I need mana first." },
+            { id = 1731639, text = "I need more mana." },
+            { id = 1731638, text = "Mana is needed." },
+            { id = 1731533, text = "My fury is low." },
+            { id = 1731545, text = "My mana is low." },
+            { id = 1731542, text = "Not enough energy." },
+            { id = 1731532, text = "Not enough fury." },
+            { id = 1731547, text = "Not enough rage." },
+        } },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 1835688, text = "ARGH!" },
+            { id = 1835673, text = "HUH!" },
+            { id = 1835671, text = "OOF!" },
+            { id = 1835679, text = "UGH!" },
+            { id = 1835683, text = "YAAH!" },
+            { id = 1835685, text = "YOOO!" },
+        } },
+        { name = "Death cries", family = "Hurt and dying", lines = {
+            { id = 1835637, text = "GRRR!" },
+            { id = 1835638, text = "HUAGH!" },
+            { id = 1835635, text = "YAAARRR!" },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 1731623, text = "Greetings" },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 1731617, text = "Farewell." },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 1731661, text = "Affirmative." },
+            { id = 1731648, text = "Mm-hmm. Mm-hmm. Mm-hmm. Mm-hmm." },
+            { id = 1731630, text = "No." },
+            { id = 1731633, text = "Right." },
+            { id = 1731660, text = "Yes." },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 1731641, text = "Thank you, friend." },
+            { id = 1731640, text = "The light thanks you." },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 1731492, text = "Well done." },
+        } },
+    } },
+    { who = "Mag'har Orc - feminine voice", race = "Mag'har Orc", sex = "female", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 2026033, text = "AHHHHHHH" },
+            { id = 1950652, text = "FOR THE HORDE!" },
+            { id = 2026032, text = "GAAAAH!" },
+            { id = 1951275, text = "Lok'tar!" },
+            { id = 2026047, text = "YEAHHHHHH" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 2026018, text = "AHA!" },
+            { id = 2026026, text = "AHHH!" },
+            { id = 2026015, text = "GAH!" },
+            { id = 2026017, text = "HA!" },
+            { id = 2026028, text = "HIYA!" },
+            { id = 2026030, text = "HIYAH!" },
+            { id = 2026062, text = "HUUUUUUU UUUUUUU UUUUUU UUUuuuuuu" },
+            { id = 2026029, text = "HYAH!" },
+            { id = 2026063, text = "UGHHH!" },
+            { id = 2026023, text = "YAH!" },
+            { id = 2026024, text = "YEAH!" },
+        } },
+        { name = "Casting", family = "Fighting", lines = {
+            { id = 2026045, text = "HUUU!" },
+            { id = 2026044, text = "RRR!" },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 1950646, text = "Come this way!" },
+            { id = 1950650, text = "Follow me!" },
+            { id = 1950662, text = "Hold here!" },
+            { id = 1950642, text = "ON MY TARGET!" },
+            { id = 1950594, text = "OPEN FIRE!" },
+            { id = 1950664, text = "STAY PUT!" },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 1950584, text = "FALL BACK OR DIE!" },
+            { id = 1950588, text = "Go! Get away!" },
+            { id = 1950590, text = "STAND READY!" },
+        } },
+        { name = "Calls for aid", family = "Orders and warnings", lines = {
+            { id = 1950660, text = "Aid me now!" },
+            { id = 1950658, text = "Don't just stand there! Help me!" },
+            { id = 1950656, text = "Fix me, healer!" },
+            { id = 1950654, text = "I'M WOUNDED!" },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 1951049, text = "I must have more rage!" },
+            { id = 1950988, text = "I need mana first!" },
+            { id = 1951293, text = "Let me regain mana!" },
+            { id = 1950992, text = "Mana is needed!" },
+            { id = 1950914, text = "My fury is low!" },
+            { id = 1950990, text = "My mana is low!" },
+            { id = 1951295, text = "Need mana!" },
+            { id = 1950984, text = "Not enough energy!" },
+            { id = 1950912, text = "NOT ENOUGH FURY!" },
+            { id = 1951047, text = "NOT ENOUGH RAGE" },
+        } },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 2026075, text = "AH!" },
+            { id = 2026080, text = "AWWW!" },
+            { id = 2026084, text = "NOOO!" },
+            { id = 2026070, text = "OOF!" },
+            { id = 2026069, text = "UGH!" },
+        } },
+        { name = "Death cries", family = "Hurt and dying", lines = {
+            { id = 2026051, text = "AHH! AHHH! AHHH! AHHH!" },
+            { id = 2026049, text = "AHHH UGHHH!" },
+            { id = 2026048, text = "GAH UGH!" },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 1951271, text = "SPEAK" },
+            { id = 1951273, text = "Well met!" },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 1951265, text = "I have no more to say." },
+            { id = 1951267, text = "You may go now." },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 1951281, text = "I SAY NO!" },
+            { id = 1951289, text = "Indeed." },
+            { id = 1951285, text = "It is so." },
+            { id = 1951283, text = "Never!" },
+            { id = 1951279, text = "No." },
+            { id = 1951287, text = "Right." },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 1951369, text = "I am grateful." },
+            { id = 1951373, text = "I am in your debt." },
+            { id = 1951379, text = "I merely did my duty." },
+            { id = 1951371, text = "I thank you." },
+            { id = 1951383, text = "My pleasure." },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 1951235, text = "Impressive, I suppose." },
+            { id = 1951233, text = "Job well done!" },
+        } },
+        { name = "Pleading", family = "Menace", lines = {
+            { id = 1951229, text = "Pity this poor orc!" },
+            { id = 1951227, text = "Please! I beg you!" },
+        } },
+    } },
+    { who = "Mag'har Orc - masculine voice", race = "Mag'har Orc", sex = "male", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 1950653, text = "FOR THE HORDE!" },
+            { id = 2025880, text = "GRRRRRR" },
+            { id = 2025883, text = "HUUUUUUU" },
+            { id = 2025894, text = "RAWR!" },
+            { id = 2025879, text = "ROAR!" },
+            { id = 2025882, text = "RRRRRR" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 2025878, text = "FRAH!" },
+            { id = 2025877, text = "GAH!" },
+            { id = 2025867, text = "HA!" },
+            { id = 2025863, text = "HMPH!" },
+            { id = 2025876, text = "HUH GAH!" },
+            { id = 2025869, text = "HUH!" },
+            { id = 2025910, text = "RRR!" },
+            { id = 2025875, text = "RRRAAAGH!" },
+            { id = 2025870, text = "UGH!" },
+        } },
+        { name = "Casting", family = "Fighting", lines = {
+            { id = 2025888, text = "HUUU!" },
+            { id = 2025890, text = "OOO!" },
+            { id = 2025891, text = "VRRR!" },
+            { id = 2025892, text = "VVV!" },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 1950647, text = "Come this way!" },
+            { id = 1950651, text = "FOLLOW ME!" },
+            { id = 1950663, text = "HOLD HERE!" },
+            { id = 1950643, text = "ON MY TARGET!" },
+            { id = 1950595, text = "OPEN FIRE!" },
+            { id = 1950665, text = "STAY PUT!" },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 1950589, text = "Go! Get away!" },
+            { id = 1950591, text = "STAND READY!" },
+        } },
+        { name = "Calls for aid", family = "Orders and warnings", lines = {
+            { id = 1950659, text = "Don't just stand there, help me!" },
+            { id = 1950657, text = "Fix me, healer!" },
+            { id = 1950655, text = "I'M WOUNDED!" },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 1951050, text = "I must have more rage!" },
+            { id = 1950989, text = "I need mana first!" },
+            { id = 1951294, text = "Let me regain mana!" },
+            { id = 1950993, text = "Mana is needed!" },
+            { id = 1950915, text = "My fury is low!" },
+            { id = 1950991, text = "My mana is low!" },
+            { id = 1951296, text = "Need mana!" },
+            { id = 1950985, text = "NOT ENOUGH ENERGY!" },
+            { id = 1950913, text = "Not enough fury!" },
+            { id = 1951048, text = "Not enough rage!" },
+        } },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 2025931, text = "BLEURGH!" },
+            { id = 2025929, text = "GAAAH!" },
+            { id = 2025930, text = "GOOO!" },
+            { id = 2025919, text = "GRR!" },
+            { id = 2025917, text = "MM!" },
+            { id = 2025923, text = "OOF!" },
+            { id = 2025932, text = "UGHHH!" },
+        } },
+        { name = "Death cries", family = "Hurt and dying", lines = {
+            { id = 2025898, text = "BLAAAGH!" },
+            { id = 2025902, text = "BLAAAHH UGH UGH..." },
+            { id = 2025901, text = "NOOO!" },
+            { id = 2025900, text = "OH!" },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 1951272, text = "SPEAK!" },
+            { id = 1951274, text = "Well met." },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 1951270, text = "Go with honor!" },
+            { id = 1951266, text = "I have no more to say!" },
+            { id = 1954756, text = "Stay frosty, my wolves." },
+            { id = 1951268, text = "You may go now." },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 1951282, text = "I SAY NO!" },
+            { id = 1951290, text = "Indeed!" },
+            { id = 1951286, text = "It is so." },
+            { id = 1951284, text = "never" },
+            { id = 1951280, text = "NO!" },
+            { id = 1951288, text = "Right." },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 1951370, text = "I AM GRATEFUL!" },
+            { id = 1951374, text = "I am in your debt." },
+            { id = 1951380, text = "I merely did my duty." },
+            { id = 1951372, text = "I thank you!" },
+            { id = 1951384, text = "My pleasure." },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 1951236, text = "Impressive, I suppose." },
+            { id = 1951234, text = "Job well done!" },
+        } },
+        { name = "Pleading", family = "Menace", lines = {
+            { id = 1951230, text = "Pity this poor orc!" },
+            { id = 1951228, text = "Please, I beg you!" },
+        } },
+    } },
+    { who = "Mechagnome - feminine voice", race = "Mechagnome", sex = "female", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 3189375, text = "AHHH!" },
+            { id = 3189374, text = "AHHHHHH" },
+            { id = 3189380, text = "AHHHHHHH" },
+            { id = 3107514, text = "For the Alliance!" },
+            { id = 3189381, text = "Haaaaaa" },
+            { id = 3189379, text = "Hooray!" },
+            { id = 3189373, text = "Roar!" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 3189372, text = "ACHOO!" },
+            { id = 3189359, text = "AH!" },
+            { id = 3189361, text = "AHHH AHHH!" },
+            { id = 3189365, text = "HA!" },
+            { id = 3189369, text = "HEH!" },
+            { id = 3189362, text = "HIYAH!" },
+            { id = 3189363, text = "HUH!" },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 3107506, text = "Activate weapons!" },
+            { id = 3107512, text = "Allow me to navigate." },
+            { id = 3107508, text = "Designating primary target." },
+            { id = 3107510, text = "Focus on my target!" },
+            { id = 3107513, text = "Follow me!" },
+            { id = 3107511, text = "I will lead the way!" },
+            { id = 3107519, text = "Maintain current position." },
+            { id = 3107509, text = "Priority target identified." },
+            { id = 3107507, text = "Weapons free!" },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 3107504, text = "Fall back!" },
+            { id = 3107505, text = "Incoming!" },
+            { id = 3107502, text = "Retreat!" },
+            { id = 3107503, text = "Time to withdraw!" },
+        } },
+        { name = "Calls for aid", family = "Orders and warnings", lines = {
+            { id = 3107517, text = "Assist me!" },
+            { id = 3107515, text = "HEALING REQUIRED!" },
+            { id = 3107518, text = "I AM IN NEED OF AID!" },
+            { id = 3107516, text = "Requesting immediate healing!" },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 3107576, text = "I must have more rage." },
+            { id = 3107572, text = "I need mana first." },
+            { id = 3107625, text = "I require more mana!" },
+            { id = 3107574, text = "Mana is needed." },
+            { id = 3107561, text = "My fury is low." },
+            { id = 3107624, text = "My mana is depleted!" },
+            { id = 3107573, text = "My mana is low." },
+            { id = 3107570, text = "Not enough energy." },
+            { id = 3107560, text = "Not enough fury." },
+            { id = 3107575, text = "Not enough rage." },
+        } },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 3189414, text = "NOOO!" },
+            { id = 3189423, text = "OH!" },
+            { id = 3189419, text = "OOF!" },
+            { id = 3189426, text = "OOH!" },
+            { id = 3189427, text = "UGH!" },
+            { id = 3189428, text = "WAH!" },
+        } },
+        { name = "Death cries", family = "Hurt and dying", lines = {
+            { id = 3189387, text = "AAA!" },
+            { id = 3189384, text = "AHHH AHHH AHHH!" },
+            { id = 3189385, text = "AHHH AWWW!" },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 3107614, text = "Commencing communication." },
+            { id = 3107616, text = "Greetings!" },
+            { id = 3107613, text = "Salutations!" },
+            { id = 3107615, text = "Your presence is acknowledged." },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 3107612, text = "Goodbye!" },
+            { id = 3107611, text = "Our social interaction has concluded." },
+            { id = 3107609, text = "Stay shiny!" },
+            { id = 3107610, text = "This was a productive conversation." },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 3107620, text = "Affirmative." },
+            { id = 3107622, text = "I concur." },
+            { id = 3107617, text = "NO" },
+            { id = 3124891, text = "No one has more junk in their trunk than me." },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 3107630, text = "Allow me to say thank you." },
+            { id = 3107623, text = "I have miscalculated." },
+            { id = 3107628, text = "My gratitude is yours." },
+            { id = 3107635, text = "You are welcome." },
+            { id = 3107634, text = "Your gratitude has been accepted." },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 3107633, text = "Accolades are not required." },
+            { id = 3107606, text = "Exemplary work!" },
+            { id = 3107607, text = "Your efficacy is admirable." },
+        } },
+        { name = "Pleading", family = "Menace", lines = {
+            { id = 3107604, text = "Have mercy on me!" },
+            { id = 3107605, text = "I throw myself at your feet!" },
+            { id = 3107603, text = "Please, I beg you!" },
+        } },
+    } },
+    { who = "Mechagnome - masculine voice", race = "Mechagnome", sex = "male", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 3187606, text = "AAAAAAA" },
+            { id = 3187599, text = "AHHHHHH" },
+            { id = 3187604, text = "AHHHHHHH" },
+            { id = 3107045, text = "FOR THE ALLIANCE!" },
+            { id = 3187603, text = "HAAAAA!" },
+            { id = 3187600, text = "REEEEEEE" },
+            { id = 3187602, text = "Yaaaaaa" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 3187594, text = "DUH!" },
+            { id = 3187590, text = "HA!" },
+            { id = 3187595, text = "HAH!" },
+            { id = 3187589, text = "HEH!" },
+            { id = 3187596, text = "HUAH!" },
+            { id = 3187591, text = "HUH!" },
+            { id = 3187583, text = "HYAH!" },
+            { id = 3187598, text = "MEH!" },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 3107037, text = "ACTIVATE WEAPONS!" },
+            { id = 3107043, text = "Allow me to navigate." },
+            { id = 3107051, text = "Cease all movement!" },
+            { id = 3107039, text = "Designating primary target." },
+            { id = 3107041, text = "FOCUS ON MY TARGET!" },
+            { id = 3107044, text = "Follow me!" },
+            { id = 3107042, text = "I will lead the way!" },
+            { id = 3107050, text = "Maintain current position." },
+            { id = 3107040, text = "Priority target identified!" },
+            { id = 3107038, text = "WEAPONS FREE!" },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 3107035, text = "Fall back!" },
+            { id = 3107036, text = "INCOMING!" },
+            { id = 3107033, text = "Retreat!" },
+            { id = 3107034, text = "TIME TO WITHDRAW!" },
+        } },
+        { name = "Calls for aid", family = "Orders and warnings", lines = {
+            { id = 3107048, text = "Assist me!" },
+            { id = 3107046, text = "Healing required!" },
+            { id = 3107049, text = "I am in need of aid!" },
+            { id = 3107047, text = "REQUESTING IMMEDIATE HEALING!" },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 3107107, text = "I must have more rage." },
+            { id = 3107103, text = "I need mana first." },
+            { id = 3107156, text = "I require more mana!" },
+            { id = 3107092, text = "My fury is low." },
+            { id = 3107104, text = "My mana is low." },
+            { id = 3107101, text = "Not enough energy!" },
+            { id = 3107091, text = "Not enough fury." },
+            { id = 3107106, text = "Not enough rage." },
+        } },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 3187649, text = "EHHH!" },
+            { id = 3187645, text = "GAAAHHH!" },
+            { id = 3187648, text = "GAH!" },
+            { id = 3187647, text = "GOOO!" },
+            { id = 3187654, text = "NYEH!" },
+            { id = 3187657, text = "OOF!" },
+            { id = 3187644, text = "YAY!" },
+            { id = 3187653, text = "YES!" },
+        } },
+        { name = "Death cries", family = "Hurt and dying", lines = {
+            { id = 3187613, text = "DAAAYYY!" },
+            { id = 3187611, text = "DUUU!" },
+            { id = 3187610, text = "HYAH UGH!" },
+            { id = 3187612, text = "UGH!" },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 3107145, text = "Commencing Communication" },
+            { id = 3107147, text = "Greetings" },
+            { id = 3107144, text = "Salutations!" },
+            { id = 3107146, text = "Your presence is acknowledged." },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 3107143, text = "Goodbye!" },
+            { id = 3107142, text = "Our social interaction has concluded." },
+            { id = 3107140, text = "Stay shiny!" },
+            { id = 3107141, text = "This was a productive conversation." },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 3107151, text = "Affirmative!" },
+            { id = 3107153, text = "I concur!" },
+            { id = 3107149, text = "Negative" },
+            { id = 3107148, text = "No." },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 3107161, text = "Allow me to say thank you." },
+            { id = 3107154, text = "I have miscalculated." },
+            { id = 3107159, text = "My gratitude is yours." },
+            { id = 3107166, text = "You are welcome." },
+            { id = 3107165, text = "Your gratitude has been accepted." },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 3107164, text = "Accolades are not required." },
+            { id = 3107137, text = "Exemplary Work" },
+            { id = 3107138, text = "Your efficacy is admirable." },
+        } },
+        { name = "Pleading", family = "Menace", lines = {
+            { id = 3107135, text = "Have mercy on me!" },
+            { id = 3107136, text = "I'd throw myself at your feet!" },
+            { id = 3107134, text = "Please, I beg you!" },
+        } },
+    } },
     { who = "Nathanos Blightcaller", groups = {
-        { name = "Battle cries", lines = {
+        { name = "Battle cries", family = "Fighting", lines = {
             { id = 1355061, text = "DO NOT DISAPPOINT THE BANCHIE QUEEN!" },
             { id = 1239115, text = "GRIFFIN'S INCOMING! MEND THAT CATAPULT!" },
             { id = 2001202, text = "LET'S MOVE!" },
             { id = 1803042, text = "OVER HERE!" },
             { id = 1803043, text = "THIS WAY!" },
         } },
-        { name = "Threats", lines = {
+        { name = "Threats", family = "Menace", lines = {
             { id = 1239135, text = "Ha! There you are!" },
             { id = 2433416, text = "Hehehe, you are too late. Behold!" },
             { id = 3049397, text = "Meet me on the wall when you are done." },
@@ -1603,7 +5263,7 @@ GameVoices.Characters = {
             { id = 2433417, text = "Which you shall pay dearly for that let's move" },
             { id = 2433414, text = "You cannot hide from me forever, elf!" },
         } },
-        { name = "Boasts", lines = {
+        { name = "Boasts", family = "Menace", lines = {
             { id = 2114274, text = "I beg your pardon?" },
             { id = 2001185, text = "I have a potion for each of you. Don't drink it just yet." },
             { id = 2434468, text = "I knew you didn't have it in you." },
@@ -1613,7 +5273,14 @@ GameVoices.Characters = {
             { id = 1363223, text = "I shall wear your entrails as a necklace!" },
             { id = 2029298, text = "My queen." },
         } },
-        { name = "Orders", lines = {
+        { name = "Mockery", family = "Menace", lines = {
+            { id = 2433639, text = "As if those primitive glaives could intimidate me, fools!" },
+            { id = 1243494, text = "Fooled dwarf. Deliver his head to the foothold." },
+            { id = 3583493, text = "My hounds will make a meal of your pitiful flesh!" },
+            { id = 3596192, text = "Stand and face me, cowards!" },
+            { id = 1243498, text = "The bold fools are boarding my ship! Come on!" },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
             { id = 2435312, text = "A powerful adversary has been sighted nearby. Take it down!" },
             { id = 3049398, text = "and be quick about it." },
             { id = 3596195, text = "Back into the fray with you!" },
@@ -1633,23 +5300,23 @@ GameVoices.Characters = {
             { id = 2433724, text = "Take out those glaive throwers!" },
             { id = 1800564, text = "Take them down! You do not want to disappoint your Warchief!" },
         } },
-        { name = "Victory", lines = {
+        { name = "Victory", family = "Fighting", lines = {
             { id = 3583487, text = "Alliance horde? Pathetic, the lot of you!" },
             { id = 2433728, text = "Another one down! Allies, with me!" },
             { id = 2433411, text = "You are nothing. Raise them!" },
         } },
-        { name = "Mockery", lines = {
-            { id = 2433639, text = "As if those primitive glaives could intimidate me, fools!" },
-            { id = 1243494, text = "Fooled dwarf. Deliver his head to the foothold." },
-            { id = 3583493, text = "My hounds will make a meal of your pitiful flesh!" },
-            { id = 3596192, text = "Stand and face me, cowards!" },
-            { id = 1243498, text = "The bold fools are boarding my ship! Come on!" },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 2434459, text = "Ah, the hero has arrived. Good, we have work to do." },
         } },
-        { name = "Dark magic", lines = {
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 1355059, text = "Good luck with the trials, Shiro." },
+            { id = 2001197, text = "I'll find you. Good luck." },
+        } },
+        { name = "Dark magic", family = "Fighting", lines = {
             { id = 2433646, text = "Blight it all, from here to the shoreline." },
             { id = 2433644, text = "Deploy the blight" },
         } },
-        { name = "Loyalty", lines = {
+        { name = "Loyalty", family = "Manners", lines = {
             { id = 2001203, text = "Already taken care of. Observe." },
             { id = 2433059, text = "Another victory for the Horde!" },
             { id = 1800575, text = "Champion, the Dark Lady instructs you to meet me in Orgrimmar." },
@@ -1665,14 +5332,7 @@ GameVoices.Characters = {
             { id = 2001190, text = "We will not fail you, my queen." },
             { id = 2029301, text = "We will not fail you. Safe journey, my lady." },
         } },
-        { name = "Greetings", lines = {
-            { id = 2434459, text = "Ah, the hero has arrived. Good, we have work to do." },
-        } },
-        { name = "Farewells", lines = {
-            { id = 1355059, text = "Good luck with the trials, Shiro." },
-            { id = 2001197, text = "I'll find you. Good luck." },
-        } },
-        { name = "Conversation", lines = {
+        { name = "Conversation", family = "Feelings", lines = {
             { id = 2435314, text = "A blow well struck, the Horde triumphs once again." },
             { id = 2433057, text = "A dangerous foe is lurking in our midst. Show them no mercy." },
             { id = 2435310, text = "A new threat emerges. Give no quarter!" },
@@ -1767,7 +5427,7 @@ GameVoices.Characters = {
         } },
     } },
     { who = "Necromancer", groups = {
-        { name = "Battle cries", lines = {
+        { name = "Battle cries", family = "Fighting", lines = {
             { id = 3380725, text = "DO NOT FORGET ME" },
             { id = 3380707, text = "FOR THE MARGRAVE!" },
             { id = 3738694, text = "HOW DARE YOU INTERRUPT MY RITUAL!" },
@@ -1778,7 +5438,31 @@ GameVoices.Characters = {
             { id = 3738146, text = "MORE PARTS FOR THE CONSTRUCTS!" },
             { id = 3738701, text = "YOU WILL NOT COMPROMISE MY POSITION!" },
         } },
-        { name = "Threats", lines = {
+        { name = "Battle roars", family = "Fighting", lines = {
+            { id = 3564369, text = "GRRR!" },
+            { id = 3564367, text = "HIYAH!" },
+            { id = 3564361, text = "HUAGH!" },
+            { id = 4188357, text = "HUUU!" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 4188389, text = "ACHOO!" },
+            { id = 3564385, text = "BAH!" },
+            { id = 3564391, text = "CAH!" },
+            { id = 3564381, text = "CHA!" },
+            { id = 4188361, text = "CHAAARRR!" },
+            { id = 3564395, text = "CHOO!" },
+            { id = 3564375, text = "GAAAHHH!" },
+            { id = 4188363, text = "HA!" },
+            { id = 4188369, text = "HAH!" },
+            { id = 3564397, text = "HMPH!" },
+            { id = 3564379, text = "HUH EEERRR!" },
+            { id = 3564387, text = "HUH!" },
+            { id = 4188383, text = "HYA!" },
+            { id = 4188381, text = "HYAH!" },
+            { id = 3564399, text = "PRAH!" },
+            { id = 4188373, text = "YEAH!" },
+        } },
+        { name = "Threats", family = "Menace", lines = {
             { id = 3380715, text = "Perhaps your corpse will prove useful!" },
             { id = 3738675, text = "Poison fills the air, and your blood will fill your lungs." },
             { id = 3738156, text = "You cannot hide from our magic!" },
@@ -1790,7 +5474,7 @@ GameVoices.Characters = {
             { id = 3738148, text = "Your flesh will serve a greater purpose!" },
             { id = 4035288, text = "Your soul will be stripped from your flesh." },
         } },
-        { name = "Boasts", lines = {
+        { name = "Boasts", family = "Menace", lines = {
             { id = 3738705, text = "I will know your secrets!" },
             { id = 4035285, text = "I will put your corpse to use." },
             { id = 3380675, text = "I will reclaim this if you meet your end." },
@@ -1801,20 +5485,42 @@ GameVoices.Characters = {
             { id = 3738695, text = "My master's works will reshape the Shadowlands!" },
             { id = 3738687, text = "None shall stop us!" },
         } },
-        { name = "Orders", lines = {
+        { name = "Mockery", family = "Menace", lines = {
+            { id = 4035290, text = "Oh yes, you will do nicely." },
+            { id = 4035287, text = "You are a fool to challenge us!" },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
             { id = 4075475, text = "Destroy it all! Leave no evidence for these mortals to find!" },
             { id = 4075365, text = "Do not interfere, mortal!" },
             { id = 3380724, text = "Don't chop me up!" },
             { id = 3738347, text = "Rise, servants of plague!" },
         } },
-        { name = "Victory", lines = {
+        { name = "Victory", family = "Fighting", lines = {
             { id = 3735328, text = "Pathetic soul! Your spell barely tickles me!" },
         } },
-        { name = "Mockery", lines = {
-            { id = 4035290, text = "Oh yes, you will do nicely." },
-            { id = 4035287, text = "You are a fool to challenge us!" },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 4188495, text = "AHEM!" },
+            { id = 3564429, text = "ARGH!" },
+            { id = 3564423, text = "COUGH!" },
+            { id = 3564413, text = "DAAAGH!" },
+            { id = 4188497, text = "D'OH!" },
+            { id = 4188471, text = "GAAAWWW!" },
+            { id = 4188489, text = "GAH!" },
+            { id = 4188475, text = "KABOOM!" },
+            { id = 4188483, text = "NO!" },
+            { id = 4188481, text = "NOOO!" },
+            { id = 3564439, text = "OOF!" },
+            { id = 3564421, text = "UGH!" },
+            { id = 4188485, text = "YES!" },
         } },
-        { name = "Dark magic", lines = {
+        { name = "Death cries", family = "Hurt and dying", lines = {
+            { id = 4188457, text = "AHHH!" },
+            { id = 4188451, text = "HIYA!" },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 3738351, text = "Welcome. We've been expecting you." },
+        } },
+        { name = "Dark magic", family = "Fighting", lines = {
             { id = 3380686, text = "Ah, the sweet aroma of decay." },
             { id = 3380685, text = "Ahh, the sweet aroma of decay." },
             { id = 3380717, text = "Blood and bone, flesh and stone!" },
@@ -1828,15 +5534,12 @@ GameVoices.Characters = {
             { id = 3738161, text = "The Margrave will be displeased." },
             { id = 3380667, text = "With reanimation comes eternity." },
         } },
-        { name = "Loyalty", lines = {
+        { name = "Loyalty", family = "Manners", lines = {
             { id = 4035286, text = "In death, all must serve." },
             { id = 3738171, text = "Maldraxxus will be ours." },
             { id = 3738690, text = "The eyes will be purged from Maldraxxus!" },
         } },
-        { name = "Greetings", lines = {
-            { id = 3738351, text = "Welcome. We've been expecting you." },
-        } },
-        { name = "Conversation", lines = {
+        { name = "Conversation", family = "Feelings", lines = {
             { id = 3637837, text = "Aha! So you did botch the procedure!" },
             { id = 4035291, text = "Another minion for the banished one." },
             { id = 3380730, text = "Another soldier falls." },
@@ -1902,52 +5605,9 @@ GameVoices.Characters = {
             { id = 3380687, text = "You would make quite the suitable vessel." },
             { id = 3380719, text = "Your ascent ends here!" },
         } },
-        { name = "Attack grunts", lines = {
-            { id = 4188389, text = "ACHOO!" },
-            { id = 3564385, text = "BAH!" },
-            { id = 3564391, text = "CAH!" },
-            { id = 3564381, text = "CHA!" },
-            { id = 4188361, text = "CHAAARRR!" },
-            { id = 3564395, text = "CHOO!" },
-            { id = 3564375, text = "GAAAHHH!" },
-            { id = 4188363, text = "HA!" },
-            { id = 4188369, text = "HAH!" },
-            { id = 3564397, text = "HMPH!" },
-            { id = 3564379, text = "HUH EEERRR!" },
-            { id = 3564387, text = "HUH!" },
-            { id = 4188383, text = "HYA!" },
-            { id = 4188381, text = "HYAH!" },
-            { id = 3564399, text = "PRAH!" },
-            { id = 4188373, text = "YEAH!" },
-        } },
-        { name = "Pain", lines = {
-            { id = 4188495, text = "AHEM!" },
-            { id = 3564429, text = "ARGH!" },
-            { id = 3564423, text = "COUGH!" },
-            { id = 3564413, text = "DAAAGH!" },
-            { id = 4188497, text = "D'OH!" },
-            { id = 4188471, text = "GAAAWWW!" },
-            { id = 4188489, text = "GAH!" },
-            { id = 4188475, text = "KABOOM!" },
-            { id = 4188483, text = "NO!" },
-            { id = 4188481, text = "NOOO!" },
-            { id = 3564439, text = "OOF!" },
-            { id = 3564421, text = "UGH!" },
-            { id = 4188485, text = "YES!" },
-        } },
-        { name = "Death cries", lines = {
-            { id = 4188457, text = "AHHH!" },
-            { id = 4188451, text = "HIYA!" },
-        } },
-        { name = "Battle roars", lines = {
-            { id = 3564369, text = "GRRR!" },
-            { id = 3564367, text = "HIYAH!" },
-            { id = 3564361, text = "HUAGH!" },
-            { id = 4188357, text = "HUUU!" },
-        } },
     } },
     { who = "Nerubian", groups = {
-        { name = "Battle cries", lines = {
+        { name = "Battle cries", family = "Fighting", lines = {
             { id = 5769292, text = "ALL MOST TO GLOOM!" },
             { id = 5778691, text = "ARE YOU WORKING WITH THEM TAKI'S?" },
             { id = 1332961, text = "BLEED AND DIE, FERMIN!" },
@@ -1979,7 +5639,17 @@ GameVoices.Characters = {
             { id = 5778721, text = "YOU WERE ALWAYS THE WEAKER ONE, TAKASH!" },
             { id = 1332966, text = "YOUR STRENGTH MEANS NOTHING!" },
         } },
-        { name = "Threats", lines = {
+        { name = "Battle roars", family = "Fighting", lines = {
+            { id = 546598, text = "AAA!" },
+            { id = 5680318, text = "GRRR!" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 543990, text = "HEHE!" },
+            { id = 543984, text = "HUH!" },
+            { id = 543991, text = "VROOM!" },
+            { id = 546605, text = "WHOOSH!" },
+        } },
+        { name = "Threats", family = "Menace", lines = {
             { id = 5722384, text = "Be thankful you are useful!" },
             { id = 5778693, text = "Gosh, I will crush your skull!" },
             { id = 5778688, text = "Ha! My pets! You will pay for that to catch!" },
@@ -1988,7 +5658,7 @@ GameVoices.Characters = {
             { id = 5829706, text = "The only thing you will expose is your weakness!" },
             { id = 5722402, text = "You are far from home." },
         } },
-        { name = "Boasts", lines = {
+        { name = "Boasts", family = "Menace", lines = {
             { id = 1332958, text = "I cannot hear the Lich King, has he abandoned me?" },
             { id = 5789658, text = "I have redirected forces loyal to me away from the entrance." },
             { id = 5722442, text = "I have use for you." },
@@ -1998,30 +5668,42 @@ GameVoices.Characters = {
             { id = 5722344, text = "My loyalty will never falter." },
             { id = 5769340, text = "My watch ends now." },
         } },
-        { name = "Orders", lines = {
+        { name = "Orders", family = "Orders and warnings", lines = {
             { id = 5793808, text = "Come off the pleasantries, Widow." },
             { id = 5778702, text = "Let's Encarnate!" },
         } },
-        { name = "Victory", lines = {
+        { name = "Victory", family = "Fighting", lines = {
             { id = 1332963, text = "Another one crushed between my pincers!" },
             { id = 5769334, text = "Is that all?" },
             { id = 5769339, text = "Overpowered. Outnumbered. Pathetic." },
         } },
-        { name = "Dark magic", lines = {
-            { id = 5789660, text = "Dispatch these guards before they can raise an alarm." },
-            { id = 5769290, text = "Shadows, gather to me!" },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 543985, text = "AHHH!" },
+            { id = 5722165, text = "BOOM!" },
+            { id = 5680398, text = "OOF!" },
+            { id = 543986, text = "OOOHHH!" },
+            { id = 543989, text = "OW!" },
+            { id = 543987, text = "ROAR!" },
+            { id = 546612, text = "RRR!" },
+            { id = 543992, text = "UGH!" },
+            { id = 5680396, text = "YEAH!" },
+            { id = 546597, text = "ZOOM!" },
         } },
-        { name = "Loyalty", lines = {
-            { id = 5778715, text = "Another trophy for my queen!" },
-        } },
-        { name = "Greetings", lines = {
+        { name = "Greetings", family = "Manners", lines = {
             { id = 5793819, text = "Ah, you speak of insurrection." },
             { id = 5722410, text = "Greetings, Overcrawler!" },
         } },
-        { name = "Farewells", lines = {
+        { name = "Farewells", family = "Manners", lines = {
             { id = 5722368, text = "Farewell, for now." },
         } },
-        { name = "Conversation", lines = {
+        { name = "Dark magic", family = "Fighting", lines = {
+            { id = 5789660, text = "Dispatch these guards before they can raise an alarm." },
+            { id = 5769290, text = "Shadows, gather to me!" },
+        } },
+        { name = "Loyalty", family = "Manners", lines = {
+            { id = 5778715, text = "Another trophy for my queen!" },
+        } },
+        { name = "Conversation", family = "Feelings", lines = {
             { id = 1332957, text = "A feast for my brethren!" },
             { id = 5782049, text = "Approach, Intruder." },
             { id = 5722394, text = "Are you friend, foe, or abuse?" },
@@ -2060,52 +5742,1411 @@ GameVoices.Characters = {
             { id = 5769287, text = "Your flesh is weak!" },
             { id = 5834082, text = "You're needed on the battlefield. Do not dally." },
         } },
-        { name = "Attack grunts", lines = {
-            { id = 543990, text = "HEHE!" },
-            { id = 543984, text = "HUH!" },
-            { id = 543991, text = "VROOM!" },
-            { id = 546605, text = "WHOOSH!" },
+    } },
+    { who = "Night Elf - feminine voice", race = "Night Elf", sex = "female", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 1383641, text = "AHHHHHH" },
+            { id = 541026, text = "Attack for the Goddess!" },
+            { id = 541023, text = "Bye-a-loon!" },
+            { id = 541025, text = "Charge forth!" },
+            { id = 1387392, text = "for the Alliance." },
+            { id = 1383663, text = "HA!" },
+            { id = 1383658, text = "HA! UGH!" },
+            { id = 1383643, text = "HA-HA!" },
+            { id = 1383657, text = "Hmph! Ugh!" },
+            { id = 1383656, text = "HUH! UGH!" },
+            { id = 1383640, text = "HUH?!" },
+            { id = 1383660, text = "HUH-AHHH!" },
+            { id = 1383639, text = "Huuuuuuu" },
+            { id = 1383645, text = "HYAAH!" },
+            { id = 1383644, text = "YEAH!" },
         } },
-        { name = "Pain", lines = {
-            { id = 543985, text = "AHHH!" },
-            { id = 5722165, text = "BOOM!" },
-            { id = 5680398, text = "OOF!" },
-            { id = 543986, text = "OOOHHH!" },
-            { id = 543989, text = "OW!" },
-            { id = 543987, text = "ROAR!" },
-            { id = 546612, text = "RRR!" },
-            { id = 543992, text = "UGH!" },
-            { id = 5680396, text = "YEAH!" },
-            { id = 546597, text = "ZOOM!" },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 1383665, text = "AHHH AHHH!" },
+            { id = 540866, text = "AHHH!" },
+            { id = 1383664, text = "HUH AHHH!" },
+            { id = 1383670, text = "HUH HUH!" },
+            { id = 1383672, text = "HYAH!" },
+            { id = 1383667, text = "UGH BAH!" },
+            { id = 1383671, text = "UGH GAH!" },
+            { id = 540878, text = "UGH!" },
         } },
-        { name = "Battle roars", lines = {
-            { id = 546598, text = "AAA!" },
-            { id = 5680318, text = "GRRR!" },
+        { name = "Casting", family = "Fighting", lines = {
+            { id = 1383648, text = "AAA!" },
+            { id = 1383650, text = "HUUU!" },
+            { id = 1383649, text = "UUU!" },
+        } },
+        { name = "Threats", family = "Menace", lines = {
+            { id = 1383676, text = "You came here to die." },
+        } },
+        { name = "Mockery", family = "Menace", lines = {
+            { id = 1383675, text = "You lack manners. Maybe I can teach you some." },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 541069, text = "Assault my attacker!" },
+            { id = 541042, text = "Assault this foe!" },
+            { id = 541065, text = "FIRE!" },
+            { id = 541057, text = "Follow me!" },
+            { id = 541066, text = "I'll lead the way!" },
+            { id = 541053, text = "Over here!" },
+            { id = 541051, text = "Remain here." },
+            { id = 541079, text = "Strike quickly!" },
+            { id = 541037, text = "Wait here." },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 541061, text = "Be alert!" },
+            { id = 541047, text = "DANGER!" },
+            { id = 541063, text = "Our foe is too strong!" },
+            { id = 541048, text = "RUN!" },
+        } },
+        { name = "Calls for aid", family = "Orders and warnings", lines = {
+            { id = 541049, text = "Aid me!" },
+            { id = 541075, text = "Assist me!" },
+            { id = 541078, text = "Heal me." },
+            { id = 541034, text = "I need healing!" },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 541036, text = "My mana is low." },
+            { id = 541040, text = "My mana is nearly gone!" },
+        } },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 540874, text = "OOF!" },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 541032, text = "Greetings" },
+            { id = 541030, text = "Hello!" },
+            { id = 541070, text = "Hi" },
+            { id = 541041, text = "Well met." },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 541073, text = "Goodbye!" },
+            { id = 541062, text = "I wish you well." },
+            { id = 541052, text = "Till we meet again." },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 541074, text = "Absolutely not." },
+            { id = 541058, text = "Certainly." },
+            { id = 541039, text = "I don't think so." },
+            { id = 541046, text = "Naturally." },
+            { id = 541068, text = "No." },
+            { id = 541071, text = "Yes." },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 1383674, text = "Hmph. My apologies." },
+            { id = 541027, text = "How generous." },
+            { id = 541076, text = "It was nothing." },
+            { id = 541050, text = "My pleasure." },
+            { id = 541054, text = "Thank you." },
+            { id = 541064, text = "The honor was mine." },
+            { id = 541029, text = "You are too kind." },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 541045, text = "Congratulations!" },
+            { id = 541033, text = "Excellent!" },
+            { id = 541031, text = "Well done!" },
+        } },
+        { name = "Flirts", family = "Fun", lines = {
+            { id = 541056, text = "If I wasn't purple, you'd see I was blushing." },
+            { id = 541059, text = "I'm the type of girl my mother warned me about." },
+            { id = 541044, text = "Sure, I've got exotic piercings." },
+            { id = 541060, text = "There's nothing like sleeping in the forest under the moonlight." },
+        } },
+        { name = "Losing patience", family = "Fun", lines = {
+            { id = 541038, text = "Actually, I'm more of a morning elf." },
+            { id = 541028, text = "I think the guys just use the Emerald Dream as an excuse to avoid calling me back." },
+            { id = 541077, text = "I'm dancing again. I hope all your friends are enjoying the show" },
+            { id = 541035, text = "You know I have to keep moving at night, or I'll disappear." },
+            { id = 541067, text = "You know, wisps are actually pretty useful for personal hygiene." },
+        } },
+        { name = "Clowning", family = "Fun", lines = {
+            { id = 540870, text = "CHEAT CHEAT CHEAT CHEAT" },
+            { id = 540867, text = "muk muk muk muk" },
+            { id = 541024, text = "PFFTTT!" },
+        } },
+        { name = "Cheers", family = "Fun", lines = {
+            { id = 541043, text = "Hail to the Knight!" },
+        } },
+        { name = "Laughter", family = "Fun", lines = {
+            { id = 540877, text = "Ha Ha Ha ha" },
+        } },
+        { name = "Weeping", family = "Feelings", lines = {
+            { id = 540873, text = "Oh, Oh, Oh, oh." },
+        } },
+        { name = "Sighs", family = "Feelings", lines = {
+            { id = 540865, text = "SIGH..." },
+        } },
+        { name = "Surprise", family = "Feelings", lines = {
+            { id = 1383673, text = "Not what I had in mind." },
+        } },
+    } },
+    { who = "Night Elf - masculine voice", race = "Night Elf", sex = "male", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 1512786, text = "AHHHHHHH" },
+            { id = 541092, text = "ATTACK!" },
+            { id = 1512798, text = "FOR THE ALLIANCE!" },
+            { id = 1512788, text = "Hi-yah!" },
+            { id = 1512787, text = "HUH-AHHH!" },
+            { id = 1512792, text = "Hya-ah!" },
+            { id = 1512789, text = "HYAH!" },
+            { id = 541081, text = "Poor Cenarius!" },
+            { id = 1512784, text = "RAWR!" },
+            { id = 1512783, text = "YEAH!" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 540955, text = "HA!" },
+            { id = 540953, text = "HUAH!" },
+            { id = 540946, text = "HUH!" },
+        } },
+        { name = "Threats", family = "Menace", lines = {
+            { id = 1512802, text = "You came here to die." },
+        } },
+        { name = "Mockery", family = "Menace", lines = {
+            { id = 1512801, text = "You lack manners. Maybe I can teach you some." },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 541088, text = "Assault my attacker!" },
+            { id = 541115, text = "Fire at will!" },
+            { id = 541135, text = "Fire!" },
+            { id = 541107, text = "Follow me!" },
+            { id = 541086, text = "I'll lead the way." },
+            { id = 541121, text = "Remain here." },
+            { id = 541119, text = "Smite my foe!" },
+            { id = 541116, text = "Wait here." },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 541109, text = "Be alert!" },
+            { id = 541123, text = "BEWARE" },
+            { id = 541106, text = "retreat" },
+            { id = 541114, text = "SCATTER!" },
+        } },
+        { name = "Calls for aid", family = "Orders and warnings", lines = {
+            { id = 541093, text = "Aid me." },
+            { id = 541101, text = "Assist me." },
+            { id = 541131, text = "Heal me!" },
+            { id = 541111, text = "I need healing!" },
+            { id = 541087, text = "To my side." },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 541104, text = "My mana has waned!" },
+            { id = 541117, text = "My mana is low!" },
+        } },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 540951, text = "COUGH!" },
+            { id = 540950, text = "MMM!" },
+        } },
+        { name = "Death cries", family = "Hurt and dying", lines = {
+            { id = 540954, text = "UGH!" },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 541089, text = "Greetings!" },
+            { id = 541090, text = "Hi" },
+            { id = 541097, text = "Well net." },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 541127, text = "Good journey." },
+            { id = 541100, text = "Goodbye!" },
+            { id = 541113, text = "I wish you well." },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 541083, text = "Absolutely not." },
+            { id = 541094, text = "I don't think so." },
+            { id = 541137, text = "Naturally." },
+            { id = 541128, text = "No." },
+            { id = 541130, text = "Of course!" },
+            { id = 541099, text = "Yes." },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 541096, text = "Much appreciated." },
+            { id = 1512800, text = "My apologies." },
+            { id = 541095, text = "My pleasure." },
+            { id = 541080, text = "Thank you." },
+            { id = 541108, text = "The honour was mine." },
+            { id = 541102, text = "You're welcome." },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 541085, text = "CONGRATULATIONS!" },
+            { id = 541136, text = "Excellent!" },
+            { id = 541103, text = "You are worthy." },
+        } },
+        { name = "Flirts", family = "Fun", lines = {
+            { id = 541118, text = "Baby, I'm mortal now. Time's a wastin'." },
+            { id = 541129, text = "I hope you're not afraid of snakes." },
+            { id = 541105, text = "I'm a force of nature." },
+            { id = 541110, text = "Wanna bring out the animal in me?" },
+            { id = 541091, text = "You're an emerald dream come true." },
+        } },
+        { name = "Losing patience", family = "Fun", lines = {
+            { id = 541134, text = "I don't know about you, but I can't understand a thing those wisps say. I usually just nod." },
+            { id = 541120, text = "I don't mind the gnomes, but I'm always worried about tripping over one." },
+            { id = 541133, text = "Is that thing sharp? Could that thing cut me? I'm not immortal now, you know." },
+            { id = 541122, text = "Last night I went to an awesome stag party." },
+            { id = 541084, text = "Man, I was halfway through the emerald dream when I had to pee." },
+            { id = 541098, text = "What? I didn't hear that." },
+            { id = 541082, text = "Who wants to live forever?" },
+            { id = 541125, text = "You know those ancient protectors in Darnassus? They're not that old." },
+        } },
+        { name = "Clowning", family = "Fun", lines = {
+            { id = 540948, text = "Bwah! Bwah! Bwah! Bwah!" },
+            { id = 541124, text = "RRR!" },
+        } },
+        { name = "Cheers", family = "Fun", lines = {
+            { id = 541126, text = "By the light of the moon!" },
+            { id = 541138, text = "Hail to the night!" },
+        } },
+        { name = "Laughter", family = "Fun", lines = {
+            { id = 540945, text = "Ha Ha Ha ha" },
+        } },
+        { name = "Sighs", family = "Feelings", lines = {
+            { id = 540952, text = "SIGH..." },
+        } },
+        { name = "Yawns", family = "Feelings", lines = {
+            { id = 540944, text = "AHHH!" },
+        } },
+        { name = "Surprise", family = "Feelings", lines = {
+            { id = 1512799, text = "Not what I had in mind." },
+        } },
+    } },
+    { who = "Night Elf Demon Hunter - feminine voice", race = "Night Elf", sex = "female", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 1316207, text = "AHHHHHHH" },
+            { id = 1304574, text = "Charge forth!" },
+            { id = 1304572, text = "For Illidan!" },
+            { id = 1316553, text = "FOR THE ALLIANCE!" },
+            { id = 1304571, text = "FOR VENGEANCE!" },
+            { id = 1502184, text = "HYAAH!" },
+        } },
+        { name = "Battle roars", family = "Fighting", lines = {
+            { id = 1316211, text = "AAARGH!" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 1304636, text = "AH!" },
+            { id = 1502198, text = "AHH AHHH!" },
+            { id = 1502196, text = "AHHH AHHH!" },
+            { id = 1304638, text = "AHHH!" },
+            { id = 1304639, text = "ARGH!" },
+            { id = 1304627, text = "HA!" },
+            { id = 1304637, text = "HIYA!" },
+            { id = 1304640, text = "HIYAH!" },
+            { id = 1304633, text = "HUH!" },
+            { id = 1495078, text = "NYEH!" },
+            { id = 1495081, text = "RAAAGH!" },
+            { id = 1495088, text = "RAAARRR!" },
+            { id = 1495091, text = "ROAR!" },
+            { id = 1304631, text = "SIGH!" },
+            { id = 1502195, text = "UGH UGH!" },
+            { id = 1304628, text = "UGH!" },
+            { id = 1304629, text = "VROOM!" },
+            { id = 1495083, text = "WOOF!" },
+            { id = 1502200, text = "YEAH YEAH!" },
+            { id = 1304626, text = "YEAH!" },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 1304570, text = "Assault my attacker!" },
+            { id = 1304605, text = "Fire!" },
+            { id = 1304587, text = "Follow me, I'll lead." },
+            { id = 1304586, text = "I'll lead the way." },
+            { id = 1304569, text = "Over here!" },
+            { id = 1304618, text = "Remain here." },
+            { id = 1304568, text = "Slay this enemy!" },
+            { id = 1304604, text = "Strike quickly!" },
+            { id = 1304619, text = "Wait here." },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 1304580, text = "Back away!" },
+            { id = 1304600, text = "Be alert!" },
+            { id = 1304599, text = "DANGER!" },
+            { id = 1304581, text = "Retreat for now! We will strike again later." },
+        } },
+        { name = "Calls for aid", family = "Orders and warnings", lines = {
+            { id = 1304597, text = "Aid me!" },
+            { id = 1304598, text = "Assist me." },
+            { id = 1304591, text = "Heal me." },
+            { id = 1304592, text = "I need healing!" },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 1304606, text = "My mana is low." },
+            { id = 1304607, text = "My mana is nearly gone." },
+        } },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 1304648, text = "AAH!" },
+            { id = 1495095, text = "BOOM!" },
+            { id = 1495099, text = "GASP!" },
+            { id = 1304656, text = "HEY!" },
+            { id = 1304658, text = "MMM!" },
+        } },
+        { name = "Death cries", family = "Hurt and dying", lines = {
+            { id = 1304645, text = "HA HA HA!" },
+            { id = 1304641, text = "OH!" },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 1304593, text = "Darkness beckons." },
+            { id = 1304594, text = "Greetings" },
+            { id = 1304596, text = "Hello." },
+            { id = 1304595, text = "Well met." },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 1304589, text = "Keep your blades sharp." },
+            { id = 1304588, text = "Until our paths cross again." },
+            { id = 1304590, text = "Until we meet again." },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 1304603, text = "Absolutely not." },
+            { id = 1304621, text = "Certainly." },
+            { id = 1304622, text = "Naturally." },
+            { id = 1304601, text = "No." },
+            { id = 1304602, text = "Not a chance." },
+            { id = 1304620, text = "Yes." },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 1304623, text = "Don't mention it." },
+            { id = 1304616, text = "How generous." },
+            { id = 1304624, text = "It was nothing." },
+            { id = 1304615, text = "Thank you." },
+            { id = 1304625, text = "You are most welcome." },
+            { id = 1304617, text = "You are too kind." },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 1304577, text = "CONGRATULATIONS!" },
+            { id = 1304579, text = "Excellent!" },
+            { id = 1304578, text = "Well done!" },
+        } },
+        { name = "Flirts", family = "Fun", lines = {
+            { id = 1304582, text = "Aren't you a handsome devil?" },
+            { id = 1304583, text = "I have tattoos in other places, you know." },
+            { id = 1304584, text = "You know, they do say love is blind." },
+            { id = 1304585, text = "You, me, let's go. Now." },
+        } },
+        { name = "Losing patience", family = "Fun", lines = {
+            { id = 1304609, text = "Alright, alright. I'm blind, not deaf." },
+            { id = 1304608, text = "Demon souls taste delicious, though some do have an odd cinnamon aftertaste." },
+            { id = 1304610, text = "Fight fire with fire. Unless it's an actual fire, then use water." },
+            { id = 1304613, text = "I don't hunt demons just for sport, I make sure to use all their body parts." },
+            { id = 1304611, text = "No, Mom. This is not just a phase." },
+            { id = 1304612, text = "Spectral sights not everything it's cracked up to be. Did you know that dwarves wear absolutely no undergarments?" },
+        } },
+        { name = "Clowning", family = "Fun", lines = {
+            { id = 1313677, text = "Bawk Bawk Bawk bawk!" },
+            { id = 1304614, text = "PFFFTTT!" },
+        } },
+        { name = "Cheers", family = "Fun", lines = {
+            { id = 1304576, text = "DEATH TO OUR ENEMIES!" },
+        } },
+        { name = "Laughter", family = "Fun", lines = {
+            { id = 1313676, text = "HAHAHA!" },
+        } },
+        { name = "Weeping", family = "Feelings", lines = {
+            { id = 1313674, text = "HEHEHEHE!" },
+        } },
+    } },
+    { who = "Night Elf Demon Hunter - masculine voice", race = "Night Elf", sex = "male", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 1389714, text = "AHHH!" },
+            { id = 1389717, text = "AHHHHH!" },
+            { id = 1389701, text = "AHHHHHH" },
+            { id = 1389715, text = "AHHHHHHH!" },
+            { id = 1304868, text = "Attack!" },
+            { id = 1389702, text = "DAAAGH!" },
+            { id = 1304867, text = "For Illidan!" },
+            { id = 1502180, text = "FOR THE ALLIANCE!" },
+            { id = 1389718, text = "HRRRRRR" },
+            { id = 1389721, text = "Huuuuuu" },
+            { id = 1389700, text = "SHIIIIIICCCCCCKKKKKKK" },
+        } },
+        { name = "Battle roars", family = "Fighting", lines = {
+            { id = 1531399, text = "RAAARRR!" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 1304773, text = "BLLL!" },
+            { id = 1495129, text = "FUUU!" },
+            { id = 1304771, text = "GAH!" },
+            { id = 1495136, text = "GRR!" },
+            { id = 1304767, text = "HA!" },
+            { id = 1304766, text = "HMMM!" },
+            { id = 1304769, text = "HMPH!" },
+            { id = 1495133, text = "HUH!" },
+            { id = 1389729, text = "MWAH!" },
+            { id = 1389724, text = "RAAAGH!" },
+            { id = 1304764, text = "ROAR!" },
+            { id = 1304774, text = "RRR!" },
+            { id = 1304762, text = "YEAH!" },
+        } },
+        { name = "Casting", family = "Fighting", lines = {
+            { id = 1389709, text = "AHHHCHOOO!" },
+            { id = 1389707, text = "GRRR!" },
+            { id = 1389706, text = "HUUU!" },
+            { id = 1389713, text = "MMM!" },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 1304865, text = "Assault my attacker!" },
+            { id = 1304905, text = "Fire at will!" },
+            { id = 1304906, text = "FIRE!" },
+            { id = 1304886, text = "Follow me." },
+            { id = 1304885, text = "I'll lead the way." },
+            { id = 1304921, text = "Remain here." },
+            { id = 1304866, text = "Smite my foe!" },
+            { id = 1304922, text = "Wait here." },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 1304899, text = "Be alert!" },
+            { id = 1304898, text = "Beware!" },
+            { id = 1304877, text = "Retreat!" },
+            { id = 1304878, text = "Scatter!" },
+        } },
+        { name = "Calls for aid", family = "Orders and warnings", lines = {
+            { id = 1304895, text = "Aid me." },
+            { id = 1304897, text = "Assist me!" },
+            { id = 1304890, text = "heal me" },
+            { id = 1304891, text = "I need healing!" },
+            { id = 1304896, text = "To my side!" },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 1304907, text = "I am low on mana." },
+            { id = 1304908, text = "My mana is nearly gone." },
+        } },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 1304784, text = "ARGH!" },
+            { id = 1495124, text = "BWAHAHAHA!" },
+            { id = 1495119, text = "NO!" },
+            { id = 1495118, text = "No, you didn't say." },
+            { id = 1495127, text = "NOOO!" },
+            { id = 1304788, text = "NYEH!" },
+            { id = 1304785, text = "OOF!" },
+            { id = 1495114, text = "Thank you for watching!" },
+            { id = 1495113, text = "UGH!" },
+        } },
+        { name = "Death cries", family = "Hurt and dying", lines = {
+            { id = 1304780, text = "AHHH UGH UGH..." },
+            { id = 1304777, text = "UGH UGH UGH!" },
+            { id = 1304781, text = "UGH UGH!" },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 1304892, text = "Greetings." },
+            { id = 1304894, text = "Hi." },
+            { id = 1304893, text = "Well met." },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 1304887, text = "Good journey." },
+            { id = 1304888, text = "Goodbye." },
+            { id = 1304889, text = "I wish you well." },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 1304904, text = "Absolutely not." },
+            { id = 1304903, text = "I don't think so." },
+            { id = 1304926, text = "Naturally." },
+            { id = 1304925, text = "Of course." },
+            { id = 1304924, text = "Yes." },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 1304920, text = "Much appreciated." },
+            { id = 1304928, text = "My pleasure." },
+            { id = 1304918, text = "Thank you." },
+            { id = 1304929, text = "The honor was mine." },
+            { id = 1304927, text = "You're welcome." },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 1304873, text = "CONGRATULATIONS!" },
+            { id = 1304875, text = "Excellent!" },
+            { id = 1304874, text = "You are worthy." },
+        } },
+        { name = "Flirts", family = "Fun", lines = {
+            { id = 1304879, text = "Are you sure you're not part demon? Hm. Do you want to be?" },
+            { id = 1304880, text = "I can't seem to take my eyes off you." },
+            { id = 1304882, text = "I'm looking for someone who can really soothe my inner demon." },
+            { id = 1304884, text = "Someone alert the wardens, because it's illegal to look that good." },
+            { id = 1304881, text = "You look good, I think." },
+            { id = 1304883, text = "You're so hot, you'd make Sargeras sweat." },
+        } },
+        { name = "Losing patience", family = "Fun", lines = {
+            { id = 1304914, text = "Demon blood is thicker than, uh... regular blood." },
+            { id = 1304912, text = "It's all fun and games until someone pokes an eye out." },
+            { id = 1304913, text = "Mmm, shaving without a mirror is the only tricky part about this gig." },
+            { id = 1304910, text = "Ten years in stasis will give you such a crick in the neck." },
+            { id = 1304909, text = "This tattoo here, well, that's the power of darkness. Over here, you've got your demonic scourge. And this one says, Mom." },
+            { id = 1304915, text = "true love no i distinctly said to glaive and as we all know to glaive means to slice apart into a million pieces" },
+            { id = 1304911, text = "You are not propel- Sorry, thought you were someone else." },
+        } },
+        { name = "Clowning", family = "Fun", lines = {
+            { id = 1304871, text = "Mwah! Mwah! Mwah! Mwah!" },
+            { id = 1304916, text = "PFFTTT!" },
+        } },
+        { name = "Cheers", family = "Fun", lines = {
+            { id = 1304870, text = "Glory to the Illidari!" },
+        } },
+        { name = "Laughter", family = "Fun", lines = {
+            { id = 1304901, text = "HEHEHEH!" },
+        } },
+        { name = "Weeping", family = "Feelings", lines = {
+            { id = 1304876, text = "HEHEHEHE!" },
+        } },
+        { name = "Yawns", family = "Feelings", lines = {
+            { id = 1304923, text = "Ugh, Ugh, Ugh, ugh." },
+        } },
+    } },
+    { who = "Nightborne - feminine voice", race = "Nightborne", sex = "female", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 1835728, text = "AHHHHHH" },
+            { id = 1731991, text = "For the Horde!" },
+            { id = 1835713, text = "FUUUUUUU" },
+            { id = 1835730, text = "HAAAAA!" },
+            { id = 1835708, text = "HAAAAH!" },
+            { id = 1835712, text = "Hurrah!" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 1835707, text = "AHHH!" },
+            { id = 1835695, text = "GAH!" },
+            { id = 1835692, text = "HA!" },
+            { id = 1835689, text = "HAH!" },
+            { id = 1835693, text = "HIYAH!" },
+            { id = 1835694, text = "HUH!" },
+            { id = 1835691, text = "UGH!" },
+            { id = 1835758, text = "UGHHH!" },
+        } },
+        { name = "Casting", family = "Fighting", lines = {
+            { id = 1835722, text = "AAA!" },
+            { id = 1835723, text = "HAAA!" },
+            { id = 1835720, text = "HUUU!" },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 1731853, text = "on my target." },
+            { id = 1731988, text = "This way." },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 1731985, text = "Retreat!" },
+        } },
+        { name = "Calls for aid", family = "Orders and warnings", lines = {
+            { id = 1732002, text = "Aid me." },
+            { id = 1731996, text = "Heal me." },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 1731922, text = "I must have more rage." },
+            { id = 1731918, text = "I need mana first." },
+            { id = 1731907, text = "My fury is low." },
+            { id = 1731919, text = "My mana is low." },
+            { id = 1731916, text = "Not enough energy." },
+            { id = 1731906, text = "Not enough fury." },
+            { id = 1731921, text = "Not enough rage." },
+        } },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 1835775, text = "FUUU!" },
+            { id = 1835777, text = "HMPH!" },
+            { id = 1835772, text = "NYEH!" },
+            { id = 1835785, text = "OOH!" },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 1731998, text = "Greetings" },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 1731992, text = "Farewell." },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 1732009, text = "Agreed." },
+            { id = 1730232, text = "No illusions here. Everything you see is real. Very real." },
+            { id = 1732005, text = "No." },
+            { id = 1732006, text = "Of course not." },
+            { id = 1732008, text = "Right." },
+            { id = 1732034, text = "Yes." },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 1732037, text = "It was my pleasure." },
+            { id = 1732039, text = "Thanks are not required." },
+            { id = 1732038, text = "You are welcome." },
+            { id = 1732014, text = "You have my gratitude." },
+            { id = 1732015, text = "You have my thanks." },
+        } },
+    } },
+    { who = "Nightborne - masculine voice", race = "Nightborne", sex = "male", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 1835833, text = "AHHHHHH" },
+            { id = 1835808, text = "AHHHHHHH" },
+            { id = 1732233, text = "FOR SOROMAR!" },
+            { id = 1732366, text = "For the Horde!" },
+            { id = 1835812, text = "HUUUUGGGGHHH!!!!!!" },
+            { id = 1835806, text = "MMMMMM" },
+            { id = 1835807, text = "Mwahahaha!" },
+            { id = 1732236, text = "Remember the night well!" },
+            { id = 1835811, text = "RRRRRR" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 1835804, text = "AHHH!" },
+            { id = 1835787, text = "HA!" },
+            { id = 1835788, text = "HYA!" },
+            { id = 1835802, text = "HYAAAH!" },
+            { id = 1835798, text = "RAAAGH!" },
+            { id = 1835803, text = "RAAH!" },
+            { id = 1835864, text = "RRR!" },
+            { id = 1835861, text = "VRRR!" },
+            { id = 1835795, text = "YAH!" },
+            { id = 1835797, text = "YEAH!" },
+        } },
+        { name = "Casting", family = "Fighting", lines = {
+            { id = 1835823, text = "GRRR!" },
+            { id = 1835821, text = "HMMM!" },
+            { id = 1835827, text = "NNN!" },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 1732227, text = "ATTACK MY ENEMY!" },
+            { id = 1732229, text = "FOCUS YOUR STRIKES!" },
+            { id = 1732363, text = "Follow me." },
+            { id = 1732365, text = "We go this way." },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 1732360, text = "retreat" },
+        } },
+        { name = "Calls for aid", family = "Orders and warnings", lines = {
+            { id = 1732377, text = "Aid me!" },
+            { id = 1732371, text = "Heal me!" },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 1732296, text = "I must have more rage." },
+            { id = 1732292, text = "I need mana first." },
+            { id = 1732294, text = "Mana is needed." },
+            { id = 1732281, text = "My fury is low." },
+            { id = 1732387, text = "My mana is low." },
+            { id = 1732290, text = "Not enough energy." },
+            { id = 1732280, text = "Not enough fury." },
+            { id = 1732295, text = "Not enough rage." },
+        } },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 1835893, text = "DAAAH!" },
+            { id = 1835882, text = "GAH!" },
+            { id = 1835878, text = "OOF!" },
+            { id = 1835875, text = "UGH!" },
+        } },
+        { name = "Death cries", family = "Hurt and dying", lines = {
+            { id = 1835839, text = "AHHH! AHHH! AHHH! AHHH!" },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 1732373, text = "Greetings" },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 1732367, text = "Farewell." },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 1732384, text = "Agreed." },
+            { id = 1732397, text = "Mm-hmm" },
+            { id = 1732381, text = "Never." },
+            { id = 1732380, text = "No." },
+            { id = 1732383, text = "Right." },
+            { id = 1732409, text = "Yes." },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 1732412, text = "It was my pleasure." },
+            { id = 1732414, text = "Thanks are not required." },
+            { id = 1732413, text = "You are welcome." },
+            { id = 1732389, text = "You have my gratitude." },
+            { id = 1732390, text = "You have my thanks." },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 1732240, text = "Fortune favors you." },
+            { id = 1732238, text = "Job well done." },
+        } },
+        { name = "Pleading", family = "Menace", lines = {
+            { id = 1732232, text = "Have mercy!" },
+            { id = 1732231, text = "I beg of you!" },
+        } },
+    } },
+    { who = "Orc - feminine voice", race = "Orc", sex = "female", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 1385030, text = "AHHH AHHH" },
+            { id = 1385014, text = "AHHHHHHH!" },
+            { id = 541367, text = "ATTACK!" },
+            { id = 1387393, text = "FOR THE HORDE!" },
+            { id = 1385035, text = "Grrrr!" },
+            { id = 1385020, text = "Ha!" },
+            { id = 1385016, text = "Haaaaaaa" },
+            { id = 541354, text = "LEAVE NONE ALIVE!" },
+            { id = 1385033, text = "RAAAGH!" },
+            { id = 541342, text = "Slay them all!" },
+            { id = 1385015, text = "YEAH!" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 1385011, text = "HUAH UGH!" },
+            { id = 1385006, text = "HUH AHHH!" },
+            { id = 1385005, text = "HUH UGH!" },
+            { id = 1385012, text = "HUHAHHH!" },
+            { id = 1385010, text = "HURRAH!" },
+            { id = 1385039, text = "HYA UGH!" },
+            { id = 541141, text = "UGH!" },
+        } },
+        { name = "Casting", family = "Fighting", lines = {
+            { id = 1385024, text = "AAA!" },
+            { id = 1385021, text = "RRR!" },
+            { id = 1385026, text = "UUU!" },
+        } },
+        { name = "Threats", family = "Menace", lines = {
+            { id = 1385043, text = "I WILL DESTROY YOU!" },
+        } },
+        { name = "Mockery", family = "Menace", lines = {
+            { id = 1385042, text = "You have no honour, maggot!" },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 541315, text = "Attack over here!" },
+            { id = 541362, text = "Come." },
+            { id = 541335, text = "Fire!" },
+            { id = 541337, text = "Follow me!" },
+            { id = 541334, text = "Join my attack!" },
+            { id = 541339, text = "OPEN FIRE!" },
+            { id = 541369, text = "Shed blood with me!" },
+            { id = 541330, text = "SHOOT!" },
+            { id = 541361, text = "STAY" },
+            { id = 541352, text = "Wait here." },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 541318, text = "I'm your guard!" },
+            { id = 541364, text = "INCOMING!" },
+            { id = 541366, text = "retreat" },
+            { id = 541360, text = "RUN!" },
+        } },
+        { name = "Calls for aid", family = "Orders and warnings", lines = {
+            { id = 541322, text = "Ate me!" },
+            { id = 541345, text = "Heal me!" },
+            { id = 541336, text = "I need healing!" },
+            { id = 541355, text = "I need help!" },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 541372, text = "I need mana!" },
+            { id = 541373, text = "My mana is low!" },
+        } },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 541139, text = "BLEH!" },
+            { id = 541160, text = "OH!" },
+            { id = 541150, text = "OOOHHH!" },
+        } },
+        { name = "Death cries", family = "Hurt and dying", lines = {
+            { id = 541156, text = "HMPH OOF OOF!" },
+        } },
+        { name = "Stunned", family = "Hurt and dying", lines = {
+            { id = 541148, text = "MMM MMM MMM!" },
+            { id = 541154, text = "MMM!" },
+            { id = 541155, text = "OHHH!" },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 541329, text = "Greetings" },
+            { id = 541375, text = "HEY!" },
+            { id = 541370, text = "thrumka" },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 541374, text = "May you always be victorious." },
+            { id = 541325, text = "Stay Strong!" },
+            { id = 541333, text = "Until next time." },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 541331, text = "Dabu." },
+            { id = 541343, text = "Hmm" },
+            { id = 541338, text = "Mm-hmm." },
+            { id = 541340, text = "NO" },
+            { id = 541326, text = "Not on your life." },
+            { id = 541365, text = "Zug Zug" },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 541359, text = "Anything for a friend." },
+            { id = 541353, text = "Anytime." },
+            { id = 541348, text = "I won't forget this." },
+            { id = 541316, text = "Thank you." },
+            { id = 541323, text = "Thanks!" },
+            { id = 1385041, text = "That was my fault!" },
+            { id = 541324, text = "You're welcome." },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 541332, text = "CONGRATULATIONS!" },
+            { id = 541358, text = "Not bad." },
+            { id = 541317, text = "Skillfully done." },
+        } },
+        { name = "Flirts", family = "Fun", lines = {
+            { id = 541344, text = "Don't talk, just follow me." },
+            { id = 541346, text = "I like men who aren't afraid to cry. Cry, Uncle!" },
+            { id = 541368, text = "I'll give you crazy love." },
+            { id = 541341, text = "Let's not ruin this moment with chit chat." },
+            { id = 541363, text = "You had me at Zug Zug." },
+            { id = 541350, text = "You'll do. Let's go." },
+        } },
+        { name = "Losing patience", family = "Fun", lines = {
+            { id = 541349, text = "Get between me and my food and you'll lose a hand." },
+            { id = 541371, text = "I feel very feminine, and I'll beat the crap out of anyone who disagrees." },
+            { id = 541357, text = "I have no respect for people with small piercings. I say go full hog, put a spear through your head." },
+            { id = 541356, text = "Man, I think that boar meat's coming back on me. I gotta hit the can. Anyone have a hearthstone?" },
+            { id = 541327, text = "Ugh, I need to get my chest waxed again." },
+            { id = 541351, text = "What's estrogen? Can you eat it?" },
+        } },
+        { name = "Clowning", family = "Fun", lines = {
+            { id = 541321, text = "PFFFTTT!" },
+            { id = 541157, text = "WOOO! Chugga, Chugga, Chugga, chugga. WOOO!" },
+        } },
+        { name = "Laughter", family = "Fun", lines = {
+            { id = 541153, text = "Ha Ha Ha ha!" },
+        } },
+        { name = "Yawns", family = "Feelings", lines = {
+            { id = 541145, text = "AHHH!" },
+        } },
+        { name = "Surprise", family = "Feelings", lines = {
+            { id = 1385040, text = "Ugh, that was a mistake." },
+        } },
+        { name = "Idle", family = "Feelings", lines = {
+            { id = 541144, text = "SIGH!" },
+        } },
+    } },
+    { who = "Orc - masculine voice", race = "Orc", sex = "male", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 1384080, text = "AHHH!" },
+            { id = 1384089, text = "AHHHHHHH" },
+            { id = 541400, text = "Break their bones!" },
+            { id = 541389, text = "Destroy them!" },
+            { id = 1384076, text = "DUUUUUUU" },
+            { id = 1387394, text = "FOR THE HORDE!" },
+            { id = 1384093, text = "HAAAAA!" },
+            { id = 1384091, text = "HAAAAAAH!" },
+            { id = 1384092, text = "Hurrah!" },
+            { id = 1384090, text = "MMMMMM" },
+            { id = 541391, text = "Slay them all!" },
+            { id = 1384088, text = "YEAH!" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 541237, text = "GRRR!" },
+            { id = 1384086, text = "HAH UGH!" },
+            { id = 1384083, text = "HUAH UGH!" },
+            { id = 541227, text = "HUH!" },
+            { id = 1384084, text = "HYAH GAH!" },
+            { id = 541226, text = "RUUUH!" },
+            { id = 1384087, text = "UGH UGH!" },
+        } },
+        { name = "Casting", family = "Fighting", lines = {
+            { id = 1384095, text = "HMMM!" },
+            { id = 1384094, text = "NOOO!" },
+            { id = 1384098, text = "OOOH YEAH!" },
+            { id = 1384096, text = "RRR!" },
+        } },
+        { name = "Threats", family = "Menace", lines = {
+            { id = 1384073, text = "I WILL DESTROY YOU!" },
+        } },
+        { name = "Mockery", family = "Menace", lines = {
+            { id = 1384072, text = "You have no honor, maggot!" },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 541417, text = "Attack over here!" },
+            { id = 541407, text = "ATTACK WITH ME!" },
+            { id = 541387, text = "Come." },
+            { id = 541410, text = "Follow me!" },
+            { id = 541412, text = "Let him have it!" },
+            { id = 541430, text = "Remain here." },
+            { id = 541384, text = "Shed blood with me." },
+            { id = 541383, text = "SHOOT!" },
+            { id = 541378, text = "Stay here." },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 541415, text = "INCOMING" },
+            { id = 541395, text = "ON YOUR GUARD!" },
+            { id = 541392, text = "Retreat!" },
+            { id = 541419, text = "RUN" },
+            { id = 541382, text = "Watch it!" },
+        } },
+        { name = "Calls for aid", family = "Orders and warnings", lines = {
+            { id = 541402, text = "Ate me." },
+            { id = 541427, text = "HEAL ME!" },
+            { id = 541434, text = "I need healing." },
+            { id = 541381, text = "I need help." },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 541429, text = "I need mana!" },
+            { id = 541386, text = "My mana is low." },
+        } },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 541233, text = "MMM!" },
+            { id = 541235, text = "UGH!" },
+        } },
+        { name = "Death cries", family = "Hurt and dying", lines = {
+            { id = 541234, text = "FUUU!" },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 541418, text = "Hello." },
+            { id = 541425, text = "Hey!" },
+            { id = 541408, text = "Thrumka!" },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 541406, text = "May your blade be true." },
+            { id = 541393, text = "Stay Strong!" },
+            { id = 541376, text = "until our paths cross again." },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 541416, text = "Ahem." },
+            { id = 541424, text = "DOUBLE" },
+            { id = 541428, text = "NO" },
+            { id = 541377, text = "Yes." },
+            { id = 541390, text = "You must be joking." },
+            { id = 541399, text = "Zug Zug" },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 541436, text = "Honor required it." },
+            { id = 541388, text = "I will return the favor." },
+            { id = 541411, text = "I won't forget this." },
+            { id = 541405, text = "I would expect the same." },
+            { id = 541385, text = "It was nothing." },
+            { id = 541380, text = "Thank you." },
+            { id = 1384071, text = "That was my fault." },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 541401, text = "Good job." },
+            { id = 541423, text = "You are worthy." },
+            { id = 541396, text = "You should be proud." },
+        } },
+        { name = "Flirts", family = "Fun", lines = {
+            { id = 541420, text = "I love you like a fat kid loves cake." },
+            { id = 541421, text = "Lady, from the moment I see you, I… I did not expect to get this far." },
+            { id = 541426, text = "That armor looks good on you. It would also look good on my floor." },
+            { id = 541413, text = "This is true love. Do you think this happens every day?" },
+        } },
+        { name = "Losing patience", family = "Fun", lines = {
+            { id = 541397, text = "I come from the Orcs, we eat with spoons and forks, we love to eat our pork." },
+            { id = 541433, text = "I will crush and destroy and, ooh, shiny." },
+            { id = 541432, text = "It's not easy being green." },
+            { id = 541403, text = "Man, dawg, you know, it's like I'm feeling you, but I'm not feeling it, you know?" },
+            { id = 541422, text = "ORC SMASH!" },
+            { id = 541409, text = "Stop poking me! Well, that was okay." },
+        } },
+        { name = "Clowning", family = "Fun", lines = {
+            { id = 541229, text = "BAK BAK BAK BAK" },
+            { id = 541239, text = "Woohoo! Chugga, Chugga, Chugga, Woohoo!" },
+        } },
+        { name = "Laughter", family = "Fun", lines = {
+            { id = 541230, text = "Ha Ha Ha ha!" },
+        } },
+        { name = "Weeping", family = "Feelings", lines = {
+            { id = 541240, text = "HEHEHEH!" },
+        } },
+        { name = "Sighs", family = "Feelings", lines = {
+            { id = 541236, text = "SIGH..." },
+        } },
+        { name = "Yawns", family = "Feelings", lines = {
+            { id = 541232, text = "OOOHHH!" },
+        } },
+        { name = "Surprise", family = "Feelings", lines = {
+            { id = 1384070, text = "Oh, that was a mistake." },
+        } },
+    } },
+    { who = "Pandaren - feminine voice", race = "Pandaren", sex = "female", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 1384045, text = "AHHH!" },
+            { id = 1384064, text = "CHA CHA!" },
+            { id = 1384065, text = "CHA!" },
+            { id = 636411, text = "Charge!" },
+            { id = 1384063, text = "Cheer up, kya!" },
+            { id = 1384062, text = "CHEER!" },
+            { id = 1387395, text = "For the Alliance!" },
+            { id = 1387396, text = "for the Horde." },
+            { id = 636405, text = "Fortune! Favourite us!" },
+            { id = 1384049, text = "FUUUUUUU" },
+            { id = 1384046, text = "HAAAAA" },
+            { id = 1384067, text = "Here I am!" },
+            { id = 1384044, text = "HEY-AHHH!" },
+            { id = 1384047, text = "HRAUH!" },
+            { id = 1384059, text = "Hrgh! Ugh!" },
+            { id = 1384061, text = "Huh? Ugh!" },
+            { id = 1384066, text = "HYAH!" },
+            { id = 1384050, text = "Kiaaaaaa!" },
+            { id = 636407, text = "Roll out the barrel!" },
+            { id = 636409, text = "The Lorewalkers will sing of this day!" },
+            { id = 1384060, text = "Ugh! Ugh!" },
+            { id = 636403, text = "You want to fight? Fight me!" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 644636, text = "HA!" },
+            { id = 1384040, text = "HIYA!" },
+            { id = 644652, text = "HIYAH!" },
+            { id = 644654, text = "HOOO!" },
+            { id = 1384041, text = "HUAGH UGH!" },
+            { id = 644658, text = "HUH AHHH!" },
+            { id = 1384036, text = "HUH UH!" },
+            { id = 644634, text = "HUH!" },
+            { id = 644664, text = "OH YEAH!" },
+            { id = 644644, text = "YEAH!" },
+        } },
+        { name = "Casting", family = "Fighting", lines = {
+            { id = 1384053, text = "AHHHCHOO!" },
+            { id = 1384054, text = "CHAAARRR!" },
+            { id = 1384051, text = "HEEERRR!" },
+            { id = 1384057, text = "HOOOKEHAH!" },
+            { id = 1384058, text = "HUUU!" },
+            { id = 1384056, text = "JUUU!" },
+            { id = 1384052, text = "UUU!" },
+        } },
+        { name = "Threats", family = "Menace", lines = {
+            { id = 1384034, text = "I will help you find inner peace, but it's going to hurt." },
+        } },
+        { name = "Mockery", family = "Menace", lines = {
+            { id = 1384033, text = "You're not afraid of a fair fight, are you?" },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 636391, text = "Attack with me!" },
+            { id = 636565, text = "Come on, let's go!" },
+            { id = 636563, text = "Come this way!" },
+            { id = 636625, text = "Do not move." },
+            { id = 636607, text = "Everyone attack" },
+            { id = 636605, text = "Fire away!" },
+            { id = 636561, text = "Follow me!" },
+            { id = 636387, text = "Let's get him!" },
+            { id = 636389, text = "Team Up!" },
+            { id = 636623, text = "You should stay here." },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 636557, text = "It is not worth dying for! Run for it!" },
+            { id = 636555, text = "Let's get out of here!" },
+            { id = 636559, text = "Oh, run!" },
+            { id = 636553, text = "Run!" },
+        } },
+        { name = "Calls for aid", family = "Orders and warnings", lines = {
+            { id = 636587, text = "Help me, please!" },
+            { id = 636575, text = "I am hurt!" },
+            { id = 636589, text = "I cannot do this alone." },
+            { id = 636577, text = "I need healing!" },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 636609, text = "I am tapped out!" },
+            { id = 636611, text = "I have no mana!" },
+        } },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 644770, text = "ARGH!" },
+            { id = 644764, text = "OH!" },
+            { id = 644748, text = "UGH!" },
+        } },
+        { name = "Death cries", family = "Hurt and dying", lines = {
+            { id = 644690, text = "AHHH UGH UGH!" },
+            { id = 644682, text = "Ha! Ugh, ugh, ugh!" },
+            { id = 644686, text = "HUAH UGH UGH..." },
+            { id = 644688, text = "HWAH UGH UGH..." },
+            { id = 644692, text = "HWAH UGH!" },
+            { id = 644684, text = "Hwah! Ugh, Ugh, Ugh, ugh. Ugh." },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 636579, text = "Hello!" },
+            { id = 636585, text = "Hi there!" },
+            { id = 636581, text = "Welcome" },
+            { id = 636583, text = "Why, hey there!" },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 636567, text = "Bye now!" },
+            { id = 636573, text = "Farewell, friend." },
+            { id = 636569, text = "May good fortune follow you." },
+            { id = 636571, text = "Never stop exploring!" },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 636593, text = "I do not agree." },
+            { id = 636629, text = "Indeed!" },
+            { id = 636599, text = "Mm-hmm." },
+            { id = 636595, text = "No." },
+            { id = 636601, text = "Sure." },
+            { id = 636597, text = "That is not right." },
+            { id = 636627, text = "Yes." },
+            { id = 636631, text = "You are so right!" },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 636637, text = "A hand extended in need is grasped in friendship." },
+            { id = 636635, text = "I am honored to serve." },
+            { id = 1384032, text = "I am very sorry." },
+            { id = 636633, text = "I will put it on your tab." },
+            { id = 636615, text = "Oh, thank you so much!" },
+            { id = 636617, text = "Thanks!" },
+            { id = 636619, text = "You have a generous heart." },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 636417, text = "Great work!" },
+            { id = 636419, text = "Nicely done!" },
+            { id = 636421, text = "You are very skilled!" },
+        } },
+        { name = "Jokes", family = "Fun", lines = {
+            { id = 644736, text = "All these new cultures are so confusing. Today, someone complimented me on my boudonk-a-donk. What is that? Elvish?" },
+            { id = 644738, text = "I am a leaf in the wind, but like a big tough leaf with swords and magic and stuff." },
+            { id = 644740, text = "I am mostly vegetarian. I only eat plants, and animals that eat plants." },
+            { id = 644742, text = "If you shoot for the stars and hit the moon, do not be ashamed, for you have aspired to greatness. And the moon had it coming." },
+            { id = 644730, text = "I'm doing great! Oh, I could stand to gain a few pounds, sure, but who doesn't?" },
+            { id = 644728, text = "Let's see, forward, down, forward, punch. No, No, No, down, up, kick." },
+            { id = 644734, text = "Of course we have thumbs, look!" },
+            { id = 644732, text = "Oh, I have really got to start waxing." },
+            { id = 644744, text = "So I was talking to this tauren the other day. No, I mean a worgen. No, wait, which one's a cow and which one's a dog? Oh, all these talking animals are stupid!" },
+        } },
+        { name = "Flirts", family = "Fun", lines = {
+            { id = 644696, text = "Breathe in, breathe out. Go to your happy place. Your happy place or mine." },
+            { id = 644702, text = "Don't touch the tail! Okay, now touch the tail." },
+            { id = 644706, text = "Hey stranger, buy a lady a drink? What? Just one? Seriously?" },
+            { id = 644708, text = "Let me show you my kung fu grip." },
+            { id = 644704, text = "Oh, I've never done that before. Um, you're not doing it right." },
+            { id = 644710, text = "Pandaren women have more bounce to the ounce." },
+            { id = 644698, text = "Quickly as you can, snatch the pebble from my hand. Great! Now see if you can find where I hid the other pebble." },
+            { id = 644700, text = "What happens in the hot springs stays in the hot springs." },
+            { id = 644712, text = "You want to talk about motion of the ocean? I was born on a turtle, baby." },
+        } },
+        { name = "Clowning", family = "Fun", lines = {
+            { id = 644678, text = "BAWK BAWK BAWK BAWK" },
+            { id = 636613, text = "PFFT!" },
+            { id = 636621, text = "Woohoo! Chugga, Chugga, Chugga, hoo, hoo!" },
+        } },
+        { name = "Cheers", family = "Fun", lines = {
+            { id = 636413, text = "HOORAY!" },
+        } },
+        { name = "Laughter", family = "Fun", lines = {
+            { id = 644722, text = "HAHAHAHA!" },
+        } },
+        { name = "Weeping", family = "Feelings", lines = {
+            { id = 636423, text = "Heh Heh Heh heh..." },
+            { id = 636427, text = "HEHEHEHE!" },
+        } },
+        { name = "Sighs", family = "Feelings", lines = {
+            { id = 644726, text = "SIGH..." },
+        } },
+        { name = "Yawns", family = "Feelings", lines = {
+            { id = 644784, text = "OOOH!" },
+        } },
+        { name = "Affection", family = "Feelings", lines = {
+            { id = 644714, text = "MWAH!" },
+        } },
+        { name = "Surprise", family = "Feelings", lines = {
+            { id = 1384031, text = "A small mistake, no use dwelling on it." },
+            { id = 1384035, text = "By the four winds!" },
+        } },
+        { name = "Pleading", family = "Menace", lines = {
+            { id = 636393, text = "I beg you, please!" },
+            { id = 636397, text = "I-I-I-I" },
+            { id = 636395, text = "Mercy is divine!" },
+            { id = 636401, text = "Please, you are endangering me!" },
+            { id = 636399, text = "What is the kindest city in the world? Generosity." },
+        } },
+    } },
+    { who = "Pandaren - masculine voice", race = "Pandaren", sex = "male", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 1384999, text = "Aaaargh!" },
+            { id = 1384979, text = "AHHH!" },
+            { id = 1384994, text = "Argh!" },
+            { id = 630054, text = "Fight!" },
+            { id = 1387397, text = "FOR THE ALLIANCE!" },
+            { id = 1387398, text = "FOR THE HORDE!" },
+            { id = 1384984, text = "HAAAAA!" },
+            { id = 1384981, text = "Haaaaaaa" },
+            { id = 1384980, text = "HRRRRRR" },
+            { id = 1384993, text = "HUH?" },
+            { id = 1384997, text = "Hyah!" },
+            { id = 630058, text = "Last one in buys the next round!" },
+            { id = 630060, text = "Let's brew some trouble!" },
+            { id = 1384983, text = "NOOOOOO" },
+            { id = 630056, text = "Now we finish this!" },
+            { id = 1384995, text = "So long!" },
+            { id = 630062, text = "WA-HA!" },
+            { id = 1384971, text = "ZAAH!" },
+        } },
+        { name = "Battle roars", family = "Fighting", lines = {
+            { id = 641336, text = "NOOO!" },
+            { id = 641334, text = "ROAR ROAR ROAR!" },
+            { id = 641330, text = "RRR!" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 629998, text = "AH!" },
+            { id = 1384976, text = "AHHH AHHH!" },
+            { id = 630008, text = "HA!" },
+            { id = 1384974, text = "HIYA!" },
+            { id = 630006, text = "HUAH!" },
+            { id = 630014, text = "HYA!" },
+            { id = 1384975, text = "HYAH GRRR!" },
+            { id = 630000, text = "MWAH!" },
+            { id = 630002, text = "NAH!" },
+            { id = 1384972, text = "UGH UGH!" },
+            { id = 629996, text = "UGH!" },
+            { id = 630004, text = "YEAH!" },
+        } },
+        { name = "Casting", family = "Fighting", lines = {
+            { id = 1384988, text = "HUUU!" },
+            { id = 1384986, text = "OOO!" },
+            { id = 1384991, text = "OOOH NAH!" },
+        } },
+        { name = "Threats", family = "Menace", lines = {
+            { id = 1385003, text = "I will help you find inner peace, but it's going to hurt." },
+        } },
+        { name = "Mockery", family = "Menace", lines = {
+            { id = 1385002, text = "You are not afraid of a fair fight, are you?" },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 630040, text = "Assist me!" },
+            { id = 630234, text = "Follow my lead!" },
+            { id = 630302, text = "I must ask you to stay put." },
+            { id = 630236, text = "Let us travel together." },
+            { id = 630232, text = "Please friend, come with me." },
+            { id = 630300, text = "Please, remain here." },
+            { id = 630280, text = "STRIKE NOW!" },
+            { id = 630042, text = "Support my attack!" },
+            { id = 630038, text = "Sweep the leg!" },
+            { id = 630282, text = "Unleash everything you've got!" },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 630226, text = "And now, we run." },
+            { id = 630228, text = "He who flees, fights another day." },
+            { id = 630230, text = "There is no shame in a wise retreat." },
+        } },
+        { name = "Calls for aid", family = "Orders and warnings", lines = {
+            { id = 630248, text = "I AM WOUNDED" },
+            { id = 630246, text = "I need healing!" },
+            { id = 630260, text = "I need your aid!" },
+            { id = 630262, text = "My friend, could you lend me a hand?" },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 630286, text = "I am tapped out." },
+            { id = 630284, text = "I have no mana." },
+        } },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 630326, text = "AAARGH!" },
+            { id = 630334, text = "OOOH!" },
+        } },
+        { name = "Death cries", family = "Hurt and dying", lines = {
+            { id = 630096, text = "AAARGH BOOM!" },
+            { id = 630080, text = "OH!" },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 630252, text = "Greetings" },
+            { id = 630250, text = "Hello friend!" },
+            { id = 630256, text = "It is good to see you." },
+            { id = 630254, text = "Welcome" },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 630238, text = "Farewell, my friend." },
+            { id = 630244, text = "May you have many great adventures." },
+            { id = 630242, text = "Next time, I'm buying." },
+            { id = 630240, text = "until our paths cross again." },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 630348, text = "Ha ha ha, indeed." },
+            { id = 630268, text = "I would have to disagree." },
+            { id = 630272, text = "If I agreed with you, we would both be wrong." },
+            { id = 630274, text = "Mhm." },
+            { id = 630266, text = "No, not at all." },
+            { id = 630270, text = "No." },
+            { id = 630344, text = "Of course." },
+            { id = 630276, text = "Yep" },
+            { id = 630346, text = "Yes." },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 630354, text = "Aiding one's neighbor forges a chain of fellowship, not easily broken." },
+            { id = 630352, text = "I'll put it on your tab." },
+            { id = 630350, text = "It has been an honour." },
+            { id = 630290, text = "Many many thanks." },
+            { id = 630292, text = "Thank you." },
+            { id = 1385001, text = "Toe-Poo-Chi!" },
+            { id = 630294, text = "Your generosity humbles me." },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 630070, text = "Well done." },
+            { id = 630068, text = "Wonderful!" },
+            { id = 630072, text = "You are very skilled." },
+        } },
+        { name = "Jokes", family = "Fun", lines = {
+            { id = 644802, text = "Gotta store up some fat for the winter. I don't hibernate or nothin', I just like havin' it around." },
+            { id = 644804, text = "Hey, you look like you've lost some weight. That's terrible. Have a dumpling." },
+            { id = 644816, text = "How much deeper would the ocean be without sponges? Meditate on this." },
+            { id = 644810, text = "It is said, elephant tusks will not grow from a dog's mouth. But you can get them in there, you know, with a little glue, some tape, it's fine, maybe a rubber band." },
+            { id = 644818, text = "It is said, everywhere is in walking distance, if you have the time." },
+            { id = 644820, text = "It is said, if you cannot beat them, join them. I say, if you cannot beat them, beat them, because they will be expecting you to join them so you will have the element of surprise." },
+            { id = 644812, text = "It is said, to err is human. Haha, stupid humans." },
+            { id = 644806, text = "Mighty is the wind, but you can still break it. Meditate on this." },
+            { id = 644814, text = "Teach a man to fish, and he is fed for a day. No, uh, he's fed. I messed it up, but we just make this stuff up anyways." },
+            { id = 644808, text = "Yeah. Mm-hmm. We're going to need a bigger turtle." },
+        } },
+        { name = "Flirts", family = "Fun", lines = {
+            { id = 644796, text = "Do you know kung fu? Cause your body is kickin'" },
+            { id = 644800, text = "Hey gorgeous, want a tri-crane position? Oh no, for you, monkey style." },
+            { id = 644790, text = "Hey hot stuff, wanna try breathing in captivity?" },
+            { id = 644788, text = "I will sing for you the love song of my people. COME AND GET IT!" },
+            { id = 644798, text = "Nice pants. What's the drop rate?" },
+            { id = 644794, text = "Sweet thing, I'm a romance all three of your kingdoms. Meditate on that." },
+            { id = 644792, text = "Who's your bear? That's right. I am your bear." },
+            { id = 644786, text = "Yeah, I would tap that cake." },
+        } },
+        { name = "Clowning", family = "Fun", lines = {
+            { id = 641276, text = "BAWK BAWK BAWK BAWK!" },
+            { id = 641278, text = "BWAH BWAH BWAH BWAH" },
+            { id = 630288, text = "MMM!" },
+            { id = 641274, text = "muk muk muk muk" },
+            { id = 630298, text = "WOO! WOO! Chugga, Chugga, Chugga, chugga! WOO! WOO!" },
+        } },
+        { name = "Cheers", family = "Fun", lines = {
+            { id = 630064, text = "Fortune smiles on us." },
+            { id = 630066, text = "HAHA!" },
+        } },
+        { name = "Laughter", family = "Fun", lines = {
+            { id = 641328, text = "Ha Ha Ha ha!" },
+            { id = 641324, text = "HAHAHAHA!" },
+            { id = 641326, text = "Ho Ho Ho ho!" },
+        } },
+        { name = "Weeping", family = "Feelings", lines = {
+            { id = 630074, text = "Heh Heh Heh he" },
+            { id = 630076, text = "HEHEHEH!" },
+        } },
+        { name = "Sighs", family = "Feelings", lines = {
+            { id = 641342, text = "HMM..." },
+            { id = 641340, text = "SIGH..." },
+        } },
+        { name = "Affection", family = "Feelings", lines = {
+            { id = 641320, text = "Mwah Mwah Mwah mwah!" },
+            { id = 641318, text = "Oh, mwah, mwah, mwah, mwah." },
+        } },
+        { name = "Surprise", family = "Feelings", lines = {
+            { id = 1385000, text = "A small mistake. No use dwelling on it." },
+            { id = 1385004, text = "BY THE FOUR WINS!" },
+        } },
+        { name = "Pleading", family = "Menace", lines = {
+            { id = 630044, text = "Have mercy! Have mercy! Please! Please!" },
+            { id = 630048, text = "I am not worthy. I am not worthy." },
+            { id = 630050, text = "I am your most humble servant." },
+            { id = 630052, text = "I-I-I-Please!" },
+            { id = 630046, text = "Oh, please, please, please, please." },
         } },
     } },
     { who = "Plague Deviser Marileth", groups = {
-        { name = "Threats", lines = {
+        { name = "Battle roars", family = "Fighting", lines = {
+            { id = 3785128, text = "AAAH!" },
+            { id = 3785122, text = "AHHH!" },
+            { id = 3785130, text = "HIYAH!" },
+            { id = 3785124, text = "YEAH!" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 3785134, text = "HA!" },
+            { id = 3785146, text = "HEH!" },
+            { id = 3785138, text = "HIYA GAH!" },
+            { id = 3785160, text = "HIYA!" },
+            { id = 3785142, text = "HMPH!" },
+            { id = 3785152, text = "HYA!" },
+        } },
+        { name = "Threats", family = "Menace", lines = {
             { id = 3752871, text = "I am ready when you are. Oh, this is quite exciting!" },
             { id = 3752805, text = "I shall endure for you." },
             { id = 3752806, text = "Oh, Apprentice! There you are!" },
         } },
-        { name = "Boasts", lines = {
+        { name = "Boasts", family = "Menace", lines = {
             { id = 3752592, text = "I always have time for my brightest pupil." },
             { id = 3752789, text = "I have prepared the cauldron for you. Begin when ready." },
         } },
-        { name = "Dark magic", lines = {
-            { id = 3752591, text = "Any new ideas for a plague?" },
-            { id = 3752593, text = "With the Margrave's help, anything is possible." },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 3785194, text = "AAARGH!" },
+            { id = 3785190, text = "GAAAH!" },
+            { id = 3785188, text = "GAH!" },
+            { id = 3785214, text = "HRRR!" },
+            { id = 3785196, text = "HYAH!" },
+            { id = 3785202, text = "OH!" },
+            { id = 3785198, text = "OOF!" },
+            { id = 3785204, text = "UGH!" },
         } },
-        { name = "Greetings", lines = {
+        { name = "Death cries", family = "Hurt and dying", lines = {
+            { id = 3785168, text = "HUAAAGH!" },
+            { id = 3785174, text = "HYA UGH!" },
+            { id = 3785176, text = "HYAA!" },
+            { id = 3785172, text = "HYAH UGH!" },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
             { id = 3752792, text = "Ah, a splash of venom, for viscosity." },
             { id = 3752870, text = "Ah, my apprentice, you return at last!" },
             { id = 3752589, text = "Good to see you, my apprentice." },
         } },
-        { name = "Farewells", lines = {
+        { name = "Farewells", family = "Manners", lines = {
             { id = 3752582, text = "Farewell, apprentice." },
         } },
-        { name = "Conversation", lines = {
+        { name = "Dark magic", family = "Fighting", lines = {
+            { id = 3752591, text = "Any new ideas for a plague?" },
+            { id = 3752593, text = "With the Margrave's help, anything is possible." },
+        } },
+        { name = "Conversation", family = "Feelings", lines = {
             { id = 4080447, text = "A slime for you, and a slime for you!" },
             { id = 3752594, text = "Do you hear them, the voices?" },
             { id = 3752584, text = "Enjoy your field research!" },
@@ -2124,51 +7165,14 @@ GameVoices.Characters = {
             { id = 4491718, text = "What? Ouch!" },
             { id = 3752585, text = "Why do I feel… hollow?" },
         } },
-        { name = "Attack grunts", lines = {
-            { id = 3785134, text = "HA!" },
-            { id = 3785146, text = "HEH!" },
-            { id = 3785138, text = "HIYA GAH!" },
-            { id = 3785160, text = "HIYA!" },
-            { id = 3785142, text = "HMPH!" },
-            { id = 3785152, text = "HYA!" },
-        } },
-        { name = "Pain", lines = {
-            { id = 3785194, text = "AAARGH!" },
-            { id = 3785190, text = "GAAAH!" },
-            { id = 3785188, text = "GAH!" },
-            { id = 3785214, text = "HRRR!" },
-            { id = 3785196, text = "HYAH!" },
-            { id = 3785202, text = "OH!" },
-            { id = 3785198, text = "OOF!" },
-            { id = 3785204, text = "UGH!" },
-        } },
-        { name = "Death cries", lines = {
-            { id = 3785168, text = "HUAAAGH!" },
-            { id = 3785174, text = "HYA UGH!" },
-            { id = 3785176, text = "HYAA!" },
-            { id = 3785172, text = "HYAH UGH!" },
-        } },
-        { name = "Battle roars", lines = {
-            { id = 3785128, text = "AAAH!" },
-            { id = 3785122, text = "AHHH!" },
-            { id = 3785130, text = "HIYAH!" },
-            { id = 3785124, text = "YEAH!" },
-        } },
     } },
     { who = "Plague Doctor", groups = {
-        { name = "Conversation", lines = {
+        { name = "Conversation", family = "Feelings", lines = {
             { id = 3480678, text = "Your agony should prove enlightening!" },
         } },
     } },
     { who = "Scourgelord Tyrannus", groups = {
-        { name = "Boasts", lines = {
-            { id = 559700, text = "I shall not fail the Lich King! Come and meet your end!" },
-        } },
-        { name = "Conversation", lines = {
-            { id = 559667, text = "Impossible! Rhyme Fang! Warn!" },
-            { id = 559698, text = "Thank you for watching!" },
-        } },
-        { name = "Attack grunts", lines = {
+        { name = "Attack grunts", family = "Fighting", lines = {
             { id = 559677, text = "GAAAH!" },
             { id = 559681, text = "HA!" },
             { id = 559685, text = "HUH!" },
@@ -2179,7 +7183,10 @@ GameVoices.Characters = {
             { id = 559676, text = "WAH!" },
             { id = 559669, text = "YEAH!" },
         } },
-        { name = "Pain", lines = {
+        { name = "Boasts", family = "Menace", lines = {
+            { id = 559700, text = "I shall not fail the Lich King! Come and meet your end!" },
+        } },
+        { name = "Pain", family = "Hurt and dying", lines = {
             { id = 559663, text = "AHHH!" },
             { id = 559672, text = "ARGH!" },
             { id = 559694, text = "BOOM!" },
@@ -2187,19 +7194,23 @@ GameVoices.Characters = {
             { id = 559688, text = "OW!" },
             { id = 559662, text = "UGH!" },
         } },
+        { name = "Conversation", family = "Feelings", lines = {
+            { id = 559667, text = "Impossible! Rhyme Fang! Warn!" },
+            { id = 559698, text = "Thank you for watching!" },
+        } },
     } },
     { who = "Shinfel Blightsworn", groups = {
-        { name = "Threats", lines = {
+        { name = "Threats", family = "Menace", lines = {
             { id = 1406223, text = "Those cursed twins, they will pay for what they did." },
         } },
-        { name = "Boasts", lines = {
+        { name = "Boasts", family = "Menace", lines = {
             { id = 1388691, text = "I grow restless. Entertain me." },
             { id = 1388745, text = "My affection for affliction is no affectation." },
         } },
-        { name = "Orders", lines = {
+        { name = "Orders", family = "Orders and warnings", lines = {
             { id = 1388647, text = "Let's get on with it." },
         } },
-        { name = "Conversation", lines = {
+        { name = "Conversation", family = "Feelings", lines = {
             { id = 1388740, text = "A good pox is always worth sharing." },
             { id = 1388661, text = "A pox on all our enemies." },
             { id = 1393509, text = "It would appear we've been discovered." },
@@ -2216,7 +7227,7 @@ GameVoices.Characters = {
         } },
     } },
     { who = "Skeleton", groups = {
-        { name = "Battle cries", lines = {
+        { name = "Battle cries", family = "Fighting", lines = {
             { id = 3480469, text = "BE MEMORABLE!" },
             { id = 3480577, text = "CAN'T. END. LIKE THIS. Ugh." },
             { id = 2003431, text = "CURSED TESHA CURSED GOLD" },
@@ -2232,7 +7243,32 @@ GameVoices.Characters = {
             { id = 3480579, text = "TOO SOON!" },
             { id = 3480591, text = "YOU WON'T SURVIVE THIS!" },
         } },
-        { name = "Threats", lines = {
+        { name = "Battle roars", family = "Fighting", lines = {
+            { id = 2067855, text = "AAARGH!" },
+            { id = 1044954, text = "GRRRAH!" },
+            { id = 1044953, text = "MUHAHAHAHA!" },
+            { id = 1044955, text = "NNN!" },
+            { id = 560647, text = "UGH!" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 1044961, text = "AHHH!" },
+            { id = 1044962, text = "BLAAAGH!" },
+            { id = 1044970, text = "GRRR!" },
+            { id = 2023517, text = "HA!" },
+            { id = 1044957, text = "HAHAHAHA!" },
+            { id = 2023523, text = "HEH!" },
+            { id = 2067830, text = "HEY UGH!" },
+            { id = 2067834, text = "HIYA!" },
+            { id = 2023527, text = "HIYAH!" },
+            { id = 2023520, text = "HUH!" },
+            { id = 1044968, text = "MWAHAHAHA!" },
+            { id = 1044963, text = "RAAAGH!" },
+            { id = 1044959, text = "RAWR!" },
+            { id = 2023531, text = "YAAH!" },
+            { id = 2023528, text = "YEAH!" },
+            { id = 1044958, text = "YES!" },
+        } },
+        { name = "Threats", family = "Menace", lines = {
             { id = 3720624, text = "No hope for you!" },
             { id = 3480447, text = "You have the best. Now be the best." },
             { id = 2003438, text = "You will answer to Pirate King Zemlan for this." },
@@ -2240,35 +7276,62 @@ GameVoices.Characters = {
             { id = 3511743, text = "Your bones will serve our masters!" },
             { id = 3721060, text = "Your bones will serve us well." },
         } },
-        { name = "Boasts", lines = {
+        { name = "Boasts", family = "Menace", lines = {
             { id = 3514427, text = "I accept the end." },
             { id = 3511753, text = "I return to dust!" },
         } },
-        { name = "Orders", lines = {
+        { name = "Orders", family = "Orders and warnings", lines = {
             { id = 2003443, text = "Get your hands off my treasure!" },
             { id = 3480445, text = "Go ahead, take your pick." },
             { id = 3480603, text = "Let's break some bones!" },
             { id = 3480481, text = "Stay sharp out there!" },
             { id = 3480451, text = "Take good care of that. It'll likely outlast you." },
         } },
-        { name = "Victory", lines = {
+        { name = "Victory", family = "Fighting", lines = {
             { id = 3720621, text = "You are nothing to Muzala!" },
         } },
-        { name = "Dark magic", lines = {
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 2067857, text = "ARGH!" },
+            { id = 1044985, text = "BLEH!" },
+            { id = 1044980, text = "BWAHAHAHA!" },
+            { id = 2023553, text = "D'AH!" },
+            { id = 2023556, text = "GAAAH!" },
+            { id = 1044988, text = "GAAHHH!" },
+            { id = 2023549, text = "GAH!" },
+            { id = 1044981, text = "HAHAHA!" },
+            { id = 2023550, text = "HMPH!" },
+            { id = 560652, text = "NO!" },
+            { id = 2023558, text = "NOOO!" },
+            { id = 560653, text = "OH!" },
+            { id = 2023547, text = "OOF!" },
+            { id = 1044983, text = "PFFT!" },
+            { id = 2023555, text = "YAH!" },
+        } },
+        { name = "Death cries", family = "Hurt and dying", lines = {
+            { id = 560655, text = "AAAHHH!" },
+            { id = 1044975, text = "FUUU!" },
+            { id = 2067836, text = "HIYA GRRR!" },
+            { id = 2067847, text = "HIYAAA!" },
+            { id = 2023538, text = "HUAGH!" },
+            { id = 2023539, text = "HWAH UGH..." },
+            { id = 2023537, text = "HYAH EEEHHH..." },
+            { id = 2067814, text = "HYAH UGH!" },
+        } },
+        { name = "Falling in battle", family = "Hurt and dying", lines = {
+            { id = 3511751, text = "My defeat is only temporary!" },
+            { id = 2003425, text = "Zemlan don't suffer the living no more." },
+        } },
+        { name = "Dark magic", family = "Fighting", lines = {
             { id = 3480459, text = "Got some meat on your bones, huh?" },
             { id = 3511749, text = "Lord will rise in my place!" },
             { id = 2003427, text = "The curse makes us strong!" },
             { id = 3480437, text = "There's a storm coming. I can feel it in my bones." },
             { id = 2003441, text = "This land be cursed! We all are!" },
         } },
-        { name = "Loyalty", lines = {
+        { name = "Loyalty", family = "Manners", lines = {
             { id = 3511747, text = "I. Will. Serve. Again." },
         } },
-        { name = "Falling in battle", lines = {
-            { id = 3511751, text = "My defeat is only temporary!" },
-            { id = 2003425, text = "Zemlan don't suffer the living no more." },
-        } },
-        { name = "Conversation", lines = {
+        { name = "Conversation", family = "Feelings", lines = {
             { id = 2003429, text = "Add me to the pile." },
             { id = 2003415, text = "All treasure for Zemlan." },
             { id = 3480441, text = "Alright, let's deal." },
@@ -2334,67 +7397,259 @@ GameVoices.Characters = {
             { id = 3480601, text = "You're my way up the ladder!" },
             { id = 1044973, text = "You're the only thing I know!" },
         } },
-        { name = "Attack grunts", lines = {
-            { id = 1044961, text = "AHHH!" },
-            { id = 1044962, text = "BLAAAGH!" },
-            { id = 1044970, text = "GRRR!" },
-            { id = 2023517, text = "HA!" },
-            { id = 1044957, text = "HAHAHAHA!" },
-            { id = 2023523, text = "HEH!" },
-            { id = 2067830, text = "HEY UGH!" },
-            { id = 2067834, text = "HIYA!" },
-            { id = 2023527, text = "HIYAH!" },
-            { id = 2023520, text = "HUH!" },
-            { id = 1044968, text = "MWAHAHAHA!" },
-            { id = 1044963, text = "RAAAGH!" },
-            { id = 1044959, text = "RAWR!" },
-            { id = 2023531, text = "YAAH!" },
-            { id = 2023528, text = "YEAH!" },
-            { id = 1044958, text = "YES!" },
-        } },
-        { name = "Pain", lines = {
-            { id = 2067857, text = "ARGH!" },
-            { id = 1044985, text = "BLEH!" },
-            { id = 1044980, text = "BWAHAHAHA!" },
-            { id = 2023553, text = "D'AH!" },
-            { id = 2023556, text = "GAAAH!" },
-            { id = 1044988, text = "GAAHHH!" },
-            { id = 2023549, text = "GAH!" },
-            { id = 1044981, text = "HAHAHA!" },
-            { id = 2023550, text = "HMPH!" },
-            { id = 560652, text = "NO!" },
-            { id = 2023558, text = "NOOO!" },
-            { id = 560653, text = "OH!" },
-            { id = 2023547, text = "OOF!" },
-            { id = 1044983, text = "PFFT!" },
-            { id = 2023555, text = "YAH!" },
-        } },
-        { name = "Death cries", lines = {
-            { id = 560655, text = "AAAHHH!" },
-            { id = 1044975, text = "FUUU!" },
-            { id = 2067836, text = "HIYA GRRR!" },
-            { id = 2067847, text = "HIYAAA!" },
-            { id = 2023538, text = "HUAGH!" },
-            { id = 2023539, text = "HWAH UGH..." },
-            { id = 2023537, text = "HYAH EEEHHH..." },
-            { id = 2067814, text = "HYAH UGH!" },
-        } },
-        { name = "Battle roars", lines = {
-            { id = 2067855, text = "AAARGH!" },
-            { id = 1044954, text = "GRRRAH!" },
-            { id = 1044953, text = "MUHAHAHAHA!" },
-            { id = 1044955, text = "NNN!" },
-            { id = 560647, text = "UGH!" },
-        } },
-        { name = "Noticing you", lines = {
+        { name = "Noticing you", family = "Orders and warnings", lines = {
             { id = 2067832, text = "EH!" },
             { id = 1044978, text = "FFFUUU!" },
             { id = 2023543, text = "HUH HRRR!" },
             { id = 2023544, text = "RRR!" },
         } },
     } },
+    { who = "Skyborne Elf - feminine voice", race = "Skyborne Elf", sex = "female", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 7744883, text = "For the Shindorai!" },
+            { id = 7744882, text = "Show them the Storm's fury!" },
+        } },
+        { name = "Battle roars", family = "Fighting", lines = {
+            { id = 8036581, text = "AHHH!" },
+            { id = 8036579, text = "HUUU!" },
+            { id = 8036583, text = "YEAH!" },
+        } },
+        { name = "Threats", family = "Menace", lines = {
+            { id = 7997869, text = "I'll make you pay for that." },
+            { id = 7997872, text = "I'll make you wish you'd never been born." },
+        } },
+        { name = "Mockery", family = "Menace", lines = {
+            { id = 7997857, text = "You don't have the nerve." },
+            { id = 7997860, text = "You wouldn't dare, coward!" },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 7744881, text = "Attack my target!" },
+            { id = 7744891, text = "Follow me!" },
+            { id = 7744893, text = "I can lead the way." },
+            { id = 7744892, text = "I'll lead you." },
+            { id = 7744912, text = "Let fly!" },
+            { id = 7744913, text = "Rock them like a hurricane!" },
+            { id = 7744922, text = "Wait for a moment..." },
+            { id = 7744923, text = "Wait." },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 7744886, text = "Fly, you fools!" },
+            { id = 7744905, text = "ISOP, INCOMING!" },
+            { id = 7744887, text = "Retreat!" },
+            { id = 7744885, text = "Run like the wind!" },
+        } },
+        { name = "Calls for aid", family = "Orders and warnings", lines = {
+            { id = 7744904, text = "A little help here?" },
+            { id = 7744897, text = "Heal me, quickly!" },
+            { id = 7744903, text = "Help me!" },
+            { id = 7744898, text = "I need healing!" },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 7744968, text = "I need more mana." },
+            { id = 7744959, text = "I need more raid." },
+            { id = 7744970, text = "I'm low on mana." },
+            { id = 7744967, text = "My energy is low." },
+            { id = 7744969, text = "My mana is low." },
+            { id = 7744958, text = "My rage is low." },
+            { id = 7744966, text = "Not enough energy." },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 7744899, text = "BANU ALLAH" },
+            { id = 7744900, text = "Gail's greetings, friend." },
+            { id = 7744901, text = "Hello" },
+            { id = 7744902, text = "Land with grace." },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 7744896, text = "Goodbye." },
+            { id = 7744894, text = "May the winds guide you." },
+            { id = 7744895, text = "Until we meet again." },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 7744909, text = "Agreed." },
+            { id = 7744908, text = "No." },
+            { id = 7744907, text = "Not a chance." },
+            { id = 7744906, text = "Not interested." },
+            { id = 7744911, text = "Sounds good." },
+            { id = 7744910, text = "Yes, that'll do." },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 7997809, text = "I am quite sorry." },
+            { id = 7744920, text = "I won't forget this kindness." },
+            { id = 7744919, text = "Much appreciated." },
+            { id = 7997812, text = "My sincere apologies." },
+            { id = 7997896, text = "Please don't mention it." },
+            { id = 7744918, text = "Thank you." },
+            { id = 7997893, text = "You're quite welcome." },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 7997839, text = "CONGRATULATIONS!" },
+            { id = 7997842, text = "Well deserved." },
+        } },
+        { name = "Jokes", family = "Fun", lines = {
+            { id = 7744917, text = "I think I'm hilarious, but most of my friends think I'm just blowing hot air." },
+            { id = 7744915, text = "My people have always been around. You just didn't notice because you never look up." },
+            { id = 7744916, text = "We Skyborne always fall with grace. It's the landing part that I have trouble with." },
+        } },
+        { name = "Flirts", family = "Fun", lines = {
+            { id = 7744889, text = "Are you a gust of wind? Because you just swept me off my feet." },
+            { id = 7744888, text = "Did the clouds part, or did you just smile at me?" },
+            { id = 7744890, text = "I'm no Storm Elemental, but I am definitely feeling a spark." },
+        } },
+        { name = "Clowning", family = "Fun", lines = {
+            { id = 8036411, text = "Boop, Boop, Boop, boop!" },
+            { id = 8036415, text = "Bop Bop Bop bop" },
+            { id = 7744914, text = "HUH PFFT!" },
+            { id = 8036413, text = "muk muk muk muk" },
+        } },
+        { name = "Cheers", family = "Fun", lines = {
+            { id = 7961127, text = "Fair winds will prevail." },
+            { id = 7744884, text = "For the glory of Zephrysile!" },
+            { id = 8036393, text = "OH! HAHAHA! WOO HOO HOO!" },
+            { id = 8036395, text = "Oh! Hahaha! Yay! Hahaha!" },
+        } },
+        { name = "Laughter", family = "Fun", lines = {
+            { id = 8036481, text = "AWW!" },
+            { id = 8036477, text = "Ha Ha Ha ha!" },
+            { id = 8036475, text = "HAHAHA!" },
+            { id = 8036479, text = "HEHEHEHE!" },
+        } },
+        { name = "Weeping", family = "Feelings", lines = {
+            { id = 8036419, text = "AHAHAHA!" },
+            { id = 8036417, text = "Heh Heh Heh heh!" },
+        } },
+        { name = "Sighs", family = "Feelings", lines = {
+            { id = 8036507, text = "HMM!" },
+            { id = 8036503, text = "SIGH!" },
+        } },
+        { name = "Affection", family = "Feelings", lines = {
+            { id = 8036471, text = "MWAH!" },
+        } },
+        { name = "Surprise", family = "Feelings", lines = {
+            { id = 7997854, text = "That is quite unfortunate." },
+        } },
+        { name = "Pleading", family = "Menace", lines = {
+            { id = 7997827, text = "I beg your pardon." },
+            { id = 7997830, text = "Please forgive me." },
+        } },
+    } },
+    { who = "Skyborne Elf - masculine voice", race = "Skyborne Elf", sex = "male", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 7744476, text = "FOR THE SHEN DORAI!" },
+            { id = 7744475, text = "Show them the Storm's fury!" },
+        } },
+        { name = "Battle roars", family = "Fighting", lines = {
+            { id = 8062196, text = "HAAA!" },
+            { id = 8062200, text = "HUUU!" },
+        } },
+        { name = "Threats", family = "Menace", lines = {
+            { id = 7997878, text = "I'll make you wish you'd never been born." },
+            { id = 7997875, text = "Oh, I'll make you pay for that." },
+        } },
+        { name = "Mockery", family = "Menace", lines = {
+            { id = 7997866, text = "Heh, you wouldn't dare, coward." },
+            { id = 7997863, text = "You don't have the nerve." },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 7744473, text = "Attack my target!" },
+            { id = 7744485, text = "Follow me!" },
+            { id = 7744487, text = "I can lead the way." },
+            { id = 7744486, text = "I'll lead you." },
+            { id = 7744506, text = "Let's fly!" },
+            { id = 7744507, text = "Rock them like a hurricane!" },
+            { id = 7744514, text = "Wait for a moment..." },
+            { id = 7744515, text = "Wait." },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 7744499, text = "Eyes up! Incoming!" },
+            { id = 7744480, text = "Fly, you fools!" },
+            { id = 7744481, text = "Retreat!" },
+            { id = 7744479, text = "Run like the wind!" },
+        } },
+        { name = "Calls for aid", family = "Orders and warnings", lines = {
+            { id = 7744498, text = "A little help here?" },
+            { id = 7744491, text = "Heal me quickly!" },
+            { id = 7744497, text = "Help me!" },
+            { id = 7744492, text = "I need healing." },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 7744558, text = "I am low on mana." },
+            { id = 7744556, text = "I need more mana." },
+            { id = 7744547, text = "I need more rage." },
+            { id = 7744555, text = "My energy is low." },
+            { id = 7744557, text = "My mana is low." },
+            { id = 7744546, text = "My rage is low." },
+            { id = 7744554, text = "Not enough energy." },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 7744493, text = "Banu Allah" },
+            { id = 7744494, text = "Gail's greetings, friend." },
+            { id = 7744495, text = "Hello" },
+            { id = 7744496, text = "Land with grace." },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 7744490, text = "Goodbye." },
+            { id = 7744488, text = "May the winds guide you." },
+            { id = 7744489, text = "Until we meet again." },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 7744503, text = "Agreed." },
+            { id = 7744502, text = "no" },
+            { id = 7744501, text = "Not a chance." },
+            { id = 7744500, text = "Not interested." },
+            { id = 7744505, text = "Sounds good." },
+            { id = 7744504, text = "Yes, that'll do." },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 7744512, text = "I won't forget this kindness." },
+            { id = 7997818, text = "I'm quite sorry." },
+            { id = 7744511, text = "Much appreciated." },
+            { id = 7997815, text = "My sincerest apologies." },
+            { id = 7997902, text = "Oh, please don't mention it." },
+            { id = 7744510, text = "Thank you." },
+            { id = 7997899, text = "You're quite welcome." },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 7997833, text = "Congratulations!" },
+            { id = 7997836, text = "Oh, well deserved." },
+        } },
+        { name = "Jokes", family = "Fun", lines = {
+            { id = 7930426, text = "I think I'm hilarious, but most of my friends think I'm just blowing hot air." },
+            { id = 7744509, text = "My people have always been around. You just didn't notice, because you never look up." },
+            { id = 7930423, text = "We Skyborne always fall with grace. It's the landing part that I have trouble with." },
+        } },
+        { name = "Flirts", family = "Fun", lines = {
+            { id = 7744483, text = "Are you a gust of wind? Because you just swept me off my feet." },
+            { id = 7744482, text = "Did the clowns part, or did you just smile at me?" },
+            { id = 7744484, text = "I'm no Storm Elemental, but I'm definitely feeling a spark." },
+        } },
+        { name = "Clowning", family = "Fun", lines = {
+            { id = 8062211, text = "Aww. Bawk bawk bawk." },
+            { id = 8062215, text = "Mmm, bok bok bok!" },
+        } },
+        { name = "Cheers", family = "Fun", lines = {
+            { id = 7744477, text = "For the glory of Zephrys Isle!" },
+            { id = 8062202, text = "Ha! Ha ha ha!" },
+            { id = 8062207, text = "OH HAHAHA YEAH!" },
+        } },
+        { name = "Sighs", family = "Feelings", lines = {
+            { id = 8062305, text = "UGH..." },
+        } },
+        { name = "Affection", family = "Feelings", lines = {
+            { id = 8062271, text = "MWAH!" },
+        } },
+        { name = "Surprise", family = "Feelings", lines = {
+            { id = 7997848, text = "That is quite unfortunate." },
+        } },
+        { name = "Idle", family = "Feelings", lines = {
+            { id = 8062344, text = "SIGH!" },
+        } },
+        { name = "Pleading", family = "Menace", lines = {
+            { id = 7997821, text = "I beg your pardon." },
+            { id = 7997824, text = "Please forgive me?" },
+        } },
+    } },
     { who = "Sylvanas Windrunner", groups = {
-        { name = "Battle cries", lines = {
+        { name = "Battle cries", family = "Fighting", lines = {
             { id = 2002754, text = "DESTROY THEM!" },
             { id = 4082343, text = "FALL HERO!" },
             { id = 1406282, text = "FOR THE HORDE!" },
@@ -2407,7 +7662,13 @@ GameVoices.Characters = {
             { id = 561271, text = "WE ARE THE FORSAKEN!" },
             { id = 4082345, text = "YOU ALWAYS WERE WEAK!" },
         } },
-        { name = "Threats", lines = {
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 561309, text = "AH!" },
+            { id = 561323, text = "EH!" },
+            { id = 561302, text = "HA!" },
+            { id = 561299, text = "UGH!" },
+        } },
+        { name = "Threats", family = "Menace", lines = {
             { id = 2002773, text = "Ah, there you are. I was beginning to wonder." },
             { id = 1248590, text = "Gul'dan! You will pay for this!" },
             { id = 3587740, text = "I am certain you won't." },
@@ -2432,7 +7693,7 @@ GameVoices.Characters = {
             { id = 4082359, text = "You will pay! All of you will pay!" },
             { id = 4496031, text = "Your kingdom and your friends are awaiting your return." },
         } },
-        { name = "Boasts", lines = {
+        { name = "Boasts", family = "Menace", lines = {
             { id = 4081772, text = "I always hit my mark." },
             { id = 2565373, text = "I am Sylvanas Windrunner, and I approve this message." },
             { id = 4327507, text = "I don't remember the exact moment I rested control." },
@@ -2459,7 +7720,13 @@ GameVoices.Characters = {
             { id = 3052353, text = "My Dark Rangers have vital information to share with you." },
             { id = 2108679, text = "My victory was inevitable. He was merely wasting my time." },
         } },
-        { name = "Orders", lines = {
+        { name = "Mockery", family = "Menace", lines = {
+            { id = 4093247, text = "Fools! You fight a battle you cannot win!" },
+            { id = 4080417, text = "Pitiful fey! You've already lost!" },
+            { id = 2108689, text = "Ugh, fools! At least now we know how dangerous the wisps can be." },
+            { id = 561220, text = "We are a shell in a coward's spine." },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
             { id = 1801003, text = "Come forward." },
             { id = 561273, text = "Go with honor, General." },
             { id = 1800994, text = "Go. I have much to do." },
@@ -2468,18 +7735,34 @@ GameVoices.Characters = {
             { id = 2736332, text = "Take him." },
             { id = 1248691, text = "Take up positions! We hold them off! We have to!" },
         } },
-        { name = "Victory", lines = {
+        { name = "Victory", family = "Fighting", lines = {
             { id = 2002744, text = "That was a lesson they won't soon forget." },
             { id = 1248904, text = "This was too easy. Something's wrong." },
             { id = 1248860, text = "Too easy." },
         } },
-        { name = "Mockery", lines = {
-            { id = 4093247, text = "Fools! You fight a battle you cannot win!" },
-            { id = 4080417, text = "Pitiful fey! You've already lost!" },
-            { id = 2108689, text = "Ugh, fools! At least now we know how dangerous the wisps can be." },
-            { id = 561220, text = "We are a shell in a coward's spine." },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 561284, text = "OH!" },
+            { id = 561311, text = "OOF!" },
         } },
-        { name = "Dark magic", lines = {
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 3052352, text = "Ah, champion. Ever the loyal soldier." },
+            { id = 1244137, text = "Ah, my loyal hero." },
+            { id = 4496033, text = "Ah, so that's why you've come." },
+            { id = 561224, text = "Ah, speak of the devil." },
+            { id = 1801004, text = "Greetings champion" },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 4496040, text = "Farewell, little lion." },
+            { id = 2028796, text = "Farewell, Nathanos." },
+            { id = 4322890, text = "Farewell." },
+            { id = 1248676, text = "Good luck, Varian." },
+        } },
+        { name = "Despair", family = "Hurt and dying", lines = {
+            { id = 4081141, text = "All hope is lost!" },
+            { id = 4322889, text = "We are more than slaves to our torments." },
+            { id = 561327, text = "What are we if not slaves to this torment?" },
+        } },
+        { name = "Dark magic", family = "Fighting", lines = {
             { id = 561233, text = "Children of the Grave, heed my call!" },
             { id = 3049145, text = "Countless souls have been fed to the hungering darkness." },
             { id = 4081170, text = "Do you fear the shadows?" },
@@ -2488,7 +7771,7 @@ GameVoices.Characters = {
             { id = 573178, text = "Watch, heathens, as death surrounds you!" },
             { id = 561346, text = "What joy is there in this curse!" },
         } },
-        { name = "Loyalty", lines = {
+        { name = "Loyalty", family = "Manners", lines = {
             { id = 1800998, text = "All will serve the Horde in time." },
             { id = 4081135, text = "Heed the call of the Banshee Queen!" },
             { id = 3084082, text = "In the end, he too will serve death." },
@@ -2502,25 +7785,7 @@ GameVoices.Characters = {
             { id = 561265, text = "We are the instruments of the Unyielding Aya!" },
             { id = 2002726, text = "We struck a significant blow to their reserves, Hero. Well done." },
         } },
-        { name = "Despair", lines = {
-            { id = 4081141, text = "All hope is lost!" },
-            { id = 4322889, text = "We are more than slaves to our torments." },
-            { id = 561327, text = "What are we if not slaves to this torment?" },
-        } },
-        { name = "Greetings", lines = {
-            { id = 3052352, text = "Ah, champion. Ever the loyal soldier." },
-            { id = 1244137, text = "Ah, my loyal hero." },
-            { id = 4496033, text = "Ah, so that's why you've come." },
-            { id = 561224, text = "Ah, speak of the devil." },
-            { id = 1801004, text = "Greetings champion" },
-        } },
-        { name = "Farewells", lines = {
-            { id = 4496040, text = "Farewell, little lion." },
-            { id = 2028796, text = "Farewell, Nathanos." },
-            { id = 4322890, text = "Farewell." },
-            { id = 1248676, text = "Good luck, Varian." },
-        } },
-        { name = "Conversation", lines = {
+        { name = "Conversation", family = "Feelings", lines = {
             { id = 897368, text = "A hail of death approaches. Bring them to their fate." },
             { id = 561255, text = "Agatha, show the Warchief!" },
             { id = 1248662, text = "All yours, Alliance!" },
@@ -2691,37 +7956,294 @@ GameVoices.Characters = {
             { id = 2736329, text = "Zelling." },
             { id = 4081165, text = "Zovaal will not be denied!" },
         } },
-        { name = "Attack grunts", lines = {
-            { id = 561309, text = "AH!" },
-            { id = 561323, text = "EH!" },
-            { id = 561302, text = "HA!" },
-            { id = 561299, text = "UGH!" },
+    } },
+    { who = "Tauren - feminine voice", race = "Tauren", sex = "female", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 543002, text = "ATTACK!" },
+            { id = 543008, text = "For Kalimdor!" },
+            { id = 1387399, text = "FOR THE HARD!" },
+            { id = 1384963, text = "Ha!" },
+            { id = 1384957, text = "Hahaha, yeah!" },
+            { id = 1384934, text = "HUAH!" },
+            { id = 1384962, text = "Huh? AHHH!" },
+            { id = 1384961, text = "HUH-UH!" },
+            { id = 1384964, text = "Hwah!" },
+            { id = 1384945, text = "Mmm" },
+            { id = 1384943, text = "MMMMMM" },
+            { id = 1384946, text = "RAAAGH!" },
+            { id = 1384944, text = "Rrraaaagh!" },
+            { id = 1384942, text = "VRAH!" },
+            { id = 1384948, text = "YEAH!" },
         } },
-        { name = "Pain", lines = {
-            { id = 561284, text = "OH!" },
-            { id = 561311, text = "OOF!" },
+        { name = "Battle roars", family = "Fighting", lines = {
+            { id = 543016, text = "RAWR!" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 542812, text = "HEH!" },
+            { id = 1384939, text = "HEY UGH!" },
+            { id = 542809, text = "HEY!" },
+            { id = 542821, text = "HMM!" },
+            { id = 1384940, text = "HUH DUUUH!" },
+            { id = 1384935, text = "HUH GAH!" },
+            { id = 1384938, text = "HUH UGH!" },
+        } },
+        { name = "Casting", family = "Fighting", lines = {
+            { id = 1384950, text = "AHHH AHHH!" },
+            { id = 1384953, text = "HUUU!" },
+            { id = 1384955, text = "RRR!" },
+            { id = 1384949, text = "UUU!" },
+        } },
+        { name = "Threats", family = "Menace", lines = {
+            { id = 1384968, text = "I will crush you like the vermin you are!" },
+        } },
+        { name = "Mockery", family = "Menace", lines = {
+            { id = 1384967, text = "Fight me!" },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 542972, text = "Come with me." },
+            { id = 543003, text = "Fight at my side!" },
+            { id = 542993, text = "FIRE AWAY!" },
+            { id = 542986, text = "Follow my trail." },
+            { id = 542990, text = "Join my fight!" },
+            { id = 542987, text = "Remain here." },
+            { id = 543014, text = "Rest your haunches." },
+            { id = 542971, text = "STRIKE NOW!" },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 543012, text = "Be watchful." },
+            { id = 542988, text = "Danger approaches." },
+            { id = 542991, text = "On your guard!" },
+            { id = 543011, text = "Retreat!" },
+            { id = 542984, text = "Save your hide." },
+        } },
+        { name = "Calls for aid", family = "Orders and warnings", lines = {
+            { id = 543013, text = "Aid me." },
+            { id = 542992, text = "heal me" },
+            { id = 542969, text = "Help!" },
+            { id = 543020, text = "I need healing." },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 543001, text = "I need more mana." },
+            { id = 543006, text = "My manner must be replenished." },
+        } },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 542802, text = "AHHH!" },
+            { id = 542801, text = "COUGH COUGH!" },
+            { id = 542822, text = "NO!" },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 542978, text = "Hello" },
+            { id = 542982, text = "Hi" },
+            { id = 542998, text = "How are you?" },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 543009, text = "Farewell." },
+            { id = 543015, text = "Goodbye." },
+            { id = 542970, text = "May our paths cross again." },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 543005, text = "I don't think so." },
+            { id = 542979, text = "It is not meant to be." },
+            { id = 542983, text = "Naturally." },
+            { id = 543021, text = "Of course." },
+            { id = 543022, text = "Yes." },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 542999, text = "Always glad to help." },
+            { id = 542973, text = "How kind of you." },
+            { id = 1384966, text = "It was my mistake. Apologies." },
+            { id = 543018, text = "My pleasure." },
+            { id = 542974, text = "Thank you." },
+            { id = 543000, text = "You are too kind." },
+            { id = 543017, text = "You are welcome." },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 542981, text = "Excellent!" },
+            { id = 542995, text = "Fate smiles upon you." },
+            { id = 542997, text = "Good job." },
+        } },
+        { name = "Flirts", family = "Fun", lines = {
+            { id = 542975, text = "Come over here, sailor." },
+            { id = 543004, text = "I want a man with soft hands, preferably four of them." },
+            { id = 543010, text = "I'm tired of the same old bull." },
+            { id = 543019, text = "I've got big soulful eyes, long eyelashes, and a wet tongue. What more could a guy want?" },
+            { id = 543007, text = "Wanna see some good clog dancing?" },
+        } },
+        { name = "Losing patience", family = "Fun", lines = {
+            { id = 542996, text = "Happy Taurens come from Mulgore." },
+            { id = 542994, text = "I once laughed so hard I milked all over the floor." },
+            { id = 542968, text = "In my native tongue, my name means, dances with tassels." },
+            { id = 542989, text = "You know how hard it is to get your groove on with the spirit of your great-grandmother looking over you?" },
+        } },
+        { name = "Clowning", family = "Fun", lines = {
+            { id = 542805, text = "Bwah! Bwah! Bwah! Bwah!" },
+            { id = 542977, text = "PFFFTTT!" },
+        } },
+        { name = "Laughter", family = "Fun", lines = {
+            { id = 542806, text = "Ha Ha Ha ha!" },
+        } },
+        { name = "Sighs", family = "Feelings", lines = {
+            { id = 542813, text = "UGH!" },
+        } },
+        { name = "Yawns", family = "Feelings", lines = {
+            { id = 542811, text = "OH!" },
+        } },
+        { name = "Affection", family = "Feelings", lines = {
+            { id = 542803, text = "FFF!" },
+        } },
+        { name = "Surprise", family = "Feelings", lines = {
+            { id = 1384969, text = "By the Earth, Mother!" },
+            { id = 1384965, text = "That did not go well." },
+        } },
+        { name = "Idle", family = "Feelings", lines = {
+            { id = 542819, text = "HEHEHEHE!" },
+        } },
+    } },
+    { who = "Tauren - masculine voice", race = "Tauren", sex = "male", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 543057, text = "Charge!" },
+            { id = 543040, text = "For Kalimdor!" },
+            { id = 1502107, text = "FOR THE HORDE!" },
+            { id = 543071, text = "Unleash your fury!" },
+        } },
+        { name = "Battle roars", family = "Fighting", lines = {
+            { id = 543062, text = "ROAR!" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 542901, text = "GRRR!" },
+            { id = 542889, text = "RAWR!" },
+            { id = 542897, text = "WHOA!" },
+            { id = 542892, text = "YEAH!" },
+        } },
+        { name = "Threats", family = "Menace", lines = {
+            { id = 1410377, text = "I will crush you like the vermin you are." },
+        } },
+        { name = "Mockery", family = "Menace", lines = {
+            { id = 1410376, text = "You are without courage. Fight me!" },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 543048, text = "Come with me." },
+            { id = 543023, text = "Fight at my side!" },
+            { id = 543050, text = "I'll lead the way." },
+            { id = 543073, text = "Join my fight!" },
+            { id = 543076, text = "Remain here." },
+            { id = 543043, text = "Rest a moment." },
+            { id = 543067, text = "STRIKE NOW!" },
+            { id = 543045, text = "Stu here." },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 543054, text = "Danger approaches." },
+            { id = 543063, text = "ON YOUR GUARD!" },
+            { id = 543056, text = "RETREAT!" },
+            { id = 543041, text = "RUUUUUUU UUUUUU UUUuuuuuu" },
+        } },
+        { name = "Calls for aid", family = "Orders and warnings", lines = {
+            { id = 543032, text = "Eat me!" },
+            { id = 543024, text = "GIVE ME EIGHT!" },
+            { id = 543075, text = "heal me" },
+            { id = 543051, text = "Help!" },
+            { id = 543028, text = "I need healing." },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 543049, text = "I need more mana!" },
+            { id = 543053, text = "My mana is spent!" },
+        } },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 542888, text = "MMM!" },
+            { id = 542902, text = "OOF!" },
+            { id = 542891, text = "UGH!" },
+            { id = 542899, text = "UGHHH!" },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 543029, text = "Greetings." },
+            { id = 543035, text = "Hello?" },
+            { id = 543074, text = "Hi." },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 543068, text = "Good journey." },
+            { id = 543061, text = "May our paths cross again." },
+            { id = 543034, text = "May the wind be at your back." },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 543030, text = "I believe so." },
+            { id = 543080, text = "I do not think so." },
+            { id = 543036, text = "It is meant to be." },
+            { id = 543059, text = "Never." },
+            { id = 543042, text = "No." },
+            { id = 543046, text = "Yes." },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 543079, text = "Always glad to help." },
+            { id = 543066, text = "Anything for an ally." },
+            { id = 543069, text = "How generous." },
+            { id = 543060, text = "How kind of you." },
+            { id = 543047, text = "I thank you." },
+            { id = 1410375, text = "It was my mistake. Apologies." },
+            { id = 543081, text = "It was nothing." },
+            { id = 543039, text = "May your ancestors forever guard your path." },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 543027, text = "Fate smiles upon you." },
+            { id = 543038, text = "Well done." },
+            { id = 543070, text = "You are worthy." },
+        } },
+        { name = "Flirts", family = "Fun", lines = {
+            { id = 543037, text = "Are you comfortable with complicated machinery?" },
+            { id = 543077, text = "Hey, you in the leather?" },
+            { id = 543064, text = "Hey, you work out?" },
+            { id = 543033, text = "You know, older bulls really only have one function." },
+            { id = 543031, text = "You move me." },
+        } },
+        { name = "Losing patience", family = "Fun", lines = {
+            { id = 543082, text = "HERE'S THE BEEF" },
+            { id = 543055, text = "Mess with the bull, you get the horns." },
+            { id = 543026, text = "Moo, are you happy now?" },
+        } },
+        { name = "Clowning", family = "Fun", lines = {
+            { id = 542903, text = "Boop boop boop. Grrrr! Grrrr! Grrrr!" },
+            { id = 543044, text = "RRR!" },
+        } },
+        { name = "Cheers", family = "Fun", lines = {
+            { id = 543025, text = "Our ancestors be praised!" },
+        } },
+        { name = "Laughter", family = "Fun", lines = {
+            { id = 542898, text = "MUHAHAHA MUHAHAHA!" },
+        } },
+        { name = "Weeping", family = "Feelings", lines = {
+            { id = 542887, text = "HEHEHEHE!" },
+        } },
+        { name = "Yawns", family = "Feelings", lines = {
+            { id = 542890, text = "UUU!" },
+        } },
+        { name = "Surprise", family = "Feelings", lines = {
+            { id = 1410378, text = "By the Earth, Mother!" },
+            { id = 1410374, text = "That... did not go well." },
         } },
     } },
     { who = "The Lich King", groups = {
-        { name = "Battle cries", lines = {
+        { name = "Battle cries", family = "Fighting", lines = {
             { id = 554101, text = "CREAMBLE! AND KNOW YOUR DOOM!" },
         } },
-        { name = "Threats", lines = {
+        { name = "Threats", family = "Menace", lines = {
             { id = 554114, text = "I will not make the same mistake again, Sylvanas. This time there will be no escape. You will all serve me in death." },
             { id = 554166, text = "Your allies have arrived, Jaina. Just as you promised. You will all become powerful agents of the Scourge." },
             { id = 554123, text = "Your will is not your own." },
         } },
-        { name = "Orders", lines = {
+        { name = "Mockery", family = "Menace", lines = {
+            { id = 554164, text = "Fools of Stormwind, hear me, naive children of the Alliance!" },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
             { id = 3256073, text = "Do not be merciful." },
             { id = 1416929, text = "Go now, and do what must be done." },
         } },
-        { name = "Mockery", lines = {
-            { id = 554164, text = "Fools of Stormwind, hear me, naive children of the Alliance!" },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 554137, text = "NO!" },
+            { id = 554058, text = "WHOA!" },
         } },
-        { name = "Loyalty", lines = {
+        { name = "Loyalty", family = "Manners", lines = {
             { id = 554079, text = "For the Lich King's gaze is fixed upon you!" },
         } },
-        { name = "Conversation", lines = {
+        { name = "Conversation", family = "Feelings", lines = {
             { id = 554099, text = "All life must end." },
             { id = 1595657, text = "And hold tight to your reins." },
             { id = 554181, text = "Bow to your master." },
@@ -2733,16 +8255,235 @@ GameVoices.Characters = {
             { id = 3256076, text = "There is much to be done." },
             { id = 554009, text = "Tremble, and know your doom!" },
         } },
-        { name = "Pain", lines = {
-            { id = 554137, text = "NO!" },
-            { id = 554058, text = "WHOA!" },
+    } },
+    { who = "Troll - feminine voice", race = "Troll", sex = "female", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 1502159, text = "FOR THE HORDE!" },
+            { id = 543254, text = "Four full-gen!" },
+            { id = 543266, text = "WE BRING THE PAIN TO THEM!" },
+        } },
+        { name = "Battle roars", family = "Fighting", lines = {
+            { id = 543226, text = "ROAR!" },
+        } },
+        { name = "Threats", family = "Menace", lines = {
+            { id = 1410382, text = "I'm gonna enjoy hurting you!" },
+        } },
+        { name = "Mockery", family = "Menace", lines = {
+            { id = 1410381, text = "Come back when you're not so scared." },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 543225, text = "Don't you be goin' nowhere!" },
+            { id = 543258, text = "I lead the way." },
+            { id = 543248, text = "Light em' up!" },
+            { id = 543259, text = "Shoot them!" },
+            { id = 543280, text = "Stay put." },
+            { id = 543281, text = "Strike this fool!" },
+            { id = 543244, text = "This the one to fight!" },
+            { id = 543264, text = "You go with me!" },
+            { id = 543236, text = "You stay here!" },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 543256, text = "Bad tings coming." },
+            { id = 543255, text = "DARE BE DANGER" },
+            { id = 543260, text = "GET OUTTA HERE!" },
+            { id = 543246, text = "Run for the hills!" },
+        } },
+        { name = "Calls for aid", family = "Orders and warnings", lines = {
+            { id = 543261, text = "Assist me." },
+            { id = 543262, text = "Cure me." },
+            { id = 543265, text = "HEAL ME!" },
+            { id = 543237, text = "Help me!" },
+            { id = 543231, text = "I'd be in a bad way." },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 543234, text = "I be needin' more mana!" },
+            { id = 543242, text = "Me man are runnin' low!" },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 543227, text = "Greetings!" },
+            { id = 543263, text = "Hello!" },
+            { id = 543235, text = "Hey there!" },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 543270, text = "Catch ya later!" },
+            { id = 543229, text = "Goodbye." },
+            { id = 543279, text = "So long." },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 543268, text = "Dig it!" },
+            { id = 543252, text = "No chance!" },
+            { id = 543240, text = "No way!" },
+            { id = 543239, text = "Not on your life!" },
+            { id = 543267, text = "Shor-ting!" },
+            { id = 543249, text = "YAMAN!" },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 543276, text = "Anytime, man." },
+            { id = 543250, text = "Big tanks!" },
+            { id = 543230, text = "I owe you one." },
+            { id = 1410380, text = "My bad, my bad." },
+            { id = 543275, text = "My pleasure." },
+            { id = 543238, text = "No problem!" },
+            { id = 543271, text = "Tanks!" },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 543273, text = "Good job!" },
+            { id = 543233, text = "Way to go!" },
+            { id = 543243, text = "WONDERFUL!" },
+        } },
+        { name = "Flirts", family = "Fun", lines = {
+            { id = 543269, text = "Aren't you going to axe me out?" },
+            { id = 543272, text = "I know my natural beauty is intimidating." },
+            { id = 543232, text = "I won't bite you where it shows." },
+            { id = 543278, text = "When enraged and in heat, a female troll can mate over 80 times in one night. Be you prepared?" },
+            { id = 543274, text = "You're the type I like to sink my teeth into!" },
+        } },
+        { name = "Losing patience", family = "Fun", lines = {
+            { id = 543247, text = "I feel pretty. Oh so pretty!" },
+            { id = 543228, text = "I got all this, and personality too!" },
+            { id = 543257, text = "If cannibalism be wrong, I don't want to be right!" },
+            { id = 543241, text = "Strong halitosis be but one of my feminine traits." },
+            { id = 543245, text = "The way to a man's heart be through his stomach, but I go through the ribcage." },
+        } },
+        { name = "Clowning", family = "Fun", lines = {
+            { id = 543086, text = "Bwah! Bwah! Bwah! Bwah!" },
+            { id = 543085, text = "OOO!" },
+            { id = 543251, text = "PBBB!" },
+        } },
+        { name = "Laughter", family = "Fun", lines = {
+            { id = 543091, text = "Ha Ha Ha ha!" },
+        } },
+        { name = "Weeping", family = "Feelings", lines = {
+            { id = 543084, text = "AHHH! AHHH! AHHH! AHH! AHH!" },
+        } },
+        { name = "Sighs", family = "Feelings", lines = {
+            { id = 543089, text = "SIGH!" },
+        } },
+        { name = "Yawns", family = "Feelings", lines = {
+            { id = 543095, text = "OH!" },
+        } },
+        { name = "Surprise", family = "Feelings", lines = {
+            { id = 1410383, text = "Whoa, you see that, mon?" },
+        } },
+    } },
+    { who = "Troll - masculine voice", race = "Troll", sex = "male", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 1512807, text = "For the Horde!" },
+            { id = 543284, text = "FOR ZHUJIN!" },
+            { id = 543293, text = "Now we kill!" },
+        } },
+        { name = "Battle roars", family = "Fighting", lines = {
+            { id = 543311, text = "AHHH!" },
+        } },
+        { name = "Threats", family = "Menace", lines = {
+            { id = 1512811, text = "Hahahaha, I'm gonna enjoy hurting you!" },
+        } },
+        { name = "Mockery", family = "Menace", lines = {
+            { id = 1512810, text = "Come back when you're not so scared!" },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 543321, text = "Don't you be goin' nowhere!" },
+            { id = 543288, text = "Follow me." },
+            { id = 543316, text = "Help me here!" },
+            { id = 543303, text = "Light em' up!" },
+            { id = 543319, text = "SHATAM!" },
+            { id = 543298, text = "Stay put." },
+            { id = 543299, text = "STRIKE THIS FOOL!" },
+            { id = 543339, text = "You go with me." },
+            { id = 543292, text = "You stay here." },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 543300, text = "Bad things come in." },
+            { id = 543318, text = "Dare be danger!" },
+            { id = 543320, text = "GET OUTTA HERE!" },
+            { id = 543335, text = "Run!" },
+        } },
+        { name = "Calls for aid", family = "Orders and warnings", lines = {
+            { id = 543310, text = "assist me" },
+            { id = 543314, text = "Cure me!" },
+            { id = 543338, text = "Heal me!" },
+            { id = 543341, text = "Help me!" },
+            { id = 543304, text = "I be in a bad way." },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 543287, text = "I be needin' more mana." },
+            { id = 543302, text = "Me manna be runnin' low." },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 543282, text = "Eman." },
+            { id = 543332, text = "Hey there." },
+            { id = 543309, text = "What be happenin?" },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 543305, text = "Catch you later." },
+            { id = 543289, text = "It's been real." },
+            { id = 543322, text = "Smell you later" },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 543286, text = "hell no." },
+            { id = 543312, text = "I dig it." },
+            { id = 543328, text = "I'll be feeling you." },
+            { id = 543296, text = "No way!" },
+            { id = 543324, text = "No." },
+            { id = 543313, text = "Of course, mon." },
+            { id = 543306, text = "Sure thing." },
+            { id = 543295, text = "Uh-uh." },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 543294, text = "Anytime, mon." },
+            { id = 543297, text = "BIG TANKS!" },
+            { id = 543325, text = "I owe you one." },
+            { id = 543333, text = "No problem." },
+            { id = 1512809, text = "Oh, my bad. My bad." },
+            { id = 543290, text = "Thank you." },
+            { id = 543308, text = "You scratch my back, I scratch yours." },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 543291, text = "Fantastic!" },
+            { id = 543307, text = "Good job!" },
+            { id = 543336, text = "They will speak of your exploits for generations." },
+        } },
+        { name = "Flirts", family = "Fun", lines = {
+            { id = 543283, text = "I hope you're well rested, you're going to need your strength." },
+            { id = 543340, text = "Want some of my jungle love?" },
+            { id = 543334, text = "We chose mate for life, cause we believe in frequent reincarnation." },
+            { id = 543301, text = "You look pretty. Pretty tasty." },
+        } },
+        { name = "Losing patience", family = "Fun", lines = {
+            { id = 543315, text = "Cooking's done. Still here!" },
+            { id = 543323, text = "I got a shrunken head. I just came out of the pool." },
+            { id = 543327, text = "I heard if you cut off an extremity, it'll regenerate a little bigger. Don't believe it." },
+            { id = 543285, text = "I like my women dumpy and droopy with halitosis." },
+            { id = 543337, text = "Neutral here." },
+        } },
+        { name = "Clowning", family = "Fun", lines = {
+            { id = 543087, text = "Bwah! Bwah! Bwah! Bwah!" },
+            { id = 543093, text = "WOOO WOOO!" },
+        } },
+        { name = "Cheers", family = "Fun", lines = {
+            { id = 543331, text = "HAHA YEAH!" },
+        } },
+        { name = "Weeping", family = "Feelings", lines = {
+            { id = 543090, text = "AHAHAHA!" },
+        } },
+        { name = "Sighs", family = "Feelings", lines = {
+            { id = 543088, text = "SIGH!" },
+        } },
+        { name = "Yawns", family = "Feelings", lines = {
+            { id = 543083, text = "MMM!" },
+        } },
+        { name = "Surprise", family = "Feelings", lines = {
+            { id = 1512812, text = "Whoa! You see that, man?" },
         } },
     } },
     { who = "Troll Lich", groups = {
-        { name = "Conversation", lines = {
-            { id = 2012928, text = "We are S.W.I.D.E." },
+        { name = "Battle roars", family = "Fighting", lines = {
+            { id = 2012910, text = "AHHH!" },
+            { id = 3793304, text = "GRR!" },
+            { id = 3793306, text = "HAH!" },
+            { id = 2012907, text = "ROAR!" },
         } },
-        { name = "Attack grunts", lines = {
+        { name = "Attack grunts", family = "Fighting", lines = {
             { id = 3793320, text = "AAARGH UGH!" },
             { id = 3793334, text = "GASP!" },
             { id = 2012914, text = "GRRR!" },
@@ -2756,7 +8497,7 @@ GameVoices.Characters = {
             { id = 2012919, text = "VROOM VROOM!" },
             { id = 2012911, text = "YEAH!" },
         } },
-        { name = "Pain", lines = {
+        { name = "Pain", family = "Hurt and dying", lines = {
             { id = 2012932, text = "EEEGH!" },
             { id = 3793382, text = "MOOF!" },
             { id = 3793372, text = "NOOO!" },
@@ -2764,7 +8505,7 @@ GameVoices.Characters = {
             { id = 2012939, text = "OWWW!" },
             { id = 3793384, text = "ZZZ!" },
         } },
-        { name = "Death cries", lines = {
+        { name = "Death cries", family = "Hurt and dying", lines = {
             { id = 3793352, text = "BLEURGH!" },
             { id = 2012924, text = "HMMM!" },
             { id = 2012925, text = "MMM!" },
@@ -2772,33 +8513,26 @@ GameVoices.Characters = {
             { id = 3793356, text = "WHOA UGH!" },
             { id = 3793354, text = "WHOA!" },
         } },
-        { name = "Battle roars", lines = {
-            { id = 2012910, text = "AHHH!" },
-            { id = 3793304, text = "GRR!" },
-            { id = 3793306, text = "HAH!" },
-            { id = 2012907, text = "ROAR!" },
+        { name = "Conversation", family = "Feelings", lines = {
+            { id = 2012928, text = "We are S.W.I.D.E." },
         } },
-        { name = "Noticing you", lines = {
+        { name = "Noticing you", family = "Orders and warnings", lines = {
             { id = 2012930, text = "UGH!" },
         } },
     } },
     { who = "Undead beast", groups = {
-        { name = "Battle cries", lines = {
+        { name = "Battle cries", family = "Fighting", lines = {
             { id = 1777507, text = "BANG BANG BANG BANG" },
             { id = 1777497, text = "FUS RO DAH!" },
             { id = 2445958, text = "HUH! HUH! HUH!" },
             { id = 2445953, text = "ROAR! ROAR! ROAR! ROAR!" },
             { id = 563081, text = "ROAR, ROAR, ROAR!" },
         } },
-        { name = "Conversation", lines = {
-            { id = 2445959, text = "Ha ha ha ha ha!" },
-            { id = 1777490, text = "How many shots will it take for you to die?" },
-            { id = 1777489, text = "How many shots will it take to destroy the" },
-            { id = 1777491, text = "How many shots will it take to destroy this planet?" },
-            { id = 2445967, text = "How many shots will it take to get to the next level?" },
-            { id = 1777514, text = "How many shots will it take?" },
+        { name = "Battle roars", family = "Fighting", lines = {
+            { id = 2445938, text = "AAA!" },
+            { id = 2445935, text = "RRR!" },
         } },
-        { name = "Attack grunts", lines = {
+        { name = "Attack grunts", family = "Fighting", lines = {
             { id = 2445941, text = "AHHH!" },
             { id = 2445939, text = "GASP!" },
             { id = 2445943, text = "GRRR!" },
@@ -2811,7 +8545,7 @@ GameVoices.Characters = {
             { id = 602783, text = "VROOM!" },
             { id = 563071, text = "WOOF WOOF!" },
         } },
-        { name = "Pain", lines = {
+        { name = "Pain", family = "Hurt and dying", lines = {
             { id = 602816, text = "AHH!" },
             { id = 563070, text = "ARRR!" },
             { id = 1777511, text = "BOOM!" },
@@ -2819,25 +8553,29 @@ GameVoices.Characters = {
             { id = 602762, text = "OH YEAH!" },
             { id = 2445963, text = "UGH!" },
         } },
-        { name = "Death cries", lines = {
+        { name = "Death cries", family = "Hurt and dying", lines = {
             { id = 602753, text = "AHHH AHHH!" },
         } },
-        { name = "Battle roars", lines = {
-            { id = 2445938, text = "AAA!" },
-            { id = 2445935, text = "RRR!" },
+        { name = "Conversation", family = "Feelings", lines = {
+            { id = 2445959, text = "Ha ha ha ha ha!" },
+            { id = 1777490, text = "How many shots will it take for you to die?" },
+            { id = 1777489, text = "How many shots will it take to destroy the" },
+            { id = 1777491, text = "How many shots will it take to destroy this planet?" },
+            { id = 2445967, text = "How many shots will it take to get to the next level?" },
+            { id = 1777514, text = "How many shots will it take?" },
         } },
-        { name = "Noticing you", lines = {
+        { name = "Noticing you", family = "Orders and warnings", lines = {
             { id = 563082, text = "WHOOSH!" },
         } },
     } },
     { who = "Val'kyr", groups = {
-        { name = "Battle cries", lines = {
+        { name = "Battle cries", family = "Fighting", lines = {
             { id = 3389241, text = "DARKNESS AWAITS YOU!" },
             { id = 3489931, text = "MALLWALKER!" },
             { id = 3389249, text = "THE JAILER'S EYE IS UPON YOU!" },
             { id = 3501968, text = "THIS SPIRIT BELONGS TO THE MORE!" },
         } },
-        { name = "Threats", lines = {
+        { name = "Threats", family = "Menace", lines = {
             { id = 3489934, text = "So, you have returned." },
             { id = 3389247, text = "Suffer and perish!" },
             { id = 3389263, text = "You cannot stop his plan!" },
@@ -2848,12 +8586,15 @@ GameVoices.Characters = {
             { id = 3389243, text = "Your bond to life will be severed!" },
             { id = 3489938, text = "Your soul shall soon be bound to the jail." },
         } },
-        { name = "Boasts", lines = {
+        { name = "Boasts", family = "Menace", lines = {
             { id = 1417441, text = "I dwell in the Shadowlands." },
             { id = 1417440, text = "I serve a greater power." },
             { id = 3389255, text = "None can oppose the Jailor." },
         } },
-        { name = "Dark magic", lines = {
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 1501053, text = "HEY! Nya!" },
+        } },
+        { name = "Dark magic", family = "Fighting", lines = {
             { id = 3389252, text = "Ah, curses! Mortal!" },
             { id = 3501972, text = "Ah, more souls to torment!" },
             { id = 3501973, text = "Ha! More souls to torment!" },
@@ -2864,13 +8605,10 @@ GameVoices.Characters = {
             { id = 3489933, text = "This Citadel will be your grave!" },
             { id = 3501969, text = "This spirit belongs to the Maw." },
         } },
-        { name = "Loyalty", lines = {
+        { name = "Loyalty", family = "Manners", lines = {
             { id = 3489937, text = "Our brothers and sisters will soon join us!" },
         } },
-        { name = "Greetings", lines = {
-            { id = 1501053, text = "HEY! Nya!" },
-        } },
-        { name = "Conversation", lines = {
+        { name = "Conversation", family = "Feelings", lines = {
             { id = 3489932, text = "Bastion will kneel before the jailer!" },
             { id = 1417439, text = "Death cannot stop me." },
             { id = 3389253, text = "Death will claim your world." },
@@ -2894,7 +8632,7 @@ GameVoices.Characters = {
         } },
     } },
     { who = "Varimathras", groups = {
-        { name = "Battle cries", lines = {
+        { name = "Battle cries", family = "Fighting", lines = {
             { id = 1686466, text = "A GIFT BORN OF AGONY!" },
             { id = 1686461, text = "BACKCARE!" },
             { id = 1686453, text = "EASY PRAIN!" },
@@ -2906,29 +8644,45 @@ GameVoices.Characters = {
             { id = 1686473, text = "TIME TO PUT AN END TO THIS!" },
             { id = 1686460, text = "YOU CANNOT BREAK ME!" },
         } },
-        { name = "Threats", lines = {
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 563574, text = "ARGH!" },
+            { id = 563598, text = "HMM!" },
+            { id = 563561, text = "HMMM!" },
+            { id = 563573, text = "HMPH!" },
+            { id = 563596, text = "HRRR!" },
+            { id = 563593, text = "NNN!" },
+            { id = 563565, text = "UGH!" },
+            { id = 563604, text = "YEAH!" },
+        } },
+        { name = "Threats", family = "Menace", lines = {
             { id = 1686468, text = "Draw your blades, I will show you torment!" },
             { id = 1686458, text = "I will kill you all!" },
             { id = 1686463, text = "Share your suffering!" },
             { id = 1686455, text = "You are mine!" },
         } },
-        { name = "Boasts", lines = {
+        { name = "Boasts", family = "Menace", lines = {
             { id = 563599, text = "None can oppose me." },
         } },
-        { name = "Orders", lines = {
+        { name = "Orders", family = "Orders and warnings", lines = {
             { id = 1686151, text = "Come then, we will trade pain for pain!" },
             { id = 563585, text = "Don't waste my time." },
         } },
-        { name = "Victory", lines = {
+        { name = "Victory", family = "Fighting", lines = {
             { id = 1686478, text = "Is that all you can take?" },
         } },
-        { name = "Dark magic", lines = {
-            { id = 1686457, text = "Ah, the agony of shadows!" },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 563586, text = "AHHH!" },
+            { id = 563603, text = "GAH!" },
+            { id = 563582, text = "HUH!" },
+            { id = 563583, text = "MMM!" },
         } },
-        { name = "Despair", lines = {
+        { name = "Despair", family = "Hurt and dying", lines = {
             { id = 1686472, text = "Your torment is only beginning." },
         } },
-        { name = "Conversation", lines = {
+        { name = "Dark magic", family = "Fighting", lines = {
+            { id = 1686457, text = "Ah, the agony of shadows!" },
+        } },
+        { name = "Conversation", family = "Feelings", lines = {
             { id = 1686462, text = "Away!" },
             { id = 1686474, text = "Behold the might of the Nathrezim!" },
             { id = 1686465, text = "Behold! Pain given form!" },
@@ -2940,28 +8694,730 @@ GameVoices.Characters = {
             { id = 563562, text = "Vanquish the weak!" },
             { id = 563576, text = "You think you can match the might of a dreadlord?" },
         } },
-        { name = "Attack grunts", lines = {
-            { id = 563574, text = "ARGH!" },
-            { id = 563598, text = "HMM!" },
-            { id = 563561, text = "HMMM!" },
-            { id = 563573, text = "HMPH!" },
-            { id = 563596, text = "HRRR!" },
-            { id = 563593, text = "NNN!" },
-            { id = 563565, text = "UGH!" },
-            { id = 563604, text = "YEAH!" },
+    } },
+    { who = "Void Elf - feminine voice", race = "Void Elf", sex = "female", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 1835916, text = "AHHH!" },
+            { id = 1835914, text = "AHHHHHH" },
+            { id = 1835915, text = "AHHHHHHH" },
+            { id = 1732745, text = "for the Alliance." },
+            { id = 1835937, text = "GAAAAH!" },
+            { id = 1835938, text = "HUUUUUUU" },
+            { id = 1835918, text = "Maaaaaa" },
+            { id = 1835920, text = "Mwah!" },
         } },
-        { name = "Pain", lines = {
-            { id = 563586, text = "AHHH!" },
-            { id = 563603, text = "GAH!" },
-            { id = 563582, text = "HUH!" },
-            { id = 563583, text = "MMM!" },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 1835894, text = "AH!" },
+            { id = 1835896, text = "HA!" },
+            { id = 1835899, text = "HAH!" },
+            { id = 1835908, text = "HIYAH!" },
+            { id = 1835905, text = "HWAH!" },
+            { id = 1835909, text = "HYAH!" },
+            { id = 1835902, text = "YEAH!" },
+        } },
+        { name = "Casting", family = "Fighting", lines = {
+            { id = 1835929, text = "HUUU!" },
+            { id = 1835928, text = "RRR!" },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 1732606, text = "ATTACK MY ENEMY" },
+            { id = 1732744, text = "Follow me." },
+            { id = 1732743, text = "I will lead you." },
+            { id = 1732742, text = "This way." },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 1732739, text = "Retreat!" },
+        } },
+        { name = "Calls for aid", family = "Orders and warnings", lines = {
+            { id = 1732756, text = "Aid me!" },
+            { id = 1732607, text = "Assist me." },
+            { id = 1732750, text = "Heal me." },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 1732675, text = "I must have more rage." },
+            { id = 1732671, text = "I need mana first." },
+            { id = 1732768, text = "I need more mana." },
+            { id = 1732673, text = "Mana is needed." },
+            { id = 1732660, text = "My fury is low." },
+            { id = 1732767, text = "My mana is low." },
+            { id = 1732669, text = "Not enough energy." },
+            { id = 1732659, text = "Not enough fury." },
+            { id = 1732674, text = "Not enough rage." },
+        } },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 1835989, text = "ARGHHH!" },
+            { id = 1835979, text = "NYEH!" },
+            { id = 1835987, text = "OOF!" },
+            { id = 1835995, text = "OW!" },
+            { id = 1835977, text = "UGH!" },
+        } },
+        { name = "Death cries", family = "Hurt and dying", lines = {
+            { id = 1835943, text = "AHHH OOOH..." },
+            { id = 1835945, text = "NOOO!" },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 1732752, text = "Greetings" },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 1732764, text = "Agreed." },
+            { id = 1732790, text = "Correct." },
+            { id = 1732760, text = "Never." },
+            { id = 1730311, text = "No matter how much you plead, I will not sprout tentacles or turn into a giant eyeball. Well, I might. But not because you asked." },
+            { id = 1730305, text = "No, we do not drink blood. That's a Sanlaine. Totally different emo elf." },
+            { id = 1732761, text = "No." },
+            { id = 1732794, text = "Of course." },
+            { id = 1732762, text = "Right." },
+            { id = 1732789, text = "Yes." },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 1732771, text = "I am in your debt." },
+            { id = 1732769, text = "I am most grateful." },
+            { id = 1732770, text = "Many thanks." },
+            { id = 1732792, text = "My pleasure." },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 1732618, text = "Most impressive." },
+            { id = 1732617, text = "Well done!" },
+        } },
+        { name = "Pleading", family = "Menace", lines = {
+            { id = 1732611, text = "Have mercy!" },
+        } },
+    } },
+    { who = "Void Elf - masculine voice", race = "Void Elf", sex = "male", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 1836019, text = "AAAAAAA" },
+            { id = 1836017, text = "AHHHHHH" },
+            { id = 1836040, text = "AHHHHHHH" },
+            { id = 1733123, text = "For the Alliance!" },
+            { id = 1836016, text = "RAWR!" },
+            { id = 1836021, text = "Yaaaaaa" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 1836011, text = "AHHH!" },
+            { id = 1836009, text = "ARGHHH!" },
+            { id = 1836007, text = "GAH!" },
+            { id = 1835998, text = "HA!" },
+            { id = 1836074, text = "HEY!" },
+            { id = 1836000, text = "HI!" },
+            { id = 1835997, text = "HMPH!" },
+            { id = 1836078, text = "HUUU!" },
+            { id = 1836013, text = "HYAH!" },
+            { id = 1836076, text = "RAAAGH!" },
+            { id = 1836075, text = "RAAARRR!" },
+            { id = 1836004, text = "YEAH!" },
+        } },
+        { name = "Casting", family = "Fighting", lines = {
+            { id = 1836030, text = "GRRR!" },
+            { id = 1836033, text = "NOOO!" },
+            { id = 1836031, text = "RRR!" },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 1733120, text = "Come this way." },
+            { id = 1732986, text = "FOCUS YOUR STRIKES!" },
+            { id = 1732985, text = "On my target!" },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 1733117, text = "Fall back!" },
+            { id = 1733118, text = "We must retreat!" },
+            { id = 1733119, text = "Withdraw!" },
+        } },
+        { name = "Calls for aid", family = "Orders and warnings", lines = {
+            { id = 1733135, text = "Aid me at once!" },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 1733053, text = "I must have more rage." },
+            { id = 1733049, text = "I need mana first." },
+            { id = 1733146, text = "I need mana." },
+            { id = 1733051, text = "Mana is needed." },
+            { id = 1733038, text = "My fury is low." },
+            { id = 1733050, text = "My mana is low." },
+            { id = 1733047, text = "Not enough energy." },
+            { id = 1733037, text = "Not enough fury." },
+            { id = 1733052, text = "Not enough rage." },
+        } },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 1835351, text = "GAAH!" },
+            { id = 1835341, text = "OOF!" },
+            { id = 1836083, text = "UGH!" },
+        } },
+        { name = "Death cries", family = "Hurt and dying", lines = {
+            { id = 1836048, text = "BWAHAHAHA!" },
+            { id = 1836045, text = "HWAH AHHH!" },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 1733130, text = "Well met." },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 1733142, text = "Agreed." },
+            { id = 1733168, text = "Correct." },
+            { id = 1733138, text = "Of course not." },
+            { id = 1733172, text = "Of course." },
+            { id = 1733140, text = "Right." },
+            { id = 1733167, text = "Yes." },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 1733149, text = "I am in your debt." },
+            { id = 1733147, text = "I am most grateful." },
+            { id = 1733148, text = "Many thanks." },
+            { id = 1733170, text = "My pleasure." },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 1732996, text = "Impressive indeed." },
+        } },
+        { name = "Pleading", family = "Menace", lines = {
+            { id = 1732988, text = "I beg you!" },
+        } },
+    } },
+    { who = "Vrykul - masculine voice", race = "Vrykul", sex = "male", groups = {
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 594600, text = "HA!" },
+            { id = 594618, text = "HUAH!" },
+            { id = 594630, text = "HWAH!" },
+            { id = 594621, text = "RAWR!" },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 543342, text = "Roar!" },
+            { id = 543343, text = "RRRRRR" },
+        } },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 594624, text = "AWWW!" },
+            { id = 594627, text = "OOF!" },
+            { id = 594603, text = "UGH!" },
+        } },
+        { name = "Death cries", family = "Hurt and dying", lines = {
+            { id = 594612, text = "AAARGH!" },
+        } },
+    } },
+    { who = "Vulpera - feminine voice", race = "Vulpera", sex = "female", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 3188447, text = "AHHHHHHH" },
+            { id = 3188450, text = "CAW!" },
+            { id = 3188448, text = "Daaaaaa" },
+            { id = 3106112, text = "For the Horde!" },
+            { id = 3188442, text = "HAAAAAA" },
+            { id = 3188443, text = "HA-HA!" },
+            { id = 3188451, text = "Hurrah!" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 3188430, text = "GAH!" },
+            { id = 3188431, text = "HA!" },
+            { id = 3188437, text = "HEH!" },
+            { id = 3188432, text = "HIYAH!" },
+            { id = 3188424, text = "HUAH!" },
+            { id = 3188435, text = "HUH!" },
+            { id = 3188427, text = "OH YEAH!" },
+            { id = 3188426, text = "YEAH!" },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 3106099, text = "Attack my target!" },
+            { id = 3106118, text = "Open fire!" },
+            { id = 3106109, text = "This way!" },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 3106117, text = "Danger! Look out!" },
+            { id = 3106107, text = "Don't die out here! Retreat!" },
+            { id = 3106106, text = "Fall back!" },
+        } },
+        { name = "Calls for aid", family = "Orders and warnings", lines = {
+            { id = 3106115, text = "Help me!" },
+            { id = 3106113, text = "I'm wounded! Need healing!" },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 3106177, text = "I must have more rage." },
+            { id = 3106173, text = "I need mana first." },
+            { id = 3106225, text = "I need more mana!" },
+            { id = 3106226, text = "I'm out of mana!" },
+            { id = 3106175, text = "Mana is needed." },
+            { id = 3106162, text = "My fury is low." },
+            { id = 3106174, text = "My mana is low." },
+            { id = 3106171, text = "Not enough energy." },
+            { id = 3106161, text = "Not enough fury!" },
+            { id = 3106176, text = "Not enough rage!" },
+        } },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 3188490, text = "BLEH!" },
+            { id = 3188482, text = "D'OH!" },
+            { id = 3188491, text = "GASP!" },
+            { id = 3188485, text = "NO!" },
+            { id = 3188484, text = "NOOO!" },
+            { id = 3188487, text = "OOF!" },
+            { id = 3188492, text = "UGH!" },
+        } },
+        { name = "Death cries", family = "Hurt and dying", lines = {
+            { id = 3188453, text = "AHHH AHHH!" },
+            { id = 3188455, text = "AHHH!" },
+            { id = 3188454, text = "Hwah! Ugh, ugh, ugh." },
+            { id = 3188452, text = "HYAH UGH..." },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 3106215, text = "Greetings!" },
+            { id = 3106216, text = "Well met!" },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 3106213, text = "Farewell!" },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 3113465, text = "Never trust a Sethrak merchant. Bunch of snake oil peddlers, if you ask me." },
+            { id = 3106219, text = "Nope." },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 3106231, text = "I'm in your debt." },
+            { id = 3106230, text = "You have my gratitude." },
+            { id = 3106236, text = "You're welcome!" },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 3106207, text = "I'm impressed!" },
+            { id = 3106208, text = "Well done, friend!" },
+        } },
+    } },
+    { who = "Vulpera - masculine voice", race = "Vulpera", sex = "male", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 3188678, text = "AHHHHHH" },
+            { id = 3106577, text = "For the Horde!" },
+            { id = 3188679, text = "HAAAAAA" },
+            { id = 3188672, text = "Hi-yah!" },
+            { id = 3188671, text = "HUAGH!" },
+            { id = 3188681, text = "Nyaaaaaaa" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 3188660, text = "HA!" },
+            { id = 3188658, text = "HAAA!" },
+            { id = 3188662, text = "HAH!" },
+            { id = 3188656, text = "HYA!" },
+            { id = 3188663, text = "HYAH!" },
+            { id = 3188669, text = "YEAH!" },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 3106564, text = "Attack my target!" },
+            { id = 3106583, text = "Open fire!" },
+            { id = 3106574, text = "This way." },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 3106582, text = "Danger! Look out!" },
+            { id = 3106572, text = "Don't die out here! Retreat!" },
+            { id = 3106571, text = "Fall back!" },
+        } },
+        { name = "Calls for aid", family = "Orders and warnings", lines = {
+            { id = 3106580, text = "Help me!" },
+            { id = 3106578, text = "I'm wounded! Need healing!" },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 3106642, text = "I must have more rage." },
+            { id = 3106638, text = "I need mana first." },
+            { id = 3106690, text = "I need more mana!" },
+            { id = 3106691, text = "I'm out of mana." },
+            { id = 3106640, text = "Mana is needed." },
+            { id = 3106627, text = "My fury is low." },
+            { id = 3106639, text = "My mana is low." },
+            { id = 3106636, text = "Not enough energy." },
+            { id = 3106626, text = "Not enough fury." },
+            { id = 3106641, text = "Not enough rage." },
+        } },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 3188726, text = "AHA!" },
+            { id = 3188716, text = "AHHH!" },
+            { id = 3188718, text = "GAH!" },
+            { id = 3188725, text = "NO!" },
+            { id = 3188717, text = "UGH!" },
+            { id = 3188713, text = "UGHHH!" },
+        } },
+        { name = "Death cries", family = "Hurt and dying", lines = {
+            { id = 3188683, text = "UGH UGH!" },
+            { id = 3188684, text = "YEAH UGH!" },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 3106680, text = "Greetings!" },
+            { id = 3106681, text = "Well met." },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 3106678, text = "Farewell." },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 3124831, text = "Never loan gold to a troll named Akunda. When you try to collect, they'll insist you gave it to a different Akunda." },
+            { id = 3106709, text = "No, No, No, no." },
+            { id = 3106684, text = "Nope." },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 3106696, text = "I'm in your debt." },
+            { id = 3106695, text = "You have my gratitude." },
+            { id = 3106701, text = "You're welcome." },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 3106672, text = "I'm impressed!" },
+            { id = 3106673, text = "Well done, friend!" },
+        } },
+    } },
+    { who = "Worgen - feminine voice", race = "Worgen", sex = "female", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 1502111, text = "AHHHHHH" },
+            { id = 1502112, text = "AHHHHHHH" },
+            { id = 541443, text = "For Gilneas!" },
+            { id = 542127, text = "For honor and glory!" },
+            { id = 541530, text = "For honour and glory!" },
+            { id = 1604764, text = "For the Alliance." },
+            { id = 1612761, text = "FUUUUUUU" },
+            { id = 1502113, text = "GAAAAAHHH!" },
+            { id = 1612776, text = "Gah!" },
+            { id = 541535, text = "Gilneas will rise again!" },
+            { id = 1612762, text = "HAAAAA" },
+            { id = 1612763, text = "HYAAH!" },
+            { id = 541452, text = "OOOOOOO" },
+            { id = 1502114, text = "RAAAGH!" },
+            { id = 1502116, text = "RAAH!" },
+            { id = 541482, text = "Victory is ours!" },
+            { id = 1502119, text = "YEAH!" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 1612780, text = "AHHH!" },
+            { id = 1612734, text = "HA HA!" },
+            { id = 1612748, text = "HA!" },
+            { id = 1502130, text = "HAH UGH!" },
+            { id = 1612747, text = "HAH!" },
+            { id = 1502129, text = "HEH AHEM!" },
+            { id = 1612778, text = "HEH AHHH!" },
+            { id = 1612784, text = "HEH HEH HEH!" },
+            { id = 1612783, text = "HMPH UGH!" },
+            { id = 1612741, text = "HMPH!" },
+            { id = 1502131, text = "HUH NAH!" },
+            { id = 1612740, text = "HUH!" },
+            { id = 1612779, text = "HUHAHHH!" },
+            { id = 1612750, text = "HWAH AAH!" },
+            { id = 1612751, text = "HYAH!" },
+            { id = 1502133, text = "NAH!" },
+            { id = 1612745, text = "OOF!" },
+            { id = 1502124, text = "RAWR!" },
+            { id = 1612744, text = "UGH!" },
+        } },
+        { name = "Casting", family = "Fighting", lines = {
+            { id = 1612768, text = "AAA!" },
+            { id = 1612765, text = "HUUU!" },
+            { id = 1612769, text = "RRR!" },
+        } },
+        { name = "Threats", family = "Menace", lines = {
+            { id = 1604767, text = "You're in for a world of pain!" },
+        } },
+        { name = "Mockery", family = "Menace", lines = {
+            { id = 1604766, text = "A bloody coward is what you are." },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 542065, text = "ASSIST ME!" },
+            { id = 541571, text = "Come with me." },
+            { id = 541491, text = "Don't move." },
+            { id = 541476, text = "Fire!" },
+            { id = 541518, text = "Follow me." },
+            { id = 541564, text = "Release the hounds!" },
+            { id = 541493, text = "Stay" },
+            { id = 541555, text = "Stay close." },
+            { id = 541456, text = "Tear my enemy to shreds." },
+            { id = 541523, text = "Unleash your rage." },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 541577, text = "Discretion is the better part of valor. Now flee!" },
+            { id = 541451, text = "Oh, I ashamed in this defeat. Fall back!" },
+            { id = 541581, text = "Run away!" },
+            { id = 542092, text = "We are shamed in this defeat! Fall back!" },
+        } },
+        { name = "Calls for aid", family = "Orders and warnings", lines = {
+            { id = 541550, text = "Heal me." },
+            { id = 541556, text = "Help!" },
+            { id = 541502, text = "I require aid." },
+            { id = 541529, text = "I require healing." },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 541445, text = "I am low on mana." },
+            { id = 541534, text = "My mana has been expended." },
+        } },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 1612795, text = "AHEM!" },
+            { id = 1612798, text = "EW!" },
+            { id = 1612791, text = "I'm sorry. I'm sorry. I'm sorry." },
+            { id = 1612799, text = "NO!" },
+            { id = 1612790, text = "PFFT!" },
+            { id = 1612789, text = "Thank you for watching!" },
+        } },
+        { name = "Death cries", family = "Hurt and dying", lines = {
+            { id = 1612739, text = "UGH UGH UGH!" },
+            { id = 1612735, text = "UGH UGH..." },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 541496, text = "Fate has brought you here to me." },
+            { id = 541572, text = "Greetings" },
+            { id = 542134, text = "Our fates are intertwined!" },
+            { id = 541544, text = "Our feets are intertwined." },
+            { id = 541539, text = "The beast in me hungers." },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 541526, text = "Farewell." },
+            { id = 541499, text = "May the Great Wolf Spirit guide you." },
+            { id = 541543, text = "Never forget. Never surrender." },
+            { id = 541511, text = "The scythe is our salvation." },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 541545, text = "Absolutely." },
+            { id = 541517, text = "Denied." },
+            { id = 542147, text = "Hmm." },
+            { id = 541490, text = "Mm-hmm" },
+            { id = 541467, text = "Most assuredly." },
+            { id = 541560, text = "Never." },
+            { id = 541486, text = "That's affirmative." },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 541454, text = "Don't mention it." },
+            { id = 541528, text = "I am honored." },
+            { id = 1604765, text = "Terribly sorry." },
+            { id = 541579, text = "Thank me later." },
+            { id = 541455, text = "Thank you." },
+            { id = 541460, text = "That's Gilnean hospitality for you." },
+            { id = 541507, text = "You have my gratitude." },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 541552, text = "Fortune smiles upon you." },
+            { id = 541524, text = "Glory unto you." },
+            { id = 541568, text = "The day is yours." },
+        } },
+        { name = "Jokes", family = "Fun", lines = {
+            { id = 541492, text = "Ahem. Pardon." },
+            { id = 541519, text = "At least we don't sparkle." },
+            { id = 542151, text = "Cough, Cough, Cough, C" },
+            { id = 541438, text = "Excuse me, could I just um sniff your backside for a second?" },
+            { id = 542132, text = "Excuse me, could I just, um, sniff your backside for a sec?" },
+            { id = 542045, text = "For the holiday he tried to give me a bone, no, a bone, an ordinary bone. What did you think? I... Oh." },
+            { id = 542060, text = "I get moody during that time of the month, you know, with the full moon and all." },
+            { id = 541522, text = "I love Darnassus. Trees everywhere." },
+            { id = 542082, text = "Mmm, that's like... Is that bacon? Hey guys, I smell... You smell bacon? Bacon? Anyone? That's bacon! BACON! Who's got the bacon? Where's the bacon?" },
+            { id = 541477, text = "Something under your cloak smells heavenly." },
+            { id = 541503, text = "That's like... is that bacon? Hey guys, I smell... you smell bacon? Bacon! Anyone? Oh, that's bacon! Bacon! Who's got the bacon? Where's the bacon?" },
+            { id = 541561, text = "the holiday he tried to give me a bone. No, a bone. An ordinary bone. What did you think I...oh." },
+            { id = 541474, text = "Yes, I've tried shaving. It doesn't work. Trust me." },
+        } },
+        { name = "Flirts", family = "Fun", lines = {
+            { id = 541478, text = "Don't worry babe, the fur's just something to hold on to." },
+            { id = 542066, text = "Don't worry, babe. The fur's just something to hold onto." },
+            { id = 541453, text = "I hope you don't mind a little howling in bed." },
+            { id = 541471, text = "I just want someone to pat me on my head and tell me I'm a good girl." },
+            { id = 541479, text = "I'll teach you how to make my legs shake." },
+            { id = 541565, text = "I'm looking for a man who appreciates natural beauty." },
+            { id = 541532, text = "It all matches, trust me." },
+            { id = 542146, text = "It all matches. Just trust me." },
+            { id = 541489, text = "Well, hello!" },
+            { id = 541574, text = "You can take me home. I'm housebroken." },
+            { id = 541483, text = "You know, Wogan women have six nipples." },
+            { id = 542140, text = "You know, Worgen women have six nipples." },
+        } },
+        { name = "Clowning", family = "Fun", lines = {
+            { id = 542029, text = "Bwah Bwah Bwah bwah!" },
+            { id = 542035, text = "Chugga Chugga Chugga Choo Choo" },
+            { id = 575780, text = "PBBB!" },
+            { id = 541512, text = "Quack, Quack, Quack, quack." },
+        } },
+        { name = "Laughter", family = "Fun", lines = {
+            { id = 541515, text = "HAHAHAHA!" },
+        } },
+        { name = "Weeping", family = "Feelings", lines = {
+            { id = 541450, text = "AWWW!" },
+            { id = 542078, text = "Ha Ha Ha ha" },
+            { id = 541525, text = "Oh, Oh, Oh, oh." },
+            { id = 541473, text = "Ugh, Ugh, Ugh, ugh." },
+        } },
+        { name = "Sighs", family = "Feelings", lines = {
+            { id = 575782, text = "GRRR!" },
+        } },
+        { name = "Affection", family = "Feelings", lines = {
+            { id = 541501, text = "MWAH!" },
+        } },
+        { name = "Surprise", family = "Feelings", lines = {
+            { id = 1604769, text = "Bit of a blunder there." },
+        } },
+    } },
+    { who = "Worgen - masculine voice", race = "Worgen", sex = "male", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 1612824, text = "AHHH!" },
+            { id = 1502135, text = "AHHHHHH" },
+            { id = 1612822, text = "BRAAH!" },
+            { id = 542162, text = "For Gilneas!" },
+            { id = 541605, text = "For honor and glory!" },
+            { id = 1604775, text = "for the Alliance." },
+            { id = 1502139, text = "GAAAAAAHHH!" },
+            { id = 1612832, text = "Gah!" },
+            { id = 541696, text = "Gilneas will rise again!" },
+            { id = 542249, text = "GRRRRRRR" },
+            { id = 1612821, text = "HA!" },
+            { id = 1612834, text = "Hah!" },
+            { id = 1502144, text = "HELL!" },
+            { id = 1612823, text = "HRAH!" },
+            { id = 1612819, text = "HUAH!" },
+            { id = 1502137, text = "MMMMMM" },
+            { id = 1502136, text = "NNNNNNN" },
+            { id = 1502138, text = "NOOOOOO" },
+            { id = 541591, text = "Oh, Gilneas!" },
+            { id = 541686, text = "OOOOOOO" },
+            { id = 1612825, text = "RAAAAAHHH!" },
+            { id = 1612817, text = "RAAAGH!" },
+            { id = 1612820, text = "RAWR!" },
+            { id = 1502145, text = "RRRRRR" },
+            { id = 1612831, text = "TA!" },
+            { id = 541617, text = "Victory is ours!" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 1502150, text = "ACHOO!" },
+            { id = 1612816, text = "DUH!" },
+            { id = 1612814, text = "HA HA!" },
+            { id = 1612815, text = "HIYAH!" },
+            { id = 1612802, text = "HMPH!" },
+            { id = 1612804, text = "HUH!" },
+            { id = 1612845, text = "HUP DAAAH!" },
+            { id = 1612842, text = "HUP GAH!" },
+            { id = 1612844, text = "HUP HYAH!" },
+            { id = 1612813, text = "NAH!" },
+            { id = 1502149, text = "NNN!" },
+            { id = 1502158, text = "RRR!" },
+            { id = 1612807, text = "YEAH!" },
+        } },
+        { name = "Casting", family = "Fighting", lines = {
+            { id = 1612829, text = "AAA!" },
+            { id = 1612827, text = "HMMM!" },
+            { id = 1612826, text = "MMM!" },
+        } },
+        { name = "Threats", family = "Menace", lines = {
+            { id = 1604773, text = "You're in for a world of pain." },
+        } },
+        { name = "Mockery", family = "Menace", lines = {
+            { id = 1604772, text = "A bloody coward is what you are!" },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 542276, text = "ASSIST ME!" },
+            { id = 541695, text = "Come with me." },
+            { id = 541621, text = "Don't move!" },
+            { id = 541681, text = "FIRE!" },
+            { id = 541599, text = "Follow me." },
+            { id = 542181, text = "Hmm, stay." },
+            { id = 541670, text = "Release the hounds!" },
+            { id = 541668, text = "Stay close." },
+            { id = 541640, text = "Stay." },
+            { id = 541666, text = "Tear my enemy to shreds." },
+            { id = 542260, text = "Tell my enemy to shreds!" },
+            { id = 541678, text = "Unleash your rage." },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 541692, text = "Discretion is the better part of valor. Now flee!" },
+            { id = 541584, text = "Run away!" },
+            { id = 541694, text = "We are shamed in this defeat. Fall back!" },
+        } },
+        { name = "Calls for aid", family = "Orders and warnings", lines = {
+            { id = 541709, text = "Heal me." },
+            { id = 541660, text = "Help!" },
+            { id = 541613, text = "I require aid." },
+            { id = 541719, text = "I require healing." },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 541588, text = "I am low on mana." },
+            { id = 541585, text = "My mana has been expended." },
+            { id = 542229, text = "My manner has been expended." },
+        } },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 1612850, text = "AHEM!" },
+            { id = 1612853, text = "HEH!" },
+            { id = 1612848, text = "NO!" },
+            { id = 1612860, text = "NOOO!" },
+            { id = 1612852, text = "OH!" },
+            { id = 1612855, text = "OOF!" },
+            { id = 1612856, text = "UGH!" },
+        } },
+        { name = "Death cries", family = "Hurt and dying", lines = {
+            { id = 1612841, text = "AHHH UGH!" },
+            { id = 1612839, text = "GRRR!" },
+            { id = 1612837, text = "HAHA AAARGH..." },
+            { id = 1612840, text = "UGH UGH..." },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 541673, text = "Fate has brought you here to me." },
+            { id = 541594, text = "Greetings." },
+            { id = 541724, text = "Our fates are intertwined." },
+            { id = 541707, text = "The beast in me hungers." },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 541638, text = "Farewell." },
+            { id = 541616, text = "May the Great Wolf Spirit guide you." },
+            { id = 541649, text = "Never forget. Never surrender." },
+            { id = 541726, text = "The scythe is our salvation." },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 541651, text = "Absolutely." },
+            { id = 541595, text = "Denied." },
+            { id = 541697, text = "Hmm" },
+            { id = 541658, text = "Mmhmm." },
+            { id = 541636, text = "Most assuredly." },
+            { id = 541631, text = "Never." },
+            { id = 541720, text = "That's affirmative." },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 541715, text = "Don't mention it." },
+            { id = 541622, text = "I am honored." },
+            { id = 1604771, text = "Terribly sorry." },
+            { id = 541677, text = "Thank me later." },
+            { id = 542223, text = "Thank me later. Don't mention it." },
+            { id = 541721, text = "Thank you." },
+            { id = 541646, text = "That's Gilnean hospitality for you." },
+            { id = 541625, text = "You have my gratitude." },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 541688, text = "Fortune smiles upon you" },
+            { id = 541657, text = "Glory unto you." },
+            { id = 541632, text = "The day is yours." },
+        } },
+        { name = "Jokes", family = "Fun", lines = {
+            { id = 542245, text = "Alright, I've got hairy palms so" },
+            { id = 541676, text = "Alright, I've got hairy palms. So what?" },
+            { id = 541684, text = "Are you into furries?" },
+            { id = 541624, text = "Come closer, I don't bite. Often. Usually. Sometimes. Actually, you might want to keep your distance." },
+            { id = 541593, text = "Did you know I'm a Worgen donor?" },
+            { id = 542302, text = "I just don't feel that I really know a person until I've sniffed their crotch." },
+            { id = 541597, text = "I love Darnassus, trees everywhere." },
+            { id = 541653, text = "I'll show you a full moon." },
+            { id = 541604, text = "It's nothing personal, I just don't feel that I really know a person until I've sniffed their crotch." },
+            { id = 541611, text = "Since the change, I find I prefer my meat rare now. Raw, even. Perhaps struggling." },
+            { id = 541603, text = "So then she says to me, what big teeth you have. I mean, what do you say to that?" },
+            { id = 542175, text = "So then she says to me, what big teeth you have. I mean, what do you see to that?" },
+            { id = 541713, text = "Worgen Hard or Hardly Worgen?" },
+            { id = 542253, text = "Workin' hard, or hardly workin'." },
+        } },
+        { name = "Flirts", family = "Fun", lines = {
+            { id = 541704, text = "Don't be afraid. I don't bite. Hard." },
+            { id = 541602, text = "Don't pretend you don't like a guy with a wild side." },
+            { id = 541598, text = "Honey, being with me is like having two guys in one." },
+            { id = 541703, text = "I hope you like it rough." },
+            { id = 541623, text = "I'd like to mark your territory." },
+            { id = 541656, text = "If you play nice, I'll share my bone with you." },
+            { id = 542299, text = "OOOOOOOWWWWWWW" },
+            { id = 541690, text = "OWWWWWWW" },
+            { id = 541683, text = "panting at you? No! No, it's just hot in here." },
+            { id = 541633, text = "What big ears I have? You should check out the rest of me." },
+            { id = 541620, text = "You're like the moon, baby, you make me howl all night." },
+        } },
+        { name = "Clowning", family = "Fun", lines = {
+            { id = 541619, text = "Bwah! Bwah! Bwah! Bwah!" },
+            { id = 542206, text = "CHUGA CHUGA CHUGA CHOO CHOO!" },
+            { id = 542279, text = "PFFTTT!" },
+        } },
+        { name = "Cheers", family = "Fun", lines = {
+            { id = 541612, text = "YES!" },
+        } },
+        { name = "Laughter", family = "Fun", lines = {
+            { id = 541667, text = "Ha Ha Ha ha!" },
+        } },
+        { name = "Weeping", family = "Feelings", lines = {
+            { id = 542258, text = "MWAHAHAHA!" },
+        } },
+        { name = "Affection", family = "Feelings", lines = {
+            { id = 541607, text = "MWAH!" },
+        } },
+        { name = "Surprise", family = "Feelings", lines = {
+            { id = 1604770, text = "Bit of a blunder there." },
+            { id = 1410389, text = "Hmm, bit of a blunder there." },
         } },
     } },
     { who = "Wraith", groups = {
-        { name = "Greetings", lines = {
-            { id = 595295, text = "Welcome to the product table!" },
-        } },
-        { name = "Attack grunts", lines = {
+        { name = "Attack grunts", family = "Fighting", lines = {
             { id = 546306, text = "AHHH!" },
             { id = 546305, text = "RAAAGH!" },
             { id = 546322, text = "RAAH!" },
@@ -2969,17 +9425,217 @@ GameVoices.Characters = {
             { id = 546307, text = "ROAR!" },
             { id = 546310, text = "YEAH!" },
         } },
-        { name = "Pain", lines = {
+        { name = "Pain", family = "Hurt and dying", lines = {
             { id = 546323, text = "EW!" },
             { id = 546324, text = "GRRR!" },
             { id = 546303, text = "NO!" },
         } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 595295, text = "Welcome to the product table!" },
+        } },
+    } },
+    { who = "Zandalari Troll - feminine voice", race = "Zandalari Troll", sex = "female", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 2735187, text = "AHHHHHH" },
+            { id = 2735199, text = "AHHHHHHH" },
+            { id = 1902900, text = "For the Horde!" },
+            { id = 2735191, text = "Haaaaaaa" },
+            { id = 2735190, text = "RAAAAAARRRRRR" },
+            { id = 2735188, text = "Rawr!" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 2735181, text = "AHHH!" },
+            { id = 2735172, text = "HA!" },
+            { id = 2735184, text = "HAAA!" },
+            { id = 2735179, text = "HAHA!" },
+            { id = 2735169, text = "HEH HEH!" },
+            { id = 2735221, text = "HUAGH!" },
+            { id = 2735171, text = "HUH!" },
+            { id = 2735222, text = "HWAH!" },
+            { id = 2735175, text = "WAH!" },
+        } },
+        { name = "Casting", family = "Fighting", lines = {
+            { id = 2735197, text = "OH!" },
+            { id = 2735198, text = "UGHHH!" },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 1902886, text = "Attack my foe!" },
+            { id = 1902897, text = "Come this way." },
+            { id = 1902888, text = "Focus your attacks!" },
+            { id = 1902899, text = "Follow me." },
+            { id = 1903016, text = "Hold here well again, manna." },
+            { id = 1902898, text = "I will lead us." },
+            { id = 1902907, text = "Open fire!" },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 1902894, text = "Fall back!" },
+            { id = 1902896, text = "Go! Get away!" },
+            { id = 1902895, text = "We must retreat!" },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 1902965, text = "I must have more rage." },
+            { id = 1902961, text = "I need mana first." },
+            { id = 1903015, text = "I need mana." },
+            { id = 1902950, text = "My fury is low." },
+            { id = 1902962, text = "My mana is low." },
+            { id = 1902959, text = "Not enough energy." },
+            { id = 1902949, text = "Not enough fury." },
+            { id = 1902964, text = "Not enough rage." },
+        } },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 2735235, text = "AH!" },
+            { id = 2735242, text = "BLEURGH!" },
+            { id = 2735231, text = "GAH!" },
+            { id = 2735229, text = "HEY!" },
+            { id = 2735230, text = "OOF!" },
+            { id = 2735234, text = "OW!" },
+            { id = 2735227, text = "UGH!" },
+        } },
+        { name = "Death cries", family = "Hurt and dying", lines = {
+            { id = 2735206, text = "RAAAGH UGH..." },
+            { id = 2735204, text = "UGH UGH!" },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 1903005, text = "Greetings" },
+            { id = 1903007, text = "Well met." },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 1903003, text = "Farewell." },
+            { id = 1903002, text = "May the Loa watch over you." },
+            { id = 1903004, text = "The spirits welcome you." },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 1903010, text = "Absolutely not!" },
+            { id = 1903012, text = "Agreed." },
+            { id = 1903011, text = "I see." },
+            { id = 1903008, text = "NO" },
+            { id = 1903009, text = "No chance." },
+            { id = 1903013, text = "Right." },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 1903024, text = "Ancestors forgive me." },
+            { id = 1903022, text = "Elves? Humans? No thanks. I cannot trust any race with that many tours." },
+            { id = 1903028, text = "I will be forever grateful." },
+            { id = 1903033, text = "It was my pleasure." },
+            { id = 1903031, text = "You are welcome." },
+            { id = 1903027, text = "You have my thanks." },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 1902999, text = "Ah, I am impressed." },
+            { id = 1902997, text = "Well deserved!" },
+        } },
+        { name = "Pleading", family = "Menace", lines = {
+            { id = 1902994, text = "I am pleading with you!" },
+        } },
+    } },
+    { who = "Zandalari Troll - masculine voice", race = "Zandalari Troll", sex = "male", groups = {
+        { name = "Battle cries", family = "Fighting", lines = {
+            { id = 1903413, text = "FOR THE HORDE!" },
+            { id = 2699284, text = "FUUUUUUU" },
+            { id = 2699282, text = "Ha Ha Ha haaaaaaa" },
+            { id = 2699281, text = "HUUUUUUU" },
+            { id = 2699294, text = "NOOOOOO" },
+            { id = 2699293, text = "OOOOOOO" },
+            { id = 2699292, text = "RAWWWWWW" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
+            { id = 2699267, text = "ARGH!" },
+            { id = 2699277, text = "GAAAH!" },
+            { id = 2699268, text = "HA!" },
+            { id = 2699279, text = "HAAA!" },
+            { id = 2699266, text = "HAH!" },
+            { id = 2699278, text = "HUAGH!" },
+            { id = 2699272, text = "POOR!" },
+            { id = 2699269, text = "PRAH!" },
+            { id = 2699276, text = "RAWR!" },
+            { id = 2699274, text = "ROAR!" },
+        } },
+        { name = "Casting", family = "Fighting", lines = {
+            { id = 2699289, text = "HUUU!" },
+        } },
+        { name = "Orders", family = "Orders and warnings", lines = {
+            { id = 1903399, text = "Attack my foe!" },
+            { id = 1903410, text = "Come this way." },
+            { id = 1903401, text = "Focus your attacks!" },
+            { id = 1903412, text = "Follow me!" },
+            { id = 1903545, text = "Hold here what I gain, Mana." },
+            { id = 1903411, text = "I will lead us." },
+            { id = 1903420, text = "OPEN FIRE!" },
+        } },
+        { name = "Warnings", family = "Orders and warnings", lines = {
+            { id = 1903407, text = "Fall back!" },
+            { id = 1903409, text = "Go! Get away!" },
+            { id = 1903408, text = "We must retreat!" },
+        } },
+        { name = "Running dry", family = "Orders and warnings", lines = {
+            { id = 1903478, text = "I must have more rage." },
+            { id = 1903474, text = "I need mana first." },
+            { id = 1903544, text = "I need mana!" },
+            { id = 1903476, text = "Mana is needed." },
+            { id = 1903463, text = "My fury is low." },
+            { id = 1903475, text = "My mana is low." },
+            { id = 1903472, text = "Not enough energy." },
+            { id = 1903462, text = "Not enough fury." },
+            { id = 1903477, text = "Not enough rage." },
+        } },
+        { name = "Pain", family = "Hurt and dying", lines = {
+            { id = 2699324, text = "AHHH!" },
+            { id = 2699325, text = "GAH!" },
+            { id = 2699333, text = "GRRR!" },
+            { id = 2699330, text = "OOF!" },
+            { id = 2699322, text = "UGH!" },
+            { id = 2699326, text = "ZOOM!" },
+        } },
+        { name = "Death cries", family = "Hurt and dying", lines = {
+            { id = 2699297, text = "DOOOWWW!" },
+            { id = 2699298, text = "FUUU!" },
+            { id = 2699296, text = "GOOO!" },
+            { id = 2699299, text = "OOO!" },
+        } },
+        { name = "Greetings", family = "Manners", lines = {
+            { id = 1903534, text = "Greetings." },
+            { id = 1903536, text = "Well met." },
+        } },
+        { name = "Farewells", family = "Manners", lines = {
+            { id = 1903532, text = "Farewell." },
+            { id = 1903531, text = "May the Loa watch over you." },
+            { id = 1903533, text = "The spirits welcome you." },
+        } },
+        { name = "Yes and no", family = "Manners", lines = {
+            { id = 1903539, text = "Absolutely not." },
+            { id = 1903541, text = "Agreed." },
+            { id = 1903540, text = "I see." },
+            { id = 1903537, text = "No." },
+            { id = 1903542, text = "Right." },
+        } },
+        { name = "Courtesies", family = "Manners", lines = {
+            { id = 1903553, text = "Ancestors, forgive me." },
+            { id = 1903557, text = "I will be forever grateful." },
+            { id = 1903562, text = "It was my pleasure." },
+            { id = 1903560, text = "You are welcome." },
+            { id = 1903556, text = "You have my thanks." },
+        } },
+        { name = "Congratulations", family = "Manners", lines = {
+            { id = 1903528, text = "I am impressed." },
+            { id = 1903526, text = "Well deserved." },
+        } },
+        { name = "Pleading", family = "Menace", lines = {
+            { id = 1903523, text = "I am PLEADING with you!" },
+        } },
     } },
     { who = "Zombie", groups = {
-        { name = "Battle cries", lines = {
+        { name = "Battle cries", family = "Fighting", lines = {
             { id = 2113915, text = "BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BLAH BL" },
         } },
-        { name = "Attack grunts", lines = {
+        { name = "Battle roars", family = "Fighting", lines = {
+            { id = 2113934, text = "AHHH!" },
+            { id = 2113951, text = "FUUU!" },
+            { id = 2113947, text = "HOOO!" },
+            { id = 2113930, text = "RAWR!" },
+            { id = 3607180, text = "ROAR!" },
+            { id = 3607182, text = "RRR!" },
+        } },
+        { name = "Attack grunts", family = "Fighting", lines = {
             { id = 2113923, text = "BLEURGH!" },
             { id = 3607196, text = "BLURGHHH!" },
             { id = 2113932, text = "HMMM!" },
@@ -2992,7 +9648,7 @@ GameVoices.Characters = {
             { id = 2113914, text = "YEAH!" },
             { id = 3607200, text = "ZOOM!" },
         } },
-        { name = "Pain", lines = {
+        { name = "Pain", family = "Hurt and dying", lines = {
             { id = 565180, text = "AHH!" },
             { id = 2113910, text = "BRRR!" },
             { id = 561173, text = "GRRR!" },
@@ -3000,23 +9656,70 @@ GameVoices.Characters = {
             { id = 2113952, text = "OHHH!" },
             { id = 565184, text = "OOOHHH!" },
         } },
-        { name = "Death cries", lines = {
+        { name = "Death cries", family = "Hurt and dying", lines = {
             { id = 2113937, text = "MMM!" },
             { id = 2113924, text = "YAAAGH MMM!" },
         } },
-        { name = "Battle roars", lines = {
-            { id = 2113934, text = "AHHH!" },
-            { id = 2113951, text = "FUUU!" },
-            { id = 2113947, text = "HOOO!" },
-            { id = 2113930, text = "RAWR!" },
-            { id = 3607180, text = "ROAR!" },
-            { id = 3607182, text = "RRR!" },
-        } },
-        { name = "Noticing you", lines = {
+        { name = "Noticing you", family = "Orders and warnings", lines = {
             { id = 2113913, text = "HUH!" },
             { id = 565186, text = "NYEH!" },
         } },
     } },
+}
+
+-- The order families and the groups inside them are offered in, emitted
+-- here so the panel does not re-derive it and disagree with this file.
+GameVoices.FAMILY_ORDER = {
+    "Fighting",
+    "Hurt and dying",
+    "Orders and warnings",
+    "Manners",
+    "Fun",
+    "Menace",
+    "Feelings",
+    "Other",
+}
+GameVoices.GROUP_ORDER = {
+    "Battle cries",
+    "Battle roars",
+    "Attack grunts",
+    "Casting",
+    "Threats",
+    "Boasts",
+    "Mockery",
+    "Orders",
+    "Warnings",
+    "Calls for aid",
+    "Running dry",
+    "Victory",
+    "Pain",
+    "Death cries",
+    "Stunned",
+    "Falling in battle",
+    "Greetings",
+    "Farewells",
+    "Yes and no",
+    "Courtesies",
+    "Congratulations",
+    "Jokes",
+    "Flirts",
+    "Losing patience",
+    "Jibes",
+    "Clowning",
+    "Cheers",
+    "Laughter",
+    "Weeping",
+    "Sighs",
+    "Yawns",
+    "Affection",
+    "Surprise",
+    "Idle",
+    "Pleading",
+    "Despair",
+    "Dark magic",
+    "Loyalty",
+    "Conversation",
+    "Noticing you",
 }
 
 -- fileDataId -> text, for showing what a pinned line says without walking the
@@ -3051,11 +9754,13 @@ end
 -- Walk every line, optionally narrowed to one speaker and/or one group. The
 -- single place that knows the shape of the table, so the filters below cannot
 -- disagree with each other about it.
-local function each(who, group, fn)
+local function each(who, group, fn, family)
     for _, char in ipairs(GameVoices.Characters) do
         if not who or who == "" or char.who == who then
             for _, g in ipairs(char.groups) do
-                if not group or group == "" or g.name == group then
+                if (not group or group == "" or g.name == group)
+                    and (not family or family == ""
+                         or (g.family or "Other") == family) then
                     for _, entry in ipairs(g.lines) do
                         if fn(entry, char, g) then return end
                     end
@@ -3063,6 +9768,18 @@ local function each(who, group, fn)
             end
         end
     end
+end
+
+-- The group picker offers families and groups in one list, so what comes back
+-- from it may be either. Splitting it here means no caller has to know which
+-- level the player clicked. A bare name with no prefix is read as a group,
+-- which is what every older caller passes.
+local function selector(sel)
+    if type(sel) ~= "string" or sel == "" then return nil, nil end
+    local kind, name = sel:match("^(%a+):(.*)$")
+    if kind == "family" then return nil, name end
+    if kind == "group" then return name, nil end
+    return sel, nil
 end
 
 -- Everyone with lines, in the order they are listed.
@@ -3095,14 +9812,128 @@ function GameVoices.Groups(who)
     return out
 end
 
+-- Thirty-one headings is more than anyone reads down, so they collapse into
+-- seven families and browsing goes family -> group -> line. Counts come along
+-- because a family with four lines in it should look different from one with
+-- four hundred before you click it.
+function GameVoices.Families(who)
+    local out, seen = {}, {}
+    for _, char in ipairs(GameVoices.Characters) do
+        if not who or who == "" or char.who == who then
+            for _, g in ipairs(char.groups) do
+                local fam = g.family or "Other"
+                local at = seen[fam]
+                if at then
+                    out[at].count = out[at].count + #g.lines
+                else
+                    out[#out + 1] = { name = fam, count = #g.lines }
+                    seen[fam] = #out
+                end
+            end
+        end
+    end
+    return out
+end
+
+-- Blizzard's race token -> the name this table files that race under. Keyed on
+-- the token rather than the localised name so it still matches on a client
+-- running in another language.
+local RACE_TOKEN = {
+    Human = "Human", Orc = "Orc", Dwarf = "Dwarf", NightElf = "Night Elf",
+    Scourge = "Forsaken", Undead = "Forsaken", Tauren = "Tauren",
+    Gnome = "Gnome", Troll = "Troll", Goblin = "Goblin",
+    BloodElf = "Blood Elf", Draenei = "Draenei", Worgen = "Worgen",
+    Pandaren = "Pandaren", Nightborne = "Nightborne", VoidElf = "Void Elf",
+    HighmountainTauren = "Highmountain Tauren",
+    LightforgedDraenei = "Lightforged Draenei",
+    ZandalariTroll = "Zandalari Troll", KulTiran = "Kul Tiran",
+    DarkIronDwarf = "Dark Iron Dwarf", Vulpera = "Vulpera",
+    MagharOrc = "Mag'har Orc", Mechagnome = "Mechagnome",
+    Dracthyr = "Dracthyr", EarthenDwarf = "Earthen", Earthen = "Earthen",
+}
+
+-- The voices the logged-in character actually uses, so the browser can open on
+-- them instead of on a wall of fifty-seven speakers. Matched on race and body
+-- type, not on the display name: the name is written to be read, and matching
+-- against prose is how a rename quietly breaks a filter.
+--
+-- Returns an empty list for a race with no recordings, which the caller shows
+-- as "no lines for your race" rather than as an empty browser.
+function GameVoices.MyVoices()
+    local out = {}
+    if type(UnitRace) ~= "function" then return out end
+    local _, token = UnitRace("player")
+    local race = RACE_TOKEN[token or ""]
+    if not race then return out end
+
+    local sex = type(UnitSex) == "function" and UnitSex("player") or nil
+    sex = (sex == 3 and "female") or (sex == 2 and "male") or nil
+
+    for _, char in ipairs(GameVoices.Characters) do
+        if char.race == race and (not sex or char.sex == sex) then
+            out[#out + 1] = char.who
+        end
+    end
+    return out
+end
+
 -- Which initials actually have lines behind them, and how many. A letter with
 -- nothing under it is shown as unavailable rather than as an empty list, so
 -- the strip tells you where to look instead of only answering once you click.
-function GameVoices.Letters(who, group)
+function GameVoices.Letters(who, sel)
+    local group, family = selector(sel)
     local out = {}
     each(who, group, function(entry)
         out[entry.initial] = (out[entry.initial] or 0) + 1
-    end)
+    end, family)
+    return out
+end
+
+-- One flat list for the group picker, read as two levels: each family, then
+-- its own groups indented under it. Flat because the control is a dropdown,
+-- indented because seven families and thirty-one groups are not the same kind
+-- of choice and should not look like one.
+--
+-- Entries carry a prefixed id so the caller can tell which level was picked
+-- without matching the label back against a list of family names.
+function GameVoices.BrowseList(who)
+    local famCount, groupCount = {}, {}
+    for _, char in ipairs(GameVoices.Characters) do
+        if not who or who == "" or char.who == who then
+            for _, g in ipairs(char.groups) do
+                local fam = g.family or "Other"
+                famCount[fam] = (famCount[fam] or 0) + #g.lines
+                groupCount[fam] = groupCount[fam] or {}
+                groupCount[fam][g.name] = (groupCount[fam][g.name] or 0) + #g.lines
+            end
+        end
+    end
+
+    local out = {}
+    for _, fam in ipairs(GameVoices.FAMILY_ORDER) do
+        if famCount[fam] then
+            out[#out + 1] = { id = "family:" .. fam, level = 1,
+                label = string.format("%s (%d)", fam, famCount[fam]) }
+            local mine = groupCount[fam]
+            local listed = {}
+            for _, g in ipairs(GameVoices.GROUP_ORDER) do
+                if mine[g] then
+                    listed[g] = true
+                    out[#out + 1] = { id = "group:" .. g, level = 2,
+                        label = string.format("    %s (%d)", g, mine[g]) }
+                end
+            end
+            -- A group the order list has never heard of still appears, after
+            -- its siblings, so a new heading from a changed classifier is
+            -- visible rather than silently unreachable.
+            for g, n in pairs(mine) do
+                if not listed[g] then
+                    out[#out + 1] = { id = "group:" .. g, level = 2,
+                        label = string.format("    %s (%d)", g, n) }
+                end
+            end
+        end
+    end
     return out
 end
 
@@ -3117,8 +9948,9 @@ function GameVoices.Filter(opts)
     local words = {}
     for w in tostring(opts.query or ""):lower():gmatch("%S+") do words[#words + 1] = w end
 
+    local group, family = selector(opts.group)
     local out, truncated = {}, false
-    each(opts.who, opts.group, function(entry, char, g)
+    each(opts.who, group, function(entry, char, g)
         local keep = (not letter or letter == "" or entry.initial == letter)
         if keep and #words > 0 then
             local hay = entry.text:lower() .. " " .. char.who:lower()
@@ -3131,7 +9963,7 @@ function GameVoices.Filter(opts)
                               who = char.who, group = g.name }
             if #out >= limit then truncated = true return true end
         end
-    end)
+    end, family)
     return out, truncated
 end
 
