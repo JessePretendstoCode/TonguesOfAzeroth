@@ -895,6 +895,37 @@ function Compat.CreateDropdown(parent, width)
         -- makes a list unreadable. Callers set dd.menuWidth when they know the
         -- list is wider than the space the button gets.
         local w = math.max(dd:GetWidth(), tonumber(dd.menuWidth) or 0)
+        -- Or measure the entries and fit them. A caller that knows its list is
+        -- wide can say how wide; a caller whose entries are written at build
+        -- time -- "Blood Elf Demon Hunter - masculine voice (115)" -- cannot,
+        -- and guessing a number means either a truncated list or a menu padded
+        -- out for a label that is not there. The scratch string is kept on the
+        -- menu and reused, so this costs one SetText per entry per open.
+        if dd.menuFitItems then
+            -- Underscored, per the rule for anything that has to read back as
+            -- nil before it is set: a plain field name comes back from the
+            -- test harness as a truthy no-op and this skips the creation.
+            local probe = menu.__probe
+            if not probe then
+                probe = menu:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+                if probe and probe.Hide then probe:Hide() end
+                menu.__probe = probe
+            end
+            local widest = 0
+            if probe and probe.GetStringWidth then
+                for i = 1, total do
+                    probe:SetText(items[i].text or "")
+                    local sw = probe:GetStringWidth() or 0
+                    if sw > widest then widest = sw end
+                end
+            end
+            -- 8px of padding each side, plus room for the favourite star.
+            -- Capped at the screen, since a menu wider than the window is a
+            -- worse answer to a long name than cutting it off.
+            local screen = UIParent and UIParent.GetWidth and UIParent:GetWidth()
+            local cap = (screen and screen > 160) and (screen - 80) or 600
+            if widest > 0 then w = math.max(w, math.min(widest + 40, cap)) end
+        end
         menu:SetWidth(w)
         menu:SetHeight(visible * rowH + 8)
         menu:ClearAllPoints()
@@ -1508,6 +1539,9 @@ local function buildBrowser()
     f.renarrow = renarrow
 
     local groupDrop = Compat.CreateDropdown(f, 200)
+    -- Speaker names run long -- "Blood Elf Demon Hunter - masculine voice" --
+    -- and a name cut off mid-word is not a choice anybody can make.
+    groupDrop.menuFitItems = true
     groupDrop:SetPoint("TOPLEFT", hint, "BOTTOMLEFT", 0, -8)
     groupDrop:SetHeight(22)
     groupDrop.onSelect = function(value)
@@ -1520,6 +1554,7 @@ local function buildBrowser()
     -- makes a speaker with 290 lines usable: battle cries, threats and pain
     -- are different things to go looking for.
     local kindDrop = Compat.CreateDropdown(f, 180)
+    kindDrop.menuFitItems = true
     kindDrop:SetPoint("LEFT", groupDrop, "RIGHT", 8, 0)
     kindDrop:SetHeight(22)
     kindDrop.onSelect = function(value)

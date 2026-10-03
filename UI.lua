@@ -3230,9 +3230,15 @@ local function RefreshCasts()
                                 -- The count belongs on the label: it is what
                                 -- tells you whether a speaker is worth opening
                                 -- before you open it.
+                                -- Marked with a star in front rather than a
+                                -- note behind. The names already run to forty
+                                -- characters and the ones that matter are the
+                                -- ones you can pick out at a glance, not the
+                                -- ones with the longest explanation.
                                 out[#out + 1] = { id = s.who, label =
-                                    string.format("%s (%d)%s", s.who, s.count,
-                                        pass and "  -- your character" or "") }
+                                    string.format("%s%s (%d)",
+                                        pass and "|cffffd200*|r " or "",
+                                        s.who, s.count) }
                             end
                         end
                     end
