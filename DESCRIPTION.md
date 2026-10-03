@@ -83,7 +83,7 @@ Write your own lines with tokens for the spell, your target and your pet. Pets s
 
 ## Getting started
 
-Install, then type `/toa` or click the minimap button to open the options panel. Pick your tongue under Languages, an accent under Accents, choose your channels under Chat, and switch Speak in character on.
+Install, then type `/toa` or click the minimap button to open the options panel. Pick your tongue under Languages, an accent under Accents, choose your channels under Chat Channels, and switch Speak in character on.
 
 That one switch covers your whole voice, tongue and accent together. It's on the floating bar and bindable to a key, because ducking out to answer someone in plain English and ducking back is something you do all evening. The minimap button turns green in character and red out of it, so you can read the state at a glance. With it off you still read, decode and color everyone else.
 

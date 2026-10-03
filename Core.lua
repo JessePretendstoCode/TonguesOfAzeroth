@@ -65,7 +65,7 @@ local function translateOutgoing(msg, langId, strength)
     return fit(translated)
 end
 
--- The order the Chat tab draws its checkboxes in. EMOTE was missing from this
+-- The order the Chat Channels tab draws its checkboxes in. EMOTE was missing from this
 -- list while sitting in DEFAULT_CHANNELS below, which meant emotes were
 -- translated and nothing anywhere could turn that off.
 local CHANNEL_TYPES = {
@@ -390,7 +390,7 @@ local function migrateDB()
     end
     -- One-time: move existing users onto the new in-line display (the chat line
     -- itself is rewritten, like retail). They can pick a legacy style again
-    -- under Chat -> When you listen if they prefer the old separate line.
+    -- under Chat Channels -> When you listen if they prefer the old separate line.
     if not db.decodeStyleV2 then
         db.decodeStyle = "inline"
         db.decodeStyleV2 = true

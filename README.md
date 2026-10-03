@@ -298,7 +298,7 @@ Each panel answers one question, which is how to guess where a setting lives:
 - When someone speaks that language via Tongues of Azeroth, you see their
   translated line in chat plus a second line: `"translated" → "original"`.
 
-**Chat tab**
+**Chat Channels tab**
 
 Split by the two directions the pipeline runs in.
 

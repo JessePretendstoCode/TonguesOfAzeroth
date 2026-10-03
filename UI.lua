@@ -1301,7 +1301,7 @@ local function BuildMainPanel()
     end)
     learnedBtn:SetPoint("TOPRIGHT", trainerBtn, "BOTTOMRIGHT", 0, -4)
 
-    local chatBtn = makeNavButton("Chat", function()
+    local chatBtn = makeNavButton("Chat Channels", function()
         if ns.OpenChatConfig then ns.OpenChatConfig() end
     end)
     chatBtn:SetPoint("TOPRIGHT", learnedBtn, "BOTTOMRIGHT", 0, -4)
@@ -1339,7 +1339,7 @@ local function BuildMainPanel()
     enableHint:SetPoint("RIGHT", content, "RIGHT", -170, 0)
     enableHint:SetJustifyH("LEFT")
     if enableHint.SetWordWrap then enableHint:SetWordWrap(true) end
-    enableHint:SetText("Off mutes everything this addon says for you: your chat goes out exactly as typed, with no accent, and cast phrases stay quiet. You still read, color and decode everyone else either way. Applies to the channels picked under |cffffd200Chat|r.")
+    enableHint:SetText("Off mutes everything this addon says for you: your chat goes out exactly as typed, with no accent, and cast phrases stay quiet. You still read, color and decode everyone else either way. Applies to the channels picked under |cffffd200Chat Channels|r.")
 
     -- The voice readout and the preview used to live here. They moved to
     -- Languages, which is where the tongue, the fluency and the color are all
@@ -1390,7 +1390,7 @@ local function BuildMainPanel()
 end
 
 --=========================================================================--
---  Chat panel
+--  Chat Channels panel
 --  Everything about the chat pipeline itself, split by the two directions it
 --  runs in: what leaves your keyboard, and what arrives in your window. These
 --  settings were previously spread across the main panel (channels, tag
@@ -1399,7 +1399,7 @@ end
 --=========================================================================--
 local function BuildChatPanel()
     chatPanel = Compat.CreateOptionsPanel("TonguesOfAzerothChatOptions")
-    chatPanel.name = "Chat"
+    chatPanel.name = "Chat Channels"
     chatPanel.parent = mainPanel.name
 
     local content = Compat.CreateScrollContent(chatPanel, 700)
@@ -1407,7 +1407,7 @@ local function BuildChatPanel()
 
     local title = content:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
     title:SetPoint("TOPLEFT", 16, -16)
-    title:SetText("Chat")
+    title:SetText("Chat Channels")
 
     local subtitle = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -8)
@@ -2183,7 +2183,7 @@ local function BuildAccentPanel()
     hint:SetPoint("RIGHT", content, "RIGHT", -24, 0)
     hint:SetJustifyH("LEFT")
     if hint.SetWordWrap then hint:SetWordWrap(true) end
-    hint:SetText("Your accent layers onto whatever your fluency leaves in English, so the two stack instead of competing -- speak Orcish at 50% and the English half still sounds like you. Text in (parentheses) is always left as plain speech. Needs |cffffd200Speak in character|r on, and applies to the channels picked under |cffffd200Chat|r.")
+    hint:SetText("Your accent layers onto whatever your fluency leaves in English, so the two stack instead of competing -- speak Orcish at 50% and the English half still sounds like you. Text in (parentheses) is always left as plain speech. Needs |cffffd200Speak in character|r on, and applies to the channels picked under |cffffd200Chat Channels|r.")
 
     local accentLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     accentLabel:SetPoint("TOPLEFT", hint, "BOTTOMLEFT", 0, -16)
@@ -2244,13 +2244,13 @@ local function BuildAccentPanel()
 
     -- The accent used to carry its own copy of the channel grid, so "where does
     -- my voice apply" had two answers that could quietly disagree. One list
-    -- under Chat governs both halves now; this just points at it.
+    -- under Chat Channels governs both halves now; this just points at it.
     local channelHint = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     channelHint:SetPoint("TOPLEFT", accentEmotesCheck, "BOTTOMLEFT", 0, -14)
     channelHint:SetPoint("RIGHT", content, "RIGHT", -24, 0)
     channelHint:SetJustifyH("LEFT")
     if channelHint.SetWordWrap then channelHint:SetWordWrap(true) end
-    channelHint:SetText("Your accent follows the same channels as your tongue -- pick them under |cffffd200Chat|r.")
+    channelHint:SetText("Your accent follows the same channels as your tongue -- pick them under |cffffd200Chat Channels|r.")
 
     local previewLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     previewLabel:SetPoint("TOPLEFT", channelHint, "BOTTOMLEFT", 0, -16)
