@@ -682,6 +682,11 @@ end
 local function shouldSpeak(key)
     local c = castDB()
     if not (c and c.enabled) then return false end
+    -- Out of character means the addon says nothing in your name, and a cast
+    -- phrase is the addon saying something in your name. Somebody who stepped
+    -- out to answer their raid leader did not ask to go on roaring "FOR THE
+    -- HORDE" at every Shadow Bolt while they did it.
+    if ns.IsInCharacter and not ns.IsInCharacter() then return false end
     if not key or Casts.IsMuted(key) then return false end
 
     local d = ns.CAST_DEFAULTS

@@ -1560,7 +1560,8 @@ function ns.SetInCharacter(state, silent)
 
     if silent then return end
     if not state then
-        Print("Speaking |cffff0000out of character|r -- your chat goes out as typed.")
+        Print("Speaking |cffff0000out of character|r -- chat goes out as typed, "
+            .. "no accent, and cast phrases are quiet.")
         return
     end
     local a = TonguesOfAzerothDB.accent
@@ -1575,6 +1576,24 @@ end
 function ns.ToggleInCharacter(silent)
     migrateDB()
     ns.SetInCharacter(not TonguesOfAzerothDB.inCharacter, silent)
+end
+
+-- One answer to "is the addon speaking for me right now", for every feature
+-- that speaks. The switch reads as a mute: hit it to answer your raid leader
+-- in plain English, and everything the addon would otherwise have said in your
+-- name stops at once -- the tongue, the accent, the cast phrases, the voice
+-- clips that ride on them.
+--
+-- Only what you send. You still read, decode and colour everybody else's
+-- chat with it off, because the person who stepped out to answer a question
+-- has not asked to stop seeing the roleplay going on around them.
+--
+-- A function rather than four files reading the flag, because four readings
+-- are four chances for one of them to be missed when a feature is added --
+-- which is exactly how cast phrases came to keep shouting through it.
+function ns.IsInCharacter()
+    local db = TonguesOfAzerothDB
+    return (db and db.inCharacter) and true or false
 end
 
 -- Globals for Bindings.xml: Blizzard runs binding bodies as bare chunks with no

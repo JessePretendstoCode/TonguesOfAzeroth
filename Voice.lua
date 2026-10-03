@@ -64,8 +64,13 @@ local function castDB()
     return TonguesOfAzerothDB and TonguesOfAzerothDB.casts
 end
 
+-- Gated on the in-character switch as well as its own, so the mute reaches the
+-- sound and not only the words. Audition is deliberately not: pressing Play on
+-- the phrase panel is a direct request, and refusing it would leave somebody
+-- picking a line they are not allowed to hear first.
 function Voice.IsEnabled()
     local c = castDB()
+    if ns.IsInCharacter and not ns.IsInCharacter() then return false end
     return (c and c.enabled and c.voice) and true or false
 end
 

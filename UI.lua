@@ -747,9 +747,14 @@ local function tooltipLines(tt)
     tt:AddLine("Tongues of Azeroth")
     tt:AddLine("Language: |cffffffff" .. Language.GetLanguageName(db().language) .. "|r", 0.8, 0.8, 0.8)
     tt:AddLine("In character: " .. (db().inCharacter and "|cff00ff00YES|r" or "|cffff0000NO|r"), 0.8, 0.8, 0.8)
+    if not db().inCharacter then
+        -- Said here because this is where it gets switched off, and a button
+        -- that silences four features ought to admit to all four of them.
+        tt:AddLine("Muted: no tongue, no accent, no cast phrases.", 0.8, 0.5, 0.5)
+    end
     tt:AddLine(" ")
     tt:AddLine("|cffffffffLeft-click|r  Open settings", 1, 1, 1)
-    tt:AddLine("|cffffffffRight-click|r  Toggle in character", 1, 1, 1)
+    tt:AddLine("|cffffffffRight-click|r  Mute / unmute everything it says for you", 1, 1, 1)
     local favCount = (ns.GetFavorites and #ns.GetFavorites()) or 0
     tt:AddLine("|cffffffffScroll|r  Cycle " ..
         ((db().favOnly and favCount > 0) and "your favorites" or "learned languages"), 1, 1, 1)
@@ -1293,10 +1298,12 @@ local function BuildMainPanel()
     end)
     castBtn:SetPoint("TOPRIGHT", customBtn, "BOTTOMRIGHT", 0, -4)
 
-    -- One switch over your whole voice -- the tongue AND the accent. It is not
-    -- an "is the addon on" switch: with it off you still read other players,
-    -- still get the colors, still train. It's the thing you hit to answer your
-    -- raid leader in plain English and hit again after.
+    -- One switch over everything the addon says in your name: the tongue, the
+    -- accent, and the cast phrases with the voice clips that ride on them. It
+    -- is still not an "is the addon on" switch -- with it off you read other
+    -- players, get the colors and go on training exactly as before. It mutes
+    -- what you send. It's the thing you hit to answer your raid leader in
+    -- plain English and hit again after.
     enableCheck = Compat.CreateCheckbox(content, "Speak in character")
     enableCheck:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -16)
     enableCheck:SetScript("OnClick", function(self)
@@ -1309,7 +1316,7 @@ local function BuildMainPanel()
     enableHint:SetPoint("RIGHT", content, "RIGHT", -170, 0)
     enableHint:SetJustifyH("LEFT")
     if enableHint.SetWordWrap then enableHint:SetWordWrap(true) end
-    enableHint:SetText("Off = your chat goes out exactly as typed. You still read, color and decode everyone else either way. Applies to the channels picked under |cffffd200Chat|r.")
+    enableHint:SetText("Off mutes everything this addon says for you: your chat goes out exactly as typed, with no accent, and cast phrases stay quiet. You still read, color and decode everyone else either way. Applies to the channels picked under |cffffd200Chat|r.")
 
     -- The voice readout and the preview used to live here. They moved to
     -- Languages, which is where the tongue, the fluency and the color are all
