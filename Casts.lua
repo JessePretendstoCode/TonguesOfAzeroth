@@ -37,12 +37,21 @@ local Compat = ns.Compat
 local Casts = {}
 ns.Casts = Casts
 
--- Weights run 0..5 rather than 0..100: the only thing a weight has to express
--- is "more often than that one", and a short scale keeps the UI to a row of
--- steps. 0 is meaningful -- it retires a line you don't like without deleting
--- it, which matters for library phrases you can't delete.
-local DEFAULT_WEIGHT = 3
-Casts.MAX_WEIGHT = 5
+-- Weights run 0..20, shown as 0..100% in steps of five. The scale is only ever
+-- read against itself -- a weight says "more often than that one" and nothing
+-- else -- so the number of steps is purely how fine a hand the panel gives you,
+-- and twenty-point jumps turned out to be too coarse to tune a list with.
+--
+-- 0 is meaningful: it retires a line you don't like without deleting it, which
+-- matters for library phrases you can't delete.
+--
+-- Saved weights from the old 0..5 scale are multiplied up on load; see the
+-- weightScaleV2 step in Core's migration.
+local DEFAULT_WEIGHT = 12
+Casts.MAX_WEIGHT = 20
+-- Published alongside the maximum so callers can say "the default" instead of
+-- repeating the number, which is how a rescale leaves a trail of stale 3s.
+Casts.DEFAULT_WEIGHT = DEFAULT_WEIGHT
 
 local function castDB()
     return TonguesOfAzerothDB and TonguesOfAzerothDB.casts

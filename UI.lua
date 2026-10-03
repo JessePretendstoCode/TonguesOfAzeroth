@@ -3041,11 +3041,25 @@ local function RefreshCasts()
     -- A selection is never taken away: a spell picked by name, or by the
     -- keybind, has no phrases yet by definition, and dropping it would undo the
     -- click that got you here. Only an empty selection falls back to the list.
-    local keys = Casts.GetKeys()
-    if not castSelectedKey then castSelectedKey = keys[1] end
+    --
+    -- The fallback is the first thing the dropdown is about to offer, not the
+    -- first key in the library. Those were the same list back when only your
+    -- own class's pack was loaded; with every pack on, the library now starts
+    -- at the alphabetically first spell in the game, so a priest opened this
+    -- panel already looking at Aimed Shot -- a spell they cannot cast and which
+    -- the dropdown below was correctly refusing to list.
+    local items = castSpellItems()
+    if not castSelectedKey then
+        for _, item in ipairs(items) do
+            if item.value and not item.header then
+                castSelectedKey = item.value
+                break
+            end
+        end
+    end
 
     if castSpellDropdown then
-        castSpellDropdown:SetItems(castSpellItems())
+        castSpellDropdown:SetItems(items)
         if castSelectedKey then
             castSpellDropdown:SetSelected(castSelectedKey, Casts.DisplayName(castSelectedKey))
         else

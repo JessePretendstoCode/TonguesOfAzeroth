@@ -546,6 +546,32 @@ local function migrateDB()
         end
     end
 
+    -- Weights used to run 0..5, which put the nudge buttons on twenty-point
+    -- jumps and left no way to say "a bit less than that one". They run 0..20
+    -- now, so a saved 3 means a fifth of what it used to unless it is carried
+    -- across.
+    --
+    -- Multiplied in the save rather than scaled on every read: a weight is
+    -- compared against the other weights in its own list, so a half-converted
+    -- list is a wrong list, and doing it once at a known moment is the only way
+    -- to be sure there isn't one. The old and new maxima are written out rather
+    -- than read from Casts.MAX_WEIGHT, because this step converts 5 to 20 and
+    -- must keep doing exactly that if the scale ever moves again.
+    if not casts.weightScaleV2 then
+        casts.weightScaleV2 = true
+        if type(casts.weights) == "table" then
+            for _, byText in pairs(casts.weights) do
+                if type(byText) == "table" then
+                    for text, w in pairs(byText) do
+                        if type(w) == "number" then
+                            byText[text] = math.max(0, math.min(20, math.floor(w * 4 + 0.5)))
+                        end
+                    end
+                end
+            end
+        end
+    end
+
     -- The creed packs are gone. What a character believes is exactly the sort
     -- of thing that wants writing rather than ticking, and eight tickboxes were
     -- never going to cover anybody properly -- so the lines they carried are
