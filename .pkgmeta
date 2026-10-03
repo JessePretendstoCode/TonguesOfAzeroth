@@ -4,6 +4,7 @@ ignore:
   - ".luacheckrc"
   - "*.ps1"
   - "UI_*.png"
+  - "ICON.png"
   - "DESCRIPTION.md"
   - "PHRASES.md"
   - "PROMO.md"
