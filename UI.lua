@@ -34,6 +34,7 @@ local SAMPLE = "The old gods whisper madness into your mind."
 local CHANNEL_LABELS = {
     SAY           = "Say",
     YELL          = "Yell",
+    EMOTE         = "Emote (/e and *actions*)",
     WHISPER       = "Whisper",
     PARTY         = "Party",
     RAID          = "Raid",
@@ -332,7 +333,17 @@ local function langItems()
     -- English without leaving character, so somebody who only wants an accent
     -- has a setting that says so rather than having to park on a tongue they
     -- are 0% fluent in and hope.
-    items[#items + 1] = { text = Language.GetLanguageName("none"), value = "none" }
+    --
+    -- It carries the only star in this list. Stars were deliberately moved off
+    -- these rows and onto the language rows below, because hunting seventy
+    -- entries to mark the handful that would have saved you the hunt is no
+    -- help -- but None has no row down there to be marked on. Those rows are
+    -- built from the primary languages, and None is hidden from that list by
+    -- design, so without this the one tongue you most want on your shortlist
+    -- is the one tongue you cannot put there. Right-clicking already worked;
+    -- nothing said so.
+    items[#items + 1] = { text = Language.GetLanguageName("none"), value = "none",
+                          toggle = isFav("none") }
     local favs = (ns.GetFavorites and ns.GetFavorites()) or {}
     local favRows = {}
     for i = 1, #favs do
@@ -1667,6 +1678,9 @@ local function BuildLearnedPanel()
         if ns.ToggleFavorite then ns.ToggleFavorite(value) end
         if ns.OnSettingsChanged then ns.OnSettingsChanged() else RefreshLearned() end
     end
+    -- Only rows that opt in with a `toggle` field draw a star, which here is
+    -- None and nothing else, so the list stays as uncluttered as it was.
+    langDropdown.onToggle = langDropdown.onAltClick
 
     -- Global learning method: passive (learn by hearing). The Trainer minigame is
     -- always available from its own panel; this toggles the automatic learning.

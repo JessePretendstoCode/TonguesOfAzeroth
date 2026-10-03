@@ -65,15 +65,23 @@ local function translateOutgoing(msg, langId, strength)
     return fit(translated)
 end
 
+-- The order the Chat tab draws its checkboxes in. EMOTE was missing from this
+-- list while sitting in DEFAULT_CHANNELS below, which meant emotes were
+-- translated and nothing anywhere could turn that off.
 local CHANNEL_TYPES = {
-    "SAY", "YELL", "WHISPER", "PARTY", "RAID", "RAID_WARNING",
+    "SAY", "YELL", "EMOTE", "WHISPER", "PARTY", "RAID", "RAID_WARNING",
     "INSTANCE_CHAT", "GUILD", "OFFICER", "CHANNEL",
 }
 
 local DEFAULT_CHANNELS = {
     SAY            = true,
     YELL           = true,
-    EMOTE          = true,
+    -- Off, unlike every other channel. An emote is narration, not speech --
+    -- "/e straightens her cloak" is the story describing you in the third
+    -- person -- so putting it through a tongue has the narrator speaking
+    -- Darnassian about you. Accents reached this conclusion already
+    -- (db.accent.emotes defaults false); the tongue never did.
+    EMOTE          = false,
     PARTY          = true,
     RAID           = true,
     RAID_WARNING   = true,
@@ -546,6 +554,20 @@ local function migrateDB()
             db.channels[ch] = enabled
         end
         db.channelDefaultsVersion = 2
+    end
+
+    -- One-time: stop translating emotes for everybody who already has a save.
+    -- Flipping the default above only reaches new profiles, because the loop
+    -- that fills in defaults skips anything already set -- and EMOTE has been
+    -- sitting in every save as true since the first release.
+    --
+    -- Safe to overwrite rather than respect, which is normally the wrong thing
+    -- to do to a saved setting: there was no checkbox for this until now, so a
+    -- stored true is a default nobody chose, not a preference being thrown
+    -- away. Anyone who wants it back has a control to do it with.
+    if db.channelDefaultsVersion < 3 then
+        db.channels.EMOTE = false
+        db.channelDefaultsVersion = 3
     end
 
     -- Only stop re-running once the Trainer-dependent fluency migration is done;
