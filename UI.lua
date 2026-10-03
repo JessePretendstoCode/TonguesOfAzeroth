@@ -2849,6 +2849,15 @@ local function castRow(index, parent)
 
     local function tinyButton(label, width)
         local btn = CreateFrame("Button", nil, row)
+        -- Above the strip rather than merely in front of it. The phrase strip
+        -- below is itself a Button -- clicking it opens the editor -- and
+        -- these sit on top of it. Two siblings at the same frame level have no
+        -- defined winner for a click, so without this the nudge buttons hand
+        -- their clicks to the editor underneath: the row opens for editing and
+        -- the weight never moves, which is every control on this strip broken
+        -- at once. The bar's in-character and favorite buttons are raised over
+        -- their frame for the same reason.
+        btn:SetFrameLevel(row:GetFrameLevel() + 2)
         btn:SetSize(width or 18, 18)
         local bg = btn:CreateTexture(nil, "BACKGROUND")
         bg:SetAllPoints()
@@ -2956,6 +2965,16 @@ local function castRow(index, parent)
     Compat.SolidTexture(ibg, 0.06, 0.05, 0.10, 1)
     Compat.AddBorder(row.input, 0.6, 0.55, 0.85, 0.9)
     row.input:Hide()
+
+    -- The rest of what sits on the strip, raised over it for the same reason
+    -- the nudge buttons are: a sibling at the same level has no claim on a
+    -- click. The box needs it to put the cursor where you pointed instead of
+    -- handing the click to the strip, and keep/discard need it to be clickable
+    -- at all -- which is the whole reason they exist, Enter having been the
+    -- only way to commit before them.
+    for _, f in ipairs({ row.input, row.keep, row.discard }) do
+        f:SetFrameLevel(row:GetFrameLevel() + 2)
+    end
 
     -- The voice strip, always on show. Which lines have a recording pinned to
     -- them and which go out silent is the question this panel exists to answer,
