@@ -3580,53 +3580,9 @@ local function BuildCastPanel()
     if throttleHint.SetWordWrap then throttleHint:SetWordWrap(true) end
     throttleHint:SetText("The two pauses are what keep a spammable spell from turning your emotes into a wall of text. A cast that rolls a phrase while either pause is running simply stays quiet.")
 
-    --  Hearing other people ------------------------------------------------
-    local hearLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    hearLabel:SetPoint("TOPLEFT", throttleHint, "BOTTOMLEFT", 0, -20)
-    hearLabel:SetText("Hearing other players")
-
-    local hearIntro = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-    hearIntro:SetPoint("TOPLEFT", hearLabel, "BOTTOMLEFT", 0, -6)
-    hearIntro:SetPoint("RIGHT", content, "RIGHT", -24, 0)
-    hearIntro:SetJustifyH("LEFT")
-    if hearIntro.SetWordWrap then hearIntro:SetWordWrap(true) end
-    hearIntro:SetText("A pinned line is a number, not a sound file, so ToA can tell other people running it which of their own recordings to play -- and they can tell you. You only ever hear it if their emote reached you, which keeps it to people you are standing with.")
-
-    local HEAR_ROWS = {
-        { key = "PARTY",  label = "Play lines from my party" },
-        { key = "RAID",   label = "Play lines from my raid" },
-        { key = "GUILD",  label = "Play lines from my guild" },
-        { key = "NEARBY", label = "Play lines from anyone standing nearby" },
-    }
-
-    local hearAnchor, hearGap = hearIntro, -10
-    for _, row in ipairs(HEAR_ROWS) do
-        local check = Compat.CreateCheckbox(content, row.label)
-        check:SetPoint("TOPLEFT", hearAnchor, "BOTTOMLEFT", 0, hearGap)
-        check:SetScript("OnClick", function(self)
-            castDB().hear[row.key] = self:GetChecked() and true or false
-        end)
-        castHearChecks[row.key] = check
-        hearAnchor, hearGap = check, -6
-    end
-
-    -- Why the last box is greyed out on Retail. Written as its own line rather
-    -- than folded into a tooltip: a disabled tick with no explanation reads as
-    -- a broken addon, and this one is disabled for a reason nobody could guess.
-    local hearNearbyNote = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-    hearNearbyNote:SetPoint("TOPLEFT", castHearChecks.NEARBY, "BOTTOMLEFT", 26, -2)
-    hearNearbyNote:SetPoint("RIGHT", content, "RIGHT", -24, 0)
-    hearNearbyNote:SetJustifyH("LEFT")
-    if hearNearbyNote.SetWordWrap then hearNearbyNote:SetWordWrap(true) end
-    if Compat.hasProximityAddonMessages then
-        hearNearbyNote:SetText("Anyone in /say range, grouped with you or not. Off to begin with, because a sound from a stranger is a surprise.")
-    else
-        hearNearbyNote:SetText("Not available on this version of the game: it only lets addons talk to players you are grouped or guilded with, so a stranger's line cannot reach you at all.")
-    end
-
     --  The spell being edited --------------------------------------------
     local spellLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    spellLabel:SetPoint("TOPLEFT", hearNearbyNote, "BOTTOMLEFT", -26, -20)
+    spellLabel:SetPoint("TOPLEFT", throttleHint, "BOTTOMLEFT", 0, -20)
     spellLabel:SetText("Spell")
 
     castFilterSpellbookCheck = Compat.CreateCheckbox(content, "Only show spells I can cast")
@@ -3791,7 +3747,55 @@ local function BuildCastPanel()
     castStatus:SetJustifyH("LEFT")
     castStatus:SetText("")
 
-    castPanel._lastChild = castStatus
+    --  Hearing other people ------------------------------------------------
+    -- Last on the panel, below the phrase list. Everything above is about the
+    -- line you are writing; this is about lines you are not, and putting it in
+    -- between meant scrolling past a question about other people to reach the
+    -- spell you came here to edit.
+    local hearLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    hearLabel:SetPoint("TOPLEFT", castStatus, "BOTTOMLEFT", 0, -24)
+    hearLabel:SetText("Hearing other players")
+
+    local hearIntro = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    hearIntro:SetPoint("TOPLEFT", hearLabel, "BOTTOMLEFT", 0, -6)
+    hearIntro:SetPoint("RIGHT", content, "RIGHT", -24, 0)
+    hearIntro:SetJustifyH("LEFT")
+    if hearIntro.SetWordWrap then hearIntro:SetWordWrap(true) end
+    hearIntro:SetText("A pinned line is a number, not a sound file, so ToA can tell other people running it which of their own recordings to play -- and they can tell you. You only ever hear it if their emote reached you, which keeps it to people you are standing with.")
+
+    local HEAR_ROWS = {
+        { key = "PARTY",  label = "Play lines from my party" },
+        { key = "RAID",   label = "Play lines from my raid" },
+        { key = "GUILD",  label = "Play lines from my guild" },
+        { key = "NEARBY", label = "Play lines from anyone standing nearby" },
+    }
+
+    local hearAnchor, hearGap = hearIntro, -10
+    for _, row in ipairs(HEAR_ROWS) do
+        local check = Compat.CreateCheckbox(content, row.label)
+        check:SetPoint("TOPLEFT", hearAnchor, "BOTTOMLEFT", 0, hearGap)
+        check:SetScript("OnClick", function(self)
+            castDB().hear[row.key] = self:GetChecked() and true or false
+        end)
+        castHearChecks[row.key] = check
+        hearAnchor, hearGap = check, -6
+    end
+
+    -- Why the last box is greyed out on Retail. Written as its own line rather
+    -- than folded into a tooltip: a disabled tick with no explanation reads as
+    -- a broken addon, and this one is disabled for a reason nobody could guess.
+    local hearNearbyNote = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+    hearNearbyNote:SetPoint("TOPLEFT", castHearChecks.NEARBY, "BOTTOMLEFT", 26, -2)
+    hearNearbyNote:SetPoint("RIGHT", content, "RIGHT", -24, 0)
+    hearNearbyNote:SetJustifyH("LEFT")
+    if hearNearbyNote.SetWordWrap then hearNearbyNote:SetWordWrap(true) end
+    if Compat.hasProximityAddonMessages then
+        hearNearbyNote:SetText("Anyone in /say range, grouped with you or not. Off to begin with, because a sound from a stranger is a surprise.")
+    else
+        hearNearbyNote:SetText("Not available on this version of the game: it only lets addons talk to players you are grouped or guilded with, so a stranger's line cannot reach you at all.")
+    end
+
+    castPanel._lastChild = hearNearbyNote
     castPanel.refresh = RefreshCasts
     castPanel:SetScript("OnShow", RefreshCasts)
 
