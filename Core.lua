@@ -551,6 +551,10 @@ local function migrateDB()
     if type(casts.spells) ~= "table" then casts.spells = {} end
     -- Spells silenced even though an enabled pack covers them.
     if type(casts.muted) ~= "table" then casts.muted = {} end
+    -- Pack lines removed from a spell: { [spellKey] = { [text] = true } }. Only
+    -- pack lines are here -- one you wrote yourself is deleted outright, since
+    -- nothing would offer it again. See Casts.RemovePhrase.
+    if type(casts.hidden) ~= "table" then casts.hidden = {} end
     -- The character sheet is gone: a Bearing and Wording used to weight the
     -- library, but the weighting dropped every non-matching group entirely, so
     -- a character only ever reached one or two lines of the five-odd written per

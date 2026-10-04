@@ -162,17 +162,104 @@ function Casts.AddPhrase(key, text)
     return true
 end
 
+--=========================================================================--
+--  Removing a phrase
+--=========================================================================--
+-- Anything in the list can be taken out of it, including a pack's lines. Those
+-- used to only be retirable to weight 0, on the reasoning that the pack owned
+-- them -- but the list is the list, and a line sitting there at "off" is still
+-- a line you have to read past every time you come back to the spell.
+--
+-- What "out" means differs by where the line came from, and has to. One you
+-- wrote is deleted: the text is the only copy and nothing else will produce it
+-- again. A pack's line is noted as unwanted instead, because the pack will
+-- happily offer it again on the next load and because, unlike yours, it cannot
+-- be typed back from memory if the removal was a misclick. Hence Restore.
+
+local function hiddenMap(key, create)
+    local c = castDB()
+    if not (c and key) then return nil end
+    if type(c.hidden) ~= "table" then
+        if not create then return nil end
+        c.hidden = {}
+    end
+    if not c.hidden[key] and create then c.hidden[key] = {} end
+    return c.hidden[key]
+end
+
+function Casts.IsPhraseHidden(key, text)
+    local m = hiddenMap(key)
+    return (m and m[text]) == true
+end
+
+-- How many of this spell's pack lines have been removed, so the panel can offer
+-- them back without claiming there is something to restore when there isn't.
+function Casts.HiddenCount(key)
+    local m = hiddenMap(key)
+    if not m then return 0 end
+    local n = 0
+    for _, v in pairs(m) do
+        if v then n = n + 1 end
+    end
+    return n
+end
+
+-- Everything removed for this spell comes back at once. One at a time would
+-- need the removed lines listed somewhere to be chosen from, and a panel that
+-- shows you what you threw away is a worse panel than one that doesn't.
+function Casts.RestoreHidden(key)
+    local c = castDB()
+    if not (c and key and c.hidden) then return 0 end
+    local n = Casts.HiddenCount(key)
+    c.hidden[key] = nil
+    if not next(c.hidden) then c.hidden = {} end
+    return n
+end
+
+-- Returns ok, kind -- where kind is "deleted" for one of yours and "hidden"
+-- for a pack's, which is the difference the panel reports back.
 function Casts.RemovePhrase(key, text)
+    if not key or type(text) ~= "string" then return false end
+
     local list = userList(key)
-    if not list then return false end
-    for i, t in ipairs(list) do
-        if t == text then
-            table.remove(list, i)
-            if #list == 0 then castDB().spells[key] = nil end
-            return true
+    if list then
+        for i, t in ipairs(list) do
+            if t == text then
+                table.remove(list, i)
+                if #list == 0 then castDB().spells[key] = nil end
+                -- Gone for good, so the settings hung off it go too. Left
+                -- behind they would silently reattach to a phrase typed with
+                -- the same words months later, which is how a brand new line
+                -- arrives already at 0% with somebody else's voice pinned.
+                Casts.ClearWeight(key, t)
+                Casts.SetPhraseSpoken(key, t, nil)
+                return true, "deleted"
+            end
         end
     end
-    return false
+
+    -- A pack line, if it really is one. Checked rather than assumed: otherwise
+    -- removing a phrase that isn't there writes a note refusing a line nobody
+    -- offers, and those would pile up in the saved file forever -- one per
+    -- typo, each of them silently suppressing that text if some pack ever did
+    -- come to ship it.
+    local lib = ns.CastLibrary
+    local known = false
+    if lib and lib.GetPhrases then
+        for _, entry in ipairs(lib.GetPhrases(key)) do
+            if entry.text == text then known = true break end
+        end
+    end
+    if not known then return false end
+
+    -- Its weight, rewording and pinned voice all stay: they are addressed by
+    -- this same text, and Restore is meant to give back the line you had rather
+    -- than a fresh one.
+    local m = hiddenMap(key, true)
+    if not m then return false end
+    if m[text] then return false end
+    m[text] = true
+    return true, "hidden"
 end
 
 --=========================================================================--
@@ -413,6 +500,9 @@ function Casts.GetPhrases(key)
     local function addLibraryLine(entry, base)
         if seen[entry.text] then return end
         seen[entry.text] = true
+        -- Removed. Marked seen first so a second pack shipping the same words
+        -- can't quietly put it back.
+        if Casts.IsPhraseHidden(key, entry.text) then return end
         -- `orig` is what everything else addresses this line by: its weight, its
         -- edit, and the pack it came from. `text` is only what gets spoken.
         local shown = Casts.GetEditedText(key, entry.text) or entry.text
@@ -446,6 +536,16 @@ function Casts.GetKeys()
     local c = castDB()
     if c then
         for key in pairs(c.spells) do set[key] = true end
+        -- A spell whose every line has been removed still belongs in the list.
+        -- Dropping it would take Restore off the screen along with it, leaving
+        -- the pack's lines gone with no way back short of editing the saved
+        -- file -- and the spell would vanish from the list the moment you
+        -- removed the last line, which reads as the panel breaking.
+        if type(c.hidden) == "table" then
+            for key, m in pairs(c.hidden) do
+                if type(m) == "table" and next(m) then set[key] = true end
+            end
+        end
     end
     local lib = ns.CastLibrary
     if lib and lib.EachEnabledKey then

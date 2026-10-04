@@ -2,6 +2,24 @@
 
 All notable changes to Tongues of Azeroth are documented here.
 
+## [0.5.1]
+- Cast phrases can be removed, not just turned off. Every line in a spell's list now has a
+  Remove button. Before this only the ones you wrote yourself could go; a shipped line
+  could be taken down to 0% so it was never picked, but it stayed on the list, and a spell
+  you had worked over was mostly lines you had already decided against.
+  What Remove does depends on who wrote the line, because the two cases genuinely differ.
+  One of yours is deleted, along with the weight and the pinned recording hanging off it,
+  since nothing will ever offer those words again and leaving the settings behind would
+  mean retyping the same phrase later and finding it already retired with somebody else's
+  voice on it. A shipped line is set aside instead: its pack will go on offering it, and
+  unlike yours you cannot type it back from memory, so removing one has to be undoable.
+  A spell with lines set aside shows a count and a Restore under the list, which brings
+  them all back carrying the weight and the wording they had when they went.
+  Remove asks first. It sits at the right of the phrase strip, one row above the Play
+  button you press over and over while auditioning voices, so the misclick is likeliest at
+  exactly the moment you are least expecting to lose anything. The question quotes the line
+  it is about to take out and says whether it can be brought back.
+
 ## [0.5.0]
 - Fixed: a brand-new install spoke fluent Shath'yar. A fresh character now starts out of
   character, knowing no tongue, set to *None (speak plainly)*. It used to land on Old God

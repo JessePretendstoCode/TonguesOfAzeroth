@@ -72,6 +72,9 @@ in character when you want to be heard in it.
   Click any line to reword it in place, shipped ones included; it keeps what you type when
   you click away, and Escape (or the circle-slash on the row) puts it back. A pack line
   you've changed offers Revert where its pack name was, and keeps the weight you gave it.
+  Every line has a Remove button, which quotes the line and asks before it takes it out.
+  One you wrote is deleted; a pack line is set aside, and a Restore under the list brings
+  back everything you have taken out of that spell.
   Every line also carries a Says strip beneath it. Browse voice lines opens the catalogue,
   Play auditions what is pinned, and the pinned line is spelled out beside them with the
   name of whoever says it, so you can read down a list and see at a glance which lines

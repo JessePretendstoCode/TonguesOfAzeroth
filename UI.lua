@@ -71,7 +71,7 @@ local castPanel, castContent
 local castEnableCheck, castPetCheck, castChanceSlider, castGapSlider, castSpellGapSlider
 local castSpellDropdown, castMuteCheck, castNewInput, castNewLabel
 local castWeightHeader
-local castPreviewText, castStatus, castAddRow, castEmptyNote
+local castPreviewText, castStatus, castAddRow, castEmptyNote, castHiddenNote
 local castFilterSpellbookCheck
 local castHearChecks = {}
 local castRows = {}
@@ -2633,8 +2633,9 @@ end
 -- One spell at a time: pick it from the list (or press the keybind while
 -- hovering it on your bars), then edit the lines it can speak. Phrases from an
 -- opted-in library pack sit in the same list as your own, because from the
--- player's side there's no difference worth showing -- they differ only in that
--- a pack line can be retired to weight 0 but not deleted.
+-- player's side there's no difference worth showing -- they differ only in what
+-- Remove does: one of yours is deleted, a pack's is set aside and can be put
+-- back, because the pack will go on offering it and you cannot retype it.
 
 local Casts = ns.Casts
 
@@ -2816,7 +2817,11 @@ local ROW_EDIT_H = ROW_REST_H + 18
 -- down the words rather than stepping around the controls between them; the
 -- controls all end at the same right edge for the same reason.
 local ROW_TEXT_X = 84      -- clear of the - 50% + block
-local ROW_GUTTER = 96      -- Revert, or the name of the pack the line came from
+-- Remove, plus the slot beside it holding either Revert or the name of the pack
+-- the line came from. Those two still share a slot -- a line can't be both
+-- reworded-from-a-pack and nameless -- but Remove is on every row, so it needs
+-- a place of its own rather than one it takes turns in.
+local ROW_GUTTER = 148
 
 local function castRow(index, parent)
     if castRows[index] then return castRows[index] end
@@ -2895,8 +2900,14 @@ local function castRow(index, parent)
 
     row.line1:EnableMouse(true)
 
-    row.action = tinyButton("Delete", 56)
-    row.action:SetPoint("RIGHT", row.line1, "RIGHT", 0, 0)
+    -- On every row, whoever wrote the line. Anything that can be added to this
+    -- list can be taken back out of it; what that means differs by where the
+    -- line came from, and Casts.RemovePhrase decides which.
+    row.remove = tinyButton("Remove", 64)
+    row.remove:SetPoint("RIGHT", row.line1, "RIGHT", 0, 0)
+
+    row.action = tinyButton("Revert", 56)
+    row.action:SetPoint("RIGHT", row.remove, "LEFT", -6, 0)
     -- A fixed gutter rather than an anchor to whichever of the two is showing,
     -- so the words end in the same place on every row.
     row.text:SetPoint("RIGHT", row.line1, "RIGHT", -ROW_GUTTER, 0)
@@ -2909,10 +2920,10 @@ local function castRow(index, parent)
     rowHL:SetAllPoints()
     Compat.SolidTexture(rowHL, 1, 1, 1, 0.07)
 
-    -- Names the pack a library line came from, where the Delete button would be.
+    -- Names the pack a library line came from, where the Revert button would be.
     row.source = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    row.source:SetPoint("RIGHT", row.line1, "RIGHT", 0, 0)
-    row.source:SetWidth(ROW_GUTTER - 8)
+    row.source:SetPoint("RIGHT", row.remove, "LEFT", -6, 0)
+    row.source:SetWidth(ROW_GUTTER - 78)
     row.source:SetJustifyH("RIGHT")
     if row.source.SetWordWrap then row.source:SetWordWrap(false) end
 
@@ -2927,6 +2938,10 @@ local function castRow(index, parent)
     -- committing rather than as abandoning. Now clicking away does commit, and
     -- these two say out loud which of the two things a click will do.
     row.discard = iconButton(row, ICON_DISCARD, "Discard this rewording (Escape)", 0.7, 0.4, 0.4, 18)
+    -- Anchored to the Revert slot even though Revert itself only appears on
+    -- reworded rows. A hidden frame still has a position, so this resolves the
+    -- same way on every row -- which is the point: these two land in one place
+    -- regardless of what else the row happens to be showing.
     row.discard:SetPoint("RIGHT", row.action, "LEFT", -6, 0)
     row.discard:Hide()
 
@@ -3460,22 +3475,47 @@ local function RefreshCasts()
             RefreshCasts()
         end)
 
-        if phrase.user then
-            row.action:Show()
-            row.source:Hide()
-            row.action.label:SetText("Delete")
-            row.action:SetScript("OnClick", function()
-                Casts.RemovePhrase(key, text)
-                if castEdit and castEdit.orig == text then castEdit = nil end
-                castStatusMsg("Removed that phrase.", false)
-                RefreshCasts()
-            end)
-        elseif phrase.edited then
+        row.remove:Show()
+        row.remove:SetScript("OnClick", function()
+            -- Behind a confirmation because of where it sits: Remove is at the
+            -- right edge of the phrase strip and Play is at the right edge of
+            -- the strip directly beneath, so the two are a row apart and only
+            -- one of them is destructive. Auditioning a line is the thing you
+            -- do most while tuning a spell, which is exactly when the misclick
+            -- is likeliest.
+            --
+            -- The dialog says which line, since the button carries no hint of
+            -- which row it belongs to once it has your attention, and says what
+            -- removing it costs -- those differ, and one of them is permanent.
+            local quoted = phrase.text or text
+            local consequence = phrase.user
+                and "You wrote this one, so it goes for good."
+                or "It can be brought back with Restore under the list."
+            Compat.ShowConfirm({
+                text = string.format(
+                    "Remove this cast phrase?\n\n\"%s\"\n\n%s", quoted, consequence),
+                acceptText = "Remove",
+                cancelText = "Cancel",
+                onAccept = function()
+                    local ok, kind = Casts.RemovePhrase(key, text)
+                    if castEdit and castEdit.orig == text then castEdit = nil end
+                    if not ok then
+                        castStatusMsg("Couldn't remove that one.", true)
+                    elseif kind == "hidden" then
+                        castStatusMsg("Removed. Restore brings the pack's lines back.", false)
+                    else
+                        castStatusMsg("Deleted that phrase.", false)
+                    end
+                    RefreshCasts()
+                end,
+            })
+        end)
+
+        if phrase.edited then
             -- A reworded library line still belongs to its pack, so the column
             -- that names the pack offers the way back instead.
             row.action:Show()
             row.source:Hide()
-            row.action.label:SetText("Revert")
             row.action:SetScript("OnClick", function()
                 Casts.ClearPhraseText(key, text)
                 if castEdit and castEdit.orig == text then castEdit = nil end
@@ -3483,13 +3523,12 @@ local function RefreshCasts()
                 RefreshCasts()
             end)
         else
-            -- Library lines can't be deleted (the pack owns them), so weight 0
-            -- is how you retire one. The pack name doubles as the explanation.
             row.action:Hide()
             row.source:Show()
             -- The pack's name, not its id: "Priest", not "priest". The id was
             -- only ever here because the pretty version was over on the left.
-            row.source:SetText(phraseSourceLabel(phrase))
+            -- Blank for a line you wrote: there is no pack to name.
+            row.source:SetText(phrase.user and "" or phraseSourceLabel(phrase))
         end
 
         row:Show()
@@ -3508,6 +3547,24 @@ local function RefreshCasts()
             anchor = castEmptyNote
         else
             castEmptyNote:Hide()
+        end
+    end
+
+    -- Only on a spell that has had something taken out of it, so the panel
+    -- isn't permanently advertising an undo for a thing nobody did.
+    if castHiddenNote then
+        local gone = castSelectedKey and Casts.HiddenCount(castSelectedKey) or 0
+        if gone > 0 then
+            castHiddenNote.text:SetText(gone == 1
+                and "One of this spell's pack lines has been removed."
+                or (gone .. " of this spell's pack lines have been removed."))
+            castHiddenNote:ClearAllPoints()
+            castHiddenNote:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 4, -10)
+            castHiddenNote:SetPoint("RIGHT", castContent, "RIGHT", -24, 0)
+            castHiddenNote:Show()
+            anchor = castHiddenNote
+        else
+            castHiddenNote:Hide()
         end
     end
 
@@ -3684,13 +3741,43 @@ local function BuildCastPanel()
     castWeightHeader:SetPoint("RIGHT", content, "RIGHT", -24, 0)
     castWeightHeader:SetJustifyH("LEFT")
     if castWeightHeader.SetWordWrap then castWeightHeader:SetWordWrap(true) end
-    castWeightHeader:SetText("The |cffffd200%|r on each line is how much it is favoured, not a share of a hundred -- two lines at 100% are a coin toss. Nudge it with |cffffd200-|r and |cffffd200+|r; take a line down to |cffffd200off|r to retire it without deleting it.")
+    castWeightHeader:SetText("The |cffffd200%|r on each line is how much it is favoured, not a share of a hundred -- two lines at 100% are a coin toss. Nudge it with |cffffd200-|r and |cffffd200+|r; take a line down to |cffffd200off|r to keep it in the list but never say it. |cffffd200Remove|r takes it out of the list altogether.")
 
     castEmptyNote = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     castEmptyNote:SetJustifyH("LEFT")
     if castEmptyNote.SetWordWrap then castEmptyNote:SetWordWrap(true) end
     castEmptyNote:SetText("No phrases for this spell yet. Tick a pack above, or write one below.")
     castEmptyNote:Hide()
+
+    -- Shown under the list once something has been removed from this spell.
+    -- A pack line cannot be typed back from memory the way one of your own can,
+    -- so removing one has to be undoable or it is a trap.
+    castHiddenNote = CreateFrame("Frame", nil, content)
+    castHiddenNote:SetHeight(22)
+    castHiddenNote.text = castHiddenNote:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+    castHiddenNote.text:SetPoint("LEFT", castHiddenNote, "LEFT", 0, 0)
+    castHiddenNote.text:SetJustifyH("LEFT")
+
+    castHiddenNote.restore = CreateFrame("Button", nil, castHiddenNote)
+    castHiddenNote.restore:SetSize(76, 18)
+    castHiddenNote.restore:SetPoint("LEFT", castHiddenNote.text, "RIGHT", 10, 0)
+    local rbg = castHiddenNote.restore:CreateTexture(nil, "BACKGROUND")
+    rbg:SetAllPoints()
+    Compat.SolidTexture(rbg, 0.18, 0.16, 0.24, 1)
+    Compat.AddBorder(castHiddenNote.restore, 0.5, 0.45, 0.7, 0.9)
+    local rtx = castHiddenNote.restore:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    rtx:SetPoint("CENTER", 0, 0)
+    rtx:SetText("Restore")
+    local rhl = castHiddenNote.restore:CreateTexture(nil, "HIGHLIGHT")
+    rhl:SetAllPoints()
+    Compat.SolidTexture(rhl, 1, 1, 1, 0.12)
+    castHiddenNote.restore:SetScript("OnClick", function()
+        local n = Casts.RestoreHidden(castSelectedKey)
+        castStatusMsg(n == 1 and "Put that line back."
+            or ("Put " .. n .. " lines back."), false)
+        RefreshCasts()
+    end)
+    castHiddenNote:Hide()
 
     --  Adding a phrase ---------------------------------------------------
     castAddRow = CreateFrame("Frame", nil, content)
