@@ -582,6 +582,22 @@ local function reflowLearnedRows()
     end
 end
 
+-- A row's label: the tongue, plus the dialects that have no row of their own.
+--
+-- One function because it is written in two places. makeLearnedRow draws the
+-- label once and RefreshLearned redraws it on every refresh, so when only the
+-- first knew about the dialects the suffix lasted exactly until the first
+-- refresh and then disappeared -- which looked like the feature not working at
+-- all rather than being overwritten.
+local function learnedRowLabel(langId)
+    local name = Language.GetLanguageName(langId)
+    local dialects = Language.DialectsOf and Language.DialectsOf(langId)
+    if dialects and #dialects > 0 then
+        return name .. "  |cff808080with " .. table.concat(dialects, ", ") .. "|r"
+    end
+    return name
+end
+
 local function RefreshLearned()
     if not learnedPanel then return end
     local d = db()
@@ -590,7 +606,7 @@ local function RefreshLearned()
       -- A deleted custom language leaves its row behind, hidden. Nothing below
       -- expects an id the registry has never heard of, so skip it outright.
       if Language.IsValid(langId) then
-        local base = Language.GetLanguageName(langId)
+        local base = learnedRowLabel(langId)
         local frac = 0
         if ns.Trainer and ns.Trainer.GetProgress then
             _, _, frac = ns.Trainer.GetProgress(langId)
@@ -1897,7 +1913,13 @@ local function BuildLearnedPanel()
 
         local name = rowF:CreateFontString(nil, "ARTWORK", "GameFontNormal")
         name:SetPoint("TOPLEFT", star, "TOPRIGHT", 6, -1)
-        name:SetText(entry.name)
+        -- A tongue with dialects names them here, greyed, because this row is
+        -- the only control they have. They share their parent's fluency, colour
+        -- and understood box by design, so there is nothing to put in a row of
+        -- their own -- but until the row said so, the dialects looked like
+        -- languages you could speak and could never learn to read.
+        local dialects = Language.DialectsOf and Language.DialectsOf(entry.id)
+        name:SetText(learnedRowLabel(entry.id))
 
         -- Reset (circle-slash) + Make Fluent (check) icons, vertically centered.
         local resetBtn = iconButton(rowF, "Interface\\Buttons\\UI-GroupLoot-Pass-Up",
@@ -1973,8 +1995,13 @@ local function BuildLearnedPanel()
         fluentBtn:SetPoint("RIGHT", resetBtn, "LEFT", -8, 0)
         swatch:SetPoint("RIGHT", fluentBtn, "LEFT", -8, 0)
         fluentBtn:SetScript("OnClick", function()
+            local also = ""
+            if dialects and #dialects > 0 then
+                also = "\n\nThis covers " .. table.concat(dialects, ", ")
+                    .. ", which share its words."
+            end
             Compat.ShowConfirm({
-                text = string.format("Become fully fluent in \"%s\"?\n\nThis instantly sets your fluency to 100%% (you'll speak and understand it perfectly).", entry.name),
+                text = string.format("Become fully fluent in \"%s\"?\n\nThis instantly sets your fluency to 100%% (you'll speak and understand it perfectly).%s", entry.name, also),
                 onAccept = function() if ns.MakeLanguageFluent then ns.MakeLanguageFluent(entry.id) end end,
             })
         end)
@@ -3290,30 +3317,37 @@ local function RefreshCasts()
                 -- catalogue makes you scroll past ninety-two strangers to
                 -- reach it. "All speakers" is still one click away.
                 group = (gv.MyVoices and gv.MyVoices()[1]) or nil,
-                groups = function()
-                    local out, mine = {}, {}
+                -- Under headings rather than in one run, because the catalogue
+                -- is heading for thousands of speakers and a flat list of
+                -- thousands is not a list. The headings come from the same
+                -- place the names do -- see tools/naming.ps1 -- so a speaker
+                -- is filed by what it actually is rather than by a second
+                -- guess made here.
+                --
+                -- Your own race keeps its star. It is the one entry most
+                -- people are looking for, and a star in front survives being
+                -- read at a glance in a way a note on the end does not.
+                -- Two controls rather than one nested list: pick the kind of
+                -- speaker, then the speaker. The categories come from the same
+                -- place the names do -- see tools/naming.ps1 -- so a speaker is
+                -- filed by what it actually is rather than by a second guess
+                -- made here.
+                categoryAll = "All speakers",
+                category = (gv.MyVoices and #gv.MyVoices() > 0) and gv.MINE or "",
+                categories = function() return gv.Categories() end,
+                groups = function(category, query)
+                    local mine = {}
                     for _, who in ipairs(gv.MyVoices and gv.MyVoices() or {}) do
                         mine[who] = true
                     end
-                    -- Your own voices first, marked, then everyone else in the
-                    -- order the catalogue lists them.
-                    for _, pass in ipairs({ true, false }) do
-                        for _, s in ipairs(gv.Speakers()) do
-                            if (mine[s.who] or false) == pass then
-                                -- The count belongs on the label: it is what
-                                -- tells you whether a speaker is worth opening
-                                -- before you open it.
-                                -- Marked with a star in front rather than a
-                                -- note behind. The names already run to forty
-                                -- characters and the ones that matter are the
-                                -- ones you can pick out at a glance, not the
-                                -- ones with the longest explanation.
-                                out[#out + 1] = { id = s.who, label =
-                                    string.format("%s%s (%d)",
-                                        pass and "|cffffd200*|r " or "",
-                                        s.who, s.count) }
-                            end
-                        end
+                    -- Your own race keeps its star wherever it turns up. It is
+                    -- the entry most people are looking for, and a star in
+                    -- front survives being read at a glance in a way a note on
+                    -- the end does not.
+                    local out = {}
+                    for _, e in ipairs(gv.SpeakerList(category, query)) do
+                        out[#out + 1] = { id = e.who, label =
+                            mine[e.who] and ("|cffffd200*|r " .. e.label) or e.label }
                     end
                     return out
                 end,
@@ -3321,10 +3355,9 @@ local function RefreshCasts()
                 -- Families, with their groups indented underneath. Thirty-one
                 -- headings in a flat list is more than anyone reads down.
                 kinds = function(who) return gv.BrowseList(who) end,
-                letters = function(who, kind) return gv.Letters(who, kind) end,
-                filter = function(who, kind, letter, q)
-                    return gv.Filter{ who = who, group = kind, letter = letter,
-                        query = q, limit = 2000 }
+                filter = function(who, kind, q)
+                    return gv.Filter{ who = who, group = kind, query = q,
+                        limit = 2000 }
                 end,
                 onPlay = function(entry)
                     if ns.Voice and ns.Voice.PlayGame then ns.Voice.PlayGame(entry.id) end

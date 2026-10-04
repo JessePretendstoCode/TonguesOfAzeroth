@@ -1220,7 +1220,54 @@ end
 -- exact cache lookup (whose keys are the exact garbled strings ToA produces, which
 -- plain English cannot hit). Word-by-word/partial decoding runs only when we have
 -- proof the line is encoded: a matching tag, or an explicit /toa decode.
-local function tryDecodeMessage(message, taggedLangId, force)
+-- One rule for "does this character understand that tongue".
+--
+-- There were two, and they disagreed. The decoder below fell back to a
+-- dialect's parent -- learning Zandali is learning Amani, since they share a
+-- word set -- while /toa learned tested the id on its own. So chat quietly
+-- decoded Amani for you while the list of what you understood said you did
+-- not, which reads as the dialects being unlearnable rather than as two
+-- functions having drifted apart.
+-- There are two ways to come to know a tongue and only one of them used to
+-- count. The tick in the Languages list sets `learned`; dragging that row's
+-- fluency bar to 100% sets the trainer's fluency and nothing else. So a
+-- character who was, by the addon's own reckoning, perfectly fluent -- the
+-- tag on their speech said "Perfect" -- still could not read a word of it,
+-- because the decoder only ever asked about the tick.
+--
+-- Fluency is stored per word set, which is what makes this fix reach the
+-- dialects: Zandali's bar at 100% is Amani's bar at 100%, so learning the
+-- parent really does mean reading the tribe.
+function ns.UnderstandsLanguage(langId)
+    if not langId then return false end
+    migrateDB()
+    local learned = TonguesOfAzerothDB and TonguesOfAzerothDB.learned
+    if learned then
+        if learned[langId] then return true end
+        local parent = Language.ParentOf and Language.ParentOf(langId)
+        if parent and learned[parent] then return true end
+    end
+    return (fluencyPercent(langId) or 0) >= 100
+end
+
+-- Is this line one of ours?
+--
+-- Not the same question as `sender == UnitName("player")`, which is what this
+-- used to be. The client does not consistently say who you are: on a connected
+-- realm your own speech comes back as "Jessae-MoonGuard" while UnitName answers
+-- the bare "Jessae", so the direct comparison missed whenever a realm came
+-- along -- and the rule it guards then applied to your own speech about half
+-- the time, which is no rule at all. A character name cannot contain a hyphen,
+-- so everything before the first one is the name.
+local function isSelf(sender)
+    if not sender or sender == "" then return false end
+    local me = UnitName and UnitName("player")
+    if not me or me == "" then return false end
+    return (string.match(sender, "^([^%-]+)") or sender) == me
+end
+
+-- `yourOwnWords` lifts the comprehension gate entirely -- see isChecked.
+local function tryDecodeMessage(message, taggedLangId, force, yourOwnWords)
     migrateDB()
     local learned = TonguesOfAzerothDB.learned or {}
     local trainerWords = (TonguesOfAzerothDB.trainer and TonguesOfAzerothDB.trainer.words) or {}
@@ -1228,7 +1275,19 @@ local function tryDecodeMessage(message, taggedLangId, force)
     -- Checked in the Learned panel = you fully understand the language (its own
     -- or its parent's box, since sub-languages share a word set).
     local function isChecked(entry)
-        return (learned[entry.id] or (entry.parent and learned[entry.parent])) and true or false
+        -- You cannot fail to understand yourself. Fluency is how well you speak
+        -- a tongue, and it was never meant to decide whether you remember what
+        -- you just said: someone with a word of French knows perfectly well
+        -- that the "Bonjour" they chose means hello. Asking the comprehension
+        -- question about your own sentence handed it back to you as gibberish
+        -- at anything under full fluency.
+        --
+        -- Nothing is hidden by this. How the line actually left your mouth --
+        -- half in Amani at 50%, which is the whole point of the slider -- is
+        -- already on screen in the chat bubble over your head, which is what
+        -- everyone else is reading.
+        if yourOwnWords then return true end
+        return ns.UnderstandsLanguage(entry.id)
     end
 
     -- Words you've unlocked for a language in the trainer (shared per word set),
@@ -1455,13 +1514,15 @@ local function onIncomingChat(event, message, sender)
     if instanceSuppressed then return end
     if not message or message == "" then return end
     migrateDB()
-    if sender == UnitName("player") then return end
+    local mine = isSelf(sender)
 
     local chatType = CHAT_EVENTS[event]
     if not chatType or not ns.IsChannelEnabled(chatType) then return end
 
     -- Overhearing a tongue slowly teaches it (before any decode/display logic).
-    notePassiveExposure(message)
+    -- Your own voice teaches you nothing, or talking to yourself in a tongue you
+    -- barely have would be the quickest way there is to learn it.
+    if not mine then notePassiveExposure(message) end
 
     -- In-line mode rewrites the chat line itself via inlineChatFilter, so we must
     -- not also print a separate decode line here.
@@ -1476,7 +1537,8 @@ local function onIncomingChat(event, message, sender)
     local taggedLangId = (tag and passiveLangIdFromTag(tag))
         or inlineLangIdFromProse(message)
 
-    local bestDecoded, bestScore, bestLangId, bestLangName = tryDecodeMessage(stripped, taggedLangId)
+    local bestDecoded, bestScore, bestLangId, bestLangName =
+        tryDecodeMessage(stripped, taggedLangId, false, mine)
     if bestDecoded then
         showDecode(sender, stripped, bestDecoded, bestLangId, bestLangName)
     end
@@ -1596,8 +1658,8 @@ local function inlineChatFilter(_, event, msg, sender, languageName, ...)
 
     -- `decoded` lines are already readable end to end, so a name highlight has
     -- nothing left to tell you there and would just be noise. It only runs on
-    -- speech you can't read -- which includes your own outgoing line, where
-    -- seeing the name light up is the confirmation the protection worked.
+    -- speech you can't read, which no longer includes your own: that is now
+    -- always handed back to you in the words you typed.
     --
     -- Names are painted before the language tint rather than after, so the
     -- tint wraps them: Colors.Wrap re-opens itself after every "|r" it finds
@@ -1617,12 +1679,27 @@ local function inlineChatFilter(_, event, msg, sender, languageName, ...)
         return Colors.Apply(text, langId)
     end
 
-    -- Decoding is for other people's encoded speech. You already know what you
-    -- said, and genuine in-game speech was never ours to decode -- but both
-    -- still get painted below.
+    -- Genuine in-game speech was never ours to decode; it still gets painted
+    -- below. Your own speech, on the other hand, is always decoded -- at any
+    -- fluency, including none -- because it is the one line on screen whose
+    -- meaning you cannot possibly be in doubt about. The bubble over your head
+    -- is where you see how it actually came out.
+    local mine = isSelf(sender)
     local inlineMode = (TonguesOfAzerothDB.decodeStyle or "inline") == "inline"
-    if inlineMode and not isReal and sender ~= UnitName("player") then
-        local decoded, _, _, langName = tryDecodeMessage(stripped, langId)
+    if inlineMode and not isReal then
+        local decoded, _, decodedId, plainName = tryDecodeMessage(stripped, langId, false, mine)
+        -- Named the same way the speech itself is tagged, fluency word and all.
+        -- The decoder answers with the bare name, so a line you understood lost
+        -- the "Perfect" that the same line wore on its way out -- which reads
+        -- as the tag breaking at exactly the moment you learned the tongue.
+        --
+        -- Through ns.LanguageName rather than the local of the same job: this
+        -- function's fifth parameter is called languageName -- it is the
+        -- client's own language string for the line -- and inside this scope it
+        -- shadows the module function completely. Calling it threw on every
+        -- decoded line that reached a chat frame.
+        local langName = plainName
+        if decodedId then langName = ns.LanguageName(decodedId) end
         if decoded and decoded ~= stripped then
             -- When the line already says which tongue it was in, prefixing
             -- "[Demonic]" would both repeat that and drop a bracket between the
@@ -2063,9 +2140,22 @@ local function listLearned()
     local langs = Language.GetLanguages()
     local any = false
     for i = 1, #langs do
-        if TonguesOfAzerothDB.learned[langs[i].id] then
+        if ns.UnderstandsLanguage(langs[i].id) then
             any = true
-            Print("  |cff00ff00" .. langs[i].name .. "|r")
+            -- A dialect you can read because you learned its parent is said to
+            -- be exactly that, rather than appearing beside it as though it
+            -- were ticked separately -- which would make the list look wrong
+            -- to anyone who went looking for the box they never ticked.
+            local via = ""
+            if not TonguesOfAzerothDB.learned[langs[i].id] then
+                local parent = Language.ParentOf and Language.ParentOf(langs[i].id)
+                if parent and TonguesOfAzerothDB.learned[parent] then
+                    via = " |cff808080(through " .. Language.GetLanguageName(parent) .. ")|r"
+                else
+                    via = " |cff808080(fluent)|r"
+                end
+            end
+            Print("  |cff00ff00" .. langs[i].name .. "|r" .. via)
         end
     end
     if not any then

@@ -31,6 +31,7 @@ ns.Language = Language
 
 local floor = math.floor
 local strbyte, strlen, strsub, strupper, strlower = string.byte, string.len, string.sub, string.upper, string.lower
+local gsub = string.gsub
 
 -- What a character speaks until they choose otherwise. "None" is a real
 -- selection meaning "speak plainly", not an absence of one.
@@ -374,6 +375,43 @@ local function alias(id, name, parentId, hidden)
     })
 end
 
+--  A dialect is an alias that does not sound like its parent.
+--
+--  Plain alias() gives a language its parent's words, its parent's generator
+--  and its parent's seed, which means byte-identical output: Amani and Zandali
+--  produced the same sentence down to the last letter, and the dropdown was
+--  offering four troll entries that did exactly the same thing.
+--
+--  The fix is not a separate word set. That was right for the beast tongues
+--  above, where a raptor and a serpent are not one animal, and it is wrong
+--  here: the tribes genuinely speak Zandali and Shalassian genuinely is
+--  Thalassian. Splitting the vocabulary would also split fluency, which is
+--  stored per word set precisely so that learning Zandali teaches you Amani --
+--  the same reason nobody studies Brazilian and European Portuguese twice.
+--
+--  So the words stay shared and the sound moves: an ordered list of
+--  pattern/replacement pairs run over each translated word. Shifts are applied
+--  in order, so an earlier rule can feed a later one; read each list top to
+--  bottom. They stay deterministic, so two people speaking Drakkari still
+--  produce identical text and can still decode each other.
+--
+--  They do not need to be reversible. Decoding sends the original line in a
+--  hidden addon payload rather than running the translation backwards, and the
+--  word-wise reverse maps are grown from finished output, so they learn the
+--  shifted spellings on their own.
+local function dialect(id, name, parentId, shift)
+    alias(id, name, parentId)
+    local l = LANGUAGES[id]
+    if l then l.shift = shift end
+end
+
+local function applyShift(word, shift)
+    for i = 1, #shift, 2 do
+        word = gsub(word, shift[i], shift[i + 1])
+    end
+    return word
+end
+
 -- "None" is the absence of a tongue, offered beside the real ones so that
 -- "speak English, but in my own accent" is something you can pick rather than
 -- something you have to fake by parking on a language you're 0% fluent in.
@@ -579,38 +617,197 @@ G("skyborne", "Eldre'Thalassian (Skyborne)", 0.2,
 -- right now, so it leads the list rather than sitting seventy entries down.
 pinFirst("skyborne")
 
---  Sub-languages (aliases sharing their parent's word set). Note there is no
---  generic "Troll" alias: Zandali *is* the trolls' racial tongue, so a separate
---  "Troll (Zandali)" entry was just a redundant duplicate of "Zandali (Troll)".
---  The tribe dialects below are distinct flavors that share Zandali's sound.
-alias("amani",     "Amani (Troll)",         "zandali")
-alias("gurubashi", "Gurubashi (Troll)",     "zandali")
-alias("drakkari",  "Drakkari (Troll)",      "zandali")
+--  Sub-languages, sharing their parent's word set and bending its sound. Note
+--  there is no generic "Troll" alias: Zandali *is* the trolls' racial tongue,
+--  so a separate "Troll (Zandali)" entry was just a redundant duplicate of
+--  "Zandali (Troll)".
+--
+--  The tribes split by terrain, so the shifts follow the terrain. Zandali is
+--  the baseline, being the imperial standard the others drifted from.
+
+--  Forest trolls, and the harshest of the three: long vowels collapse and the
+--  soft trailing breath hardens to a stop, so the words come out clipped.
+dialect("amani",     "Amani (Troll)",         "zandali", {
+    "aa", "a",   "ee", "e",   "oo", "o",
+    "h$", "k",
+    "w", "v",
+})
+
+--  Jungle trolls. Aspirated and drawn out rather than clipped -- the doubled
+--  sibilant goes first so it becomes one breathy cluster instead of being hit
+--  twice by the single-letter rules below it.
+dialect("gurubashi", "Gurubashi (Troll)",     "zandali", {
+    "ss", "ssh",
+    "k", "kh",
+    "d", "dh",
+})
+
+--  Ice trolls, and the heaviest. Hard k for c, a guttural ending on the breath,
+--  and an r dragged onto any word that would otherwise end on an open vowel.
+dialect("drakkari",  "Drakkari (Troll)",      "zandali", {
+    "c", "k",
+    "h$", "gh",
+    "([aeiou])$", "%1r",
+})
+
 -- Hidden: the parent is already "Gutterspeak (Forsaken)", so listing this too
 -- puts the same tongue in the dropdown twice under both of its names.
 alias("forsaken",  "Forsaken",              "gutterspeak", true)
+
+--  Low Common is the one dialect that cannot work this way. Common passes
+--  English straight through, by design -- it is the tongue everybody shares --
+--  so there is no translated word here to bend. What separates it is register
+--  rather than region, so it gets a short list of whole-word substitutions
+--  instead, applied in the plain path further down. Light on purpose: it has
+--  to stay readable by someone who does not run the addon.
 alias("lowcommon", "Low Common",            "common")
-alias("sindassi",  "Sindassi (Thalassian)", "thalassian")
-alias("shalassian", "Shalassian (Nightborne)", "thalassian")
+LANGUAGES["lowcommon"].slur = {
+    ["and"] = "an'",  ["of"]   = "o'",   ["you"]  = "ya",
+    ["your"] = "yer", ["them"] = "'em",  ["to"]   = "ta",
+    ["my"]  = "me",   ["for"]  = "fer",  ["just"] = "jus'",
+    ["give"] = "gi'", ["have"] = "'ave", ["about"] = "'bout",
+}
+
+--  Thalassian's two branches drifted by very different amounts, and the shifts
+--  say so. Sindassi softens: plosives go to fricatives and the final vowel
+--  lengthens. Shalassian is the Nightborne, sealed under the Nightwell for ten
+--  thousand years, so it is the heaviest drift in the file -- doubled nasals
+--  and liquids, and vowels that have broken into diphthongs.
+--  The two branches take the same "an" in opposite directions, which is most of
+--  what makes them tell apart in a sentence: Sindassi brightens it to "en"
+--  where Shalassian doubles it. Without that rule Sindassi moved three words in
+--  a line of thirteen and read as a typo rather than a dialect.
+dialect("sindassi",  "Sindassi (Thalassian)", "thalassian", {
+    "an", "en",
+    "ie", "ia",
+    "b", "v",
+    "i$", "ie",
+})
+dialect("shalassian", "Shalassian (Nightborne)", "thalassian", {
+    "an", "ann",
+    "l$", "ll",
+    "u", "ue",
+})
+
 -- Hidden: "Eredun (Demonic)" is "Demonic (Eredun)" with the words swapped.
 alias("eredun",    "Eredun (Demonic)",      "demonic", true)
-alias("hyena",     "Hyena",                 "wolf")
-alias("corehound", "Core Hound",            "wolf")
-alias("sporebat",  "Sporebat",              "bat")
-alias("nether",    "Nether (Warpstalker)",  "serpent")
-alias("raptor",    "Raptor",                "serpent")
-alias("chimaera",  "Chimaera",              "serpent")
-alias("crocolisk", "Crocolisk",             "serpent")
-alias("devilsaur", "Devilsaur",             "serpent")
-alias("turtle",    "Turtle",                "trentish")
 -- Hidden: the parent is already "Kalimag (Elemental)".
 alias("elemental", "Elemental",             "kalimag", true)
-alias("qiraji",    "Qiraji",                "nerubian")
-alias("silithid",  "Silithid",              "nerubian")
-alias("wasp",      "Wasp",                  "nerubian")
-alias("ravager",   "Ravager",               "nerubian")
-alias("scorpid",   "Scorpid",               "nerubian")
-alias("spider",    "Spider",                "nerubian")
+
+--  Qiraji keeps Nerubian's words, and is the only creature tongue that does.
+--  The aqir empire split into the nerubians in the north and the qiraji in the
+--  south, so these are two branches of one language in the same way the troll
+--  tribes above are -- a relationship between peoples who speak, not a label
+--  stuck on an animal. The southern branch went dry and sibilant with it.
+dialect("qiraji",    "Qiraji",                "nerubian", {
+    "kx", "qx",
+    "tk", "tq",
+    "zz", "ss",
+})
+
+--=========================================================================--
+--  BEAST TONGUES
+--=========================================================================--
+--  These were aliases once, each borrowing the word set of whichever beast
+--  seemed closest: raptors and devilsaurs spoke Serpent, hyenas spoke Wolf,
+--  turtles spoke Trentish. It does not survive contact with hearing it. A
+--  raptor rendered out of Serpent's pools hisses -- "ssaii sshi ssess" -- when
+--  the animal screeches, and nothing about a devilsaur is sibilant.
+--
+--  A dialect is something a people speaks. An animal just makes its own noise,
+--  so each of these gets pools built around the sound the creature actually
+--  makes: screech, bellow, cackle, drone, buzz, chitter.
+--
+--  The ids are unchanged, so a saved setting, macro or share code naming one
+--  keeps working and simply starts sounding right.
+
+--  Screech. Clipped and high, nothing held: "kree", "skrii-ak", "tkaak".
+G("raptor", "Raptor", 0.04,
+    { "kree", "skree", "ka", "rak", "chk", "krii", "tka", "ree", "aak", "kyi" },
+    { "ee", "ii", "aa", "a", "ai" },
+    { "k", "kk", "tch", "rr", "ak", "eek" })
+
+--  Bellow. Long open vowels and a chestful of r, so the words come out big.
+G("devilsaur", "Devilsaur", 0.03,
+    { "gro", "raa", "grr", "vor", "dro", "khar", "gaa", "thro", "rau", "mor" },
+    { "aa", "oo", "au", "o", "uu", "oa" },
+    { "r", "rr", "rm", "gh", "rn", "mm" })
+
+--  Low and snapping: a throat-noise that stops on a hard consonant.
+G("crocolisk", "Crocolisk", 0.03,
+    { "gor", "kru", "gul", "nak", "hrr", "gar", "ko", "brak", "grn" },
+    { "o", "u", "a", "oo", "au" },
+    { "k", "rk", "gh", "mp", "rr", "nk" })
+
+--  Two heads, one of them full of lightning: a roar with a crackle on the end.
+G("chimaera", "Chimaera", 0.05,
+    { "khaa", "zra", "vor", "shri", "kra", "thu", "zhi", "gra", "vhe" },
+    { "aa", "ee", "ii", "ou", "ae", "au" },
+    { "r", "sh", "zz", "kh", "rr", "ss" })
+
+--  Half here and half somewhere else. Thin vowels and consonants that fade
+--  rather than land, with the highest apostrophe rate of the set to break the
+--  words up the way the creature breaks up.
+G("nether", "Nether (Warpstalker)", 0.08,
+    { "vor", "zhe", "wa", "phi", "xal", "vee", "thi", "zz", "qua", "shi" },
+    { "ee", "ia", "ae", "ue", "oi", "aa" },
+    { "ph", "x", "sh", "th", "l", "rp", "ss" })
+
+--  Laughter, not a howl. Short repeated syllables built on h and k.
+G("hyena", "Hyena", 0.04,
+    { "heh", "hah", "yi", "kak", "hya", "ha", "yip", "kek", "cha", "hee" },
+    { "e", "a", "i", "ee", "ah" },
+    { "h", "k", "kk", "hh", "p", "ch" })
+
+--  Wolf's register dropped through the floor and set on fire.
+G("corehound", "Core Hound", 0.04,
+    { "mol", "gror", "rukh", "bra", "dro", "khar", "gro", "mag", "vul" },
+    { "o", "aa", "u", "oo", "au" },
+    { "rr", "gh", "rk", "m", "th", "rn" })
+
+--  A drone rather than a chirp. Humming consonants and round vowels; the one
+--  beast here with no hard stop anywhere in its pools.
+G("sporebat", "Sporebat", 0.04,
+    { "mmo", "shpo", "zoo", "vum", "spo", "mo", "hum", "nuu", "fwu" },
+    { "oo", "uu", "o", "u", "um" },
+    { "m", "mm", "ng", "f", "sh", "rr" })
+
+--  Slow and deep and in no hurry about it.
+G("turtle", "Turtle", 0.03,
+    { "hrm", "oom", "shoo", "tor", "mor", "gro", "hoo", "tuk", "bur" },
+    { "oo", "o", "u", "aa", "ou" },
+    { "m", "mm", "rr", "k", "sh", "n" })
+
+--  Almost entirely buzz. "zz" sits in the vowel slot as well as the edges,
+--  which is what keeps a word from resolving into something speakable.
+G("wasp", "Wasp", 0.03,
+    { "bzz", "vzz", "zm", "bz", "vee", "zzi", "dzz", "zu", "nzz" },
+    { "ii", "ee", "i", "uu", "zz" },
+    { "zz", "z", "mm", "t", "ng" })
+
+--  Skittering. Tiny syllables, every one ending on a click.
+G("spider", "Spider", 0.04,
+    { "tik", "chi", "skit", "tk", "ssi", "chk", "ti", "sk", "tsi" },
+    { "i", "ii", "ee", "a" },
+    { "k", "tk", "t", "ss", "ch", "kt" })
+
+--  Chitin on chitin: a dry rasp, harder and slower than the spider's.
+G("scorpid", "Scorpid", 0.04,
+    { "kla", "rask", "chk", "tsk", "kra", "skar", "tch", "kas" },
+    { "a", "aa", "i", "ee" },
+    { "k", "sk", "rk", "ch", "tt" })
+
+--  Screech and clatter together, which is the noise they arrive making.
+G("ravager", "Ravager", 0.04,
+    { "ree", "skra", "kra", "tcha", "rik", "shre", "kli", "akr" },
+    { "ee", "ii", "a", "ai" },
+    { "k", "sh", "tch", "rr", "kk" })
+
+--  A swarm heard at once: hiss underneath, clicks on top.
+G("silithid", "Silithid", 0.04,
+    { "ssi", "zik", "khi", "tss", "ssa", "xi", "kss", "thi" },
+    { "i", "ii", "a", "ee" },
+    { "ss", "k", "x", "t", "sh" })
 
 --=========================================================================--
 --  Deterministic hashing + PRNG (Lua 5.1 / WoW safe; all math < 2^53).
@@ -772,6 +969,32 @@ end
 -- Canonical word-set id: a sub-language resolves to its parent (they share a
 -- word set), a primary resolves to itself. Used so trainer fluency is shared
 -- between a language and its dialects.
+-- The tongue a dialect is a dialect of, or nil for one that stands alone.
+-- Callers asking "may this fall back to something" want this rather than the
+-- word set id, which answers a different question and happens to agree.
+function Language.ParentOf(langId)
+    local l = LANGUAGES[langId]
+    return l and l.parent or nil
+end
+
+-- Every dialect that hangs off a tongue, as display names. Used by the
+-- Languages list to say out loud what a row covers: the dialects have no row
+-- of their own, on purpose -- they share their parent's fluency, colour and
+-- understood box -- and without being named there is nothing to tell you that
+-- ticking Zandali is what makes Amani readable.
+function Language.DialectsOf(langId)
+    local out = {}
+    for i = 1, #LANGUAGE_ORDER do
+        local l = LANGUAGES[LANGUAGE_ORDER[i]]
+        if l and l.sub and not l.hidden and l.parent == langId then
+            -- "Amani (Troll)" under "Zandali (Troll)" repeats the word the row
+            -- already says, so the parenthetical is dropped here.
+            out[#out + 1] = (gsub(l.name, "%s*%b()", ""))
+        end
+    end
+    return out
+end
+
 function Language.GetWordsetId(langId)
     local l = LANGUAGES[langId]
     if not l then return langId end
@@ -975,6 +1198,11 @@ function Language.TranslateWord(word, langId)
     else
         result = generateWord(lower, lang)
     end
+    -- After the lookup and before the casing. A dialect bends the finished word
+    -- whichever way it was produced, so a dictionary hit, a bucket hit and a
+    -- generated word all come out in the same accent; and doing it under
+    -- applyCase means "DEH" still shifts and still shouts.
+    if lang.shift then result = applyShift(result, lang.shift) end
     return applyCase(word, result)
 end
 
@@ -1051,6 +1279,24 @@ local function restoreSegments(text, saved)
     end)
 end
 
+-- Low Common's whole-word substitution, run over plain English.
+--
+-- Separate from the shift lists because there is no translated word to bend: a
+-- tongue parented to Common passes its text through untouched, so the only
+-- thing left to change is the handful of words that mark the register. Markup
+-- is stashed first for the usual reason -- an item link whose name contains
+-- "of" is not an invitation to rewrite the link.
+local function applySlur(text, lang)
+    if not lang or not lang.slur then return text end
+    local protected, saved = protectSegments(text)
+    local slurred = gsub(protected, WORD_PATTERN, function(word)
+        local hit = lang.slur[strlower(word)]
+        if not hit then return word end
+        return applyCase(word, hit)
+    end)
+    return restoreSegments(slurred, saved)
+end
+
 local function rememberEncodedMessage(langId, english, encoded, strength)
     if not langId or not encoded or not english or encoded == english then return end
     local bucket = ENCODE_CACHE[langId]
@@ -1104,14 +1350,21 @@ end
 function Language.TranslateText(text, strength, langId, remember)
     if not text or text == "" then return text end
     strength = strength or 100
-    if strength <= 0 then return text end
     local lang = resolveLang(langId)
+    -- The plain check comes before the strength check, which looks backwards
+    -- until you try it at zero fluency: Low Common is a register rather than a
+    -- skill, so it has to read the same whether or not the speaker has any
+    -- fluency to spend. Checking strength first made it slur in a line carrying
+    -- an accent and not in one without.
     -- Common is the shared, universally-understood tongue: speaking it should
     -- read as plain text to everyone, not a garbled substitution. So Common
-    -- (and any dialect built on it, e.g. Low Common) passes straight through.
+    -- (and any dialect built on it, e.g. Low Common) passes straight through,
+    -- give or take the handful of words Low Common slurs -- which leave the
+    -- line readable by anyone, addon or not, and so do not break the promise.
     if Language.IsPlain(lang.id) then
-        return text
+        return applySlur(text, lang)
     end
+    if strength <= 0 then return text end
     local protected, saved = protectSegments(text)
     local translated = protected:gsub(WORD_PATTERN, function(word)
         if Language.WordTranslates(word, strength) then
@@ -1152,9 +1405,10 @@ function Language.TranslateMarked(text, strength, langId)
     strength = strength or 100
     local lang = resolveLang(langId)
     -- Same passthroughs as TranslateText: nothing to mark, so the caller's
-    -- accent gets the whole line as plain English.
+    -- accent gets the whole line as plain English -- slurred first if this is
+    -- Low Common, so it reads the same with an accent on as without.
     if strength <= 0 or Language.IsPlain(lang.id) then
-        return text, nil
+        return applySlur(text, lang), nil
     end
 
     local protected, saved = protectSegments(text)
