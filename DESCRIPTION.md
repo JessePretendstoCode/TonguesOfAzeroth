@@ -2,26 +2,29 @@
 
 *Speak the languages of Azeroth, from the whispers of the Old Gods to Orcish, Darnassian and beyond. Or drop the language entirely and talk with a Dwarven brogue, aye.*
 
-Tongues of Azeroth translates your chat into the fictional languages of Azeroth, in the spirit of the old *Tongues* addon. It covers 66 tongues, a set of spoken accents for when you would rather stay understandable, lines your character speaks when you cast, and a word game for learning the languages you don't know yet.
+Tongues of Azeroth translates your chat into the fictional languages of Azeroth, in the spirit of the old *Tongues* addon. There are 66 tongues in it, along with spoken accents for when you'd rather stay understandable, lines your character says when you cast, and a word game for learning the languages you don't know yet.
+
+Those spoken lines can be given a voice. The addon draws on 30,572 recordings that are already sitting in your game client, from 2,560 of its speakers, and you pin whichever one suits a phrase. There's no download, and no synthesised audio anywhere in it.
 
 ## Works on every client
 
-One install runs on Retail (Midnight), WoW: Forever, and Classic (Vanilla, Cata, Mists, Wrath). A compatibility layer adapts the interface and chat functions to whatever client you're on, so there are no separate downloads to manage.
+One install runs on Retail (Midnight), WoW: Forever, and Classic (Vanilla, Cata, Mists, Wrath). A compatibility layer adapts the interface and chat functions to whatever client you're on, so there's nothing separate to manage.
 
 ## Features
 
-- **66 languages and dialects.** The core playable-race and Old God tongues, plus dozens of beast, faction, elemental and eldritch languages.
-- **A color for every tongue.** Demonic reads as a warm orange, Old God as a deep purple, and every language has a default you can recolor. Language tags are colored out of the box; tinting the speech itself is a separate toggle, so you can have one without the other. WoW's own languages can be tinted too, including from players who don't run the addon. The palette is saved account-wide, so it follows you across every character.
-- **Names stay readable.** Say "Corvin, get back" in Demonic and Corvin comes through as Corvin, the way a real language leaves a proper noun alone, so someone who can't read the tongue can still tell they're being addressed. The addon learns names from people who have spoken near you, your group, guild and friends, and whoever you target. A name only counts when you capitalise it and common words are refused outright, so ordinary speech keeps translating. Those names are colored in your own chat window, in the player's class color where it's known and gold where it isn't, so you can tell a protected name from a word your fluency happened to leave in English. Nothing is added to the message other people receive.
-- **Accents.** Rather than translating, these flavor your English with a spoken dialect: Dwarven ("I cannae do this, aye!"), Troll ("da voodoo, mon.") and ten more, each with its own strength.
-- **Language Trainer.** A Wordle-style word game for learning languages. Climb reputation ranks, build fluency, and unlock decoding as you go.
-- **Fluency, per language.** Drag the bar on a language's row to set how much of your text comes through in it, from a few cryptic words to fully unintelligible. Every tongue remembers its own, so you can be fluent in one and stumbling in another.
-- **Per-channel filters.** Choose which chat types are affected: Say, Yell, Party, Raid, Guild, Whisper and the rest.
-- **Decoding.** Mark the tongues your character understands. When another Tongues of Azeroth user speaks one, you see the decoded meaning in your own chat, with your fluency in it shown on a progress bar.
-- **An ordered language list.** The tongue you're speaking is always the first row, favorites sit under it, and the rest follow, so nothing you use is ever seventy rows down. Star a language on its row to favorite it, and the star on the floating bar decides whether scrolling cycles only those.
-- **Cast Phrases.** Your character speaks when a spell lands, in whatever tongue you're using. Ready-made lines for 143 spells ship with it, two or three apiece, with nothing to configure first. More on this below.
-- **Minimap button** and a draggable window for one-click access, with Back and Close navigation on clients that have no native options tree.
-- **Deterministic.** The same words always translate the same way, so speech stays consistent between everyone running the addon.
+- 66 languages and dialects: the core playable-race and Old God tongues, plus dozens of beast, faction, elemental and eldritch ones. Each beast tongue has its own word set, so a raptor screeches where a devilsaur bellows. They used to all hiss like snakes.
+- 30,572 voice lines from 2,560 speakers. Pin any of the game's own recordings to any phrase your character says. Sylvanas, Nathanos, Arthas, the 57 player voices, and most of the creatures in the game besides. Nothing ships but file ids; the audio is already on your disk and the addon plays it by number.
+- A color for every tongue. Demonic reads as a warm orange, Old God as a deep purple, and you can recolor any of them. Language tags are colored out of the box, while tinting the speech itself is a separate toggle, so you can have one without the other. WoW's own languages can be tinted too, including from players who don't run the addon. The palette is saved account-wide and follows you across characters.
+- Names stay readable. Say "Corvin, get back" in Demonic and Corvin still comes through as Corvin, so someone who can't read a word of the tongue can tell they're being spoken to. The addon picks up names from people who have spoken near you, from your group, guild and friends, and from whoever you target. A name only counts if you capitalise it, and common words are refused outright, so ordinary speech keeps translating. Those names are colored in your own chat window, in the player's class color where the addon knows it and gold where it doesn't, so you can tell a protected name from a word your fluency happened to leave in English. Nothing extra goes out in the message other people receive.
+- Accents, which flavor your English with a spoken dialect instead of translating it. Dwarven ("I cannae do this, aye!"), Troll ("da voodoo, mon.") and ten more, each with its own strength.
+- A language trainer: a Wordle-style word game for learning languages. Climb reputation ranks, build fluency, unlock decoding as you go.
+- Fluency, per language. Drag the bar on a language's row to set how much of your text comes through in it, anywhere from a few cryptic words to fully unintelligible. Every tongue remembers its own, so you can be fluent in one and stumbling in another.
+- Per-channel filters. Choose which chat types are affected: Say, Yell, Party, Raid, Guild, Whisper and the rest.
+- Decoding. Mark the tongues your character understands, and when another Tongues of Azeroth user speaks one you'll see what they meant in your own chat, with your fluency in it on a progress bar.
+- An ordered language list. The tongue you're speaking is always the first row, favorites sit under it, and everything else follows, so nothing you actually use ends up seventy rows down. Star a language on its row to favorite it. The star on the floating bar decides whether scrolling cycles only those.
+- Cast phrases. Your character speaks when a spell lands, in whatever tongue you're using. Ready-made lines for 143 spells ship with it, two or three apiece, with nothing to configure first. More on this below.
+- A minimap button and a draggable window for one-click access, with Back and Close navigation on clients that have no native options tree.
+- Deterministic translation. The same words always come out the same way, so speech stays consistent between everyone running the addon.
 - Punctuation, numbers and links are preserved.
 
 ## Languages
@@ -53,39 +56,41 @@ Another 60 or so generated tongues and dialects sit behind those, each with its 
 
 Prefer to be understood? Accents rewrite your English into a spoken dialect rather than a foreign language. Choose one, set its strength, and speak normally. There are twelve: Dwarven, Troll, Orcish, Darnassian, Draenei, Tauren, Forsaken, Pandaren, Goblin, Gilnean, Vrykul and Pirate.
 
-Accents and languages compose. Whatever your fluency leaves in English keeps your accent, so a Dwarf at 50% Orcish sounds like a Dwarf speaking broken Orcish. At 100% there is no English left for the accent to touch.
+Accents and languages compose. Whatever your fluency leaves in English keeps your accent, so a Dwarf at 50% Orcish sounds like a Dwarf speaking broken Orcish. At 100% there's no English left for the accent to touch.
 
-## Cast Phrases
+## Cast phrases
 
 Your character can speak when a spell lands, in whatever tongue you're currently speaking:
 
 > *Corvin snarls "Aman!" in Broken Demonic and the fire takes hold.*
 
-Words in quotes go through your language and accent exactly as chat does. Everything outside them is narration and stays in English, because that's the part onlookers are meant to follow. It's off until you turn it on, since it puts text in other people's chat.
+Words in quotes go through your language and accent exactly as chat does. Everything outside them is narration and stays in English, since that's the part onlookers are meant to follow. It's off until you turn it on, because it puts text in other people's chat.
 
-The shipped lines cover 143 spells, two or three apiece, and are written to read like a DM narrating the action rather than a list of spell names. One concrete detail per line, and the long cooldowns get more room than the spammable fillers. Tick a pack and its spells appear in the list, where any line can be reworded, reweighted or retired. Click a line to edit it in place, shipped lines included; it keeps what you type when you click away from it, and Escape puts it back. One you've changed offers a Revert button to restore the pack's wording, and keeps the weight it had. Because the audio is recorded ahead of time, a line you wrote yourself has no voice of its own -- so the editor lets you point it at any of the recorded lines instead, audition that in your own character's voice, and preview how the finished phrase will read in chat. You only see your own class's pack by default, plus pets and professions, and one click reveals the rest.
+The shipped lines cover 143 spells, two or three apiece, and they're written to read like a DM narrating the action rather than a list of spell names. One concrete detail per line, and the long cooldowns get more room than the spammable fillers. Tick a pack and its spells appear in the list, where any line can be reworded, reweighted or retired. Click a line to edit it in place, shipped lines included; it keeps what you type when you click away from it, and Escape puts it back. A line you've changed grows a Revert button that restores the pack's wording and keeps the weight it had.
+
+The audio was all recorded long before any of us got here, so a line you wrote yourself has no voice of its own. The editor lets you point it at one of the game's recordings instead, audition that in your character's voice, and preview how the finished phrase will read in chat. You only see your own class's pack by default, plus pets and professions, and one click reveals the rest.
 
 ### Two or three lines, and nothing to configure
 
 There's no tone dial to set before the feature sounds right. Every shipped line suits any character, so what you hear is what the pack ships.
 
-Two or three is not a space budget — it's what the throttle makes useful. A spell won't speak twice inside five minutes, so a fourth line is one you'd almost never reach. The three are spent on different shapes instead: one that narrates with a concrete detail, one that speaks aloud, and, where the spell earns it, one that's wry.
+Why so few? The throttle. A spell won't speak twice inside five minutes, so a fourth line is one you'd almost never reach. What's there gets spent on different shapes instead: one line narrates with a concrete detail, another speaks aloud, and some spells earn a wry third.
 
-Per-phrase weights are there when you want a favourite to come up more often, or a line never again.
+Per-phrase weights are there when you want a favorite to come up more often, or a line never again.
 
 ### Faction and faith are yours to write
 
-No pack names either, so a Blood Elf paladin and a draenei one can share a spell list and still sound like themselves. What a character believes belongs to the character, and a tickbox was never going to fit anybody properly — so write your own `roars "For the Horde!"` on whatever spell suits it. The cries that used to ship as creed packs kept their recordings, so the **Says** picker can still give yours a voice.
+There are no pack names either, so a Blood Elf paladin and a draenei one can share a spell list and still sound like themselves. What a character believes belongs to the character, and a tickbox was never going to fit anybody properly. Write your own `roars "For the Horde!"` on whatever spell suits it. The cries that used to ship as creed packs kept their recordings, so the Says picker can still give yours a voice.
 
 ### Your own words
 
-Write your own lines with tokens for the spell, your target and your pet. Pets speak too, on any class. Per-phrase weights decide how often each comes up, a single "how often" chance controls whether a cast speaks at all, and two pauses, one global and one per-spell, stop a spammable spell turning your emotes into a wall of text.
+Write your own lines with tokens for the spell, your target and your pet. Pets speak too, on any class. Per-phrase weights decide how often each comes up, a single "how often" chance controls whether a cast speaks at all, and two pauses (one global, one per spell) stop a spammable spell turning your emotes into a wall of text.
 
 ## Getting started
 
 Install, then type `/toa` or click the minimap button to open the options panel. Pick your tongue under Languages, an accent under Accents, choose your channels under Chat Channels, and switch Speak in character on.
 
-That one switch covers your whole voice, tongue and accent together. It's on the floating bar and bindable to a key, because ducking out to answer someone in plain English and ducking back is something you do all evening. The minimap button turns green in character and red out of it, so you can read the state at a glance. With it off you still read, decode and color everyone else.
+That one switch covers your whole voice, tongue and accent together. It's on the floating bar and bindable to a key, because ducking out to answer someone in plain English and ducking back is something you'll do all evening. The minimap button turns green in character and red out of it, so you can read the state at a glance. With it off you still read, decode and color everyone else.
 
 Handy commands:
 
@@ -100,15 +105,15 @@ Handy commands:
 ## Good to know
 
 - Chat has a 255-character limit, so translated text is trimmed to fit.
-- This transforms your text client-side. It does not touch WoW's real server-side language system.
-- Settings are stored per character, so each of your characters keeps its own voice. The color palette is the one exception: it's shared account-wide, because a language reading as the same color everywhere is the point of coloring it.
-- Cast Phrases go out as emotes. `/say` and `/yell` have needed a real keypress since patch 8.2.5, so no addon can send those from a spell cast. During raid encounters, Mythic+ and rated PvP the game blocks addon chat altogether, and the line is shown to you alone instead.
+- This transforms your text client-side. It doesn't touch WoW's real server-side language system.
+- Settings are stored per character, so each of your characters keeps its own voice. The color palette is the exception: it's shared account-wide, because a language reading as the same color everywhere is the whole reason to color it.
+- Cast phrases go out as emotes. `/say` and `/yell` have needed a real keypress since patch 8.2.5, so no addon can send those from a spell cast. During raid encounters, Mythic+ and rated PvP the game blocks addon chat altogether, and the line is shown to you alone instead.
 
 ## How it's built, and an AI disclosure
 
-Every release is read through before it goes out, checked against an offline test suite of ten automated test files that run without a game client, and play-tested in game on the clients it supports. The addon defines no accidental globals: everything lives in a private namespace except the handful of entry points WoW itself requires (`SLASH_*`, `BINDING_*`) and the public functions named for the addon. Seven TOC files are kept in sync by an automated packaging test, so a release can't quietly break one client while working on another.
+Every release gets read through before it goes out, checked against an offline suite of eleven test files that run without a game client, and play-tested in game on the clients it supports. The addon defines no accidental globals: everything lives in a private namespace except the handful of entry points WoW itself requires (`SLASH_*`, `BINDING_*`) and the public functions named for the addon. Seven TOC files are kept in sync by an automated packaging test, so a release can't quietly break one client while working on another.
 
-That process is there because this addon is built with heavy use of AI assistance. Most of the Lua, and the wording of the shipped cast phrases, were drafted by an AI coding agent working to my direction. I decide what gets built, what the rules are and what ships, and nothing ships unreviewed.
+I'm spelling that out because this addon is built with heavy use of AI assistance. Most of the Lua, and the wording of the shipped cast phrases, were drafted by an AI coding agent working to my direction. I decide what gets built, what the rules are and what ships, and nothing ships unreviewed.
 
 All screenshots are real captures of the addon running. None of the images are AI-generated.
 
