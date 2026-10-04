@@ -876,6 +876,36 @@ local function showDropdownCatcher(menu)
     dropdownCatcher:Show()
 end
 
+-- Fitting a menu to its entries means measuring text, and measuring text is a
+-- layout the client performs there and then. That is cheap across a dozen
+-- entries and ruinous across thousands, so the number of measurements is held
+-- fixed instead of growing with the list: only the longest entries can be the
+-- widest one, and length is free to read.
+--
+-- A handful are kept rather than just one because length and width disagree at
+-- the margin -- "WWW" is wider than "iiiiii" and shorter -- and a dozen covers
+-- that with room to spare. The cost of guessing low is a menu a few pixels
+-- narrower than ideal, not a wrong answer.
+local FIT_CANDIDATES = 12
+local fitIdx, fitLen = {}, {}
+
+local function longestEntries(items, total)
+    local n = 0
+    for i = 1, total do
+        local len = #(items[i].text or "")
+        if n < FIT_CANDIDATES or len > fitLen[n] then
+            local pos = (n < FIT_CANDIDATES) and (n + 1) or FIT_CANDIDATES
+            while pos > 1 and fitLen[pos - 1] < len do
+                fitLen[pos], fitIdx[pos] = fitLen[pos - 1], fitIdx[pos - 1]
+                pos = pos - 1
+            end
+            fitLen[pos], fitIdx[pos] = len, i
+            if n < FIT_CANDIDATES then n = n + 1 end
+        end
+    end
+    return n
+end
+
 function Compat.CreateDropdown(parent, width)
     local dd = CreateFrame("Button", nil, parent)
     dd:SetSize(width or 200, 26)
@@ -928,6 +958,21 @@ function Compat.CreateDropdown(parent, width)
     -- selection, so a right-click that rewrites the list (see dd:Reopen) doesn't
     -- yank the menu out from under the cursor.
     local function openMenu(keepOffset)
+        -- Timed in steps rather than as a whole. The total only says the menu
+        -- was slow, which is the complaint, not the answer; the steps are very
+        -- different kinds of work -- building frames the once, measuring text,
+        -- drawing rows -- and which one holds the seconds decides what to fix.
+        -- A list of a dozen entries being as slow as one of thousands already
+        -- rules the per-entry work out, so the fixed costs need their own
+        -- numbers before anything else is changed on a hunch.
+        local lastStep = (type(debugprofilestop) == "function") and debugprofilestop() or nil
+        local function step(label)
+            if not lastStep then return end
+            local now = debugprofilestop()
+            Compat.Mark("dropdown: " .. label, now - lastStep)
+            lastStep = now
+        end
+
         if not menu then
             -- Parented to UIParent (not dd) so the popup is never clipped when the
             -- dropdown lives inside a ScrollFrame; still anchored to dd below.
@@ -945,6 +990,7 @@ function Compat.CreateDropdown(parent, width)
             addBorder(menu, 0.5, 0.5, 0.5, 0.8)
             menu.buttons = {}
         end
+        step("build the menu frame")
 
         local items = dd.items
         local rowH = 20
@@ -963,7 +1009,8 @@ function Compat.CreateDropdown(parent, width)
         -- time -- "Blood Elf Demon Hunter - masculine voice (115)" -- cannot,
         -- and guessing a number means either a truncated list or a menu padded
         -- out for a label that is not there. The scratch string is kept on the
-        -- menu and reused, so this costs one SetText per entry per open.
+        -- menu and reused, and only a bounded sample of entries is measured, so
+        -- this costs the same whether the list holds ten names or ten thousand.
         if dd.menuFitItems then
             -- Underscored, per the rule for anything that has to read back as
             -- nil before it is set: a plain field name comes back from the
@@ -974,13 +1021,28 @@ function Compat.CreateDropdown(parent, width)
                 if probe and probe.Hide then probe:Hide() end
                 menu.__probe = probe
             end
-            local widest = 0
-            if probe and probe.GetStringWidth then
-                for i = 1, total do
-                    probe:SetText(items[i].text or "")
-                    local sw = probe:GetStringWidth() or 0
-                    if sw > widest then widest = sw end
+            -- Measured once per list, not once per open: reopening the same
+            -- menu asks the same question of the same strings, and the answer
+            -- cannot have moved. SetItems drops this when the list changes.
+            local widest = dd._fitWidth
+            if not widest then
+                widest = 0
+                if probe and probe.GetStringWidth then
+                    local n = longestEntries(items, total)
+                    for c = 1, n do
+                        probe:SetText(items[fitIdx[c]].text or "")
+                        local sw = probe:GetStringWidth() or 0
+                        if sw > widest then widest = sw end
+                    end
                 end
+                -- Remembered only once it has measured something. A font
+                -- string reports nothing until its frame has been drawn, and
+                -- the menu is not shown until the end of this function, so the
+                -- first open can measure a row of zeroes. Caching that would
+                -- pin the menu to the button's width for the rest of the
+                -- session; leaving it uncached costs one more pass and lets
+                -- the next open get the real answer.
+                if widest > 0 then dd._fitWidth = widest end
             end
             -- 8px of padding each side, plus room for the favourite star.
             -- Capped at the screen, since a menu wider than the window is a
@@ -989,6 +1051,7 @@ function Compat.CreateDropdown(parent, width)
             local cap = (screen and screen > 160) and (screen - 80) or 600
             if widest > 0 then w = math.max(w, math.min(widest + 40, cap)) end
         end
+        step("fit the width to the entries")
         menu:SetWidth(w)
         menu:SetHeight(visible * rowH + 8)
         menu:ClearAllPoints()
@@ -1122,8 +1185,10 @@ function Compat.CreateDropdown(parent, width)
         menu:SetScript("OnMouseWheel", function(_, d) menu:Scroll(d) end)
 
         render()
+        step("draw the rows")
         menu:Show()
         showDropdownCatcher(menu)
+        step("show it and catch the next click")
     end
 
     dd:SetScript("OnClick", function()
@@ -1138,6 +1203,8 @@ function Compat.CreateDropdown(parent, width)
 
     function dd:SetItems(items)
         self.items = items or {}
+        -- The fitted width belongs to the entries that were measured for it.
+        self._fitWidth = nil
     end
     function dd:SetSelected(value, text)
         self._selectedValue = value
@@ -1431,21 +1498,26 @@ end
 --        title    = "Game voice lines",
 --        groups   = function() return { {id=,label=}, ... } end,   -- optional
 --        groupAll = "All speakers",
---        letters  = function(groupId) return { A = 12, B = 3 } end, -- optional
---        filter   = function(groupId, letter, query)
+--        filter   = function(groupId, kind, query)
 --                       return { {id=,text=,who=}, ... }, truncated
 --                   end,
 --        onPlay   = function(entry) end,
 --        onPick   = function(entry) end,
 --    }
 --
---  Navigated by narrowing rather than by typing. A search box is the right
---  control for finding a line you can already quote, and the wrong one for
---  finding out what is in there: it asks you to guess a word out of a corpus
---  you have never read, and answers an empty list when you guess wrong. So the
---  group picker and the A-Z strip are the way in, and the box is a sieve on
---  top of them. Letters with nothing behind them are dimmed, which turns the
---  strip into a map of where the lines are rather than a row of 27 guesses.
+--  Navigated by narrowing and then by typing. The category and speaker pickers
+--  are the way in, and the search box is a sieve on top of them.
+--
+--  There were A-Z strips here as well, one for speakers and one for lines, on
+--  the reasoning that a search box asks you to guess a word out of a corpus
+--  you have never read. The categories answer that better: they say what is in
+--  there in words, where an initial only says how many things start with S.
+--  Two rows of 27 buttons bought nothing the pickers did not already give and
+--  cost most of the window's height, so they are gone.
+--
+--  Clicking the speaker's name on a row narrows to that speaker, which is the
+--  move the strips were really standing in for: you search for half a name,
+--  see them in the results, and go from there to everything they say.
 --
 --  Rows are a fixed pool scrolled by moving an offset through the results,
 --  rather than a ScrollFrame with a child sized to the result count. Both work;
@@ -1453,7 +1525,6 @@ end
 --  failure that draws an empty list rather than an error.
 --=========================================================================--
 local browserFrame
-local BROWSER_LETTERS = "#ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 -- Keep the bar's range and position honest about the list behind it. Called
 -- on every refresh because the range depends on the result count, which
@@ -1488,10 +1559,29 @@ local function browserRefresh(f, keepOffset)
             row.text:SetText(entry.text)
             -- Who said it, when anybody did: the barks are the player's own
             -- voice and have no speaker to name.
-            row.who:SetText(entry.who or "")
+            local who = entry.who or ""
+            row.who:SetText(who)
+            row.who:SetTextColor(0.5, 0.5, 0.5)
+
+            -- The click target is fitted to the drawn name every refresh,
+            -- because the name changes with the row. GetStringWidth answers 0
+            -- for a string that has not been drawn yet; a 0-wide button would
+            -- be a dead target, so the button stays hidden until there is a
+            -- width to give it and picks one up on the next pass.
+            local w = row.who:GetStringWidth() or 0
+            if who ~= "" and w > 0 then
+                row.whoBtn._who = who
+                row.whoBtn:SetWidth(math.min(150, w + 2))
+                row.whoBtn:Show()
+            else
+                row.whoBtn._who = nil
+                row.whoBtn:Hide()
+            end
             row:Show()
         else
             row._entry = nil
+            row.whoBtn._who = nil
+            row.whoBtn:Hide()
             row:Hide()
         end
     end
@@ -1507,8 +1597,7 @@ end
 local function browserApply(f)
     f.query = f.input:GetText() or ""
     if f._filter then
-        f.results, f.truncated = f._filter(f.group or "", f.kind or "",
-            f.letter or "", f.query)
+        f.results, f.truncated = f._filter(f.group or "", f.kind or "", f.query)
     else
         f.results, f.truncated = {}, false
     end
@@ -1517,41 +1606,82 @@ end
 
 -- Repaint the strip for the group in play: which letters are reachable, and
 -- which one is selected.
-local function browserLetters(f)
-    local avail = (f._letters and f._letters(f.group or "", f.kind or "")) or {}
-    for _, btn in ipairs(f.letterBtns) do
-        -- "All" carries the empty letter and is never dimmed: it is the way
-        -- back out of a narrowing, so it has to work from inside one -- and
-        -- most of all from inside one where every letter but the chosen one
-        -- has nothing behind it.
-        local n = (btn.letter == "") and (f._letters and 1 or nil) or avail[btn.letter]
-        local selected = (f.letter == btn.letter)
-        btn._count = n
-        if selected then
-            btn.label:SetTextColor(1, 0.82, 0)
-        elseif n then
-            btn.label:SetTextColor(0.9, 0.9, 0.9)
-        else
-            btn.label:SetTextColor(0.35, 0.35, 0.35)
-        end
-        Compat.SolidTexture(btn.bg, selected and 0.35 or 0.18,
-            selected and 0.3 or 0.16, selected and 0.5 or 0.24, 1)
+-- Fills the category dropdown: the shelf a speaker sits on, picked before the
+-- speaker itself. Two controls rather than one nested list, because these are
+-- two decisions and running them together means scrolling past every heading
+-- in the catalogue to reach the one you wanted.
+local function browserCategories(f)
+    local all = f._categoryAll or "All speakers"
+    local items = { { value = "", text = all } }
+    for _, c in ipairs((f._categories and f._categories()) or {}) do
+        items[#items + 1] = { value = c.id, text = c.label }
     end
+    f.catDrop:SetItems(items)
+
+    local label, found = all, (f.category == "")
+    for _, it in ipairs(items) do
+        if it.value == f.category then found = true label = it.text end
+    end
+    if not found then f.category = "" end
+    f.catDrop:SetSelected(f.category, label)
 end
 
-local function browserSetLetter(f, letter)
-    -- Clicking the selected letter clears it, which is the only way back to
-    -- the whole list once you have narrowed.
-    f.letter = (f.letter == letter) and "" or letter
-    browserLetters(f)
-    browserApply(f)
+-- Fills the speaker dropdown from the chosen category, narrowed further by
+-- whatever is typed in the search box.
+--
+-- One search box rather than two: the catalogue runs to thousands of speakers,
+-- and at that size "find" is the same question whether the word you remember
+-- is a name or something that name said. The line filter already matches on
+-- the speaker as well as on the text, so typing "sylvanas" narrows this
+-- dropdown to her and shows her lines in the same move.
+local function browserSpeakers(f)
+    local all = f._groupAll or "Everything"
+    local query = (f.input and f.input:GetText()) or ""
+    local list = (f._groups and f._groups(f.category or "", query)) or {}
+
+    local items = { { value = "", text = all } }
+    for _, g in ipairs(list) do
+        items[#items + 1] = { value = g.id, text = g.label }
+    end
+    f.groupDrop:SetItems(items)
+
+    -- A speaker narrowed out of the list has stopped being a choice, so the
+    -- selection falls back to everybody on this shelf rather than naming
+    -- somebody the dropdown can no longer show.
+    local label, found = all, (f.group == "")
+    for _, it in ipairs(items) do
+        if it.value == f.group then found = true label = it.text end
+    end
+    if not found then f.group = "" end
+    f.groupDrop:SetSelected(f.group, label)
+end
+
+-- Jumps the browser to one speaker. Reached by clicking their name on a row,
+-- which is the move that makes a half-remembered name enough: type "artha",
+-- see Arthas in the results, click him and read the rest of what he says.
+--
+-- The search box is cleared on the way through. It did its job getting you
+-- here, and leaving it set would answer "all of Arthas's lines" with only the
+-- ones that also contain "artha" -- which is a handful of them, and looks like
+-- the jump went wrong. The category is widened for the same reason: the
+-- speaker has to be on the shelf that is showing or the dropdown cannot name
+-- them.
+local function browserGoToSpeaker(f, who)
+    if not who or who == "" then return end
+    f.category = ""
+    if f.input then f.input:SetText("") end
+    browserCategories(f)
+    browserSpeakers(f)
+    f.group = who
+    browserSpeakers(f)
+    f.renarrow(f)
 end
 
 local function buildBrowser()
     local ROWS, ROW_H = 14, 26
     local f = CreateFrame("Frame", "TonguesOfAzerothLineBrowser", UIParent)
     f:SetFrameStrata("FULLSCREEN_DIALOG")
-    f:SetSize(700, 192 + ROWS * ROW_H)
+    f:SetSize(700, 210 + ROWS * ROW_H)
     f:SetPoint("CENTER", 0, 40)
     f:EnableMouse(true)
     f:SetToplevel(true)
@@ -1572,7 +1702,7 @@ local function buildBrowser()
 
     local hint = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     hint:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -4)
-    hint:SetText("Pick a speaker and a letter to browse. Click a line to hear it; Use sets it.")
+    hint:SetText("Narrow by category, then by speaker, or just type to search. Click a line to hear it, or a speaker's name to show everything they say.")
 
     -- Narrowing is dropped rather than kept when it stops being reachable: a
     -- letter that no longer has lines, or a kind of line this speaker does not
@@ -1593,9 +1723,6 @@ local function buildBrowser()
         for _, k in ipairs(kinds) do if kindValue(k) == f.kind then found = true end end
         if not found then f.kind = "" end
 
-        local avail = (f._letters and f._letters(f.group, f.kind)) or {}
-        if f.letter ~= "" and not avail[f.letter] then f.letter = "" end
-
         local items = { { value = "", text = f._kindAll or "Everything" } }
         for _, k in ipairs(kinds) do
             items[#items + 1] = { value = kindValue(k), text = kindLabel(k) }
@@ -1605,16 +1732,45 @@ local function buildBrowser()
         for _, it in ipairs(items) do if it.value == f.kind then label = it.text end end
         f.kindDrop:SetSelected(f.kind, label)
 
-        browserLetters(f)
         browserApply(f)
     end
     f.renarrow = renarrow
 
-    local groupDrop = Compat.CreateDropdown(f, 200)
+    -- Every control gets a word above it saying what it narrows. They were
+    -- bare before, which left three dropdowns reading "All speakers", "Every
+    -- kind" and nothing -- labels for their own current value, not for the
+    -- question they answer, so the only way to learn what one did was to
+    -- change it and watch what moved.
+    local function fieldLabel(text, anchor, relative, dx, dy)
+        local fs = f:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        fs:SetPoint("TOPLEFT", anchor, relative or "BOTTOMLEFT", dx or 0, dy or -10)
+        fs:SetText(text)
+        return fs
+    end
+
+    -- Row one: which shelf, then who is on it.
+    local catLabel = fieldLabel("Category", hint)
+    local catDrop = Compat.CreateDropdown(f, 300)
+    catDrop.menuFitItems = true
+    catDrop:SetPoint("TOPLEFT", catLabel, "BOTTOMLEFT", 0, -4)
+    catDrop:SetHeight(22)
+    catDrop.onSelect = function(value)
+        f.category = value or ""
+        -- browserSpeakers drops the chosen speaker if the new shelf does not
+        -- hold them, and keeps them if it does. Clearing it here as well would
+        -- throw away a selection that is still perfectly valid -- switching
+        -- from "Your voice" to "Player races" should not lose your place.
+        browserSpeakers(f)
+        renarrow(f)
+    end
+    f.catDrop = catDrop
+
+    local groupLabel = fieldLabel("Speaker", catLabel, "TOPLEFT", 312, 0)
+    local groupDrop = Compat.CreateDropdown(f, 330)
     -- Speaker names run long -- "Blood Elf Demon Hunter - masculine voice" --
     -- and a name cut off mid-word is not a choice anybody can make.
     groupDrop.menuFitItems = true
-    groupDrop:SetPoint("TOPLEFT", hint, "BOTTOMLEFT", 0, -8)
+    groupDrop:SetPoint("TOPLEFT", groupLabel, "BOTTOMLEFT", 0, -4)
     groupDrop:SetHeight(22)
     groupDrop.onSelect = function(value)
         f.group = value or ""
@@ -1622,81 +1778,47 @@ local function buildBrowser()
     end
     f.groupDrop = groupDrop
 
-    -- What kind of line, within whoever is selected. This is the control that
-    -- makes a speaker with 290 lines usable: battle cries, threats and pain
-    -- are different things to go looking for.
-    local kindDrop = Compat.CreateDropdown(f, 180)
+    -- Row two: what kind of line, and the search box.
+    --
+    -- The kind picker is what makes a speaker with 279 lines usable -- battle
+    -- cries, threats and pain are different things to go looking for -- and it
+    -- reads as doing nothing only while it is unlabelled and showing "Every
+    -- kind".
+    local kindLabel = fieldLabel("Kind of line", catDrop)
+    local kindDrop = Compat.CreateDropdown(f, 300)
     kindDrop.menuFitItems = true
-    kindDrop:SetPoint("LEFT", groupDrop, "RIGHT", 8, 0)
+    kindDrop:SetPoint("TOPLEFT", kindLabel, "BOTTOMLEFT", 0, -4)
     kindDrop:SetHeight(22)
     kindDrop.onSelect = function(value)
         f.kind = value or ""
-        local avail = (f._letters and f._letters(f.group, f.kind)) or {}
-        if f.letter ~= "" and not avail[f.letter] then f.letter = "" end
-        browserLetters(f)
         browserApply(f)
     end
     f.kindDrop = kindDrop
 
+    local searchLabel = fieldLabel("Search names and lines", kindLabel, "TOPLEFT", 312, 0)
     local input = CreateFrame("EditBox", "TonguesOfAzerothLineBrowserSearch", f,
         "InputBoxTemplate")
-    input:SetPoint("LEFT", kindDrop, "RIGHT", 14, 0)
-    input:SetSize(150, 22)
+    input:SetPoint("TOPLEFT", searchLabel, "BOTTOMLEFT", 6, -4)
+    input:SetSize(240, 22)
     input:SetAutoFocus(false)
-    input:SetScript("OnTextChanged", function() browserApply(f) end)
+    input:SetScript("OnTextChanged", function()
+        browserSpeakers(f)
+        browserApply(f)
+    end)
     input:SetScript("OnEscapePressed", function(self) self:ClearFocus(); f:Hide() end)
     input:SetScript("OnEnterPressed", function(self) self:ClearFocus() end)
     f.input = input
 
     local status = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    status:SetPoint("LEFT", input, "RIGHT", 10, 0)
+    status:SetPoint("LEFT", input, "RIGHT", 12, 0)
     f.status = status
-
-    -- The A-Z strip. One button per initial, dimmed where nothing files under
-    -- it, so the row doubles as a map of the catalogue.
-    --
-    -- "All" leads, carrying the empty letter. Clicking the selected letter
-    -- already clears it, but that is a thing you have to be told rather than
-    -- something the strip shows you -- every other button in the row narrows,
-    -- so the one that widens looks identical to the one you just pressed.
-    -- Given a speaker with four lines under A and none under B, there is also
-    -- nothing else left to click: every other letter is dimmed and inert, and
-    -- the way back to the whole list is the one button that isn't drawn.
-    f.letterBtns = {}
-    local LW = 21
-    for i = 0, #BROWSER_LETTERS do
-        local ch = (i == 0) and "" or BROWSER_LETTERS:sub(i, i)
-        local b = CreateFrame("Button", nil, f)
-        b:SetSize((i == 0) and 28 or (LW - 1), 20)
-        if i == 0 then
-            b:SetPoint("TOPLEFT", groupDrop, "BOTTOMLEFT", 0, -8)
-        else
-            b:SetPoint("LEFT", f.letterBtns[i], "RIGHT", 1, 0)
-        end
-        local bbg = b:CreateTexture(nil, "BACKGROUND")
-        bbg:SetAllPoints()
-        Compat.SolidTexture(bbg, 0.18, 0.16, 0.24, 1)
-        local bhl = b:CreateTexture(nil, "HIGHLIGHT")
-        bhl:SetAllPoints()
-        Compat.SolidTexture(bhl, 1, 1, 1, 0.15)
-        local bl = b:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-        bl:SetPoint("CENTER")
-        bl:SetText((i == 0) and "All" or ch)
-        b.bg, b.label, b.letter = bbg, bl, ch
-        b:SetScript("OnClick", function(self)
-            -- A letter with nothing behind it is inert rather than hidden:
-            -- the strip has to stay in the same place to be readable.
-            if self._count then browserSetLetter(f, self.letter) end
-        end)
-        f.letterBtns[i + 1] = b
-    end
 
     f.rows = {}
     for i = 1, ROWS do
         local row = CreateFrame("Button", nil, f)
         row:SetHeight(ROW_H)
         if i == 1 then
-            row:SetPoint("TOPLEFT", f.letterBtns[1], "BOTTOMLEFT", 0, -8)
+            row:SetPoint("TOPLEFT", kindDrop, "BOTTOMLEFT", 0, -12)
         else
             row:SetPoint("TOPLEFT", f.rows[i - 1], "BOTTOMLEFT", 0, 0)
         end
@@ -1707,11 +1829,47 @@ local function buildBrowser()
         hl:SetAllPoints()
         Compat.SolidTexture(hl, 1, 1, 1, 0.10)
 
+        -- The speaker's name, and a button sitting exactly on top of it.
+        --
+        -- Sized to the text rather than to the 150-wide column on purpose. The
+        -- row underneath plays the line, so anything the name button covers is
+        -- a click that does something other than what the row says it does --
+        -- and a short name in a wide column would leave a band of blank space
+        -- that silently jumps you to another character. The width is set from
+        -- the string on every refresh, in browserRefresh.
         local who = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
         who:SetPoint("LEFT", 4, 0)
         who:SetWidth(150)
         who:SetJustifyH("LEFT")
         row.who = who
+
+        local whoBtn = CreateFrame("Button", nil, row)
+        whoBtn:SetPoint("LEFT", who, "LEFT", 0, 0)
+        whoBtn:SetHeight(ROW_H - 4)
+        whoBtn:Hide()
+        local whoHl = whoBtn:CreateTexture(nil, "HIGHLIGHT")
+        whoHl:SetAllPoints()
+        Compat.SolidTexture(whoHl, 1, 0.82, 0, 0.22)
+        whoBtn:SetScript("OnEnter", function(self)
+            -- Said out loud rather than left to be discovered. The name is the
+            -- only thing on the row that does not play the line, so it has to
+            -- announce itself before it is clicked, not after.
+            row.who:SetTextColor(1, 0.82, 0)
+            if GameTooltip and self._who then
+                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+                GameTooltip:AddLine(self._who)
+                GameTooltip:AddLine("Click to show everything they say.", 1, 0.82, 0)
+                GameTooltip:Show()
+            end
+        end)
+        whoBtn:SetScript("OnLeave", function()
+            row.who:SetTextColor(0.5, 0.5, 0.5)
+            if GameTooltip then GameTooltip:Hide() end
+        end)
+        whoBtn:SetScript("OnClick", function(self)
+            if self._who and self._who ~= "" then browserGoToSpeaker(f, self._who) end
+        end)
+        row.whoBtn = whoBtn
 
         local text = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
         text:SetPoint("LEFT", who, "RIGHT", 8, 0)
@@ -1817,7 +1975,6 @@ function Compat.ShowLineBrowser(opts)
     local f = browserFrame
     f.title:SetText(opts.title or "Voice lines")
     f._filter = opts.filter
-    f._letters = opts.letters
     f._kinds = opts.kinds
     f._kindAll = opts.kindAll or "Every kind"
     f._onPlay = opts.onPlay
@@ -1825,20 +1982,15 @@ function Compat.ShowLineBrowser(opts)
     f._selected = nil
     f.group = opts.group or ""
     f.kind = opts.kind or ""
-    f.letter = opts.letter or ""
     for _, r in ipairs(f.rows) do r.text:SetTextColor(1, 1, 1) end
 
-    local all = opts.groupAll or "Everything"
-    local items = { { value = "", text = all } }
-    Compat.Timed("browser: list the speakers", function()
-        for _, g in ipairs((opts.groups and opts.groups()) or {}) do
-            items[#items + 1] = { value = g.id, text = g.label }
-        end
-    end)
-    f.groupDrop:SetItems(items)
-    local label = all
-    for _, it in ipairs(items) do if it.value == f.group then label = it.text end end
-    f.groupDrop:SetSelected(f.group, label)
+    f._groups = opts.groups
+    f._groupAll = opts.groupAll or "Everything"
+    f._categories = opts.categories
+    f._categoryAll = opts.categoryAll or "All speakers"
+    f.category = opts.category or ""
+    Compat.Timed("browser: list the categories", browserCategories, f)
+    Compat.Timed("browser: list the speakers", browserSpeakers, f)
 
     -- Seeds the box without firing a filter per character; renarrow applies
     -- once at the end, after the kind list and letter strip are built.
