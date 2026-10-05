@@ -1,4 +1,15 @@
-package-as: TonguesOfAzeroth
+package-as: Glyphic
+
+# The addon folder was TonguesOfAzeroth until 0.5.3. WoW names a saved
+# variables file after the folder, so the rename would have orphaned every
+# existing player's settings. TonguesOfAzeroth/ ships alongside as a stub
+# that declares the old variables, which is what makes the client load the
+# old file so Core.lua can adopt it. move-folders lifts it out of the package
+# to sit beside Glyphic/ in the zip rather than inside it.
+#
+# Retire this (and the folder) one major release after 0.5.3.
+move-folders:
+  Glyphic/TonguesOfAzeroth: TonguesOfAzeroth
 
 ignore:
   - ".luacheckrc"
@@ -6,6 +17,7 @@ ignore:
   - "UI_*.png"
   - "ICON.png"
   - "DESCRIPTION.md"
+  - "DESCRIPTION-glyphic.md"
   - "PHRASES.md"
   - "PROMO.md"
 

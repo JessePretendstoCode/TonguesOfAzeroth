@@ -1,6 +1,27 @@
 # Changelog
 
-All notable changes to Tongues of Azeroth are documented here.
+All notable changes to Glyphic are documented here. The addon was called
+Tongues of Azeroth before 0.5.3.
+
+## [0.5.3]
+- Tongues of Azeroth is now **Glyphic**. Same addon, same author, same project
+  page. The old name shortened to "ToA", which is already how people refer to
+  the Tournament of Ages, and it never said what the addon did.
+- Your settings carry over. Languages, fluency, learned tongues, colors, custom
+  languages and cast phrases all survive the rename, and so do your keybinds.
+  `/toa` still works alongside the new `/glyphic`, as do `/tongues` and
+  `/oldgod`, so nothing already sitting in a macro needs changing.
+- The addon folder is now `Glyphic`. WoW names a settings file after the folder
+  an addon lives in, so a rename on its own would have left every existing
+  profile on disk and unreadable, and your first login would have looked like a
+  fresh install. A small `TonguesOfAzeroth` folder ships alongside to hand those
+  settings over on first launch. It appears in your AddOns list, does nothing
+  else, and will be removed in a later release -- leave it enabled until then.
+- New icon: a speech bubble holding a line of writing in no alphabet. Switching
+  out of character empties the bubble and crosses it out, which the old speaker
+  icon never really said -- it pointed at the voice feature, which is a
+  different thing entirely.
+- `/glyphic` is the command, `/gly` the short form.
 
 ## [0.5.2]
 - Fixed: a character with a surname was never recognised as themselves. WoW: Forever added

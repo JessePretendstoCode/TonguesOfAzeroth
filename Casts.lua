@@ -54,7 +54,7 @@ Casts.MAX_WEIGHT = 20
 Casts.DEFAULT_WEIGHT = DEFAULT_WEIGHT
 
 local function castDB()
-    return TonguesOfAzerothDB and TonguesOfAzerothDB.casts
+    return GlyphicDB and GlyphicDB.casts
 end
 
 --=========================================================================--

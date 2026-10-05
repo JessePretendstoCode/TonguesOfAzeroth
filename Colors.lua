@@ -14,7 +14,7 @@ local ADDON, ns = ...
     budget besides. Each client paints its own chat, so two players can run
     completely different palettes over the same conversation.
 
-    Stored account-wide (TonguesOfAzerothAccountDB): a palette is a cosmetic
+    Stored account-wide (GlyphicAccountDB): a palette is a cosmetic
     preference you want on every alt, not a per-character setting.
 -----------------------------------------------------------------------------]]
 
@@ -30,7 +30,7 @@ local floor = math.floor
 --  Storage
 --=========================================================================--
 -- Account-wide, unlike everything else in the addon. Declared in every .toc as
--- "## SavedVariables: TonguesOfAzerothAccountDB".
+-- "## SavedVariables: GlyphicAccountDB".
 -- Tag color and speech tint are INDEPENDENT axes, not a master switch and a
 -- modifier. Turning tags off while speech is on has to leave the words tinted
 -- and the tag in its normal channel color -- switching one off must never
@@ -50,10 +50,10 @@ local DEFAULTS = {
 }
 
 local function store()
-    local db = _G.TonguesOfAzerothAccountDB
+    local db = _G.GlyphicAccountDB
     if type(db) ~= "table" then
         db = {}
-        _G.TonguesOfAzerothAccountDB = db
+        _G.GlyphicAccountDB = db
     end
     local c = db.colors
     if type(c) ~= "table" then

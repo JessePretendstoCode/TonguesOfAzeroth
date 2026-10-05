@@ -166,9 +166,9 @@ local target, clue, langId, row, over
 local newRound, updateStats, submitGuess, fillCurrentRow, applyLength, setDifficulty
 
 local function DB()
-    TonguesOfAzerothDB = TonguesOfAzerothDB or {}
-    local t = TonguesOfAzerothDB.trainer or {}
-    TonguesOfAzerothDB.trainer = t
+    GlyphicDB = GlyphicDB or {}
+    local t = GlyphicDB.trainer or {}
+    GlyphicDB.trainer = t
     if t.played == nil then t.played = 0 end
     if t.wins   == nil then t.wins   = 0 end
     if t.streak == nil then t.streak = 0 end
@@ -183,7 +183,7 @@ local function DB()
     -- train, and since it is what a new character speaks, this is the ordinary
     -- case rather than an edge one.
     if t.lang == nil or not Language.IsValid(t.lang) or Language.IsPlain(t.lang) then
-        local chat = TonguesOfAzerothDB.language
+        local chat = GlyphicDB.language
         if chat and Language.IsValid(chat) and not Language.IsPlain(chat) then
             t.lang = chat
         else
@@ -195,7 +195,7 @@ local function DB()
 end
 
 local function langName()
-    return Language.GetLanguageName(langId or (TonguesOfAzerothDB and TonguesOfAzerothDB.language) or Language.DEFAULT)
+    return Language.GetLanguageName(langId or (GlyphicDB and GlyphicDB.language) or Language.DEFAULT)
 end
 
 --=========================================================================--

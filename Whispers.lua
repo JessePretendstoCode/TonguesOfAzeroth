@@ -43,10 +43,10 @@ local nextInterval = BASE_INTERVAL + math.random(-INTERVAL_JITTER, INTERVAL_JITT
 local OLD_GOD = "oldgod"
 
 local function isOldGodMode()
-    if not TonguesOfAzerothDB then return false end
-    return TonguesOfAzerothDB.inCharacter
-        and TonguesOfAzerothDB.language == OLD_GOD
-        and TonguesOfAzerothDB.strength == 100
+    if not GlyphicDB then return false end
+    return GlyphicDB.inCharacter
+        and GlyphicDB.language == OLD_GOD
+        and GlyphicDB.strength == 100
 end
 
 -- The module's only surface. It exists so the trigger can be asserted: the

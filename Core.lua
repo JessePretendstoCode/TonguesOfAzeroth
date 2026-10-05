@@ -204,7 +204,7 @@ end
 -- can send the (often noisy) decode output to a dedicated tab -- e.g. "Chat 3"
 -- -- via the "Show translations in" setting; 0 keeps it in the default window.
 local function getDecodeFrame()
-    local idx = TonguesOfAzerothDB and TonguesOfAzerothDB.outputFrame
+    local idx = GlyphicDB and GlyphicDB.outputFrame
     if idx and idx >= 1 then
         local f = _G["ChatFrame" .. idx]
         if f and f.AddMessage then
@@ -258,6 +258,34 @@ local CAST_DEFAULTS = {
 }
 ns.CAST_DEFAULTS = CAST_DEFAULTS
 
+-- The folder rename, 0.5.3. This one runs at FILE SCOPE rather than inside
+-- migrateDB, and the difference matters: WoW names a saved variables file
+-- after the addon FOLDER, so moving TonguesOfAzeroth/ to Glyphic/ left every
+-- existing profile sitting in a file this addon no longer causes to be read.
+-- The TonguesOfAzeroth shim shipped beside us exists for one purpose -- to
+-- declare these two globals, which is what makes the client load that file --
+-- and `## OptionalDeps: TonguesOfAzeroth` is what guarantees it has done so
+-- before this line runs.
+--
+-- At file scope because the account-wide table is created lazily by the first
+-- thing that writes a color, and migrateDB is not guaranteed to have run by
+-- then. Adopting here, while Core.lua is still loading, means no module can
+-- reach either table before the handover. Nothing above us in the TOC touches
+-- them at file scope; that is checked, not assumed.
+--
+-- Each global is cleared only in the branch that took it, never unconditionally:
+-- clearing one we did not adopt would discard real settings if the shim ever
+-- loaded late. Cleared at all so the old file drains to nil on logout and the
+-- shim can be dropped in a later release without stranding anything.
+if GlyphicDB == nil and TonguesOfAzerothDB ~= nil then
+    GlyphicDB = TonguesOfAzerothDB
+    TonguesOfAzerothDB = nil
+end
+if GlyphicAccountDB == nil and TonguesOfAzerothAccountDB ~= nil then
+    GlyphicAccountDB = TonguesOfAzerothAccountDB
+    TonguesOfAzerothAccountDB = nil
+end
+
 -- Latches true once migration is fully done. migrateDB() is called on the hot
 -- path (every incoming AND outgoing chat message), so after the one-time work is
 -- complete we skip the whole body instead of re-checking ~40 fields per message.
@@ -267,11 +295,11 @@ local dbFullyMigrated = false
 
 local function migrateDB()
     if dbFullyMigrated then return end
-    if TonguesOfAzerothDB == nil and OldGodTonguesDB ~= nil then
-        TonguesOfAzerothDB = OldGodTonguesDB
+    if GlyphicDB == nil and OldGodTonguesDB ~= nil then
+        GlyphicDB = OldGodTonguesDB
     end
-    TonguesOfAzerothDB = TonguesOfAzerothDB or {}
-    local db = TonguesOfAzerothDB
+    GlyphicDB = GlyphicDB or {}
+    local db = GlyphicDB
 
     if db.strength == nil and db.corruption ~= nil then
         db.strength = db.corruption
@@ -668,8 +696,8 @@ end
 function ns.IsChannelEnabled(chatType)
     migrateDB()
     chatType = normalizeChatType(chatType)
-    if not TonguesOfAzerothDB or not TonguesOfAzerothDB.channels then return false end
-    return TonguesOfAzerothDB.channels[chatType] and true or false
+    if not GlyphicDB or not GlyphicDB.channels then return false end
+    return GlyphicDB.channels[chatType] and true or false
 end
 
 -- Kept as a name other code and older saved macros may still reach for. There
@@ -692,7 +720,7 @@ local function fluencyPercent(langId)
 end
 
 local function getStrength()
-    local db = TonguesOfAzerothDB
+    local db = GlyphicDB
     if not db then return 100 end
     local pct = fluencyPercent(db.language)
     if pct == nil then pct = db.strength or 100 end
@@ -765,7 +793,7 @@ local function computeNativeLanguages()
 end
 
 local function nativeHidingOn()
-    local db = TonguesOfAzerothDB
+    local db = GlyphicDB
     return (db and db.hideNativeLanguages and nativeLangSet ~= nil) and true or false
 end
 
@@ -805,7 +833,7 @@ end
 -- If the language you're set to speak just got hidden, fall back to the first
 -- visible one so the dropdown never shows a native/blank selection.
 function ns.EnsureSpeakLanguageVisible()
-    local db = TonguesOfAzerothDB
+    local db = GlyphicDB
     if not db then return end
     if ns.IsNativeLanguage(db.language) then
         local speak = ns.GetSpeakableLanguages()
@@ -861,7 +889,7 @@ end
 -- name their language in prose rather than wearing a bracket (see Casts.Render).
 local function languageName(langId)
     local name = Language.GetLanguageName(langId)
-    local db = TonguesOfAzerothDB
+    local db = GlyphicDB
     if db and db.tagFluency ~= false then
         local adj = fluencyAdjective(langId)
         if adj then name = adj .. " " .. name end
@@ -878,7 +906,7 @@ end
 -- two halves of one voice. Emotes (/e and inline *actions*) narrate an action
 -- rather than speak, so they keep their own opt-in.
 local function accentAppliesTo(channelKey)
-    local db = TonguesOfAzerothDB
+    local db = GlyphicDB
     if not (ns.Accent and db and db.inCharacter and db.accent) then return false end
     if db.accent.id == ns.Accent.NONE then return false end
     if channelKey == "EMOTE" then return db.accent.emotes and true or false end
@@ -888,7 +916,7 @@ end
 -- `live` marks a real utterance; only those advance the accent's tail spacing,
 -- so previewing never uses up the flourish your next real line would get.
 local function applyAccent(text, live)
-    local a = TonguesOfAzerothDB.accent
+    local a = GlyphicDB.accent
     local ok, res = pcall(ns.Accent.Apply, text, a.id, a.strength or 100, a.emotes, live and true or false)
     if ok and type(res) == "string" then return res end
     return text
@@ -912,7 +940,7 @@ end
 local function transformOutgoing(msg, sendType, channel)
     if type(msg) ~= "string" or msg == "" then return msg, false end
 
-    local db = TonguesOfAzerothDB
+    local db = GlyphicDB
     if not db then return msg, false end
     local channelKey = normalizeChatType(sendType)
     local accentOn = accentAppliesTo(channelKey)
@@ -1026,7 +1054,7 @@ end
 -- argument; it must be read back from the edit box via GetText().
 local function onEditBoxPreSend(_, editBox)
     preSendActive = false
-    if not TonguesOfAzerothDB then return end
+    if not GlyphicDB then return end
     if not editBox or not editBox.GetText or not editBox.SetText then return end
     if InCombatLockdown and InCombatLockdown() then return end
     migrateDB()
@@ -1076,7 +1104,7 @@ local function registerYapperFilter()
     if type(api) ~= "table" or type(api.RegisterFilter) ~= "function" then return end
     local ok, handle = pcall(api.RegisterFilter, api, "PRE_SEND", function(payload)
         if type(payload) ~= "table" or type(payload.text) ~= "string" then return end
-        if not TonguesOfAzerothDB then return end
+        if not GlyphicDB then return end
         migrateDB()
         local out, changed = transformOutgoing(payload.text, payload.chatType, payload.target)
         if changed and out ~= payload.text then
@@ -1097,7 +1125,7 @@ local function speak(msg, chatType, channel)
     installSendHook()
     suppress = true
     local sendType = chatType or "SAY"
-    local langId = TonguesOfAzerothDB and TonguesOfAzerothDB.language
+    local langId = GlyphicDB and GlyphicDB.language
     local strength = getStrength()
 
     local out = msg
@@ -1139,7 +1167,7 @@ end
 function ns.EncodeSpeech(text, live)
     migrateDB()
     if type(text) ~= "string" or text == "" then return text, nil, false end
-    local db = TonguesOfAzerothDB
+    local db = GlyphicDB
     local langId, strength = db.language, getStrength()
     -- Spoken words riding inside an emote are still speech, so they take the
     -- accent's own strength; the emote toggle governs narration, not this.
@@ -1245,7 +1273,7 @@ end
 function ns.UnderstandsLanguage(langId)
     if not langId then return false end
     migrateDB()
-    local learned = TonguesOfAzerothDB and TonguesOfAzerothDB.learned
+    local learned = GlyphicDB and GlyphicDB.learned
     if learned then
         if learned[langId] then return true end
         local parent = Language.ParentOf and Language.ParentOf(langId)
@@ -1303,8 +1331,8 @@ end
 -- `yourOwnWords` lifts the comprehension gate entirely -- see isChecked.
 local function tryDecodeMessage(message, taggedLangId, force, yourOwnWords)
     migrateDB()
-    local learned = TonguesOfAzerothDB.learned or {}
-    local trainerWords = (TonguesOfAzerothDB.trainer and TonguesOfAzerothDB.trainer.words) or {}
+    local learned = GlyphicDB.learned or {}
+    local trainerWords = (GlyphicDB.trainer and GlyphicDB.trainer.words) or {}
 
     -- Checked in the Learned panel = you fully understand the language (its own
     -- or its parent's box, since sub-languages share a word set).
@@ -1402,7 +1430,7 @@ local function tryDecodeMessage(message, taggedLangId, force, yourOwnWords)
 end
 
 local function showDecode(sender, original, decoded, langId, langName)
-    local style = TonguesOfAzerothDB.decodeStyle or "emote"
+    local style = GlyphicDB.decodeStyle or "emote"
     local msg
     if style == "whisper" then
         msg = "|cffC79CFF[Glyphic: " .. langName .. "]|r "
@@ -1511,7 +1539,7 @@ local function inlineLangIdFromProse(message)
 end
 
 local function notePassiveExposure(message)
-    local db = TonguesOfAzerothDB
+    local db = GlyphicDB
     if not (db and db.passiveLearning) then return end
     if not (ns.Trainer and ns.Trainer.AddFluency and ns.Trainer.GetProgress) then return end
 
@@ -1560,7 +1588,7 @@ local function onIncomingChat(event, message, sender)
 
     -- In-line mode rewrites the chat line itself via inlineChatFilter, so we must
     -- not also print a separate decode line here.
-    if (TonguesOfAzerothDB.decodeStyle or "inline") == "inline" then return end
+    if (GlyphicDB.decodeStyle or "inline") == "inline" then return end
 
     -- Strip a leading "[Language] " flavor tag (ours or another Glyphic user's) so
     -- decoding sees the raw encoded text that matches the cached mapping.
@@ -1719,7 +1747,7 @@ local function inlineChatFilter(_, event, msg, sender, languageName, ...)
     -- meaning you cannot possibly be in doubt about. The bubble over your head
     -- is where you see how it actually came out.
     local mine = isSelf(sender)
-    local inlineMode = (TonguesOfAzerothDB.decodeStyle or "inline") == "inline"
+    local inlineMode = (GlyphicDB.decodeStyle or "inline") == "inline"
     if inlineMode and not isReal then
         local decoded, _, decodedId, plainName = tryDecodeMessage(stripped, langId, false, mine)
         -- Named the same way the speech itself is tagged, fluency word and all.
@@ -1781,7 +1809,7 @@ end
 -- are the ones you flip often enough for a line each to read as spam.
 function ns.SetInCharacter(state, silent)
     migrateDB()
-    TonguesOfAzerothDB.inCharacter = state and true or false
+    GlyphicDB.inCharacter = state and true or false
     if ns.OnSettingsChanged then ns.OnSettingsChanged() end
 
     if silent then return end
@@ -1790,18 +1818,18 @@ function ns.SetInCharacter(state, silent)
             .. "no accent, and cast phrases are quiet.")
         return
     end
-    local a = TonguesOfAzerothDB.accent
+    local a = GlyphicDB.accent
     local accentName = (a and ns.Accent and a.id ~= ns.Accent.NONE)
         and ns.Accent.GetAccentName(a.id) or nil
     Print("Speaking |cff00ff00in character|r: |cffffff00"
-        .. Language.GetLanguageName(TonguesOfAzerothDB.language) .. "|r"
+        .. Language.GetLanguageName(GlyphicDB.language) .. "|r"
         .. (accentName and (" with a |cffffff00" .. accentName .. "|r accent") or "")
         .. ".")
 end
 
 function ns.ToggleInCharacter(silent)
     migrateDB()
-    ns.SetInCharacter(not TonguesOfAzerothDB.inCharacter, silent)
+    ns.SetInCharacter(not GlyphicDB.inCharacter, silent)
 end
 
 -- One answer to "is the addon speaking for me right now", for every feature
@@ -1818,7 +1846,7 @@ end
 -- are four chances for one of them to be missed when a feature is added --
 -- which is exactly how cast phrases came to keep shouting through it.
 function ns.IsInCharacter()
-    local db = TonguesOfAzerothDB
+    local db = GlyphicDB
     return (db and db.inCharacter) and true or false
 end
 
@@ -1842,7 +1870,7 @@ local setEnabled = ns.SetInCharacter
 local function listLanguages()
     Print("available languages (use |cffffff00/glyphic lang <id>|r):")
     local langs = Language.GetLanguages()
-    local active = TonguesOfAzerothDB and TonguesOfAzerothDB.language
+    local active = GlyphicDB and GlyphicDB.language
 
     -- Group each primary with the sub-languages that share its word set.
     local subsOf = {}
@@ -1870,7 +1898,7 @@ end
 local function setLanguage(id, silent)
     id = string.lower(id or "")
     if Language.IsValid(id) then
-        TonguesOfAzerothDB.language = id
+        GlyphicDB.language = id
         if not silent then
             Print("Language set to |cffffff00" .. Language.GetLanguageName(id) .. "|r.")
         end
@@ -1893,7 +1921,7 @@ end
 -- custom language can be deleted while it is still in the list).
 function ns.GetFavorites()
     migrateDB()
-    local favs, out = TonguesOfAzerothDB.favorites, {}
+    local favs, out = GlyphicDB.favorites, {}
     for i = 1, #favs do
         if Language.IsValid(favs[i]) then out[#out + 1] = favs[i] end
     end
@@ -1902,7 +1930,7 @@ end
 
 function ns.IsFavorite(id)
     migrateDB()
-    local favs = TonguesOfAzerothDB.favorites
+    local favs = GlyphicDB.favorites
     for i = 1, #favs do
         if favs[i] == id then return true end
     end
@@ -1913,7 +1941,7 @@ end
 function ns.ToggleFavorite(id)
     migrateDB()
     if not Language.IsValid(id) then return nil end
-    local favs = TonguesOfAzerothDB.favorites
+    local favs = GlyphicDB.favorites
     for i = 1, #favs do
         if favs[i] == id then
             table.remove(favs, i)
@@ -1928,8 +1956,8 @@ end
 
 function ns.ClearFavorites()
     migrateDB()
-    local n = #TonguesOfAzerothDB.favorites
-    wipe(TonguesOfAzerothDB.favorites)
+    local n = #GlyphicDB.favorites
+    wipe(GlyphicDB.favorites)
     if ns.OnSettingsChanged then ns.OnSettingsChanged() end
     return n
 end
@@ -1940,7 +1968,7 @@ end
 -- in, in registration order.
 function ns.GetKnownLanguages()
     migrateDB()
-    local db = TonguesOfAzerothDB
+    local db = GlyphicDB
     local seen, list = {}, {}
     local function add(id)
         if id and not seen[id] and Language.IsValid(id) then
@@ -1985,7 +2013,7 @@ end
 -- Register every saved custom language into the engine. Called on load.
 local function loadCustomLanguages()
     migrateDB()
-    local defs = TonguesOfAzerothDB.customLanguages or {}
+    local defs = GlyphicDB.customLanguages or {}
     for id, def in pairs(defs) do
         if type(def) == "table" then
             def.id = def.id or id
@@ -1998,7 +2026,7 @@ end
 function ns.GetCustomLanguages()
     migrateDB()
     local out = {}
-    for _, def in pairs(TonguesOfAzerothDB.customLanguages or {}) do
+    for _, def in pairs(GlyphicDB.customLanguages or {}) do
         out[#out + 1] = { id = def.id, name = def.name or def.id }
     end
     table.sort(out, function(a, b) return (a.name or "") < (b.name or "") end)
@@ -2011,7 +2039,7 @@ function ns.SaveCustomLanguage(def)
     local ok, idOrErr = Language.RegisterCustom(def)
     if not ok then return false, idOrErr end
     local id = idOrErr
-    TonguesOfAzerothDB.customLanguages[id] = {
+    GlyphicDB.customLanguages[id] = {
         id = id,
         name = def.name,
         apostrophe = def.apostrophe,
@@ -2029,9 +2057,9 @@ function ns.DeleteCustomLanguage(id)
     migrateDB()
     if not id or not Language.IsCustom(id) then return false end
     Language.UnregisterCustom(id)
-    TonguesOfAzerothDB.customLanguages[id] = nil
-    if TonguesOfAzerothDB.language == id then
-        TonguesOfAzerothDB.language = Language.DEFAULT
+    GlyphicDB.customLanguages[id] = nil
+    if GlyphicDB.language == id then
+        GlyphicDB.language = Language.DEFAULT
     end
     if ns.InvalidatePassiveNames then ns.InvalidatePassiveNames() end
     if ns.OnSettingsChanged then ns.OnSettingsChanged() end
@@ -2066,8 +2094,8 @@ function ns.MakeLanguageFluent(langId)
     if not langId then return end
     migrateDB()
     if ns.Trainer and ns.Trainer.SetFluency then ns.Trainer.SetFluency(langId, 1) end
-    TonguesOfAzerothDB.learned = TonguesOfAzerothDB.learned or {}
-    TonguesOfAzerothDB.learned[langId] = true
+    GlyphicDB.learned = GlyphicDB.learned or {}
+    GlyphicDB.learned[langId] = true
     if ns.RefreshFluencyIfShown then ns.RefreshFluencyIfShown() end
 end
 
@@ -2077,7 +2105,7 @@ function ns.ResetLanguageFluency(langId)
     if not langId then return end
     migrateDB()
     if ns.Trainer and ns.Trainer.ResetFluency then ns.Trainer.ResetFluency(langId) end
-    if TonguesOfAzerothDB.learned then TonguesOfAzerothDB.learned[langId] = nil end
+    if GlyphicDB.learned then GlyphicDB.learned[langId] = nil end
     if ns.RefreshFluencyIfShown then ns.RefreshFluencyIfShown() end
 end
 
@@ -2087,11 +2115,11 @@ function ns.MakeAllFluent()
     migrateDB()
     local langs = (ns.GetSpeakablePrimaryLanguages and ns.GetSpeakablePrimaryLanguages())
         or (Language.GetPrimaryLanguages and Language.GetPrimaryLanguages()) or {}
-    TonguesOfAzerothDB.learned = TonguesOfAzerothDB.learned or {}
+    GlyphicDB.learned = GlyphicDB.learned or {}
     for i = 1, #langs do
         local id = langs[i].id
         if ns.Trainer and ns.Trainer.SetFluency then ns.Trainer.SetFluency(id, 1) end
-        TonguesOfAzerothDB.learned[id] = true
+        GlyphicDB.learned[id] = true
     end
     if ns.RefreshFluencyIfShown then ns.RefreshFluencyIfShown() end
 end
@@ -2103,7 +2131,7 @@ function ns.ResetAllFluency()
     for i = 1, #langs do
         local id = langs[i].id
         if ns.Trainer and ns.Trainer.ResetFluency then ns.Trainer.ResetFluency(id) end
-        if TonguesOfAzerothDB.learned then TonguesOfAzerothDB.learned[id] = nil end
+        if GlyphicDB.learned then GlyphicDB.learned[id] = nil end
     end
     if ns.RefreshFluencyIfShown then ns.RefreshFluencyIfShown() end
 end
@@ -2111,7 +2139,7 @@ end
 -- Build a copy-safe share code for a saved custom language.
 function ns.ExportCustomLanguage(id)
     migrateDB()
-    local def = TonguesOfAzerothDB.customLanguages and TonguesOfAzerothDB.customLanguages[id]
+    local def = GlyphicDB.customLanguages and GlyphicDB.customLanguages[id]
     if not def then return nil end
     return Language.ExportShareString(def)
 end
@@ -2158,7 +2186,7 @@ function ns.CycleLanguage(dir)
     local list = ns.GetKnownLanguages()
     if #list <= 1 then return end
     dir = dir or 1
-    local cur = TonguesOfAzerothDB.language
+    local cur = GlyphicDB.language
     local idx = 1
     for i = 1, #list do
         if list[i] == cur then idx = i break end
@@ -2181,9 +2209,9 @@ local function listLearned()
             -- were ticked separately -- which would make the list look wrong
             -- to anyone who went looking for the box they never ticked.
             local via = ""
-            if not TonguesOfAzerothDB.learned[langs[i].id] then
+            if not GlyphicDB.learned[langs[i].id] then
                 local parent = Language.ParentOf and Language.ParentOf(langs[i].id)
-                if parent and TonguesOfAzerothDB.learned[parent] then
+                if parent and GlyphicDB.learned[parent] then
                     via = " |cff808080(through " .. Language.GetLanguageName(parent) .. ")|r"
                 else
                     via = " |cff808080(fluent)|r"
@@ -2229,7 +2257,7 @@ local function favoriteCommand(rest)
         return
     end
 
-    local id = (rest ~= "" and rest) or TonguesOfAzerothDB.language
+    local id = (rest ~= "" and rest) or GlyphicDB.language
     local state = ns.ToggleFavorite(id)
     if state == nil then
         Print("Unknown language '|cffff0000" .. id .. "|r'. Use |cffffff00/glyphic list|r.")
@@ -2251,7 +2279,7 @@ local function castCommand(rest)
         return
     end
     migrateDB()
-    local c = TonguesOfAzerothDB.casts
+    local c = GlyphicDB.casts
     local sub, arg = (rest or ""):match("^(%S*)%s*(.-)$")
     sub = string.lower(sub or "")
 
@@ -2496,7 +2524,7 @@ end
 
 local function testEncode(input)
     migrateDB()
-    local langId, strength, text = parseLangStrengthText(input, TonguesOfAzerothDB.language, getStrength())
+    local langId, strength, text = parseLangStrengthText(input, GlyphicDB.language, getStrength())
     if text == "" then
         Print("usage: /glyphic encode [lang] [strength] <english text>")
         Print("  example: /glyphic encode dwarven 100 help us all friend")
@@ -2512,7 +2540,7 @@ end
 
 local function testRoundtrip(input)
     migrateDB()
-    local langId, strength, text = parseLangStrengthText(input, TonguesOfAzerothDB.language, getStrength())
+    local langId, strength, text = parseLangStrengthText(input, GlyphicDB.language, getStrength())
     if text == "" then
         Print("usage: /glyphic roundtrip [lang] [strength] <english text>")
         Print("  example: /glyphic roundtrip dwarven 100 help us all friend")
@@ -2547,7 +2575,7 @@ end
 
 local function debugReport()
     migrateDB()
-    local db = TonguesOfAzerothDB
+    local db = GlyphicDB
     local a = db.accent or {}
     local getMeta = (C_AddOns and C_AddOns.GetAddOnMetadata) or GetAddOnMetadata
     local ver = (getMeta and getMeta(ADDON, "Version")) or "?"
@@ -2671,7 +2699,7 @@ local function usage()
 end
 
 local function handleSlash(input)
-    if not TonguesOfAzerothDB then migrateDB() end
+    if not GlyphicDB then migrateDB() end
     input = input or ""
     local cmd, rest = input:match("^(%S*)%s*(.-)$")
     cmd = string.lower(cmd or "")
@@ -2698,7 +2726,7 @@ local function handleSlash(input)
         voiceCommand(rest)
     elseif cmd == "favonly" then
         migrateDB()
-        local db = TonguesOfAzerothDB
+        local db = GlyphicDB
         local arg = string.lower(rest or "")
         if arg == "on" then db.favOnly = true
         elseif arg == "off" then db.favOnly = false
@@ -2744,7 +2772,7 @@ local function handleSlash(input)
             end
         end
     elseif cmd == "export" then
-        local id = (rest ~= "" and Language.MakeCustomId(rest)) or TonguesOfAzerothDB.language
+        local id = (rest ~= "" and Language.MakeCustomId(rest)) or GlyphicDB.language
         if id and Language.IsCustom(id) then
             if ns.OpenCustomConfig then ns.OpenCustomConfig() end
             if ns.ShowExportCode then ns.ShowExportCode(id) end
@@ -2753,7 +2781,7 @@ local function handleSlash(input)
             Print("Set a custom language first, or use |cffffff00/glyphic export <name>|r.")
         end
     elseif cmd == "share" then
-        local id = TonguesOfAzerothDB.language
+        local id = GlyphicDB.language
         if not (id and Language.IsCustom(id)) then
             Print("Select one of your custom languages first (it's the language you're currently speaking).")
         else
@@ -2770,7 +2798,7 @@ local function handleSlash(input)
     elseif cmd == "strength" or cmd == "corruption" or cmd == "corrupt" or cmd == "fluency" then
         -- Speaking strength IS your fluency in the current language now, so this
         -- sets/reads the active language's fluency.
-        local langId = TonguesOfAzerothDB.language
+        local langId = GlyphicDB.language
         local n = tonumber(rest)
         if n then
             n = math.max(0, math.min(100, math.floor(n + 0.5)))
@@ -2781,7 +2809,7 @@ local function handleSlash(input)
         end
     elseif cmd == "accent" then
         migrateDB()
-        local a = TonguesOfAzerothDB.accent
+        local a = GlyphicDB.accent
         local arg = string.lower(rest or "")
         if arg == "" then
             if ns.OpenAccentConfig then ns.OpenAccentConfig() end
@@ -2816,15 +2844,15 @@ local function handleSlash(input)
         migrateDB()
         local n = tonumber(rest)
         if n then
-            TonguesOfAzerothDB.accent.strength = math.max(0, math.min(100, math.floor(n + 0.5)))
-            Print("Accent strength set to |cffffff00" .. TonguesOfAzerothDB.accent.strength .. "%|r.")
+            GlyphicDB.accent.strength = math.max(0, math.min(100, math.floor(n + 0.5)))
+            Print("Accent strength set to |cffffff00" .. GlyphicDB.accent.strength .. "%|r.")
         else
-            Print("Accent strength is |cffffff00" .. (TonguesOfAzerothDB.accent.strength or 100) .. "%|r. Use /glyphic accentstrength <0-100>.")
+            Print("Accent strength is |cffffff00" .. (GlyphicDB.accent.strength or 100) .. "%|r. Use /glyphic accentstrength <0-100>.")
         end
         if ns.OnSettingsChanged then ns.OnSettingsChanged() end
     elseif cmd == "accenttails" then
         migrateDB()
-        local a = TonguesOfAzerothDB.accent
+        local a = GlyphicDB.accent
         local n = tonumber(rest)
         if n then
             a.tails = math.max(0, math.min(100, math.floor(n + 0.5)))
@@ -2843,14 +2871,14 @@ local function handleSlash(input)
         migrateDB()
         local arg = string.lower(rest or "")
         if arg == "on" then
-            TonguesOfAzerothDB.tagFluency = true
+            GlyphicDB.tagFluency = true
         elseif arg == "off" then
-            TonguesOfAzerothDB.tagFluency = false
+            GlyphicDB.tagFluency = false
         else
-            TonguesOfAzerothDB.tagFluency = not TonguesOfAzerothDB.tagFluency
+            GlyphicDB.tagFluency = not GlyphicDB.tagFluency
         end
         Print("Messages always start with [Language]. Fluency prefix "
-            .. (TonguesOfAzerothDB.tagFluency
+            .. (GlyphicDB.tagFluency
                 and "|cff00ff00ON|r (e.g. [Broken Orcish])"
                 or "|cffff0000OFF|r") .. ".")
         if ns.OnSettingsChanged then ns.OnSettingsChanged() end
@@ -2984,16 +3012,16 @@ local function handleSlash(input)
         if ns.OpenTrainer then ns.OpenTrainer() end
     elseif cmd == "minimap" or cmd == "mm" then
         migrateDB()
-        TonguesOfAzerothDB.minimap = TonguesOfAzerothDB.minimap or {}
-        TonguesOfAzerothDB.minimap.hide = not TonguesOfAzerothDB.minimap.hide
-        Print("Minimap button " .. (TonguesOfAzerothDB.minimap.hide and "|cffff0000hidden|r" or "|cff00ff00shown|r") .. ".")
+        GlyphicDB.minimap = GlyphicDB.minimap or {}
+        GlyphicDB.minimap.hide = not GlyphicDB.minimap.hide
+        Print("Minimap button " .. (GlyphicDB.minimap.hide and "|cffff0000hidden|r" or "|cff00ff00shown|r") .. ".")
         if ns.ApplyMinimapShown then ns.ApplyMinimapShown() end
     elseif cmd == "output" or cmd == "window" or cmd == "out" then
         migrateDB()
         local maxWin = NUM_CHAT_WINDOWS or 10
         local arg = string.lower(rest or "")
         if arg == "" then
-            local cur = TonguesOfAzerothDB.outputFrame or 0
+            local cur = GlyphicDB.outputFrame or 0
             if cur >= 1 then
                 local name = GetChatWindowInfo and GetChatWindowInfo(cur)
                 Print("Translations show in |cffffff00" .. (name and name ~= "" and name or ("Chat window " .. cur)) .. "|r.")
@@ -3002,12 +3030,12 @@ local function handleSlash(input)
             end
             Print("Use |cffffff00/glyphic output <1-" .. maxWin .. ">|r or |cffffff00/glyphic output default|r.")
         elseif arg == "default" or arg == "0" or arg == "main" then
-            TonguesOfAzerothDB.outputFrame = 0
+            GlyphicDB.outputFrame = 0
             Print("Translations will show in the |cffffff00default|r chat window.")
         else
             local n = tonumber(arg)
             if n and n >= 1 and n <= maxWin then
-                TonguesOfAzerothDB.outputFrame = n
+                GlyphicDB.outputFrame = n
                 local name = GetChatWindowInfo and GetChatWindowInfo(n)
                 Print("Translations will show in |cffffff00" .. (name and name ~= "" and name or ("Chat window " .. n)) .. "|r.")
             else
@@ -3020,18 +3048,18 @@ local function handleSlash(input)
     elseif cmd == "yell" and rest ~= "" then
         speak(rest, "YELL")
     elseif (cmd == "p" or cmd == "preview") and rest ~= "" then
-        Print("|cffccccff" .. Language.TranslateText(rest, getStrength(), TonguesOfAzerothDB.language) .. "|r")
+        Print("|cffccccff" .. Language.TranslateText(rest, getStrength(), GlyphicDB.language) .. "|r")
     elseif cmd == "autodisable" or cmd == "instances" or cmd == "instancewarning" or cmd == "instwarn" then
         local arg = string.lower(rest)
         if arg == "on" then
-            TonguesOfAzerothDB.autoDisableInInstances = true
+            GlyphicDB.autoDisableInInstances = true
         elseif arg == "off" then
-            TonguesOfAzerothDB.autoDisableInInstances = false
+            GlyphicDB.autoDisableInInstances = false
         else
-            TonguesOfAzerothDB.autoDisableInInstances = not (TonguesOfAzerothDB.autoDisableInInstances ~= false)
+            GlyphicDB.autoDisableInInstances = not (GlyphicDB.autoDisableInInstances ~= false)
         end
         Print("Auto-disable in instances " ..
-            (TonguesOfAzerothDB.autoDisableInInstances ~= false and "|cff00ff00ON|r" or "|cffff0000OFF|r") .. ".")
+            (GlyphicDB.autoDisableInInstances ~= false and "|cff00ff00ON|r" or "|cffff0000OFF|r") .. ".")
         if ns.RefreshInstanceState then ns.RefreshInstanceState() end
     elseif cmd == "debug" or cmd == "diag" then
         installSendHook()
@@ -3075,7 +3103,7 @@ ns.DEFAULT_CHANNELS = DEFAULT_CHANNELS
 local function suppressionWanted()
     local inInstance = IsInInstance and IsInInstance() and true or false
     return inInstance
-        and (TonguesOfAzerothDB and TonguesOfAzerothDB.autoDisableInInstances ~= false)
+        and (GlyphicDB and GlyphicDB.autoDisableInInstances ~= false)
         and true or false
 end
 

@@ -111,26 +111,26 @@ local panelsBuilt = false
 local minimapButton
 
 local function db()
-    if TonguesOfAzerothDB == nil and OldGodTonguesDB ~= nil then
-        TonguesOfAzerothDB = OldGodTonguesDB
+    if GlyphicDB == nil and OldGodTonguesDB ~= nil then
+        GlyphicDB = OldGodTonguesDB
     end
-    TonguesOfAzerothDB = TonguesOfAzerothDB or {}
-    if TonguesOfAzerothDB.inCharacter == nil then
-        TonguesOfAzerothDB.inCharacter = TonguesOfAzerothDB.enabled and true or false
+    GlyphicDB = GlyphicDB or {}
+    if GlyphicDB.inCharacter == nil then
+        GlyphicDB.inCharacter = GlyphicDB.enabled and true or false
     end
-    if TonguesOfAzerothDB.strength == nil then
-        TonguesOfAzerothDB.strength = TonguesOfAzerothDB.corruption or 100
+    if GlyphicDB.strength == nil then
+        GlyphicDB.strength = GlyphicDB.corruption or 100
     end
-    if TonguesOfAzerothDB.language == nil or not Language.IsValid(TonguesOfAzerothDB.language) then
-        TonguesOfAzerothDB.language = Language.DEFAULT
+    if GlyphicDB.language == nil or not Language.IsValid(GlyphicDB.language) then
+        GlyphicDB.language = Language.DEFAULT
     end
-    if not TonguesOfAzerothDB.channels then TonguesOfAzerothDB.channels = {} end
-    if not TonguesOfAzerothDB.learned then TonguesOfAzerothDB.learned = {} end
-    if TonguesOfAzerothDB.decodeStyle == nil then TonguesOfAzerothDB.decodeStyle = "inline" end
-    if not TonguesOfAzerothDB.minimap then TonguesOfAzerothDB.minimap = {} end
-    if TonguesOfAzerothDB.minimap.hide == nil then TonguesOfAzerothDB.minimap.hide = false end
-    if TonguesOfAzerothDB.minimap.angle == nil then TonguesOfAzerothDB.minimap.angle = 200 end
-    if not TonguesOfAzerothDB.widget then TonguesOfAzerothDB.widget = {} end
+    if not GlyphicDB.channels then GlyphicDB.channels = {} end
+    if not GlyphicDB.learned then GlyphicDB.learned = {} end
+    if GlyphicDB.decodeStyle == nil then GlyphicDB.decodeStyle = "inline" end
+    if not GlyphicDB.minimap then GlyphicDB.minimap = {} end
+    if GlyphicDB.minimap.hide == nil then GlyphicDB.minimap.hide = false end
+    if GlyphicDB.minimap.angle == nil then GlyphicDB.minimap.angle = 200 end
+    if not GlyphicDB.widget then GlyphicDB.widget = {} end
     -- On by default: it is the only always-visible readout of what you're
     -- speaking and whether you're in character, and it carries the in/out of
     -- character button. Off by default made the addon's main signal opt-in.
@@ -140,31 +140,31 @@ local function db()
     -- from someone who switched the bar off deliberately. So the new default is
     -- applied once, tracked by its own key, rather than re-asserted every login:
     -- turn the bar off after this and it stays off.
-    if TonguesOfAzerothDB.widget.enabled == nil then TonguesOfAzerothDB.widget.enabled = true end
-    if not TonguesOfAzerothDB.widget.defaultedOn then
-        TonguesOfAzerothDB.widget.defaultedOn = true
-        TonguesOfAzerothDB.widget.enabled = true
+    if GlyphicDB.widget.enabled == nil then GlyphicDB.widget.enabled = true end
+    if not GlyphicDB.widget.defaultedOn then
+        GlyphicDB.widget.defaultedOn = true
+        GlyphicDB.widget.enabled = true
     end
-    if TonguesOfAzerothDB.widget.locked == nil then TonguesOfAzerothDB.widget.locked = false end
-    if TonguesOfAzerothDB.widget.point == nil then TonguesOfAzerothDB.widget.point = "CENTER" end
-    if TonguesOfAzerothDB.widget.x == nil then TonguesOfAzerothDB.widget.x = 0 end
-    if TonguesOfAzerothDB.widget.y == nil then TonguesOfAzerothDB.widget.y = -140 end
-    if TonguesOfAzerothDB.outputFrame == nil then TonguesOfAzerothDB.outputFrame = 0 end
-    TonguesOfAzerothDB.tagLanguage = true
-    if TonguesOfAzerothDB.tagFluency == nil then TonguesOfAzerothDB.tagFluency = true end
-    if not TonguesOfAzerothDB.accent then TonguesOfAzerothDB.accent = {} end
-    if TonguesOfAzerothDB.accent.strength == nil then TonguesOfAzerothDB.accent.strength = 100 end
-    if TonguesOfAzerothDB.accent.emotes == nil then TonguesOfAzerothDB.accent.emotes = false end
-    if TonguesOfAzerothDB.hideNativeLanguages == nil then TonguesOfAzerothDB.hideNativeLanguages = true end
-    if TonguesOfAzerothDB.autoDisableInInstances == nil then TonguesOfAzerothDB.autoDisableInInstances = true end
+    if GlyphicDB.widget.locked == nil then GlyphicDB.widget.locked = false end
+    if GlyphicDB.widget.point == nil then GlyphicDB.widget.point = "CENTER" end
+    if GlyphicDB.widget.x == nil then GlyphicDB.widget.x = 0 end
+    if GlyphicDB.widget.y == nil then GlyphicDB.widget.y = -140 end
+    if GlyphicDB.outputFrame == nil then GlyphicDB.outputFrame = 0 end
+    GlyphicDB.tagLanguage = true
+    if GlyphicDB.tagFluency == nil then GlyphicDB.tagFluency = true end
+    if not GlyphicDB.accent then GlyphicDB.accent = {} end
+    if GlyphicDB.accent.strength == nil then GlyphicDB.accent.strength = 100 end
+    if GlyphicDB.accent.emotes == nil then GlyphicDB.accent.emotes = false end
+    if GlyphicDB.hideNativeLanguages == nil then GlyphicDB.hideNativeLanguages = true end
+    if GlyphicDB.autoDisableInInstances == nil then GlyphicDB.autoDisableInInstances = true end
     -- Mirrors Core's migration: a profile that never picked an accent has none,
     -- rather than silently arriving with Dwarven selected.
-    if TonguesOfAzerothDB.accent.id == nil then
-        TonguesOfAzerothDB.accent.id = (Accent and Accent.NONE) or "none"
-    elseif not (Accent and Accent.IsValid(TonguesOfAzerothDB.accent.id)) then
-        TonguesOfAzerothDB.accent.id = (Accent and Accent.DEFAULT) or "dwarf"
+    if GlyphicDB.accent.id == nil then
+        GlyphicDB.accent.id = (Accent and Accent.NONE) or "none"
+    elseif not (Accent and Accent.IsValid(GlyphicDB.accent.id)) then
+        GlyphicDB.accent.id = (Accent and Accent.DEFAULT) or "dwarf"
     end
-    return TonguesOfAzerothDB
+    return GlyphicDB
 end
 
 -- Fluency % (0-100) of a language from the trainer store. How well you speak a
@@ -686,8 +686,8 @@ local LDB_NAME = "TonguesOfAzeroth"
 -- Keep ICON in step with `## IconTexture:` in the TOCs, so the addon list and
 -- the button show the same thing. Shipped with the addon rather than borrowed
 -- from Blizzard's icon set, because nothing in there is a speaker.
-local ICON = "Interface\\AddOns\\TonguesOfAzeroth\\Media\\Glyphic-On"
-local ICON_MUTED = "Interface\\AddOns\\TonguesOfAzeroth\\Media\\Glyphic-Off"
+local ICON = "Interface\\AddOns\\Glyphic\\Media\\Glyphic-On"
+local ICON_MUTED = "Interface\\AddOns\\Glyphic\\Media\\Glyphic-Off"
 
 -- In character / out of character at a glance, in one place so the minimap
 -- button and the floating bar can't disagree about which colors mean what.
@@ -2366,7 +2366,7 @@ end
 local function loadCustomIntoFields(id)
     local def
     if id and id ~= "" then
-        local saved = TonguesOfAzerothDB and TonguesOfAzerothDB.customLanguages
+        local saved = GlyphicDB and GlyphicDB.customLanguages
         def = saved and saved[id]
     end
     customEditingId = (def and id) or nil

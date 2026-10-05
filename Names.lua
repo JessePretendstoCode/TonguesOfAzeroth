@@ -231,12 +231,12 @@ function Names.Clear()
 end
 
 function Names.IsEnabled()
-    local db = TonguesOfAzerothDB
+    local db = GlyphicDB
     return not (db and db.protectNames == false)
 end
 
 function Names.SetEnabled(on)
-    local db = TonguesOfAzerothDB
+    local db = GlyphicDB
     if db then db.protectNames = on and true or false end
 end
 
@@ -301,12 +301,12 @@ end
 -- markup they didn't ask for, and none of it eats into the 255-character
 -- budget that the outgoing text is already being trimmed to fit.
 function Names.HighlightEnabled()
-    local db = TonguesOfAzerothDB
+    local db = GlyphicDB
     return not (db and db.colorNames == false)
 end
 
 function Names.SetHighlightEnabled(on)
-    local db = TonguesOfAzerothDB
+    local db = GlyphicDB
     if db then db.colorNames = on and true or false end
 end
 

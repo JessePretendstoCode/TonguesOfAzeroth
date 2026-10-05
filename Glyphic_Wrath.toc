@@ -1,11 +1,12 @@
-## Interface: 50504
+## Interface: 30405
 ## Title: Glyphic: Immersive RP Languages
 ## Notes: Speak the languages of Azeroth (Orcish, Darnassian, Old God, and more), similar to Tongues.
-## IconTexture: Interface\AddOns\TonguesOfAzeroth\Media\Glyphic-On
+## IconTexture: Interface\AddOns\Glyphic\Media\Glyphic-On
 ## Author: JessePretendstoCode
-## Version: 0.5.2
-## SavedVariablesPerCharacter: TonguesOfAzerothDB
-## SavedVariables: TonguesOfAzerothAccountDB
+## Version: 0.5.3
+## SavedVariablesPerCharacter: GlyphicDB
+## SavedVariables: GlyphicAccountDB
+## OptionalDeps: TonguesOfAzeroth
 ## X-Curse-Project-ID: 1641225
 ## X-WoWI-ID:
 ## X-Wago-ID:

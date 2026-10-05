@@ -65,7 +65,7 @@ end
 --  Settings
 --=========================================================================--
 local function castDB()
-    return TonguesOfAzerothDB and TonguesOfAzerothDB.casts
+    return GlyphicDB and GlyphicDB.casts
 end
 
 -- Gated on the in-character switch, so the mute reaches the sound and not only
