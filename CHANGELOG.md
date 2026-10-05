@@ -17,10 +17,17 @@ Tongues of Azeroth before 0.5.3.
   fresh install. A small `TonguesOfAzeroth` folder ships alongside to hand those
   settings over on first launch. It appears in your AddOns list, does nothing
   else, and will be removed in a later release -- leave it enabled until then.
-- New icon: a speech bubble holding a line of writing in no alphabet. Switching
-  out of character empties the bubble and crosses it out, which the old speaker
-  icon never really said -- it pointed at the voice feature, which is a
-  different thing entirely.
+- New icon: a speech bubble holding a line of writing in no alphabet, on the
+  addon list and the project page.
+- The minimap button is now a single bold rune rather than a shrunken copy of
+  that bubble, and it tells you your state on sight: green while you are in
+  character, red and struck through when you are not. The old button pointed at
+  the voice feature, which is a different thing entirely, and at the size the
+  minimap actually draws -- eighteen pixels, trimmed to about sixteen -- its
+  line of glyphs was under two pixels each and its gold rim sat underneath
+  Blizzard's own gold ring, so the whole thing read as a dark smudge. The disc
+  behind the rune also goes cold and grey when muted, so the state still reads
+  if you cannot tell red from green.
 - `/glyphic` is the command, `/gly` the short form.
 
 ## [0.5.2]

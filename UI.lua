@@ -680,14 +680,21 @@ local ldbObject
 local LDB_NAME = "TonguesOfAzeroth"
 -- Two icons, not one icon tinted. The button used to be a scroll, desaturated
 -- and washed green or red, which answers "am I in character" only if you
--- already know the code; a speaker with sound coming out of it and a speaker
--- with a cross through it answer it to anybody who glances at the minimap.
+-- already know the code.
 --
--- Keep ICON in step with `## IconTexture:` in the TOCs, so the addon list and
--- the button show the same thing. Shipped with the addon rather than borrowed
--- from Blizzard's icon set, because nothing in there is a speaker.
-local ICON = "Interface\\AddOns\\Glyphic\\Media\\Glyphic-On"
-local ICON_MUTED = "Interface\\AddOns\\Glyphic\\Media\\Glyphic-Off"
+-- These deliberately do NOT match `## IconTexture:`, which still shows the
+-- bubble. The two are different jobs: the addon list and CurseForge render at
+-- a size where the bubble's rim, tail and line of glyphs all read, while
+-- LibDBIcon draws 18x18 on retail and then trims 5% off each edge in
+-- updateCoord. Inside the ~16px left, those glyphs were under 2px each and the
+-- bubble's own gold rim sat directly beneath Blizzard's gold ring, so the
+-- button was a dark smudge. The minimap gets one bold rune instead.
+--
+-- State rides on two axes on purpose. Green for in character and red for out
+-- of it is the obvious half; the disc also goes cold and dark when muted, so
+-- the state survives for anyone who cannot separate red from green.
+local ICON = "Interface\\AddOns\\Glyphic\\Media\\Glyphic-Mark-On"
+local ICON_MUTED = "Interface\\AddOns\\Glyphic\\Media\\Glyphic-Mark-Off"
 
 -- In character / out of character at a glance, in one place so the minimap
 -- button and the floating bar can't disagree about which colors mean what.
