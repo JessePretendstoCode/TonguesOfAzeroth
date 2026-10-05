@@ -1,5 +1,5 @@
 --[[-------------------------------------------------------------------------
-    Tongues of Azeroth - Whispers.lua (hidden)
+    Glyphic - Whispers.lua (hidden)
     While Old God is active at 100% strength, occasionally plays a random
     in-game Old God whisper (C'Thun / Yogg-Saron). No UI or slash command.
 ---------------------------------------------------------------------------]]

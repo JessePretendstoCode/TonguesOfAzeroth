@@ -1,5 +1,5 @@
 --[[-------------------------------------------------------------------------
-    Tongues of Azeroth - Game.lua
+    Glyphic - Game.lua
     "Decipher" - a Wordle-style language trainer.
 
     A random English word is chosen and shown written in the currently selected
@@ -664,7 +664,7 @@ end
 function ns.BuildTrainerPanel()
     local ok, err = pcall(build)
     if not ok then
-        DEFAULT_CHAT_FRAME:AddMessage("|cffff5555[ToA Trainer error]|r " .. tostring(err))
+        DEFAULT_CHAT_FRAME:AddMessage("|cffff5555[Glyphic Trainer error]|r " .. tostring(err))
         return nil
     end
     return gameFrame
@@ -683,6 +683,6 @@ function ns.OpenTrainer()
         if input then input:SetFocus() end
     end)
     if not ok then
-        DEFAULT_CHAT_FRAME:AddMessage("|cffff5555[ToA Trainer error]|r " .. tostring(err))
+        DEFAULT_CHAT_FRAME:AddMessage("|cffff5555[Glyphic Trainer error]|r " .. tostring(err))
     end
 end

@@ -1,5 +1,5 @@
 --[[-------------------------------------------------------------------------
-    Tongues of Azeroth - Accent.lua
+    Glyphic - Accent.lua
     Dialect "accents" for chat: instead of replacing words with a constructed
     language (see Language.lua), this rewrites your ENGLISH into a spoken accent,
     e.g. Dwarven "I cannae do this, aye!" or Troll "Stay away from da voodoo, mon."
@@ -423,7 +423,7 @@ local TAIL_GAP = 3
 
 -- Messages since the last tail, and the exact tail it was -- so we never repeat
 -- one immediately. Only the live send path advances these (see Accent.Apply);
--- the options preview and `/toa debug` read them without churning them, or the
+-- the options preview and `/glyphic debug` read them without churning them, or the
 -- preview would reshuffle itself on every keystroke.
 local sinceTail, lastTail = TAIL_GAP, nil
 

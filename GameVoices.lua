@@ -56298,7 +56298,7 @@ GameVoices.GROUP_ORDER = {
 GameVoices.ById = {}
 -- fileDataId -> who says it.
 GameVoices.SpeakerById = {}
--- How many lines the catalogue holds, for /toa voice to report.
+-- How many lines the catalogue holds, for /glyphic voice to report.
 GameVoices.COUNT = 0
 
 for _, char in ipairs(GameVoices.Characters) do

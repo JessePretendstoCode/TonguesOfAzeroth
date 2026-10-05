@@ -1,5 +1,5 @@
 --[[-------------------------------------------------------------------------
-    Tongues of Azeroth - UI.lua
+    Glyphic - UI.lua
     In-game configuration registered under the game's AddOns options.
 
     Each panel answers one question, which is what decides where a setting goes:
@@ -686,8 +686,8 @@ local LDB_NAME = "TonguesOfAzeroth"
 -- Keep ICON in step with `## IconTexture:` in the TOCs, so the addon list and
 -- the button show the same thing. Shipped with the addon rather than borrowed
 -- from Blizzard's icon set, because nothing in there is a speaker.
-local ICON = "Interface\\AddOns\\TonguesOfAzeroth\\Media\\ToA-Voice-On"
-local ICON_MUTED = "Interface\\AddOns\\TonguesOfAzeroth\\Media\\ToA-Voice-Off"
+local ICON = "Interface\\AddOns\\TonguesOfAzeroth\\Media\\Glyphic-On"
+local ICON_MUTED = "Interface\\AddOns\\TonguesOfAzeroth\\Media\\Glyphic-Off"
 
 -- In character / out of character at a glance, in one place so the minimap
 -- button and the floating bar can't disagree about which colors mean what.
@@ -781,7 +781,7 @@ local function toggleInCharacter()
 end
 
 local function tooltipLines(tt)
-    tt:AddLine("Tongues of Azeroth")
+    tt:AddLine("Glyphic")
     tt:AddLine("Language: |cffffffff" .. Language.GetLanguageName(db().language) .. "|r", 0.8, 0.8, 0.8)
     tt:AddLine("In character: " .. (db().inCharacter and "|cff00ff00YES|r" or "|cffff0000NO|r"), 0.8, 0.8, 0.8)
     if not db().inCharacter then
@@ -1243,7 +1243,7 @@ local function SetupLanguageWidget()
         f._toaTooltip = true
         f:SetScript("OnEnter", function(self)
             GameTooltip:SetOwner(self, "ANCHOR_TOP")
-            GameTooltip:SetText("Tongues of Azeroth", 1, 1, 1)
+            GameTooltip:SetText("Glyphic", 1, 1, 1)
             GameTooltip:AddLine("Language: |cffffffff" .. Language.GetLanguageName(db().language) .. "|r", 0.8, 0.8, 0.8)
             GameTooltip:AddLine(" ")
             GameTooltip:AddLine("|cffffffffLeft-click|r  Next language", 1, 1, 1)
@@ -1267,7 +1267,7 @@ ns.SetupLanguageWidget = SetupLanguageWidget
 
 local function BuildMainPanel()
     mainPanel = Compat.CreateOptionsPanel("TonguesOfAzerothOptions")
-    mainPanel.name = "Tongues of Azeroth"
+    mainPanel.name = "Glyphic"
 
     -- Everything lives inside a scroll region so the panel never spills outside
     -- the options window, no matter how tall the layout gets. Anchor children to
@@ -1277,7 +1277,7 @@ local function BuildMainPanel()
 
     local title = content:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
     title:SetPoint("TOPLEFT", 16, -16)
-    title:SetText("Tongues of Azeroth")
+    title:SetText("Glyphic")
 
     local subtitle = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -8)
@@ -1555,7 +1555,7 @@ local function BuildChatPanel()
     instanceNote:SetPoint("RIGHT", content, "RIGHT", -24, 0)
     instanceNote:SetJustifyH("LEFT")
     if instanceNote.SetWordWrap then instanceNote:SetWordWrap(true) end
-    instanceNote:SetText("|cffffd200Heads-up:|r During boss fights Blizzard blocks addons from reading chat, so ToA can't translate or decode inside instances either way. This is a game restriction, not a bug. Accents are unaffected and keep working there.")
+    instanceNote:SetText("|cffffd200Heads-up:|r During boss fights Blizzard blocks addons from reading chat, so Glyphic can't translate or decode inside instances either way. This is a game restriction, not a bug. Accents are unaffected and keep working there.")
 
     --------------------------------------------------------------------
     -- When you listen
@@ -1842,7 +1842,7 @@ local function BuildLearnedPanel()
     note:SetPoint("BOTTOMLEFT", learnedPanel, "BOTTOMLEFT", 16, 14)
     note:SetPoint("BOTTOMRIGHT", learnedPanel, "BOTTOMRIGHT", -28, 14)
     note:SetJustifyH("LEFT")
-    note:SetText("Fluency is how fully you speak a tongue -- build it by hearing it, in the Language Trainer, or with the buttons above. Decoding only works on text produced by Tongues of Azeroth.")
+    note:SetText("Fluency is how fully you speak a tongue -- build it by hearing it, in the Language Trainer, or with the buttons above. Decoding only works on text produced by Glyphic.")
 
     -- Scrollable single-column list: each row is a language with its fluency bar
     -- and two icon buttons -- a check (make fully fluent) and a circle-slash
@@ -1969,7 +1969,7 @@ local function BuildLearnedPanel()
                 end,
             })
             if not opened and ns.Print then
-                ns.Print("No color picker on this client -- use |cffffff00/toa color "
+                ns.Print("No color picker on this client -- use |cffffff00/glyphic color "
                     .. entry.id .. " <hex>|r instead.")
             end
             if ns.OnSettingsChanged then ns.OnSettingsChanged() end
@@ -3881,7 +3881,7 @@ local function BuildCastPanel()
     hearIntro:SetPoint("RIGHT", content, "RIGHT", -24, 0)
     hearIntro:SetJustifyH("LEFT")
     if hearIntro.SetWordWrap then hearIntro:SetWordWrap(true) end
-    hearIntro:SetText("A pinned line is a number, not a sound file, so ToA can tell other people running it which of their own recordings to play -- and they can tell you. You only ever hear it if their emote reached you, which keeps it to people you are standing with.")
+    hearIntro:SetText("A pinned line is a number, not a sound file, so Glyphic can tell other people running it which of their own recordings to play -- and they can tell you. You only ever hear it if their emote reached you, which keeps it to people you are standing with.")
 
     local HEAR_ROWS = {
         { key = "PARTY",  label = "Play lines from my party" },

@@ -58,7 +58,7 @@ local MAX_KNOWN = 400
 
 -- key (lower case) -> expiry timestamp, or PERMANENT
 local known = {}
--- key -> the name as it is actually spelled, for `/toa names`
+-- key -> the name as it is actually spelled, for `/glyphic names`
 local display = {}
 -- key -> class token ("MAGE"), when we happen to find out. Only ever used to
 -- pick a color, so it is entirely optional: the best source of names is people
@@ -488,7 +488,7 @@ function Names.ScanNameplates()
     return added
 end
 
--- Sorted list of what is currently remembered, for `/toa names`.
+-- Sorted list of what is currently remembered, for `/glyphic names`.
 function Names.List()
     prune()
     local out = {}

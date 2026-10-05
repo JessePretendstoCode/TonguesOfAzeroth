@@ -1,5 +1,5 @@
 --[[-------------------------------------------------------------------------
-    Tongues of Azeroth - Voice.lua
+    Glyphic - Voice.lua
     Speaks a cast phrase out loud using a recording the game already ships:
     Corvin snarls "Feel that?"  -- and you hear Sylvanas, or a grunt, or
     whatever line was pinned to that phrase.

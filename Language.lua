@@ -1,5 +1,5 @@
 --[[-------------------------------------------------------------------------
-    Tongues of Azeroth - Language.lua
+    Glyphic - Language.lua
     A constructed-language engine that mirrors WoW's own in-game language parser.
 
     HOW BLIZZARD DOES IT (and how we replicate it):
@@ -86,7 +86,7 @@ local function register(id, def)
 end
 
 -- Move an already-registered language to the head of the display order, which
--- every list derives from: the dropdown, /toa list, cycling and the Learned tab.
+-- every list derives from: the dropdown, /glyphic list, cycling and the Learned tab.
 -- Registration order is otherwise thematic grouping, and with seventy-odd
 -- tongues in the pool a newly added one would be buried at the bottom of the
 -- dropdown. This surfaces it without moving its definition away from the
@@ -919,7 +919,7 @@ end
 
 -- Every language worth showing. Hidden aliases (a second name for a tongue
 -- already in the list) are excluded here rather than filtered by each caller,
--- so the dropdown, /toa list, cycling, the Learned tab and the color list all
+-- so the dropdown, /glyphic list, cycling, the Learned tab and the color list all
 -- agree on what exists.
 function Language.GetLanguages()
     if languageListCache then return languageListCache end
@@ -1746,7 +1746,7 @@ function Language.DecodeText(text, langId)
 end
 
 -- Returns decoded text and inferred speaker strength (0-100), or nil if not decodable.
--- Decoding uses cached encode mappings (local speech + addon sync from other ToA users).
+-- Decoding uses cached encode mappings (local speech + addon sync from other Glyphic users).
 -- The Blizzard parser has hash collisions, so word-guessing decode is not reliable.
 function Language.TryDecode(text, langId, hintStrength)
     if not text or text == "" then return nil end

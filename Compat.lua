@@ -1,5 +1,5 @@
 --[[-------------------------------------------------------------------------
-    Tongues of Azeroth - Compat.lua
+    Glyphic - Compat.lua
     Cross-client compatibility shim. Loaded FIRST (before every other file).
 
     One addon, many clients: this file smooths over the API differences across
@@ -33,7 +33,7 @@ ns.Compat = Compat
 -- problem: whatever costs the seconds is something the client does for real
 -- and a stub does for free, so reading the code cannot find it and timing it
 -- outside the game cannot either. This records what the client's own clock
--- says, and `/toa timings` reads it back.
+-- says, and `/glyphic timings` reads it back.
 --
 -- Left in rather than torn out once the cause is found: a catalogue that is
 -- about to grow from ninety-three speakers to several thousand will get slow
@@ -354,7 +354,7 @@ Compat.hasProximityAddonMessages =
 --=========================================================================--
 -- Midnight refuses chat sent from addon code during raid encounters, Mythic+
 -- and rated PvP -- the point being that a keypress may talk but a script may
--- not. Anything we generate ourselves (cast phrases, /toa say) has to ask first
+-- not. Anything we generate ourselves (cast phrases, /glyphic say) has to ask first
 -- and fall back to a local-only print, or the send is simply swallowed.
 -- Absent on the older Classic flavors, where no such lockdown exists.
 local rawChatLockdown = C_ChatInfo and C_ChatInfo.InChatMessagingLockdown

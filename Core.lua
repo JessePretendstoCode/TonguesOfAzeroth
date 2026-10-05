@@ -1,5 +1,5 @@
 --[[-------------------------------------------------------------------------
-    Tongues of Azeroth - Core.lua
+    Glyphic - Core.lua
     Wires the language engine into chat: auto-translate toggle, slash commands,
     per-channel filters, and learned-language decoding on incoming messages.
 
@@ -32,7 +32,7 @@ end
 ns.IsSecret = isSecret
 
 -- Set true while we're inside an instance and the "auto-disable in instances"
--- option is on. When set, ToA leaves chat completely alone (no translate/accent
+-- option is on. When set, Glyphic leaves chat completely alone (no translate/accent
 -- outgoing, no decode incoming) and flips back off automatically on leaving.
 local instanceSuppressed = false
 function ns.IsInstanceSuppressed() return instanceSuppressed end
@@ -120,7 +120,7 @@ local CONVERSATIONAL = {
     GUILD = true, OFFICER = true,
 }
 
-local PREFIX = "|cff8000ff[ToA]|r "
+local PREFIX = "|cff8000ff[Glyphic]|r "
 local ADDON_PREFIX = "ToA2"
 local MAX_ADDON_PAYLOAD = 240
 -- Marker that distinguishes an in-game "here's a custom language" broadcast from
@@ -415,10 +415,10 @@ local function migrateDB()
     if db.hideNativeLanguages == nil then
         db.hideNativeLanguages = true
     end
-    -- Automatically switch ToA off while inside an instance (and back on when you
+    -- Automatically switch Glyphic off while inside an instance (and back on when you
     -- leave). Blizzard's "secret" chat protection blocks addons from reading chat
     -- during boss fights, so translations can't be decoded there. On by default;
-    -- toggle with /toa autodisable or the options checkbox.
+    -- toggle with /glyphic autodisable or the options checkbox.
     if db.autoDisableInInstances == nil then
         -- Carry over the old warn-only flag if the player had turned it off.
         if db.warnInstances == false then
@@ -474,7 +474,7 @@ local function migrateDB()
     local NONE = (ns.Accent and ns.Accent.NONE) or "none"
     if db.accent.enabled == false then
         -- Switched off: land on "none", but remember what they had picked so
-        -- "/toa accent on" hands their own accent back rather than Dwarven.
+        -- "/glyphic accent on" hands their own accent back rather than Dwarven.
         if db.accent.id and db.accent.id ~= NONE then db.accent.lastId = db.accent.id end
         db.accent.id = NONE
     elseif db.accent.enabled == nil and db.accent.id == nil then
@@ -715,10 +715,10 @@ end
 --  GetLanguageByIndex(), whose second return is a locale-independent numeric
 --  languageID (from Languages.db2). We map those IDs to our own language ids and
 --  hide them from the "speak" list -- speaking Common as a Human is just plain
---  text, so ToA can focus on the tongues you *can't* already speak. This is
---  display-only: /toa lang, the Learned tab, and the Trainer keep every language.
+--  text, so Glyphic can focus on the tongues you *can't* already speak. This is
+--  display-only: /glyphic lang, the Learned tab, and the Trainer keep every language.
 --=========================================================================--
--- Blizzard languageID -> ToA language id. Matching on the number (not the
+-- Blizzard languageID -> Glyphic language id. Matching on the number (not the
 -- localized name) means this works identically on every client locale.
 local NATIVE_LANG_IDS = {
     [1]   = "orcish",     [2]   = "darnassian", [3]   = "taurahe",
@@ -895,7 +895,7 @@ local function applyAccent(text, live)
 end
 
 -- Shared outgoing transform. Given a raw message and its chat type, return
--- (outgoingText, changed). Also fires the decode payload for grouped ToA users
+-- (outgoingText, changed). Also fires the decode payload for grouped Glyphic users
 -- when a translation actually changed the text.
 --
 -- Language and accent COMPOSE rather than compete. Partial fluency leaves part
@@ -907,7 +907,7 @@ end
 -- These two used to race, and the language branch always won: an accent was
 -- only ever heard on lines translation had left alone (Common, 0% fluency, a
 -- channel with translation off). That was invisible from the UI -- there was a
--- /toa debug line whose entire job was explaining why a configured accent
+-- /glyphic debug line whose entire job was explaining why a configured accent
 -- appeared to do nothing -- and it is why the two read as separate addons.
 local function transformOutgoing(msg, sendType, channel)
     if type(msg) ~= "string" or msg == "" then return msg, false end
@@ -999,7 +999,7 @@ end
 local function installSendHook()
     if type(SendChatMessage) ~= "function" then return end
     -- Always keep a plain reference to the real SendChatMessage for our own
-    -- programmatic sends (/toa say|yell, speak()). Reading a global is taint-free;
+    -- programmatic sends (/glyphic say|yell, speak()). Reading a global is taint-free;
     -- only *writing* it is the problem.
     if not orig_SendChatMessage then orig_SendChatMessage = SendChatMessage end
     ourSendHook = sendHookBody
@@ -1088,7 +1088,7 @@ local function registerYapperFilter()
     if ok and handle then yapperFilterHandle = handle end
 end
 
--- /toa say|yell (and the bare "/toa <text>" fallback). An explicit "say this in
+-- /glyphic say|yell (and the bare "/glyphic <text>" fallback). An explicit "say this in
 -- my tongue" command, so unlike transformOutgoing it ignores the auto-translate
 -- switch and the channel list -- you asked for it by name. The accent still
 -- composes onto whatever English fluency left behind, same as ordinary chat.
@@ -1174,7 +1174,7 @@ function ns.EncodeSpeech(text, live)
     return text, langId, false
 end
 
--- Tell grouped ToA users what a garbled span means, so their decode can read
+-- Tell grouped Glyphic users what a garbled span means, so their decode can read
 -- it. Same payload chat translation sends.
 function ns.BroadcastSpeech(original, encoded, langId, chatType, channel)
     sendDecodePayload(original, encoded, langId, getStrength(), chatType, channel)
@@ -1185,7 +1185,7 @@ function ns.LanguageName(langId) return languageName(langId) end
 function ns.FitMessage(text, maxLen) return fit(text, maxLen) end
 function ns.MaxMessageLength() return MAX_MESSAGE end
 function ns.PrintToChat(msg, style) addToChat(msg, style, getDecodeFrame()) end
--- Addon feedback with the "[ToA]" prefix, for the modules that need to say
+-- Addon feedback with the "[Glyphic]" prefix, for the modules that need to say
 -- something in their own voice (PrintToChat is the unprefixed decode channel).
 function ns.Print(msg) Print(msg) end
 
@@ -1215,20 +1215,20 @@ end
 --=========================================================================--
 -- Decode an incoming line. `taggedLangId` (optional) is the language resolved from
 -- a recognized "[Language]" tag on the line; `force` (optional) is set by the
--- /toa decode command to try every language regardless.
+-- /glyphic decode command to try every language regardless.
 --
 -- IMPORTANT: speculative word-by-word decoding CAN false-positive on ordinary
 -- English -- a plain word may coincidentally be a generated language's encoding of
 -- some other word -- which would rewrite and tag the chat of players who don't even
 -- run the addon. So the only thing we ever do to an untagged, uncached line is an
--- exact cache lookup (whose keys are the exact garbled strings ToA produces, which
+-- exact cache lookup (whose keys are the exact garbled strings Glyphic produces, which
 -- plain English cannot hit). Word-by-word/partial decoding runs only when we have
--- proof the line is encoded: a matching tag, or an explicit /toa decode.
+-- proof the line is encoded: a matching tag, or an explicit /glyphic decode.
 -- One rule for "does this character understand that tongue".
 --
 -- There were two, and they disagreed. The decoder below fell back to a
 -- dialect's parent -- learning Zandali is learning Amani, since they share a
--- word set -- while /toa learned tested the id on its own. So chat quietly
+-- word set -- while /glyphic learned tested the id on its own. So chat quietly
 -- decoded Amani for you while the list of what you understood said you did
 -- not, which reads as the dialects being unlearnable rather than as two
 -- functions having drifted apart.
@@ -1338,7 +1338,7 @@ local function tryDecodeMessage(message, taggedLangId, force, yourOwnWords)
 
     -- 1) Exact cached mapping for fully-understood languages. This is the only
     --    path allowed to run on untagged text: its keys are the exact garbled
-    --    strings ToA produces, so ordinary English never matches.
+    --    strings Glyphic produces, so ordinary English never matches.
     local bestDecoded, bestScore, bestLangId, bestLangName
     for i = 1, #langs do
         if isChecked(langs[i]) then
@@ -1405,7 +1405,7 @@ local function showDecode(sender, original, decoded, langId, langName)
     local style = TonguesOfAzerothDB.decodeStyle or "emote"
     local msg
     if style == "whisper" then
-        msg = "|cffC79CFF[ToA: " .. langName .. "]|r "
+        msg = "|cffC79CFF[Glyphic: " .. langName .. "]|r "
             .. sender .. " spoke: |cffcccccc\"" .. original .. "\"|r "
             .. "-> |cffffffff\"" .. decoded .. "\"|r"
     else
@@ -1562,7 +1562,7 @@ local function onIncomingChat(event, message, sender)
     -- not also print a separate decode line here.
     if (TonguesOfAzerothDB.decodeStyle or "inline") == "inline" then return end
 
-    -- Strip a leading "[Language] " flavor tag (ours or another ToA user's) so
+    -- Strip a leading "[Language] " flavor tag (ours or another Glyphic user's) so
     -- decoding sees the raw encoded text that matches the cached mapping.
     -- A tag naming a language we know is proof the line is encoded, which unlocks
     -- speculative decoding for that language (see tryDecodeMessage).
@@ -1586,7 +1586,7 @@ local function handleLangShare(code, sender)
     if not def then return end
     local who = (sender and sender:gsub("%-.*", "")) or "Someone"
     Compat.ShowConfirm({
-        text = string.format("%s shared the language \"%s\" with you.\nAdd it to Tongues of Azeroth?",
+        text = string.format("%s shared the language \"%s\" with you.\nAdd it to Glyphic?",
             who, def.name or def.id or "?"),
         acceptText = ACCEPT or "Accept",
         cancelText = CANCEL or "Decline",
@@ -1771,7 +1771,7 @@ end
 --=========================================================================--
 --  Slash commands
 --=========================================================================--
--- The in-character switch, shared by /toa on|off, the minimap button, the
+-- The in-character switch, shared by /glyphic on|off, the minimap button, the
 -- floating bar and the keybinding.
 --
 -- Only the typed commands report, and then they report both halves of your
@@ -1832,7 +1832,7 @@ function TonguesOfAzeroth_CycleLanguage(dir)
     if ns.CycleLanguage then ns.CycleLanguage(dir) end
 end
 
-BINDING_HEADER_TONGUESOFAZEROTH = "Tongues of Azeroth"
+BINDING_HEADER_TONGUESOFAZEROTH = "Glyphic"
 BINDING_NAME_TONGUESOFAZEROTH_TOGGLE_IC = "Speak in character (toggle)"
 BINDING_NAME_TONGUESOFAZEROTH_NEXT_LANG = "Next language"
 BINDING_NAME_TONGUESOFAZEROTH_PREV_LANG = "Previous language"
@@ -1840,7 +1840,7 @@ BINDING_NAME_TONGUESOFAZEROTH_PREV_LANG = "Previous language"
 local setEnabled = ns.SetInCharacter
 
 local function listLanguages()
-    Print("available languages (use |cffffff00/toa lang <id>|r):")
+    Print("available languages (use |cffffff00/glyphic lang <id>|r):")
     local langs = Language.GetLanguages()
     local active = TonguesOfAzerothDB and TonguesOfAzerothDB.language
 
@@ -1876,7 +1876,7 @@ local function setLanguage(id, silent)
         end
         if ns.OnSettingsChanged then ns.OnSettingsChanged() end
     elseif not silent then
-        Print("Unknown language '|cffff0000" .. id .. "|r'. Use |cffffff00/toa list|r.")
+        Print("Unknown language '|cffff0000" .. id .. "|r'. Use |cffffff00/glyphic list|r.")
     end
 end
 
@@ -1972,7 +1972,7 @@ function ns.GetKnownLanguages()
             if ok and type(f) == "number" then frac = f end
         end
         -- Skip tongues your race natively speaks (when hiding is on) so cycling
-        -- and the floating bar never land on one you'd never RP with ToA.
+        -- and the floating bar never land on one you'd never RP with Glyphic.
         if (isLearned or frac > 0) and not ns.IsNativeLanguage(id) then add(id) end
     end
     add(db.language) -- always include what you're currently speaking
@@ -2152,7 +2152,7 @@ end
 
 -- Cycle the spoken language among your known languages. dir = 1 (next) or -1.
 -- Cycling is silent: it fires on the minimap scroll wheel, the floating widget,
--- and /toa next|prev, so printing every switch floods chat. The active language
+-- and /glyphic next|prev, so printing every switch floods chat. The active language
 -- is already reflected on the widget / minimap tooltip.
 function ns.CycleLanguage(dir)
     local list = ns.GetKnownLanguages()
@@ -2200,20 +2200,20 @@ end
 local function listFavorites()
     local favs = ns.GetFavorites()
     if #favs == 0 then
-        Print("no favorites yet. |cffffff00/toa fav|r stars the language you're speaking,")
+        Print("no favorites yet. |cffffff00/glyphic fav|r stars the language you're speaking,")
         Print("or right-click any row in the language dropdown.")
         return
     end
-    Print("favorites (what |cffffff00/toa next|r cycles through):")
+    Print("favorites (what |cffffff00/glyphic next|r cycles through):")
     for i = 1, #favs do
         Print("  |cffffd100*|r " .. Language.GetLanguageName(favs[i]) .. " |cff808080(" .. favs[i] .. ")|r")
     end
 end
 
--- /toa fav            -> toggle the language you're currently speaking
--- /toa fav <id>       -> toggle that language
--- /toa fav list       -> show the list
--- /toa fav off|clear  -> empty the list
+-- /glyphic fav            -> toggle the language you're currently speaking
+-- /glyphic fav <id>       -> toggle that language
+-- /glyphic fav list       -> show the list
+-- /glyphic fav off|clear  -> empty the list
 local function favoriteCommand(rest)
     migrateDB()
     rest = string.lower(rest or ""):gsub("^%s+", ""):gsub("%s+$", "")
@@ -2225,14 +2225,14 @@ local function favoriteCommand(rest)
     if rest == "off" or rest == "clear" or rest == "none" then
         local n = ns.ClearFavorites()
         Print("cleared " .. n .. " favorite" .. (n == 1 and "" or "s") ..
-            ". |cffffff00/toa next|r is back to cycling your learned languages.")
+            ". |cffffff00/glyphic next|r is back to cycling your learned languages.")
         return
     end
 
     local id = (rest ~= "" and rest) or TonguesOfAzerothDB.language
     local state = ns.ToggleFavorite(id)
     if state == nil then
-        Print("Unknown language '|cffff0000" .. id .. "|r'. Use |cffffff00/toa list|r.")
+        Print("Unknown language '|cffff0000" .. id .. "|r'. Use |cffffff00/glyphic list|r.")
     elseif state then
         Print("|cffffd100*|r " .. Language.GetLanguageName(id) .. " added to favorites.")
     else
@@ -2240,7 +2240,7 @@ local function favoriteCommand(rest)
     end
 end
 
--- /toa cast ...  The panel is where this feature is really driven from (and the
+-- /glyphic cast ...  The panel is where this feature is really driven from (and the
 -- keybinding is the quickest route into it), so these cover the things worth
 -- having without one: the on/off switch, a look at what a spell will say, and
 -- an answer to "why did nothing happen just now".
@@ -2269,7 +2269,7 @@ local function castCommand(rest)
             c.chance = math.max(0, math.min(100, math.floor(n + 0.5)))
             Print("cast phrase chance: |cffffff00" .. c.chance .. "%|r")
         else
-            Print("cast phrase chance is |cffffff00" .. (c.chance or CAST_DEFAULTS.chance) .. "%|r (usage: /toa cast chance 0-100)")
+            Print("cast phrase chance is |cffffff00" .. (c.chance or CAST_DEFAULTS.chance) .. "%|r (usage: /glyphic cast chance 0-100)")
         end
     elseif sub == "list" then
         local keys = Casts.GetKeys()
@@ -2291,7 +2291,7 @@ local function castCommand(rest)
         if name == "" then
             name = Casts.SpellUnderMouse()
             if not name then
-                Print("usage: /toa cast test <spell name>  (or hover it on your bars first)")
+                Print("usage: /glyphic cast test <spell name>  (or hover it on your bars first)")
                 return
             end
         end
@@ -2320,11 +2320,11 @@ local function castCommand(rest)
         end
         Print(string.format("%d spell(s) have phrases.", #Casts.GetKeys()))
     else
-        Print("usage: /toa cast [on|off|pets|chance <0-100>|list|test [spell]|status]")
+        Print("usage: /glyphic cast [on|off|pets|chance <0-100>|list|test [spell]|status]")
     end
 end
 
--- /toa voice. There is nothing to install and nothing to assemble any more, and
+-- /glyphic voice. There is nothing to install and nothing to assemble any more, and
 -- no switch either: a phrase is silent until a recording is pinned to it, so
 -- pinning is the only yes there has ever needed to be. What is left is a count
 -- of what the catalogue holds against what this client could actually sound.
@@ -2344,7 +2344,7 @@ local function voiceCommand(rest)
     if sub == "test" then
         local id = tonumber(arg)
         if not id then
-            Print("usage: /toa voice test <fileDataId>")
+            Print("usage: /glyphic voice test <fileDataId>")
             Print("ids come from the Browse button on the Cast Phrases panel.")
             return
         end
@@ -2425,7 +2425,7 @@ local function voiceCommand(rest)
         end
         Print("a phrase stays silent until you pin a line to it -- open the Cast")
         Print("Phrases panel and use |cffffff00Browse voice lines|r on the line you want.")
-        Print("usage: /toa voice [test <fileDataId>]")
+        Print("usage: /glyphic voice [test <fileDataId>]")
     end
 end
 
@@ -2471,16 +2471,16 @@ local function testDecode(input)
             showDecodeResult(text, decoded, langId, Language.GetLanguageName(langId), inferredStrength)
         else
             Print("could not decode as |cffffff00" .. Language.GetLanguageName(langId) .. "|r.")
-            Print("No cached mapping for that line. Run |cffffff00/toa roundtrip " .. langId .. " <english>|r first,")
-            Print("or hear it from another Tongues of Azeroth user in party/raid/guild/whisper.")
+            Print("No cached mapping for that line. Run |cffffff00/glyphic roundtrip " .. langId .. " <english>|r first,")
+            Print("or hear it from another Glyphic user in party/raid/guild/whisper.")
         end
         return
     end
 
     text = input
     if text == "" then
-        Print("usage: /toa decode [lang] <translated text>")
-        Print("  example: /toa decode dwarven red hor gor loch")
+        Print("usage: /glyphic decode [lang] <translated text>")
+        Print("  example: /glyphic decode dwarven red hor gor loch")
         return
     end
 
@@ -2488,9 +2488,9 @@ local function testDecode(input)
     if decoded then
         showDecodeResult(text, decoded, bestLangId, bestLangName, inferredStrength)
     else
-        Print("could not decode. Specify a language: |cffffff00/toa decode dwarven <text>|r")
-        Print("Decode needs a cached mapping from |cffffff00/toa roundtrip|r or another ToA user.")
-        Print("Or check a learned language is enabled: |cffffff00/toa learned|r")
+        Print("could not decode. Specify a language: |cffffff00/glyphic decode dwarven <text>|r")
+        Print("Decode needs a cached mapping from |cffffff00/glyphic roundtrip|r or another Glyphic user.")
+        Print("Or check a learned language is enabled: |cffffff00/glyphic learned|r")
     end
 end
 
@@ -2498,8 +2498,8 @@ local function testEncode(input)
     migrateDB()
     local langId, strength, text = parseLangStrengthText(input, TonguesOfAzerothDB.language, getStrength())
     if text == "" then
-        Print("usage: /toa encode [lang] [strength] <english text>")
-        Print("  example: /toa encode dwarven 100 help us all friend")
+        Print("usage: /glyphic encode [lang] [strength] <english text>")
+        Print("  example: /glyphic encode dwarven 100 help us all friend")
         return
     end
 
@@ -2507,15 +2507,15 @@ local function testEncode(input)
     Print("encode (|cffffff00" .. Language.GetLanguageName(langId) .. "|r, strength |cffffff00" .. strength .. "%|r):")
     Print("  english:    |cffffffff\"" .. text .. "\"|r")
     Print("  translated: |cffcccccc\"" .. encoded .. "\"|r")
-    Print("Try |cffffff00/toa decode " .. langId .. " " .. encoded .. "|r")
+    Print("Try |cffffff00/glyphic decode " .. langId .. " " .. encoded .. "|r")
 end
 
 local function testRoundtrip(input)
     migrateDB()
     local langId, strength, text = parseLangStrengthText(input, TonguesOfAzerothDB.language, getStrength())
     if text == "" then
-        Print("usage: /toa roundtrip [lang] [strength] <english text>")
-        Print("  example: /toa roundtrip dwarven 100 help us all friend")
+        Print("usage: /glyphic roundtrip [lang] [strength] <english text>")
+        Print("  example: /glyphic roundtrip dwarven 100 help us all friend")
         return
     end
 
@@ -2529,7 +2529,7 @@ local function testRoundtrip(input)
 
     if not decoded then
         Print("  3. |cffff0000decode failed|r")
-        Print("Copy step 2 and run: |cffffff00/toa decode " .. langId .. " " .. encoded .. "|r")
+        Print("Copy step 2 and run: |cffffff00/glyphic decode " .. langId .. " " .. encoded .. "|r")
         return
     end
 
@@ -2631,43 +2631,43 @@ end
 
 local function usage()
     Print("commands (also |cffffff00/tongues|r):")
-    Print("  |cffffff00/toa|r  - open the config panel")
-    Print("  |cffffff00/toa on|off|r  - speak in character / out of character")
-    Print("  |cffffff00/toa ic|r  - toggle in character (same as the keybind and the bar)")
-    Print("  |cffffff00/toa lang <id>|r  - set language (see /toa list)")
-    Print("  |cffffff00/toa accent <id|off>|r  - set your accent (see /toa accent list)")
-    Print("  |cffffff00/toa next|r / |cffffff00prev|r  - cycle your favorites (or learned languages)")
-    Print("  |cffffff00/toa fav [id]|r  - favorite/unfavorite a language (no id = the current one)")
-    Print("  |cffffff00/toa fav list|off|r  - show or clear your favorites")
-    Print("  |cffffff00/toa favonly [on|off]|r  - cycle only favorites (the star on the bar)")
-    Print("  |cffffff00/toa list|r  - list available languages")
-    Print("  |cffffff00/toa learned|r  - list languages you understand")
-    Print("  |cffffff00/toa custom|r  - create your own language")
-    Print("  |cffffff00/toa import <code>|r  - add a shared language from a code")
-    Print("  |cffffff00/toa export [name]|r  - get a shareable code for a custom language")
-    Print("  |cffffff00/toa share [player]|r  - send your custom language to a target/group")
-    Print("  |cffffff00/toa decode [lang] <text>|r  - decode translated text back to english")
-    Print("  |cffffff00/toa encode [lang] [strength] <text>|r  - preview translation output")
-    Print("  |cffffff00/toa roundtrip [lang] [strength] <text>|r  - encode then decode (self-test)")
-    Print("  |cffffff00/toa fluency <0-100>|r  - set your fluency (= how you speak it) in the current language")
-    Print("  |cffffff00/toa color [lang] [hex]|r  - per-language chat colors (|cffffff00/toa color|r for options)")
-    Print("  |cffffff00/toa names [on|off|color|clear]|r  - leave player names readable in your speech")
-    Print("  |cffffff00/toa minimap|r  - show/hide the minimap button")
-    Print("  |cffffff00/toa output <1-N|default>|r  - send translations to a chat window")
-    Print("  |cffffff00/toa tag [on|off]|r  - show fluency in the [Language] tag (e.g. [Broken Orcish])")
-    Print("  |cffffff00/toa game|r  - play the Decipher language trainer")
-    Print("  |cffffff00/toa accent [on|off|<id>|list]|r  - speak in a dialect accent")
-    Print("  |cffffff00/toa accentstrength <0-100>|r  - set accent thickness")
-    Print("  |cffffff00/toa accenttails <0-100>|r  - how often lines end with a flourish (0 = never)")
-    Print("  |cffffff00/toa cast|r  - phrases spoken when you cast (panel)")
-    Print("  |cffffff00/toa cast on|off|r  - toggle cast phrases")
-    Print("  |cffffff00/toa cast test [spell]|r  - show what a spell would say (sends nothing)")
-    Print("  |cffffff00/toa cast status|r  - settings, plus whether chat is blocked right now")
-    Print("  |cffffff00/toa say <text>|r  - say a translated line once")
-    Print("  |cffffff00/toa yell <text>|r  - yell a translated line once")
-    Print("  |cffffff00/toa p <text>|r  - preview a translation (only you see it)")
-    Print("  |cffffff00/toa autodisable on|off|r  - pause translation in instances (accents keep working)")
-    Print("  |cffffff00/toa debug|r  - diagnostics (hook status + live test)")
+    Print("  |cffffff00/glyphic|r  - open the config panel")
+    Print("  |cffffff00/glyphic on|off|r  - speak in character / out of character")
+    Print("  |cffffff00/glyphic ic|r  - toggle in character (same as the keybind and the bar)")
+    Print("  |cffffff00/glyphic lang <id>|r  - set language (see /glyphic list)")
+    Print("  |cffffff00/glyphic accent <id|off>|r  - set your accent (see /glyphic accent list)")
+    Print("  |cffffff00/glyphic next|r / |cffffff00prev|r  - cycle your favorites (or learned languages)")
+    Print("  |cffffff00/glyphic fav [id]|r  - favorite/unfavorite a language (no id = the current one)")
+    Print("  |cffffff00/glyphic fav list|off|r  - show or clear your favorites")
+    Print("  |cffffff00/glyphic favonly [on|off]|r  - cycle only favorites (the star on the bar)")
+    Print("  |cffffff00/glyphic list|r  - list available languages")
+    Print("  |cffffff00/glyphic learned|r  - list languages you understand")
+    Print("  |cffffff00/glyphic custom|r  - create your own language")
+    Print("  |cffffff00/glyphic import <code>|r  - add a shared language from a code")
+    Print("  |cffffff00/glyphic export [name]|r  - get a shareable code for a custom language")
+    Print("  |cffffff00/glyphic share [player]|r  - send your custom language to a target/group")
+    Print("  |cffffff00/glyphic decode [lang] <text>|r  - decode translated text back to english")
+    Print("  |cffffff00/glyphic encode [lang] [strength] <text>|r  - preview translation output")
+    Print("  |cffffff00/glyphic roundtrip [lang] [strength] <text>|r  - encode then decode (self-test)")
+    Print("  |cffffff00/glyphic fluency <0-100>|r  - set your fluency (= how you speak it) in the current language")
+    Print("  |cffffff00/glyphic color [lang] [hex]|r  - per-language chat colors (|cffffff00/glyphic color|r for options)")
+    Print("  |cffffff00/glyphic names [on|off|color|clear]|r  - leave player names readable in your speech")
+    Print("  |cffffff00/glyphic minimap|r  - show/hide the minimap button")
+    Print("  |cffffff00/glyphic output <1-N|default>|r  - send translations to a chat window")
+    Print("  |cffffff00/glyphic tag [on|off]|r  - show fluency in the [Language] tag (e.g. [Broken Orcish])")
+    Print("  |cffffff00/glyphic game|r  - play the Decipher language trainer")
+    Print("  |cffffff00/glyphic accent [on|off|<id>|list]|r  - speak in a dialect accent")
+    Print("  |cffffff00/glyphic accentstrength <0-100>|r  - set accent thickness")
+    Print("  |cffffff00/glyphic accenttails <0-100>|r  - how often lines end with a flourish (0 = never)")
+    Print("  |cffffff00/glyphic cast|r  - phrases spoken when you cast (panel)")
+    Print("  |cffffff00/glyphic cast on|off|r  - toggle cast phrases")
+    Print("  |cffffff00/glyphic cast test [spell]|r  - show what a spell would say (sends nothing)")
+    Print("  |cffffff00/glyphic cast status|r  - settings, plus whether chat is blocked right now")
+    Print("  |cffffff00/glyphic say <text>|r  - say a translated line once")
+    Print("  |cffffff00/glyphic yell <text>|r  - yell a translated line once")
+    Print("  |cffffff00/glyphic p <text>|r  - preview a translation (only you see it)")
+    Print("  |cffffff00/glyphic autodisable on|off|r  - pause translation in instances (accents keep working)")
+    Print("  |cffffff00/glyphic debug|r  - diagnostics (hook status + live test)")
 end
 
 local function handleSlash(input)
@@ -2733,7 +2733,7 @@ local function handleSlash(input)
         if ns.OpenCustomConfig then ns.OpenCustomConfig() end
     elseif cmd == "import" then
         if rest == "" then
-            Print("Usage: |cffffff00/toa import <share code>|r (or paste it in the Create Language panel).")
+            Print("Usage: |cffffff00/glyphic import <share code>|r (or paste it in the Create Language panel).")
         else
             local ok, idOrErr = ns.ImportCustomLanguage(rest)
             if ok then
@@ -2750,7 +2750,7 @@ local function handleSlash(input)
             if ns.ShowExportCode then ns.ShowExportCode(id) end
             Print("Share code for |cffffff00" .. Language.GetLanguageName(id) .. "|r is in the Create Language panel -- select it and copy.")
         else
-            Print("Set a custom language first, or use |cffffff00/toa export <name>|r.")
+            Print("Set a custom language first, or use |cffffff00/glyphic export <name>|r.")
         end
     elseif cmd == "share" then
         local id = TonguesOfAzerothDB.language
@@ -2777,7 +2777,7 @@ local function handleSlash(input)
             ns.SetLanguageFluency(langId, n / 100)
             Print("Fluency in |cffffff00" .. Language.GetLanguageName(langId) .. "|r set to |cffffff00" .. n .. "%|r.")
         else
-            Print("Your fluency in |cffffff00" .. Language.GetLanguageName(langId) .. "|r is |cffffff00" .. getStrength() .. "%|r. Use |cffffff00/toa fluency <0-100>|r.")
+            Print("Your fluency in |cffffff00" .. Language.GetLanguageName(langId) .. "|r is |cffffff00" .. getStrength() .. "%|r. Use |cffffff00/glyphic fluency <0-100>|r.")
         end
     elseif cmd == "accent" then
         migrateDB()
@@ -2809,7 +2809,7 @@ local function handleSlash(input)
             a.id = arg
             Print("Accent set to |cffffff00" .. ns.Accent.GetAccentName(arg) .. "|r.")
         else
-            Print("Unknown accent. Use /toa accent list.")
+            Print("Unknown accent. Use /glyphic accent list.")
         end
         if ns.OnSettingsChanged then ns.OnSettingsChanged() end
     elseif cmd == "accentstrength" then
@@ -2819,7 +2819,7 @@ local function handleSlash(input)
             TonguesOfAzerothDB.accent.strength = math.max(0, math.min(100, math.floor(n + 0.5)))
             Print("Accent strength set to |cffffff00" .. TonguesOfAzerothDB.accent.strength .. "%|r.")
         else
-            Print("Accent strength is |cffffff00" .. (TonguesOfAzerothDB.accent.strength or 100) .. "%|r. Use /toa accentstrength <0-100>.")
+            Print("Accent strength is |cffffff00" .. (TonguesOfAzerothDB.accent.strength or 100) .. "%|r. Use /glyphic accentstrength <0-100>.")
         end
         if ns.OnSettingsChanged then ns.OnSettingsChanged() end
     elseif cmd == "accenttails" then
@@ -2833,7 +2833,7 @@ local function handleSlash(input)
                 :format(a.tails, ns.Accent and ns.Accent.DescribeTailFrequency(a.tails) or "?"))
         else
             local cur = a.tails or (ns.Accent and ns.Accent.TAIL_DIAL_DEFAULT) or 40
-            Print(("Accent interjections are |cffffff00%d|r (%s). Use /toa accenttails <0-100>; 0 turns them off.")
+            Print(("Accent interjections are |cffffff00%d|r (%s). Use /glyphic accenttails <0-100>; 0 turns them off.")
                 :format(cur, ns.Accent and ns.Accent.DescribeTailFrequency(cur) or "?"))
         end
         if ns.OnSettingsChanged then ns.OnSettingsChanged() end
@@ -2898,7 +2898,7 @@ local function handleSlash(input)
             end
             Print(table.concat(shown, ", ") .. (#list > 25 and (", and " .. (#list - 25) .. " more") or ""))
         end
-        Print("Use |cffffff00/toa names on|off|r, |cffffff00/toa names color|r, or |cffffff00/toa names clear|r to reset the list.")
+        Print("Use |cffffff00/glyphic names on|off|r, |cffffff00/glyphic names color|r, or |cffffff00/glyphic names clear|r to reset the list.")
     elseif cmd == "color" or cmd == "colour" or cmd == "colors" or cmd == "colours" then
         migrateDB()
         if not Colors then
@@ -2914,12 +2914,12 @@ local function handleSlash(input)
             Print("Tag color " .. state(Colors.TagsEnabled())
                 .. ", speech tint " .. state(Colors.SpeechEnabled())
                 .. ", in-game languages " .. state(Colors.RealLanguagesEnabled()) .. ".")
-            Print("  |cffffff00/toa color <lang> <hex>|r  - e.g. /toa color demonic ff9e5e")
-            Print("  |cffffff00/toa color <lang> reset|r  - back to the shipped color")
-            Print("  |cffffff00/toa color list|r  - show every language's color")
-            Print("  |cffffff00/toa color tags on|off|r  - color the [Language] tag")
-            Print("  |cffffff00/toa color speech on|off|r  - tint the spoken words (independent of tags)")
-            Print("  |cffffff00/toa color ingame on|off|r, |cffffff00/toa color off|r (all), |cffffff00resetall|r")
+            Print("  |cffffff00/glyphic color <lang> <hex>|r  - e.g. /glyphic color demonic ff9e5e")
+            Print("  |cffffff00/glyphic color <lang> reset|r  - back to the shipped color")
+            Print("  |cffffff00/glyphic color list|r  - show every language's color")
+            Print("  |cffffff00/glyphic color tags on|off|r  - color the [Language] tag")
+            Print("  |cffffff00/glyphic color speech on|off|r  - tint the spoken words (independent of tags)")
+            Print("  |cffffff00/glyphic color ingame on|off|r, |cffffff00/glyphic color off|r (all), |cffffff00resetall|r")
         elseif arg == "tags" then
             local v = string.lower(second or "")
             Colors.SetTagsEnabled(v == "on" or (v ~= "off" and not Colors.TagsEnabled()))
@@ -2933,7 +2933,7 @@ local function handleSlash(input)
             Colors.SetTagsEnabled(on)
             if not on then Colors.SetSpeechEnabled(false) end
             Print("Language colors " .. (on
-                and "|cff00ff00on|r (tags; add |cffffff00/toa color speech on|r for the words)"
+                and "|cff00ff00on|r (tags; add |cffffff00/glyphic color speech on|r for the words)"
                 or "|cffff0000off|r") .. ".")
         elseif arg == "speech" then
             local v = string.lower(second or "")
@@ -2951,7 +2951,7 @@ local function handleSlash(input)
             Colors.ResetAll()
             Print("All language colors reset to their shipped values.")
         elseif arg == "list" then
-            Print("language colors (|cffffff00/toa color <lang> <hex>|r to change):")
+            Print("language colors (|cffffff00/glyphic color <lang> <hex>|r to change):")
             local langs = Language.GetLanguages()
             for i = 1, #langs do
                 local id = langs[i].id
@@ -2977,7 +2977,7 @@ local function handleSlash(input)
                 Print("That isn't a color. Use six hex digits, e.g. |cffffff00ff9e5e|r.")
             end
         else
-            Print("Unknown language '" .. arg .. "'. Use |cffffff00/toa color list|r.")
+            Print("Unknown language '" .. arg .. "'. Use |cffffff00/glyphic color list|r.")
         end
         if ns.OnSettingsChanged then ns.OnSettingsChanged() end
     elseif cmd == "game" or cmd == "learn" or cmd == "trainer" or cmd == "wordle" then
@@ -3000,7 +3000,7 @@ local function handleSlash(input)
             else
                 Print("Translations show in the |cffffff00default|r chat window.")
             end
-            Print("Use |cffffff00/toa output <1-" .. maxWin .. ">|r or |cffffff00/toa output default|r.")
+            Print("Use |cffffff00/glyphic output <1-" .. maxWin .. ">|r or |cffffff00/glyphic output default|r.")
         elseif arg == "default" or arg == "0" or arg == "main" then
             TonguesOfAzerothDB.outputFrame = 0
             Print("Translations will show in the |cffffff00default|r chat window.")
@@ -3011,7 +3011,7 @@ local function handleSlash(input)
                 local name = GetChatWindowInfo and GetChatWindowInfo(n)
                 Print("Translations will show in |cffffff00" .. (name and name ~= "" and name or ("Chat window " .. n)) .. "|r.")
             else
-                Print("Usage: |cffffff00/toa output <1-" .. maxWin .. ">|r or |cffffff00/toa output default|r.")
+                Print("Usage: |cffffff00/glyphic output <1-" .. maxWin .. ">|r or |cffffff00/glyphic output default|r.")
             end
         end
         if ns.OnSettingsChanged then ns.OnSettingsChanged() end
@@ -3045,12 +3045,20 @@ local function handleSlash(input)
     end
 end
 
--- /toa is the command; the rest are aliases. `/ogt` was retired in 0.3.1 --
--- it was short for Old God Tongues, the addon's name three renames ago, and
--- it no longer tells anyone what this addon is.
-SLASH_TONGUESOFAZEROTH1 = "/toa"
-SLASH_TONGUESOFAZEROTH2 = "/oldgod"
-SLASH_TONGUESOFAZEROTH3 = "/tongues"
+-- /glyphic is the command; the rest are aliases. `/ogt` was retired in 0.3.1
+-- -- it was short for Old God Tongues, the addon's name three renames ago,
+-- and it no longer tells anyone what this addon is.
+--
+-- `/toa` is NOT going the same way. It is in people's macros and in every
+-- post written about this addon under its old name, and an alias costs one
+-- line; retiring it would break working setups to tidy up a list only the
+-- author reads. The global keeps its name for the same reason the folder
+-- does: SlashCmdList is keyed on it, and nobody sees it.
+SLASH_TONGUESOFAZEROTH1 = "/glyphic"
+SLASH_TONGUESOFAZEROTH2 = "/gly"
+SLASH_TONGUESOFAZEROTH3 = "/toa"
+SLASH_TONGUESOFAZEROTH4 = "/tongues"
+SLASH_TONGUESOFAZEROTH5 = "/oldgod"
 SlashCmdList["TONGUESOFAZEROTH"] = handleSlash
 
 -- Export channel list for the UI.
@@ -3061,8 +3069,8 @@ ns.DEFAULT_CHANNELS = DEFAULT_CHANNELS
 --  Init
 --=========================================================================--
 -- Inside instances (dungeons/raids/BGs/arenas) Blizzard delivers other players'
--- chat as protected "secret" values during boss fights, so ToA can't translate
--- or decode there. When "auto-disable in instances" is on we simply switch ToA
+-- chat as protected "secret" values during boss fights, so Glyphic can't translate
+-- or decode there. When "auto-disable in instances" is on we simply switch Glyphic
 -- off on entry and back on when leaving -- clearly a game restriction, not a bug.
 local function suppressionWanted()
     local inInstance = IsInInstance and IsInInstance() and true or false
@@ -3077,7 +3085,7 @@ local function applyInstanceSuppression(want, left)
     if want and not instanceSuppressed then
         instanceSuppressed = true
         Print("|cffffd200translation paused inside this instance. Blizzard blocks addons from reading chat during boss fights, so encoded speech can't be decoded here. Accents keep working -- they're plain speech. Translation resumes automatically once you leave.|r")
-        local line = "Tongues of Azeroth: translation paused in this instance (Blizzard chat restriction). Accents still work. Resumes when you leave."
+        local line = "Glyphic: translation paused in this instance (Blizzard chat restriction). Accents still work. Resumes when you leave."
         if RaidNotice_AddMessage and RaidWarningFrame then
             RaidNotice_AddMessage(RaidWarningFrame, line, { r = 1, g = 0.82, b = 0.2 })
         elseif UIErrorsFrame and UIErrorsFrame.AddMessage then

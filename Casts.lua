@@ -1,5 +1,5 @@
 --[[-------------------------------------------------------------------------
-    Tongues of Azeroth - Casts.lua
+    Glyphic - Casts.lua
     Speaks a line of your own when one of your spells goes off, in whatever
     tongue you're currently speaking:  Corvin roars "Nuk'luk!"
 
@@ -702,7 +702,7 @@ end
 
 -- Print a line only you can see, formatted the way the emote would have looked.
 -- Used when the client refuses addon chat outright (Midnight's lockdown in
--- raids, M+ and rated PvP) and when you've asked ToA to stand down in
+-- raids, M+ and rated PvP) and when you've asked Glyphic to stand down in
 -- instances: the RP beat still lands for you, it just doesn't reach anyone else.
 local function showLocally(body)
     local me = UnitName("player")
@@ -718,14 +718,14 @@ local function showLocally(body)
 end
 
 -- Why a line would be kept to yourself rather than sent, or nil when it goes
--- out normally. Also drives /toa cast status, so it returns a reason rather
+-- out normally. Also drives /glyphic cast status, so it returns a reason rather
 -- than a bare boolean.
 function Casts.BlockedReason()
     if Compat.InChatLockdown() then
         return "Blizzard blocks addon chat during raid encounters, Mythic+ and rated PvP"
     end
     if ns.IsInstanceSuppressed() then
-        return "ToA is standing down in this instance (\"Disable inside instances\")"
+        return "Glyphic is standing down in this instance (\"Disable inside instances\")"
     end
     return nil
 end
@@ -779,7 +779,7 @@ function Casts.Speak(spellName, opts)
     lastByKey[key] = now
 
     if deliver(body) and langId and spoken then
-        -- Let grouped ToA users in on what the spoken part means, the same way
+        -- Let grouped Glyphic users in on what the spoken part means, the same way
         -- translated chat does. Nothing to send when only an accent touched it.
         for _, pair in ipairs(spoken) do
             ns.BroadcastSpeech(pair.original, pair.encoded, langId, "EMOTE")
@@ -972,7 +972,7 @@ end
 -- The Key Bindings window reads these three globals: two for the labels it
 -- shows, one for the binding body in Bindings.xml to call. New globals of our
 -- own, not replacements for Blizzard's, so none of this can taint anything.
-_G.BINDING_HEADER_TONGUESOFAZEROTH = "Tongues of Azeroth"
+_G.BINDING_HEADER_TONGUESOFAZEROTH = "Glyphic"
 _G.BINDING_NAME_TONGUESOFAZEROTH_CASTPHRASES = "Cast phrases for the spell under the cursor"
 
 function _G.TonguesOfAzeroth_OpenCastPhrases()
