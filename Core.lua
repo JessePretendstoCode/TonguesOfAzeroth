@@ -1254,20 +1254,50 @@ function ns.UnderstandsLanguage(langId)
     return (fluencyPercent(langId) or 0) >= 100
 end
 
--- Is this line one of ours?
+-- Every name the client might put on a line of yours.
 --
--- Not the same question as `sender == UnitName("player")`, which is what this
--- used to be. The client does not consistently say who you are: on a connected
--- realm your own speech comes back as "Jessae-MoonGuard" while UnitName answers
--- the bare "Jessae", so the direct comparison missed whenever a realm came
--- along -- and the rule it guards then applied to your own speech about half
--- the time, which is no rule at all. A character name cannot contain a hyphen,
--- so everything before the first one is the name.
+-- There is no one call that answers "what name will my own speech come back
+-- under", and the two ways it can differ compound. On a connected realm your
+-- own line returns as "Jessae-MoonGuard" while UnitName answers the bare
+-- "Jessae". WoW: Forever then added surnames, so the same character is
+-- "Charlie" to one call and "Charlie Lightcairn" to another, and a player with
+-- a surname matched nothing at all: every line they spoke was filed as a
+-- stranger's.
+--
+-- So ask every call that has an opinion and keep all the answers, each with
+-- its realm suffix stripped as well. A character name cannot contain a hyphen,
+-- which is what makes that safe.
+--
+-- Deliberately a set of whole names and not a prefix test. Surnames exist so
+-- that first names need not be unique, so accepting anything beginning
+-- "Charlie " would hand one player's lines to another.
+function ns.SelfNames()
+    local out = {}
+    local function add(name)
+        if isSecret(name) or type(name) ~= "string" or name == "" then return end
+        out[name] = true
+        local bare = string.match(name, "^([^%-]+)")
+        if bare and bare ~= "" then out[bare] = true end
+    end
+    add(UnitName and UnitName("player"))
+    if GetUnitName then
+        add(GetUnitName("player", false))
+        add(GetUnitName("player", true))
+    end
+    return out
+end
+
+-- Is this line one of ours?
+function ns.IsSelfName(sender)
+    if isSecret(sender) or type(sender) ~= "string" or sender == "" then return false end
+    local names = ns.SelfNames()
+    if names[sender] then return true end
+    local bare = string.match(sender, "^([^%-]+)")
+    return (bare ~= nil and names[bare] == true)
+end
+
 local function isSelf(sender)
-    if not sender or sender == "" then return false end
-    local me = UnitName and UnitName("player")
-    if not me or me == "" then return false end
-    return (string.match(sender, "^([^%-]+)") or sender) == me
+    return ns.IsSelfName(sender)
 end
 
 -- `yourOwnWords` lifts the comprehension gate entirely -- see isChecked.
@@ -2318,14 +2348,71 @@ local function voiceCommand(rest)
             Print("ids come from the Browse button on the Cast Phrases panel.")
             return
         end
-        Print(Voice.PlayGame(id) and ("played |cffffff00" .. id .. "|r.")
+        Print(Voice.PlayGame(id, "audition") and ("played |cffffff00" .. id .. "|r.")
             or ("|cffff0000" .. id .. "|r would not play -- this client may not carry that file."))
     else
         local d = Voice.Describe()
         Print("spoken cast phrases: " .. (d.enabled and "|cff00ff00on|r" or "|cffff0000off|r"))
         Print(string.format("%d line(s) from the game are catalogued.", d.catalogue))
-        Print(string.format("played %d this session; %d phrase(s) had nothing pinned.",
-            d.stats.played, d.stats.unmapped))
+        -- Counted apart rather than summed. A single "played" number cannot
+        -- answer the only question anybody asks it, because the play button
+        -- lands in it too.
+        local s = d.stats
+        Print(string.format("this session: |cffffff00%d|r from your own casts, %d from the play"
+            .. " button, %d from other players.", s.played, s.auditioned, s.fromOthers))
+
+        -- The ways to end up silent, in the order the chain breaks, each named
+        -- separately. Printed only when it has something to say, so a working
+        -- setup stops here.
+        if s.emotes == 0 then
+            Print("|cffff8000no emote has reached the addon at all this session.|r")
+        end
+        if s.secret > 0 then
+            Print(string.format("|cffff0000%d emote(s) arrived in a form this client will not let"
+                .. " addons read.|r", s.secret))
+        end
+        if s.nameless > 0 then
+            Print(string.format("|cffff0000%d emote(s) arrived without a sender to match.|r",
+                s.nameless))
+        end
+        if s.emotes > 0 and s.mine == 0 then
+            Print(string.format("|cffff8000%d emote(s) arrived and none were recognised as"
+                .. " yours.|r", s.emotes))
+            if d.lastStranger then
+                Print("  the last one came from |cffffff00"
+                    .. tostring(d.lastStranger.sender) .. "|r.")
+            end
+            -- Every name the client answers to, so a sender that matches none
+            -- of them can be seen rather than deduced.
+            local names = {}
+            for name in pairs(ns.SelfNames()) do names[#names + 1] = name end
+            table.sort(names)
+            Print("  this client knows you as |cffffff00"
+                .. (table.concat(names, "|r, |cffffff00")) .. "|r.")
+        end
+        if s.heard > 0 and s.played == 0 then
+            Print(string.format("|cffff8000%d of your own emote(s) arrived and none of them"
+                .. " made a sound.|r", s.heard))
+        end
+        if s.unpinned > 0 then
+            Print(string.format("%d of your emote(s) came from a phrase with nothing pinned to it.",
+                s.unpinned))
+        end
+        if s.unmapped > 0 then
+            Print(string.format("|cffff0000%d pin(s) did not name a recording at all.|r", s.unmapped))
+        end
+        if s.missing > 0 then
+            Print(string.format("|cffff0000%d pinned line(s) named a recording this client does not"
+                .. " carry.|r", s.missing))
+        end
+        if s.rewritten > 0 then
+            Print(string.format("|cffff0000%d emote(s) came back worded differently than they went"
+                .. " out,|r", s.rewritten))
+            Print("|cffff0000so the pin could not be matched to them. Another chat addon is most|r")
+            Print("|cffff0000likely rewriting the line. The last pair:|r")
+            Print("  sent:    |cffffff00" .. tostring(d.lastRewrite and d.lastRewrite.sent) .. "|r")
+            Print("  arrived: |cffffff00" .. tostring(d.lastRewrite and d.lastRewrite.arrived) .. "|r")
+        end
         if #d.hearing == 0 then
             Print("you are not listening for |cffffff00anyone else's|r pinned lines.")
         else

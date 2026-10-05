@@ -123,7 +123,33 @@ end
 --  Playing
 --=========================================================================--
 -- Diagnostics only; nothing branches on these.
-Voice.stats = { played = 0, unmapped = 0 }
+--
+-- The chain from a cast to a sound has four links and only the last one is
+-- audible, so "no sound" is the same symptom for all four. These count each
+-- link separately, which is the difference between a report anyone can act on
+-- and "it doesn't work".
+--
+--   emotes     any emote at all reached the handler
+--   secret     ...but arrived as a value this client will not let addons read
+--   nameless   ...or without a sender that could be matched against your own
+--   mine       it was yours, so playback was attempted
+--   unpinned   the phrase that produced it had nothing pinned
+--   rewritten  it arrived as a different string than the one that was sent, so
+--              the pin could not be matched to it
+--   unmapped   a pin was claimed but did not name a recording
+--   played     a recording was started by one of your own casts
+--   auditioned ...or by the play button, which is not the same evidence
+--   fromOthers ...or by somebody else's line, which is not either
+--   missing    a pin named a file this client does not carry
+Voice.stats = {
+    played = 0, auditioned = 0, fromOthers = 0,
+    missing = 0, unmapped = 0, heard = 0, unpinned = 0, rewritten = 0,
+    emotes = 0, secret = 0, nameless = 0, mine = 0,
+}
+
+-- The last line that came back different from the one that went out. Kept
+-- whole rather than counted, because the useful question is what changed.
+Voice.lastRewrite = nil
 
 local playing = nil     -- handle of the clip currently sounding, when known
 
@@ -142,21 +168,32 @@ end
 -- only way to know whether this client carries the file -- there is no
 -- directory listing in this API, so attempting playback *is* the existence
 -- check.
-function Voice.PlayGame(id)
+-- Where a sound came from. The play button, your own cast and somebody else's
+-- line all end at this same call, so counting them together makes the one
+-- number anybody ever reports back useless: "it played sixty times" answers
+-- nothing if the sixty were button presses.
+local SOURCE_STAT = { audition = "auditioned", other = "fromOthers" }
+
+function Voice.PlayGame(id, source)
     if type(id) ~= "number" then return false end
     if type(PlaySoundFile) ~= "function" then return false end
     stopCurrent()
     local ok, played, handle = pcall(PlaySoundFile, id, CHANNEL)
     if ok and played then
         playing = handle
-        Voice.stats.played = Voice.stats.played + 1
+        local stat = SOURCE_STAT[source] or "played"
+        Voice.stats[stat] = Voice.stats[stat] + 1
         return true
     end
+    -- This client does not carry the file. Counted, because a pin naming a
+    -- recording that cannot be played sounds exactly like one that was never
+    -- pinned, and the two want opposite answers.
+    Voice.stats.missing = Voice.stats.missing + 1
     return false
 end
 
 -- Speak one pinned line.
-function Voice.PlayLine(spoken)
+function Voice.PlayLine(spoken, source)
     local id = Voice.GameId(spoken)
     if not id then
         -- Not a recording at all: a phrase with nothing pinned to it. Not an
@@ -164,7 +201,7 @@ function Voice.PlayLine(spoken)
         Voice.stats.unmapped = Voice.stats.unmapped + 1
         return false
     end
-    return Voice.PlayGame(id)
+    return Voice.PlayGame(id, source)
 end
 
 -- Every quoted span in an emote body, in order. Mirrors the pattern Casts.lua
@@ -195,10 +232,18 @@ function Voice.NoteChoice(body, choice)
 end
 
 local function claimChoice(body)
-    if pendingBody == nil or pendingBody ~= body then return nil end
+    if pendingBody ~= nil and pendingBody ~= body then
+        -- A line went out and something else came back. Nothing here can fix
+        -- that, but silently returning nil makes it indistinguishable from a
+        -- phrase with no recording on it, and the two want opposite answers.
+        Voice.stats.rewritten = Voice.stats.rewritten + 1
+        Voice.lastRewrite = { sent = pendingBody, arrived = body }
+        return nil, "rewritten"
+    end
+    if pendingBody == nil then return nil, "none" end
     local choice = pendingChoice
     pendingBody, pendingChoice = nil, nil
-    return choice
+    return choice, "claimed"
 end
 
 -- Speak an emote body. `choice` is what the player pinned to this phrase.
@@ -206,11 +251,15 @@ end
 -- One recording stands for the whole line, however many times the line quotes.
 -- Splitting a pin across two spans would mean asking which of them it was for,
 -- and the panel asks the question once.
+--
+-- Quotes have nothing to do with it. They still decide what the language
+-- engine translates, because that part rewrites your words and only words in
+-- quotes are being said -- but a recording is not your words. Pinning one to a
+-- line that narrates is a deliberate act, and the sound is the point of it:
+-- "lets a thread of shadow settle into Taelis" wants a hiss over the top as
+-- much as any line with speech marks in it. Requiring quotes made a pin the
+-- panel showed as set simply not fire, which is indistinguishable from broken.
 function Voice.SpeakBody(body, choice)
-    -- Still gated on there being quotes at all. The quotes are what mark a
-    -- phrase as containing speech; pinning a recording changes what that
-    -- speech sounds like, not whether the line has any.
-    if #Voice.SpansOf(body) == 0 then return 0 end
     if not (choice and choice.line) then return 0 end
     return Voice.PlayLine(choice.line) and 1 or 0
 end
@@ -287,6 +336,29 @@ local function myName()
     return shortName(UnitName and UnitName("player"))
 end
 
+-- Whether an emote is your own.
+--
+-- Worth being careful about, because playback only ever runs on your own
+-- emote: get this wrong and nothing you cast makes a sound, while the emote
+-- itself goes out perfectly every time. There is no error anywhere to find.
+--
+-- The name alone cannot answer it. The client names you inconsistently -- a
+-- realm suffix on one call and not the next, and on WoW: Forever a surname on
+-- one and not the next -- so a name that does not match is not proof the line
+-- belongs to somebody else. CHAT_MSG_EMOTE also carries the sender's GUID,
+-- which is the server's own answer and admits of no variants, so that decides
+-- whenever it is there. ns.IsSelfName is the fallback for the Classic flavors,
+-- where the event does not carry one.
+local function isMine(sender, guid)
+    if type(guid) == "string" and guid ~= "" and not isSecret(guid) then
+        local mine = UnitGUID and UnitGUID("player")
+        if type(mine) == "string" and mine ~= "" and not isSecret(mine) then
+            return guid == mine
+        end
+    end
+    return ns.IsSelfName ~= nil and ns.IsSelfName(sender)
+end
+
 local heardPins = {}     -- [speaker] = { id = n, at = t, played = bool }
 local heardEmotes = {}   -- [speaker] = t
 
@@ -340,7 +412,7 @@ function Voice.OnBroadcast(id, sender, channel)
     if heardEmotes[who] then
         heardEmotes[who] = nil
         heardPins[who] = { id = id, at = now, played = true }
-        Voice.PlayGame(id)
+        Voice.PlayGame(id, "other")
         return
     end
     heardPins[who] = { id = id, at = now, played = false }
@@ -356,7 +428,7 @@ local function hearOther(who)
     local pin = heardPins[who]
     if pin and not pin.played then
         pin.played = true
-        Voice.PlayGame(pin.id)
+        Voice.PlayGame(pin.id, "other")
         return
     end
     heardEmotes[who] = now
@@ -369,22 +441,46 @@ end
 -- the client prepends the name when it draws the line -- which is exactly the
 -- string Casts.Render produced, so the quoted spans in it are the spans that
 -- were meant to be heard.
-local function onEmote(msg, sender)
-    if isSecret(msg) or isSecret(sender) then return end
+local function onEmote(msg, sender, guid)
+    local st = Voice.stats
+    st.emotes = st.emotes + 1
+
+    -- Midnight can hand chat arguments over as secret values, which cannot be
+    -- read or compared at all. Counted rather than merely refused, because the
+    -- handler then does nothing and that looks identical to it never firing.
+    if isSecret(msg) or isSecret(sender) then
+        st.secret = st.secret + 1
+        return
+    end
     if type(msg) ~= "string" or msg == "" then return end
-    if not msg:find('"', 1, true) then return end
 
     local me = myName()
     local who = shortName(sender)
-    if not (me and who) then return end
+    if not (me and who) then
+        st.nameless = st.nameless + 1
+        return
+    end
 
-    if who ~= me then
+    -- Any emote, quoted or not. A pin belongs to the phrase, not to the speech
+    -- marks inside it, and this is the only proximity test the game offers --
+    -- so narrowing it to lines with quotes in them would drop the half of the
+    -- rendezvous that somebody's narration pin was waiting on.
+    if not isMine(sender, guid) then
+        -- Kept so the report can show the pair when nothing is being
+        -- recognised as yours, which otherwise looks like the event is simply
+        -- not firing.
+        Voice.lastStranger = { sender = sender, me = me }
         hearOther(who)
         return
     end
 
+    st.mine = st.mine + 1
     if not Voice.IsEnabled() then return end
-    local choice = claimChoice(msg)
+    Voice.stats.heard = Voice.stats.heard + 1
+    local choice, why = claimChoice(msg)
+    if why ~= "rewritten" and not (choice and choice.line) then
+        Voice.stats.unpinned = Voice.stats.unpinned + 1
+    end
     Voice.SpeakBody(msg, choice)
 
     -- Broadcast from here rather than from where the line was composed,
@@ -404,9 +500,13 @@ Voice.OnEmote = onEmote
 -- clip once per window. See the header.
 local frame = CreateFrame("Frame")
 frame:RegisterEvent("CHAT_MSG_EMOTE")
-frame:SetScript("OnEvent", function(_, event, msg, sender)
+-- The sender's GUID is the twelfth argument of every CHAT_MSG_* event, after
+-- the nine positions between the sender and it that this handler has no use
+-- for. Spelled out rather than fetched with select() so the count is checkable
+-- against Blizzard's list by reading it.
+frame:SetScript("OnEvent", function(_, event, msg, sender, _, _, _, _, _, _, _, _, _, guid)
     if event ~= "CHAT_MSG_EMOTE" then return end
-    onEmote(msg, sender)
+    onEmote(msg, sender, guid)
 end)
 
 -- The one line CHAT_MSG_EMOTE never delivers: a phrase Blizzard refused to
@@ -422,7 +522,7 @@ end
 -- because the feature is switched off would leave somebody picking a line they
 -- are not allowed to hear first.
 function Voice.Audition(spoken)
-    return Voice.PlayLine(spoken)
+    return Voice.PlayLine(spoken, "audition")
 end
 
 --=========================================================================--
@@ -444,6 +544,8 @@ function Voice.Describe()
         enabled = Voice.IsEnabled(),
         catalogue = (gv and gv.COUNT) or 0,
         stats = Voice.stats,
+        lastRewrite = Voice.lastRewrite,
+        lastStranger = Voice.lastStranger,
         hearing = hearing,
         canHearNearby = (Compat and Compat.hasProximityAddonMessages) or false,
     }

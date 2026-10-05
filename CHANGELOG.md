@@ -2,6 +2,46 @@
 
 All notable changes to Tongues of Azeroth are documented here.
 
+## [0.5.2]
+- Fixed: a character with a surname was never recognised as themselves. WoW: Forever added
+  surnames, and the addon decided whether a line was yours by comparing the sender to the
+  one name `UnitName` reports. Those two need not agree once a surname exists: chat can put
+  the full name on a line while `UnitName` answers the bare one, and neither is wrong. They
+  simply differ, and a name compared against one form alone then matched nothing.
+  Two things went wrong because of it, both silent. Spoken cast phrases are voiced when
+  your own emote comes back from the server, so every cast was filed as a stranger's and
+  nothing you cast ever made a sound, while the emote itself went out perfectly every time.
+  And your own translated speech was held to your fluency when it was read back to you,
+  so a surnamed player saw their own sentences returned as gibberish.
+  The addon now asks every call that has an opinion about your name and accepts any of
+  their answers, with and without a realm suffix. It also prefers the sender's GUID, which
+  every CHAT_MSG event carries and which has no variants, falling back to the name on the
+  Classic flavors where the event has none. It is deliberately not a "starts with your
+  first name" test, since surnames exist precisely so that first names need not be unique,
+  and that test would hand one player's lines to another.
+- Fixed: a pinned voice line never played on a phrase that had no speech marks in it.
+  Playback was gated on the emote containing something in quotes, on the reasoning that
+  quotes are what mark a line as speech. That reasoning belongs to translation, which
+  rewrites your words and so can only touch the words you are actually saying. A recording
+  is not your words. Pinning one to a line that narrates is a deliberate act and the sound
+  is the whole point of it, so it now plays whenever the emote fires.
+  This was not a small corner. Of the 362 lines the packs ship, 162 narrate without saying
+  anything, and the panel let you pin a recording to any of them and then showed it on the
+  row as though it were set. Nothing reported the refusal, so the symptom was a cast that
+  made no sound with no indication of why.
+  The same gate applied to other people's lines, where it was also throwing away the half
+  of the rendezvous it was meant to be waiting for: a pin that arrives over the wire is
+  held until that player's emote shows up, and a narration emote was not counting, so the
+  pin either expired or attached itself to whatever they said next.
+- `/toa voice` now reports where the chain stopped instead of one count of everything.
+  Sounds are counted separately by where they came from, because the Play button, your own
+  cast and somebody else's line all finish at the same call and a single total cannot
+  answer the only question it ever gets asked. Alongside those it names each way a cast can
+  end up silent: an emote that never arrived, one this client will not let addons read, one
+  with no sender to match, a phrase with nothing pinned, a pin naming a recording this
+  client does not carry, and an emote that came back worded differently than it went out.
+  The last of those prints both wordings, since the difference is the answer.
+
 ## [0.5.1]
 - Cast phrases can be removed, not just turned off. Every line in a spell's list now has a
   Remove button. Before this only the ones you wrote yourself could go; a shipped line

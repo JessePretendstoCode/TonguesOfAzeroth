@@ -3263,12 +3263,10 @@ local function RefreshCasts()
                 return
             end
             local note = ""
-            if phrase.spoken and not template:find('"') then
-                -- A pin on a line with nothing in quotes never plays. Worth
-                -- saying outright: the pin is right there on the row looking
-                -- like it works.
-                note = "   |cffcc6666nothing in quotes, so the pinned line won't play|r"
-            elseif not template:find('"') then
+            -- Quotes decide what your tongue rewrites, not whether a pinned
+            -- recording plays -- so this is only worth mentioning on a line
+            -- with no pin, where the quotes are all the line has.
+            if not phrase.spoken and not template:find('"') then
                 note = "   |cff909090nothing in quotes, so nothing is said aloud|r"
             end
             row.preview:SetText("|cffb0b0b0" .. rendered .. "|r" .. note)
@@ -3375,7 +3373,9 @@ local function RefreshCasts()
                         limit = 2000 }
                 end,
                 onPlay = function(entry)
-                    if ns.Voice and ns.Voice.PlayGame then ns.Voice.PlayGame(entry.id) end
+                    if ns.Voice and ns.Voice.PlayGame then
+                        ns.Voice.PlayGame(entry.id, "audition")
+                    end
                 end,
                 onPick = function(entry)
                     local ok, err = Casts.SetPhraseSpoken(key, text,
