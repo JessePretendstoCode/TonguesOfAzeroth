@@ -1,6 +1,6 @@
 ## Interface: 30405
 ## Title: Glyphic: Immersive RP Languages
-## Notes: Speak the languages of Azeroth (Orcish, Darnassian, Old God, and more), similar to Tongues.
+## Notes: Speak Azeroth's languages in character -- 66 of them, plus accents, cast lines, and languages you invent yourself.
 ## IconTexture: Interface\AddOns\Glyphic\Media\Glyphic-On
 ## Author: JessePretendstoCode
 ## Version: 0.5.4

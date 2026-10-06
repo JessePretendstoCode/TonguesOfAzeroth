@@ -17,7 +17,6 @@ ignore:
   - "UI_*.png"
   - "ICON.png"
   - "DESCRIPTION.md"
-  - "DESCRIPTION-glyphic.md"
   - "PHRASES.md"
   - "PROMO.md"
 
