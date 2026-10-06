@@ -1117,6 +1117,13 @@ local function base64dec(data)
     end))
 end
 
+-- Shared with Profile.lua, which encodes whole configurations rather than a
+-- single language. Exposed rather than copied: two base64 implementations
+-- that drift apart produce codes one of them cannot read, and that failure
+-- would land on the player as "your backup is corrupt".
+Language.Base64Encode = base64enc
+Language.Base64Decode = base64dec
+
 local SHARE_PREFIX = "ToA1-"
 local SHARE_SEP = "\029"
 

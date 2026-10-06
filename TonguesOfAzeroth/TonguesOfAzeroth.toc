@@ -2,7 +2,7 @@
 ## Title: Glyphic (settings carry-over)
 ## Notes: Hands your pre-rename settings to Glyphic on first login. Does nothing else, and can be removed once Glyphic has started once.
 ## Author: JessePretendstoCode
-## Version: 0.5.3
+## Version: 0.5.4
 ## SavedVariablesPerCharacter: TonguesOfAzerothDB
 ## SavedVariables: TonguesOfAzerothAccountDB
 ## X-Curse-Project-ID: 1641225

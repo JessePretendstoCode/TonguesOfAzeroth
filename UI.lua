@@ -2416,6 +2416,20 @@ local function RefreshCustom()
     refreshCustomPreview()
 end
 
+-- At file scope rather than inside one panel's builder: the Profiles panel
+-- needs the same buttons, and two copies of this would drift until the two
+-- panels stopped looking like the same addon.
+local function styleButton(btn, label, w)
+    btn:SetSize(w or 110, 24)
+    local bg = btn:CreateTexture(nil, "BACKGROUND"); bg:SetAllPoints()
+    Compat.SolidTexture(bg, 0.18, 0.16, 0.24, 1)
+    Compat.AddBorder(btn, 0.5, 0.45, 0.7, 0.9)
+    local t = btn:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    t:SetPoint("CENTER", 0, 0); t:SetText(label)
+    local hl = btn:CreateTexture(nil, "HIGHLIGHT"); hl:SetAllPoints()
+    Compat.SolidTexture(hl, 1, 1, 1, 0.12)
+end
+
 local function BuildCustomPanel()
     customPanel = Compat.CreateOptionsPanel("TonguesOfAzerothCustomOptions")
     customPanel.name = "Create Language"
@@ -2500,17 +2514,6 @@ local function BuildCustomPanel()
     customPreviewOutput:SetJustifyH("LEFT")
     customPreviewOutput:SetHeight(36)
     customPreviewOutput:SetSpacing(2)
-
-    local function styleButton(btn, label, w)
-        btn:SetSize(w or 110, 24)
-        local bg = btn:CreateTexture(nil, "BACKGROUND"); bg:SetAllPoints()
-        Compat.SolidTexture(bg, 0.18, 0.16, 0.24, 1)
-        Compat.AddBorder(btn, 0.5, 0.45, 0.7, 0.9)
-        local t = btn:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-        t:SetPoint("CENTER", 0, 0); t:SetText(label)
-        local hl = btn:CreateTexture(nil, "HIGHLIGHT"); hl:SetAllPoints()
-        Compat.SolidTexture(hl, 1, 1, 1, 0.12)
-    end
 
     local saveBtn = CreateFrame("Button", nil, customPanel)
     saveBtn:SetPoint("TOPLEFT", customPreviewOutput, "BOTTOMLEFT", 6, -14)
@@ -3604,6 +3607,172 @@ local function RefreshCasts()
     end
 end
 
+--=========================================================================--
+--  Profiles -- move a configuration between characters and installs
+--=========================================================================--
+-- Saved variables are welded to one account, realm and character on one client
+-- install. That is invisible right up until the ground moves: a beta realm
+-- closes, a character is rerolled under a new name, or you want the setup you
+-- spent an evening building to exist on an alt. Copying files out of WTF helps
+-- with none of those, because the destination path does not exist yet or is
+-- spelled differently. A string you can paste anywhere does.
+local profilePanel, profileOutput, profileInput, profileStatus
+
+local function profileStatusMsg(text, isError)
+    if not profileStatus then return end
+    profileStatus:SetText((isError and "|cffff5555" or "|cff55ff55") .. text .. "|r")
+end
+
+-- Shared by the panel's Import button and by /glyphic profile import, so the
+-- warning and the wording cannot drift apart between the two routes.
+function ns.ConfirmProfileImport(parsed)
+    local from = parsed.char or "another character"
+    local when = (parsed.when and parsed.when ~= "") and (" on " .. parsed.when) or ""
+    local hasColors = type(parsed.colors) == "table"
+
+    local body = "Replace this character's Glyphic settings with the profile from |cffffff00"
+        .. from .. "|r" .. when .. "?\n\n"
+        .. "|cffff8080Everything currently set on this character is overwritten|r -- language, "
+        .. "fluency, accents, channels, cast phrases and any languages you invented."
+    if hasColors then
+        body = body .. "\n\nThe account-wide colour palette is included, so this affects every character."
+    end
+    body = body .. "\n\nThis cannot be undone."
+
+    Compat.ShowConfirm({
+        text = body,
+        acceptText = "Replace",
+        cancelText = "Cancel",
+        onAccept = function()
+            local applied, err = ns.Profile.Apply(parsed)
+            if not applied then
+                profileStatusMsg("Import failed: " .. tostring(err), true)
+                Print("|cffff0000Import failed:|r " .. tostring(err))
+                return
+            end
+            -- A reload rather than a refresh. Settings are read by a dozen
+            -- modules that cache derived state (colour tables, the language
+            -- list, cast lookups), and chasing every one of them to invalidate
+            -- correctly is a far bigger surface for a bug than simply starting
+            -- again from the saved variables we just wrote.
+            Print("Profile imported from |cffffff00" .. from .. "|r. Reloading the interface...")
+            if ReloadUI then ReloadUI() end
+        end,
+    })
+end
+
+function ns.ShowProfileCode()
+    if not profileOutput then return end
+    local code, info = ns.Profile.Export()
+    if not code then
+        profileStatusMsg("Could not build a code: " .. tostring(info), true)
+        return
+    end
+    profileOutput:SetText(code)
+    profileOutput:SetFocus()
+    profileOutput:HighlightText()
+    if info and info.skipped and info.skipped > 0 then
+        -- Should be impossible. Said out loud anyway, because the alternative
+        -- is a player restoring a backup and quietly finding something absent.
+        profileStatusMsg(info.skipped .. " setting(s) could not be saved into the code.", true)
+    else
+        profileStatusMsg("Code ready -- it is selected, so press Ctrl+C now.", false)
+    end
+end
+
+local function BuildProfilePanel()
+    profilePanel = Compat.CreateOptionsPanel("TonguesOfAzerothProfileOptions")
+    profilePanel.name = "Profiles"
+    profilePanel.parent = mainPanel.name
+
+    local title = profilePanel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+    title:SetPoint("TOPLEFT", 16, -16)
+    title:SetText("Profiles")
+
+    local subtitle = profilePanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -8)
+    subtitle:SetPoint("RIGHT", profilePanel, "RIGHT", -32, 0)
+    subtitle:SetJustifyH("LEFT")
+    if subtitle.SetWordWrap then subtitle:SetWordWrap(true) end
+    subtitle:SetText("Copy this character's whole setup into a code you can paste onto another character, another realm, or another install. Useful before a beta ends, or to set up an alt in one step.")
+
+    -- Export
+    local outLabel = profilePanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    outLabel:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -18)
+    outLabel:SetText("Save a copy")
+
+    local outHint = profilePanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    outHint:SetPoint("TOPLEFT", outLabel, "BOTTOMLEFT", 0, -4)
+    outHint:SetPoint("RIGHT", profilePanel, "RIGHT", -32, 0)
+    outHint:SetJustifyH("LEFT")
+    if outHint.SetWordWrap then outHint:SetWordWrap(true) end
+    outHint:SetText("Includes your language, fluency, accents, channels, cast phrases, invented languages and the shared colour palette. Keep the code somewhere outside the game.")
+
+    profileOutput = CreateFrame("EditBox", "TonguesOfAzerothProfileOut", profilePanel, "InputBoxTemplate")
+    profileOutput:SetPoint("TOPLEFT", outHint, "BOTTOMLEFT", 6, -8)
+    profileOutput:SetSize(470, 20)
+    profileOutput:SetAutoFocus(false)
+    -- A profile code is thousands of characters where a language share code is
+    -- dozens. The default cap would silently truncate it, and a truncated code
+    -- is exactly what the checksum exists to reject -- so the player would be
+    -- handed a backup that refuses to restore.
+    profileOutput:SetMaxLetters(0)
+    profileOutput:SetScript("OnEnterPressed", profileOutput.ClearFocus)
+    profileOutput:SetScript("OnEscapePressed", profileOutput.ClearFocus)
+    profileOutput:SetScript("OnEditFocusGained", function(self) self:HighlightText() end)
+
+    local makeBtn = CreateFrame("Button", nil, profilePanel)
+    makeBtn:SetPoint("TOPLEFT", profileOutput, "BOTTOMLEFT", -6, -12)
+    styleButton(makeBtn, "Create code", 120)
+    makeBtn:SetScript("OnClick", ns.ShowProfileCode)
+
+    -- Import
+    local inLabel = profilePanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    inLabel:SetPoint("TOPLEFT", makeBtn, "BOTTOMLEFT", 6, -24)
+    inLabel:SetText("Restore a copy")
+
+    local inHint = profilePanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    inHint:SetPoint("TOPLEFT", inLabel, "BOTTOMLEFT", 0, -4)
+    inHint:SetPoint("RIGHT", profilePanel, "RIGHT", -32, 0)
+    inHint:SetJustifyH("LEFT")
+    if inHint.SetWordWrap then inHint:SetWordWrap(true) end
+    inHint:SetText("Paste a code and press Import. This replaces everything on this character, so you will be asked to confirm first.")
+
+    profileInput = CreateFrame("EditBox", "TonguesOfAzerothProfileIn", profilePanel, "InputBoxTemplate")
+    profileInput:SetPoint("TOPLEFT", inHint, "BOTTOMLEFT", 6, -8)
+    profileInput:SetSize(470, 20)
+    profileInput:SetAutoFocus(false)
+    profileInput:SetMaxLetters(0)
+    profileInput:SetScript("OnEscapePressed", profileInput.ClearFocus)
+
+    local importBtn = CreateFrame("Button", nil, profilePanel)
+    importBtn:SetPoint("TOPLEFT", profileInput, "BOTTOMLEFT", -6, -12)
+    styleButton(importBtn, "Import", 120)
+    importBtn:SetScript("OnClick", function()
+        local code = profileInput:GetText() or ""
+        if code:gsub("%s", "") == "" then
+            profileStatusMsg("Paste a profile code into the box first.", true)
+            return
+        end
+        -- Parsed before the confirmation, never after: the player is told who
+        -- the profile belongs to and when it was made, so they can answer the
+        -- question rather than guess at it.
+        local parsed, err = ns.Profile.Parse(code)
+        if not parsed then
+            profileStatusMsg(tostring(err), true)
+            return
+        end
+        ns.ConfirmProfileImport(parsed)
+    end)
+
+    profileStatus = profilePanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    profileStatus:SetPoint("TOPLEFT", importBtn, "BOTTOMLEFT", 6, -16)
+    profileStatus:SetPoint("RIGHT", profilePanel, "RIGHT", -32, 0)
+    profileStatus:SetJustifyH("LEFT")
+    if profileStatus.SetWordWrap then profileStatus:SetWordWrap(true) end
+    profileStatus:SetText("")
+end
+
 local function BuildCastPanel()
     castPanel = Compat.CreateOptionsPanel("TonguesOfAzerothCastOptions")
     castPanel.name = "Cast Phrases"
@@ -3960,6 +4129,11 @@ local function BuildPanels()
     BuildCastPanel()
     Compat.RegisterOptionsPanel(castPanel, castPanel.name, mainPanel.name)
 
+    -- Last in the list on purpose: it is the panel you reach for once, before
+    -- a beta ends or when setting up an alt, not one you live in.
+    BuildProfilePanel()
+    Compat.RegisterOptionsPanel(profilePanel, profilePanel.name, mainPanel.name)
+
     -- In the shared standalone window the sub-panels show a Back button (to the
     -- main panel) instead of their own close button.
     learnedPanel._backAction = function() ns.OpenConfig() end
@@ -4062,6 +4236,11 @@ end
 function ns.OpenCustomConfig()
     BuildPanels()
     Compat.OpenOptionsPanel(customPanel)
+end
+
+function ns.OpenProfileConfig()
+    BuildPanels()
+    Compat.OpenOptionsPanel(profilePanel)
 end
 
 -- `key` comes from the keybinding (the spell that was under the cursor), so the

@@ -2789,6 +2789,39 @@ local function handleSlash(input)
             local ok, msg = ns.ShareCustomLanguage(id, target)
             Print(ok and ("|cff00ff00" .. msg .. "|r") or ("|cffff0000" .. msg .. "|r"))
         end
+    elseif cmd == "profile" or cmd == "backup" then
+        -- Deliberately NOT folded into the existing /glyphic export, which has
+        -- meant "share one invented language" for several releases and is in
+        -- people's notes that way. Two different things that both produce a
+        -- long string are exactly the pair you do not want sharing a verb.
+        local Profile = ns.Profile
+        local arg, tail = rest:match("^(%S*)%s*(.*)$")
+        arg = string.lower(arg or "")
+
+        if arg == "" then
+            if ns.OpenProfileConfig then ns.OpenProfileConfig() end
+        elseif arg == "export" or arg == "save" then
+            if ns.OpenProfileConfig then ns.OpenProfileConfig() end
+            if ns.ShowProfileCode then ns.ShowProfileCode() end
+            Print("Your profile code is in the Profiles panel -- it is already selected, so press Ctrl+C.")
+        elseif arg == "import" or arg == "load" or arg == "restore" then
+            if tail == "" then
+                if ns.OpenProfileConfig then ns.OpenProfileConfig() end
+                Print("Paste the code into the Profiles panel, or use |cffffff00/glyphic profile import <code>|r.")
+            else
+                local parsed, err = Profile.Parse(tail)
+                if not parsed then
+                    Print("|cffff0000That code was refused:|r " .. tostring(err))
+                else
+                    -- Confirmed even from the command line. This overwrites
+                    -- every setting on the character, and a mistyped command
+                    -- should not be able to do that silently.
+                    ns.ConfirmProfileImport(parsed)
+                end
+            end
+        else
+            Print("Usage: |cffffff00/glyphic profile export|r or |cffffff00/glyphic profile import <code>|r.")
+        end
     elseif cmd == "decode" or cmd == "testdecode" then
         testDecode(rest)
     elseif cmd == "encode" or cmd == "enc" then

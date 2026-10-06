@@ -3,7 +3,7 @@
 ## Notes: Speak the languages of Azeroth (Orcish, Darnassian, Old God, and more), similar to Tongues.
 ## IconTexture: Interface\AddOns\Glyphic\Media\Glyphic-On
 ## Author: JessePretendstoCode
-## Version: 0.5.3
+## Version: 0.5.4
 ## SavedVariablesPerCharacter: GlyphicDB
 ## SavedVariables: GlyphicAccountDB
 ## OptionalDeps: TonguesOfAzeroth
@@ -20,6 +20,7 @@ Language.lua
 Names.lua
 Colors.lua
 Accent.lua
+Profile.lua
 Core.lua
 CastLibrary.lua
 Casts.lua
