@@ -1407,24 +1407,63 @@ end
 -- so it would consume ours on the way past.
 local FOREIGN_PLACEHOLDER = "\003"
 
-function Language.TranslateMarked(text, strength, langId)
+-- `motherId` is the tongue your character actually grew up speaking. Words the
+-- language you are *attempting* does not cover fall through to it instead of
+-- staying in English, which is what a person short of a word actually does --
+-- they reach for their own language, and the room either follows them there or
+-- does not. Without one the remainder stays English exactly as before.
+--
+-- The mother tongue is spoken perfectly, because that is what a mother tongue is. It
+-- is not a language you are learning, so it does not take a fluency.
+function Language.TranslateMarked(text, strength, langId, motherId)
     if not text or text == "" then return text, nil end
     strength = strength or 100
     local lang = resolveLang(langId)
+
+    -- A mother tongue only makes sense as somewhere *else* to fall back to.
+    -- Naming the language you are already speaking, or a plain one (whose whole
+    -- character is that it reads as ordinary speech), leaves nothing to fall to.
+    local mother
+    if motherId and motherId ~= lang.id and Language.IsValid(motherId) then
+        local n = resolveLang(motherId)
+        if n and n.id ~= lang.id and not Language.IsPlain(n.id) then mother = n end
+    end
+
     -- Same passthroughs as TranslateText: nothing to mark, so the caller's
     -- accent gets the whole line as plain English -- slurred first if this is
     -- Low Common, so it reads the same with an accent on as without.
-    if strength <= 0 or Language.IsPlain(lang.id) then
+    --
+    -- Zero fluency is no longer one of them when a mother tongue is set. Not
+    -- knowing a word of Orcish is the strongest case for speaking your own
+    -- language, not the case for lapsing into flawless Common.
+    if Language.IsPlain(lang.id) or (strength <= 0 and not mother) then
         return applySlur(text, lang), nil
     end
 
     local protected, saved = protectSegments(text)
     local marks, n = {}, 0
-    local marked = protected:gsub(WORD_PATTERN, function(word)
-        if not Language.WordTranslates(word, strength) then return word end
+    local function mark(word, into)
+        local out = Language.TranslateWord(word, into.id)
+        -- A handful of words survive their own translation -- Orcish "no" comes
+        -- back "no" -- and counting those as translated puts a [Broken Orcish]
+        -- tag over untouched English. They are not translated; they are words
+        -- the tongue happens to share. Let them fall through to the mother
+        -- tongue, or to English, like any other word it does not cover.
+        if out == word then return nil end
         n = n + 1
-        marks[n] = Language.TranslateWord(word, lang.id)
+        marks[n] = out
         return FOREIGN_PLACEHOLDER .. n .. FOREIGN_PLACEHOLDER
+    end
+    local marked = protected:gsub(WORD_PATTERN, function(word)
+        if Language.WordTranslates(word, strength) then
+            local hit = mark(word, lang)
+            if hit then return hit end
+        end
+        if mother then
+            local hit = mark(word, mother)
+            if hit then return hit end
+        end
+        return word
     end)
     if n == 0 then return text, nil end
 

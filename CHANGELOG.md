@@ -3,6 +3,27 @@
 All notable changes to Glyphic are documented here. The addon was called
 Tongues of Azeroth before 0.5.3.
 
+## [0.5.5]
+- **Mother tongue.** Pick the language your character grew up speaking, and
+  the words your fluency doesn't cover come out in *that* instead of English.
+  A half-learned tongue finally sounds like someone falling back on their own
+  rather than a flawless Common speaker sprinkling in foreign words. Set it
+  under Speaking, or with `/glyphic mother <language>` (`none` to switch off).
+  It is off by default and stays off when you upgrade, because it changes how
+  every line you speak sounds and that should be asked for.
+  Fluency now reads as a slider between two real languages: at nothing you
+  speak entirely your own, at full you speak entirely theirs, and in between
+  the line is genuinely part one and part the other. Speaking a tongue you
+  know nothing of used to leave your chat in plain English; with a mother
+  tongue set it no longer does, which is the whole point.
+  Your accent has little left to do once this is on. An accent reshapes
+  English, and a mother tongue is what removes the English.
+- **Fixed:** a handful of words come back from a tongue unchanged -- Orcish
+  "no" is still "no" -- and the addon counted them as translated, so a line
+  made only of those wore a `[Broken Orcish]` tag over untouched English.
+  They now fall through to your mother tongue, or stay plain, like any other
+  word the tongue doesn't cover.
+
 ## [0.5.4]
 - **Profiles.** A new panel under `/glyphic` turns everything on a character --
   language, fluency, accents, channels, cast phrases, the languages you

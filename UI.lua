@@ -54,7 +54,7 @@ local DECODE_STYLES = {
 local mainPanel, learnedPanel, accentPanel, customPanel
 local chatPanel, chatContent
 local mainContent
-local langDropdown, enableCheck, previewInput, previewOutput
+local langDropdown, motherDropdown, enableCheck, previewInput, previewOutput
 local voiceText, voiceHint
 local minimapCheck, fluencyCheck, nativeHideCheck, autoDisableCheck
 local namesCheck, nameColorCheck
@@ -355,6 +355,41 @@ local function langItems()
         if #rest > 0 then items[#items + 1] = { text = "All languages", header = true } end
     end
     for i = 1, #rest do items[#items + 1] = rest[i] end
+    return items
+end
+
+-- The tongue list for "Mother tongue". Deliberately NOT langItems(): that one
+-- hides the languages your race already speaks in-game, which is exactly where
+-- most characters' mother tongue lives. A night elf whose Darnassian was
+-- filtered out of the speak list still grew up speaking Darnassian.
+local function motherItems()
+    local all = Language.GetLanguages()
+    local items = { { text = "None -- leave the rest in English", value = "" } }
+
+    local favs = (ns.GetFavorites and ns.GetFavorites()) or {}
+    local shown = {}
+    local favRows = {}
+    for i = 1, #favs do
+        local id = favs[i]
+        -- A mother tongue has to be a tongue. "None" is the addon's way of
+        -- speaking plain English, so falling back to it means falling back to
+        -- nothing, and listing it here would offer a choice that does nothing.
+        if id ~= "none" and not Language.IsPlain(id) then
+            favRows[#favRows + 1] = { text = Language.GetLanguageName(id), value = id }
+            shown[id] = true
+        end
+    end
+    if #favRows > 0 then
+        items[#items + 1] = { text = "Favorites", header = true }
+        for i = 1, #favRows do items[#items + 1] = favRows[i] end
+        items[#items + 1] = { text = "All languages", header = true }
+    end
+    for i = 1, #all do
+        local l = all[i]
+        if not shown[l.id] and not Language.IsPlain(l.id) then
+            items[#items + 1] = { text = (l.sub and "    " or "") .. l.name, value = l.id }
+        end
+    end
     return items
 end
 
@@ -668,6 +703,11 @@ local function RefreshLearned()
     if nativeHideCheck then nativeHideCheck:SetChecked(d.hideNativeLanguages and true or false) end
     if langDropdown then
         langDropdown:SetSelected(d.language, Language.GetLanguageName(d.language))
+    end
+    if motherDropdown then
+        local m = d.motherTongue
+        motherDropdown:SetSelected(m or "",
+            m and Language.GetLanguageName(m) or "None -- leave the rest in English")
     end
     RefreshVoice()
 end
@@ -1697,10 +1737,33 @@ local function BuildLearnedPanel()
         if ns.OnSettingsChanged then ns.OnSettingsChanged() else RefreshLearned() end
     end
 
+    -- Directly under Speaking, because the two are read as one sentence: this
+    -- is the tongue you reach for when the one above runs out.
+    local motherLabel = learnedPanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    motherLabel:SetPoint("TOPLEFT", langDropdown, "BOTTOMLEFT", 0, -12)
+    motherLabel:SetText("Mother tongue")
+
+    motherDropdown = Compat.CreateDropdown(learnedPanel, 260)
+    motherDropdown:SetPoint("TOPLEFT", motherLabel, "BOTTOMLEFT", 0, -6)
+    motherDropdown:SetItems(motherItems())
+    motherDropdown.onSelect = function(value)
+        db().motherTongue = (value ~= "" and value) or nil
+        if ns.OnSettingsChanged then ns.OnSettingsChanged() else RefreshLearned() end
+    end
+
+    local motherHint = learnedPanel:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+    motherHint:SetPoint("TOPLEFT", motherDropdown, "BOTTOMLEFT", 2, -4)
+    motherHint:SetWidth(430)
+    motherHint:SetJustifyH("LEFT")
+    motherHint:SetText("Words your fluency above does not cover come out in this tongue "
+        .. "instead of English, so a half-learned language sounds like someone "
+        .. "falling back on their own. Your accent only shapes English, so it has "
+        .. "little left to do once this is set.")
+
     -- Global learning method: passive (learn by hearing). The Trainer minigame is
     -- always available from its own panel; this toggles the automatic learning.
     passiveCheck = Compat.CreateCheckbox(learnedPanel, "Passive learning -- overhearing a tongue slowly builds your fluency in it")
-    passiveCheck:SetPoint("TOPLEFT", langDropdown, "BOTTOMLEFT", 0, -14)
+    passiveCheck:SetPoint("TOPLEFT", motherHint, "BOTTOMLEFT", -2, -14)
     passiveCheck:SetScript("OnClick", function(self)
         db().passiveLearning = self:GetChecked() and true or false
     end)
@@ -2528,6 +2591,7 @@ local function BuildCustomPanel()
         if ok then
             customEditingId = idOrErr
             if langDropdown then langDropdown:SetItems(langItems()) end
+            if motherDropdown then motherDropdown:SetItems(motherItems()) end
             RefreshCustom()
             customStatusMsg("Saved \"" .. def.name .. "\" -- it's in your language list now.", false)
         else
@@ -2547,6 +2611,7 @@ local function BuildCustomPanel()
         if ns.DeleteCustomLanguage(customEditingId) then
             customEditingId = nil
             if langDropdown then langDropdown:SetItems(langItems()) end
+            if motherDropdown then motherDropdown:SetItems(motherItems()) end
             loadCustomIntoFields(nil)
             RefreshCustom()
             customStatusMsg("Deleted \"" .. nm .. "\".", false)
@@ -2611,6 +2676,7 @@ local function BuildCustomPanel()
             customEditingId = idOrErr
             loadCustomIntoFields(idOrErr)
             if langDropdown then langDropdown:SetItems(langItems()) end
+            if motherDropdown then motherDropdown:SetItems(motherItems()) end
             RefreshCustom()
             customShareInput:SetText("")
             customStatusMsg("Imported \"" .. Language.GetLanguageName(idOrErr) .. "\".", false)
@@ -4191,6 +4257,7 @@ ns.OnSettingsChanged = function()
     if castPanel and castPanel:IsVisible() then RefreshCasts() end
     -- Keep the main language dropdown in sync when custom languages change.
     if langDropdown then langDropdown:SetItems(langItems()) end
+    if motherDropdown then motherDropdown:SetItems(motherItems()) end
     RefreshLanguageWidget()
     ApplyMinimapState()
     -- Last, so a tooltip open over the minimap button or the floating bar is

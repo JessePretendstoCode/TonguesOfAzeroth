@@ -397,6 +397,23 @@ local function migrateDB()
     -- floating bar, and inert until the list has something in it.
     if db.favOnly == nil then db.favOnly = true end
 
+    -- The tongue your character grew up speaking, which words the one they are
+    -- attempting does not cover fall back on. Off by default and left off on
+    -- upgrade: it changes what every existing character sounds like, and a
+    -- setting that rewrites your speech is one you should have to ask for.
+    if db.motherTongue ~= nil then
+        local canon = Language.CanonicalId and Language.CanonicalId(db.motherTongue)
+            or db.motherTongue
+        -- A custom language can be deleted while it is still named here, which
+        -- would otherwise leave every line falling back to a tongue that no
+        -- longer exists.
+        if canon and Language.IsValid(canon) then
+            db.motherTongue = canon
+        else
+            db.motherTongue = nil
+        end
+    end
+
     if not db.channels then
         db.channels = {}
     end
@@ -736,6 +753,33 @@ function ns.GetSpeakingStrength()
     return getStrength()
 end
 
+-- The tongue your character grew up speaking, which words the language they are
+-- attempting does not cover fall back on. nil when they have none, which is the
+-- old behaviour: the remainder stays English.
+--
+-- "Mother tongue" rather than "native language" on purpose. ns.IsNativeLanguage
+-- below already means something else entirely -- a tongue the player's *race*
+-- speaks through WoW's own system, which this addon hides from the speak list --
+-- and one word meaning both would be read wrongly by whoever touches this next.
+--
+-- Returned rather than read inline because four separate paths translate -- chat,
+-- /glyphic say, cast phrases and the options preview -- and a mother tongue that
+-- applied to three of them would read as the setting working intermittently.
+local function motherTongue()
+    local db = GlyphicDB
+    if not db then return nil end
+    local id = db.motherTongue
+    if not id or id == "" then return nil end
+    if id == db.language then return nil end
+    if not Language.IsValid(id) then return nil end
+    return id
+end
+
+function ns.GetMotherTongue()
+    migrateDB()
+    return motherTongue()
+end
+
 --=========================================================================--
 --  Native languages (hide the tongues your race already speaks in-game)
 --
@@ -949,12 +993,16 @@ local function transformOutgoing(msg, sendType, channel)
     -- the receiver's addon can read chat, which Blizzard blocks there. Accents
     -- are exempt -- they're plain English that needs no decoding -- so the
     -- accent-only branch below still runs.
-    local translating = not instanceSuppressed and db.inCharacter and getStrength() > 0
+    -- A native tongue keeps the line worth translating at zero fluency: not
+    -- knowing a word of the language you are attempting is exactly when your
+    -- own one does all the talking.
+    local translating = not instanceSuppressed and db.inCharacter
+        and (getStrength() > 0 or motherTongue() ~= nil)
         and ns.IsChannelEnabled(channelKey)
 
     if translating then
         local langId, strength = db.language, getStrength()
-        local marked, marks = Language.TranslateMarked(msg, strength, langId)
+        local marked, marks = Language.TranslateMarked(msg, strength, langId, motherTongue())
         if marks then
             local body = marked
             if accentOn then body = applyAccent(body, true) end
@@ -1129,7 +1177,7 @@ local function speak(msg, chatType, channel)
     local strength = getStrength()
 
     local out = msg
-    local marked, marks = Language.TranslateMarked(msg, strength, langId)
+    local marked, marks = Language.TranslateMarked(msg, strength, langId, motherTongue())
     if marks then
         local body = marked
         if accentAppliesTo(normalizeChatType(sendType)) then body = applyAccent(body, true) end
@@ -1174,8 +1222,8 @@ function ns.EncodeSpeech(text, live)
     local accentOn = ns.Accent and db.inCharacter and db.accent
         and db.accent.id ~= ns.Accent.NONE
 
-    if db.inCharacter and strength > 0 then
-        local marked, marks = Language.TranslateMarked(text, strength, langId)
+    if db.inCharacter and (strength > 0 or motherTongue() ~= nil) then
+        local marked, marks = Language.TranslateMarked(text, strength, langId, motherTongue())
         if marks then
             local out = marked
             if accentOn then
@@ -2631,11 +2679,14 @@ local function debugReport()
     -- old "path=language|accent" line existed only to explain why a configured
     -- accent silently did nothing, which can no longer happen.
     do
-        local translating = db.inCharacter and getStrength() > 0 and ns.IsChannelEnabled("SAY")
+        local translating = db.inCharacter
+            and (getStrength() > 0 or motherTongue() ~= nil)
+            and ns.IsChannelEnabled("SAY")
         local accenting = accentAppliesTo("SAY")
         local composed = sample
         if translating then
-            local marked, marks = Language.TranslateMarked(sample, getStrength(), db.language)
+            local marked, marks = Language.TranslateMarked(sample, getStrength(), db.language,
+                motherTongue())
             if marks then
                 local body = marked
                 -- `false` = not a real utterance, so debugging never consumes
@@ -2682,6 +2733,7 @@ local function usage()
     Print("  |cffffff00/glyphic names [on|off|color|clear]|r  - leave player names readable in your speech")
     Print("  |cffffff00/glyphic minimap|r  - show/hide the minimap button")
     Print("  |cffffff00/glyphic output <1-N|default>|r  - send translations to a chat window")
+    Print("  |cffffff00/glyphic mother <language>|r  - the tongue you fall back on (|cffffff00none|r to switch off)")
     Print("  |cffffff00/glyphic tag [on|off]|r  - show fluency in the [Language] tag (e.g. [Broken Orcish])")
     Print("  |cffffff00/glyphic game|r  - play the Decipher language trainer")
     Print("  |cffffff00/glyphic accent [on|off|<id>|list]|r  - speak in a dialect accent")
@@ -2714,6 +2766,34 @@ local function handleSlash(input)
         ns.ToggleInCharacter()
     elseif cmd == "lang" or cmd == "language" then
         setLanguage(rest)
+    elseif cmd == "mother" or cmd == "fallback" then
+        migrateDB()
+        local arg = string.lower(rest or ""):gsub("^%s+", ""):gsub("%s+$", "")
+        if arg == "" then
+            local m = motherTongue()
+            Print(m and ("Mother tongue is |cffffff00" .. Language.GetLanguageName(m)
+                    .. "|r. Words your fluency doesn't cover come out in it.")
+                or "No mother tongue. Words your fluency doesn't cover stay in English.")
+            Print("  |cffffff00/glyphic mother <language>|r or |cffffff00/glyphic mother none|r")
+        elseif arg == "none" or arg == "off" or arg == "clear" then
+            GlyphicDB.motherTongue = nil
+            Print("Mother tongue cleared. The rest of your speech stays in English.")
+            if ns.OnSettingsChanged then ns.OnSettingsChanged() end
+        elseif not Language.IsValid(arg) then
+            Print("Unknown language '|cffff0000" .. arg .. "|r'. Use |cffffff00/glyphic list|r.")
+        elseif Language.IsPlain(arg) then
+            -- Falling back to plain speech is what having no mother tongue
+            -- already does, so accepting this would leave the setting reading
+            -- as if it were on while changing nothing.
+            Print("|cffffff00" .. Language.GetLanguageName(arg)
+                .. "|r reads as ordinary speech, so there is nothing to fall back to."
+                .. " Use |cffffff00/glyphic mother none|r for that.")
+        else
+            GlyphicDB.motherTongue = arg
+            Print("Mother tongue set to |cffffff00" .. Language.GetLanguageName(arg)
+                .. "|r. Words your fluency doesn't cover will come out in it.")
+            if ns.OnSettingsChanged then ns.OnSettingsChanged() end
+        end
     elseif cmd == "next" or cmd == "cycle" then
         ns.CycleLanguage(1)
     elseif cmd == "prev" or cmd == "previous" then
