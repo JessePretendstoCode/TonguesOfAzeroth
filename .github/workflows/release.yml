@@ -18,6 +18,33 @@ jobs:
         with:
           fetch-depth: 0
 
+      # .pkgmeta points manual-changelog at CHANGELOG.md, and the packager
+      # uses whatever that file holds as the release notes -- so every upload
+      # was publishing the entire history, and CurseForge's "What's New" grew
+      # another copy of every change ever made. Cut it down to the one section
+      # this tag is for. Only the checkout is touched; the repository keeps the
+      # full file.
+      - name: Trim the changelog to this release
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          awk -v v="## [$version]" '
+            $0 == v { found = 1 }
+            found && /^## \[/ && $0 != v { exit }
+            found { print }
+          ' CHANGELOG.md > release-notes.md
+
+          # An empty or missing section would ship a release with no notes at
+          # all, which is a worse failure than the one being fixed and an easy
+          # one to not notice. Stop instead.
+          if [ ! -s release-notes.md ]; then
+            echo "::error::CHANGELOG.md has no '## [$version]' section for tag $GITHUB_REF_NAME"
+            exit 1
+          fi
+
+          mv release-notes.md CHANGELOG.md
+          echo "Release notes for $version:"
+          cat CHANGELOG.md
+
       - name: Package and release
         uses: BigWigsMods/packager@v2
         env:
