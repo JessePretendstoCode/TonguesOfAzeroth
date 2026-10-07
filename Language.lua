@@ -1441,7 +1441,12 @@ function Language.TranslateMarked(text, strength, langId, motherId)
     end
 
     local protected, saved = protectSegments(text)
-    local marks, n = {}, 0
+    -- `meta` is what makes a two-tongue line decodable. Each mark records the
+    -- word it replaced and the tongue it was rendered in, so a listener can
+    -- later be shown the words in the languages they know and no others. With
+    -- only the foreign word kept, a mixed line can be decoded whole or not at
+    -- all, and both of those are wrong.
+    local marks, meta, n = {}, { lang = {}, source = {}, used = {}, order = {} }, 0
     local function mark(word, into)
         local out = Language.TranslateWord(word, into.id)
         -- A handful of words survive their own translation -- Orcish "no" comes
@@ -1452,6 +1457,10 @@ function Language.TranslateMarked(text, strength, langId, motherId)
         if out == word then return nil end
         n = n + 1
         marks[n] = out
+        meta.lang[n] = into.id
+        meta.source[n] = word
+        if not meta.used[into.id] then meta.order[#meta.order + 1] = into.id end
+        meta.used[into.id] = (meta.used[into.id] or 0) + 1
         return FOREIGN_PLACEHOLDER .. n .. FOREIGN_PLACEHOLDER
     end
     local marked = protected:gsub(WORD_PATTERN, function(word)
@@ -1470,13 +1479,32 @@ function Language.TranslateMarked(text, strength, langId, motherId)
     -- Markup and bracket spans go back now. Only the foreign words stay behind
     -- sentinels, because only they must survive the accent untouched -- the
     -- accent protects links and asides perfectly well by itself.
-    return restoreSegments(marked, saved), marks
+    return restoreSegments(marked, saved), marks, meta
 end
 
 function Language.RestoreMarked(text, marks)
     if not marks or not text then return text end
     return (text:gsub(FOREIGN_PLACEHOLDER .. "(%d+)" .. FOREIGN_PLACEHOLDER, function(i)
         return marks[tonumber(i)] or ""
+    end))
+end
+
+-- The same line as RestoreMarked produces, except that words rendered in
+-- `langId` are given back in the English they came from. This is what one
+-- listener is entitled to see: their own tongues in plain words, everything
+-- else still foreign.
+--
+-- Built from the marked text rather than assembled from scratch so that it is
+-- the wire line with substitutions, character for character -- the accent has
+-- already run over it by this point, and a reveal rebuilt independently would
+-- disagree with what was actually said.
+function Language.RevealMarked(text, marks, meta, langId)
+    if not marks or not text then return text end
+    if not meta then return Language.RestoreMarked(text, marks) end
+    return (text:gsub(FOREIGN_PLACEHOLDER .. "(%d+)" .. FOREIGN_PLACEHOLDER, function(i)
+        local k = tonumber(i)
+        if meta.lang[k] == langId then return meta.source[k] or marks[k] or "" end
+        return marks[k] or ""
     end))
 end
 

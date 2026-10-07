@@ -628,11 +628,13 @@ function Casts.Render(template, ctx, live)
     if not body then return nil end
 
     local spoken, langId = {}, nil
+    local spokenMeta = nil
     local named = false
     body = body:gsub('"([^"]*)"', function(speech)
         if speech:gsub("%s", "") == "" then return '"' .. speech .. '"' end
-        local out, lid, wasEncoded = ns.EncodeSpeech(speech, live)
+        local out, lid, wasEncoded, meta = ns.EncodeSpeech(speech, live)
         langId = lid or langId
+        spokenMeta = meta or spokenMeta
         if not wasEncoded then
             -- An accent is plain English and needs no decoding, so it gets no
             -- attribution either.
@@ -641,7 +643,8 @@ function Casts.Render(template, ctx, live)
         spoken[#spoken + 1] = { original = speech, encoded = out }
         if named or not lid then return '"' .. out .. '"' end
         named = true
-        return '"' .. out .. '" in ' .. ns.LanguageName(lid)
+        return '"' .. out .. '" in ' .. (ns.SpokenLanguageName
+            and ns.SpokenLanguageName(meta, lid) or ns.LanguageName(lid))
     end)
 
     if named then

@@ -945,6 +945,77 @@ local function languageTag(langId)
     return "[" .. languageName(langId) .. "] "
 end
 
+-- The tag for a line that may be carrying two tongues at once.
+--
+-- It names the tongues actually in the line, and only those. A mother tongue
+-- means a line can contain no word at all of the language being attempted --
+-- at zero fluency every word is the mother tongue -- and tagging that
+-- "[Orcish]" labelled a sentence with the one language it did not contain.
+--
+-- The fluency adjective stays on the tongue being attempted, because that is
+-- the one it describes. Naming whichever tongue carried the most words instead
+-- was the other candidate and is worse in two ways that only show on a table
+-- of outcomes: "Broken Orcish" becomes unreachable, since a tongue you are
+-- under 25% in is never the majority of the line, so the word that says you
+-- are struggling disappears exactly when you are; and your mother tongue gets
+-- labelled by *its* trainer progress, which is usually nothing, so speaking
+-- the language you grew up with reads as "Broken Darnassian".
+--
+-- The tongue being attempted leads, when it is in the line at all. Not
+-- first-appearance order, which would hand the lead to whichever tongue
+-- happened to catch the first word: the headline tongue is what a receiver
+-- colours the line by, and a tag that reordered itself from sentence to
+-- sentence would make the same speaker change colour mid-conversation.
+local function tongueOrder(meta, attemptedId)
+    local out = {}
+    if meta.used[attemptedId] then out[#out + 1] = attemptedId end
+    for i = 1, #meta.order do
+        if meta.order[i] ~= attemptedId then out[#out + 1] = meta.order[i] end
+    end
+    return out
+end
+
+local function composedTag(meta, attemptedId)
+    if not meta or not meta.order or #meta.order == 0 then
+        return languageTag(attemptedId)
+    end
+    local order = tongueOrder(meta, attemptedId)
+    local parts = {}
+    for i = 1, #order do
+        local id = order[i]
+        -- Only the attempted tongue wears the adjective. A mother tongue is
+        -- spoken perfectly by definition, so grading it says nothing.
+        parts[#parts + 1] = (id == attemptedId) and languageName(id)
+            or Language.GetLanguageName(id)
+    end
+    return "[" .. table.concat(parts, ", ") .. "] "
+end
+
+-- Tell everyone what the line means, one tongue at a time.
+--
+-- A single payload cannot express a mixed line: it says "this encoded string
+-- means that English string", so whoever can read it reads all of it, tongues
+-- they do not know included. Instead each language in the line gets its own
+-- payload whose English half reveals only that language's words, leaving the
+-- rest foreign. A listener then reads the tongues they know and no more, which
+-- is the whole point of a language barrier.
+--
+-- The same thing is remembered locally, which is also how you come to read
+-- your own speech: you understand every tongue you just spoke, so you match on
+-- all of them and they merge back into the sentence you typed.
+local function publishDecode(body, marks, meta, attemptedId, strength, sendType, channel)
+    if not meta or not meta.order or #meta.order == 0 then return end
+    for i = 1, #meta.order do
+        local id = meta.order[i]
+        local revealed = Language.RevealMarked(body, marks, meta, id)
+        local encoded = Language.RestoreMarked(body, marks)
+        if revealed ~= encoded then
+            Language.RememberEncodedMessage(id, revealed, encoded, strength)
+            sendDecodePayload(revealed, encoded, id, strength, sendType, channel)
+        end
+    end
+end
+
 -- Is an accent selected, and does it apply on this channel? Gated by the same
 -- in-character switch and the same channel list as the tongue, because they are
 -- two halves of one voice. Emotes (/e and inline *actions*) narrate an action
@@ -1002,24 +1073,24 @@ local function transformOutgoing(msg, sendType, channel)
 
     if translating then
         local langId, strength = db.language, getStrength()
-        local marked, marks = Language.TranslateMarked(msg, strength, langId, motherTongue())
+        local marked, marks, meta = Language.TranslateMarked(msg, strength, langId, motherTongue())
         if marks then
             local body = marked
             if accentOn then body = applyAccent(body, true) end
+
+            -- Cached and synced against the text that actually goes out, accent
+            -- and all: decoding is a lookup on the exact string the receiver
+            -- sees, so remembering the pre-accent version would leave every
+            -- composed line undecodable. One payload per tongue in the line.
+            publishDecode(body, marks, meta, langId, strength, sendType, channel)
+
             body = fit(Language.RestoreMarked(body, marks))
 
-            -- Cache and sync the mapping against the text that actually goes
-            -- out, accent and all: decoding is a lookup on the exact string the
-            -- receiver sees, so remembering the pre-accent version would leave
-            -- every composed line undecodable.
-            Language.RememberEncodedMessage(langId, msg, body, strength)
-            sendDecodePayload(msg, body, langId, strength, sendType, channel)
-
-            -- The "[Language]" tag is always applied: it's the signal receivers use
-            -- to know the line is encoded (and in which tongue) so they can decode
-            -- it without false-positiving on ordinary chat. Deliberately not
+            -- The tag is always applied: it's the signal receivers use to know
+            -- the line is encoded (and in which tongues) so they can decode it
+            -- without false-positiving on ordinary chat. Deliberately not
             -- user-configurable; only the fluency adjective prefix is optional.
-            return fit(languageTag(langId) .. body), true
+            return fit(composedTag(meta, langId) .. body), true
         end
         -- Nothing translated: Common and Low Common read as plain speech, and a
         -- line can have no mapped words at low fluency. Fall through so the
@@ -1177,14 +1248,13 @@ local function speak(msg, chatType, channel)
     local strength = getStrength()
 
     local out = msg
-    local marked, marks = Language.TranslateMarked(msg, strength, langId, motherTongue())
+    local marked, marks, meta = Language.TranslateMarked(msg, strength, langId, motherTongue())
     if marks then
         local body = marked
         if accentAppliesTo(normalizeChatType(sendType)) then body = applyAccent(body, true) end
+        publishDecode(body, marks, meta, langId, strength, sendType, channel)
         body = fit(Language.RestoreMarked(body, marks))
-        Language.RememberEncodedMessage(langId, msg, body, strength)
-        sendDecodePayload(msg, body, langId, strength, sendType, channel)
-        out = fit(languageTag(langId) .. body)
+        out = fit(composedTag(meta, langId) .. body)
     elseif accentAppliesTo(normalizeChatType(sendType)) then
         out = applyAccent(msg, true)
     end
@@ -1223,7 +1293,7 @@ function ns.EncodeSpeech(text, live)
         and db.accent.id ~= ns.Accent.NONE
 
     if db.inCharacter and (strength > 0 or motherTongue() ~= nil) then
-        local marked, marks = Language.TranslateMarked(text, strength, langId, motherTongue())
+        local marked, marks, meta = Language.TranslateMarked(text, strength, langId, motherTongue())
         if marks then
             local out = marked
             if accentOn then
@@ -1232,12 +1302,21 @@ function ns.EncodeSpeech(text, live)
                     live and true or false)
                 if ok and type(res) == "string" then out = res end
             end
-            out = Language.RestoreMarked(out, marks)
             -- The caller (Casts.lua) broadcasts the mapping, so it has to be the
             -- composed string that will actually be spoken. Previews are skipped:
             -- nothing said in an options panel should end up in the decode cache.
-            if live then Language.RememberEncodedMessage(langId, text, out, strength) end
-            return out, langId, true
+            if live and meta then
+                local encoded = Language.RestoreMarked(out, marks)
+                for i = 1, #meta.order do
+                    local id = meta.order[i]
+                    local revealed = Language.RevealMarked(out, marks, meta, id)
+                    if revealed ~= encoded then
+                        Language.RememberEncodedMessage(id, revealed, encoded, strength)
+                    end
+                end
+            end
+            out = Language.RestoreMarked(out, marks)
+            return out, langId, true, meta
         end
     end
 
@@ -1258,6 +1337,26 @@ end
 
 function ns.LanguageTag(langId) return languageTag(langId) end
 function ns.LanguageName(langId) return languageName(langId) end
+
+-- The tongues a line was actually spoken in, written as prose rather than as a
+-- bracket: "Broken Demonic and Darnassian". Cast phrases name their language
+-- in the sentence itself, so they need the same honesty the tag has -- saying
+-- a cry was "in Broken Orcish" when the mother tongue carried it is the same
+-- lie in a different font.
+function ns.SpokenLanguageName(meta, attemptedId)
+    if not meta or not meta.order or #meta.order == 0 then
+        return languageName(attemptedId)
+    end
+    local order = tongueOrder(meta, attemptedId)
+    local parts = {}
+    for i = 1, #order do
+        local id = order[i]
+        parts[#parts + 1] = (id == attemptedId) and languageName(id)
+            or Language.GetLanguageName(id)
+    end
+    if #parts == 1 then return parts[1] end
+    return table.concat(parts, ", ", 1, #parts - 1) .. " and " .. parts[#parts]
+end
 function ns.FitMessage(text, maxLen) return fit(text, maxLen) end
 function ns.MaxMessageLength() return MAX_MESSAGE end
 function ns.PrintToChat(msg, style) addToChat(msg, style, getDecodeFrame()) end
@@ -1376,6 +1475,55 @@ local function isSelf(sender)
     return ns.IsSelfName(sender)
 end
 
+-- Combine two partial reveals of the same line.
+--
+-- Each reveal is the spoken line with one tongue's words put back into
+-- English and every other word left foreign, so the three strings differ only
+-- at the words one of them translated. Walking them word by word and taking
+-- whichever differs from the original therefore reconstructs exactly the
+-- words the listener is entitled to read.
+--
+-- Word by word rather than by concatenating, because the reveals share their
+-- punctuation, spacing, links and colour codes with the original -- those are
+-- the parts that must not be rebuilt. If the three ever disagree on word
+-- count, something upstream has restructured the line and merging would
+-- interleave nonsense, so the merge is abandoned and the richer reveal wins.
+local function mergeReveals(a, b, original)
+    if not a then return b end
+    if not b then return a end
+    if a == b then return a end
+
+    local function split(s)
+        local out, last = {}, 1
+        for first, word, after in s:gmatch("()([%a][%a'-]*)()") do
+            out[#out + 1] = { gap = s:sub(last, first - 1), word = word }
+            last = after
+        end
+        return out, s:sub(last)
+    end
+
+    local wa, tailA = split(a)
+    local wb = split(b)
+    local wo = split(original)
+    if #wa ~= #wb or #wa ~= #wo then
+        -- Can't line them up. Prefer whichever revealed more.
+        local ca, cb = 0, 0
+        for i = 1, math.min(#wa, #wo) do if wa[i].word ~= wo[i].word then ca = ca + 1 end end
+        for i = 1, math.min(#wb, #wo) do if wb[i].word ~= wo[i].word then cb = cb + 1 end end
+        return (cb > ca) and b or a
+    end
+
+    local parts = {}
+    for i = 1, #wa do
+        local word = wa[i].word
+        -- `a` left this word as the speaker said it, so if `b` changed it,
+        -- that is the tongue this listener knows.
+        if word == wo[i].word and wb[i].word ~= wo[i].word then word = wb[i].word end
+        parts[#parts + 1] = wa[i].gap .. word
+    end
+    return table.concat(parts) .. tailA
+end
+
 -- `yourOwnWords` lifts the comprehension gate entirely -- see isChecked.
 local function tryDecodeMessage(message, taggedLangId, force, yourOwnWords)
     migrateDB()
@@ -1415,16 +1563,33 @@ local function tryDecodeMessage(message, taggedLangId, force, yourOwnWords)
     -- 1) Exact cached mapping for fully-understood languages. This is the only
     --    path allowed to run on untagged text: its keys are the exact garbled
     --    strings Glyphic produces, so ordinary English never matches.
+    --
+    --    Every match is merged rather than the best one being picked. A line
+    --    can be spoken in two tongues now -- the one being attempted and the
+    --    speaker's mother tongue -- and each arrives as its own mapping that
+    --    reveals only its own words. Taking just the highest-scoring one would
+    --    hand somebody who speaks both languages half a sentence, and the half
+    --    would change with the wording.
+    --
+    --    This is also how you read your own speech: you understand every
+    --    tongue you just used, so all of them match and merge back into what
+    --    you typed.
     local bestDecoded, bestScore, bestLangId, bestLangName
+    local merged, matches = nil, 0
     for i = 1, #langs do
         if isChecked(langs[i]) then
             local decoded, score = Language.TryDecode(message, langs[i].id)
-            if decoded and (not bestScore or score > bestScore) then
-                bestDecoded, bestScore = decoded, score
-                bestLangId, bestLangName = langs[i].id, langs[i].name
+            if decoded then
+                matches = matches + 1
+                merged = merged and mergeReveals(merged, decoded, message) or decoded
+                if not bestScore or score > bestScore then
+                    bestScore = score
+                    bestLangId, bestLangName = langs[i].id, langs[i].name
+                end
             end
         end
     end
+    bestDecoded = merged
     if bestDecoded then
         return bestDecoded, bestScore, bestLangId, bestLangName
     end
@@ -1508,9 +1673,32 @@ local function passiveLangIdFromTag(tag)
         end
     end
     tag = string.lower(tag):gsub("^%s+", ""):gsub("%s+$", "")
+
+    -- A line carrying a mother tongue names both: "Broken Orcish, Darnassian".
+    -- The first entry is the one being attempted, and it is the one worth
+    -- colouring by, so the comma just ends the name early. Tags without a
+    -- comma are unaffected, which is every tag written before this existed and
+    -- every tag from a player who has no mother tongue set.
+    local head = tag:match("^([^,]+),") 
+    if head then tag = head:gsub("%s+$", "") end
+
     local first, rest = tag:match("^(%S+)%s+(.+)$")
     if first and FLUENCY_ADJECTIVES[first] then tag = rest end
     return passiveNameToId[tag]
+end
+
+-- Every tongue a tag names, in the order it names them. Used where more than
+-- the headline language matters -- a listener who reads only the second one
+-- still needs the line recognised as speech rather than as ordinary chat.
+local function passiveLangIdsFromTag(tag)
+    local ids = {}
+    for part in (tostring(tag) .. ","):gmatch("([^,]*),") do
+        if part:gsub("%s", "") ~= "" then
+            local id = passiveLangIdFromTag(part)
+            if id then ids[#ids + 1] = id end
+        end
+    end
+    return ids
 end
 
 -- WoW's own language system, for the optional tinting of genuine in-game speech
@@ -1808,8 +1996,20 @@ local function inlineChatFilter(_, event, msg, sender, languageName, ...)
         -- client's own language string for the line -- and inside this scope it
         -- shadows the module function completely. Calling it threw on every
         -- decoded line that reached a chat frame.
+        --
+        -- When the line arrived wearing a tag, that tag is the answer and
+        -- nothing here should second-guess it. It is the speaker's own account
+        -- of what they said, graded by *their* fluency, and it may well name
+        -- two tongues where the decoder only reports the one it scored best.
+        -- Recomputing it put the listener's fluency adjective on someone
+        -- else's sentence: read a line perfectly and it still came back
+        -- "[Broken Darnassian]", because that is how badly *you* speak it.
         local langName = plainName
-        if decodedId then langName = ns.LanguageName(decodedId) end
+        if tag then
+            langName = tag
+        elseif decodedId then
+            langName = ns.LanguageName(decodedId)
+        end
         if decoded and decoded ~= stripped then
             -- When the line already says which tongue it was in, prefixing
             -- "[Demonic]" would both repeat that and drop a bracket between the

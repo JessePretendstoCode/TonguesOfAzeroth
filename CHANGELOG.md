@@ -18,6 +18,22 @@ Tongues of Azeroth before 0.5.3.
   tongue set it no longer does, which is the whole point.
   Your accent has little left to do once this is on. An accent reshapes
   English, and a mother tongue is what removes the English.
+- **A tag that names every tongue in the line.** A sentence that came out
+  part Orcish and part Darnassian now says so: `[Partial Orcish, Darnassian]`.
+  The tongue you were attempting leads and carries the fluency word; a mother
+  tongue is spoken perfectly by definition, so grading it says nothing. A line
+  that ended up entirely in one tongue names only that one, which means
+  speaking at no fluency at all no longer claims a language that isn't there.
+- **Both halves of a mixed line can now be read.** A listener who knows
+  Darnassian reads the Darnassian words and still sees the Orcish as Orcish;
+  a listener who knows both reads the whole sentence. Previously a mixed line
+  travelled as a single mapping and was all-or-nothing, so whoever the tag
+  named could read everything and everyone else could read none of it.
+  Players on an older build get the half their tongue covers rather than
+  nothing at all.
+- **Fixed:** a line you understood was relabelled with *your* fluency, not the
+  speaker's, so reading a sentence perfectly could still show it as
+  `[Broken Darnassian]`. Decoded lines now keep the tag they arrived with.
 - **Fixed:** a handful of words come back from a tongue unchanged -- Orcish
   "no" is still "no" -- and the addon counted them as translated, so a line
   made only of those wore a `[Broken Orcish]` tag over untouched English.
