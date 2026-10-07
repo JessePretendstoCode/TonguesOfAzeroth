@@ -3,7 +3,26 @@
 All notable changes to Glyphic are documented here. The addon was called
 Tongues of Azeroth before 0.5.3.
 
-## [0.5.5]
+## [0.5.4]
+- **Profiles.** A new panel under `/glyphic` turns everything on a character --
+  language, fluency, accents, channels, cast phrases, the languages you
+  invented, and the shared colour palette -- into a code you can paste onto
+  another character, another realm, or another install. `/glyphic profile
+  export` and `/glyphic profile import <code>` do the same from chat.
+  The reason it exists: WoW stores settings in a file named after the account,
+  realm and character they belong to, so they are welded to one character on
+  one install. That is invisible until the ground moves. When a beta ends, or a
+  character is rerolled under a new name, there is no file to copy -- the
+  destination does not exist yet, or is spelled differently. A code does not
+  care where it is going.
+  Importing replaces everything on the character and asks you to confirm first,
+  telling you which character and which date the code came from, so you can
+  tell two backups apart. The interface reloads afterwards.
+  Codes carry a checksum. Chat windows, forum posts and spreadsheet cells all
+  truncate long text, and a truncated code would otherwise decode into
+  plausible nonsense and quietly import the wrong thing; instead it is refused
+  with a reason. Codes are data and never code: nothing inside one is ever
+  executed, so a profile someone hands you cannot run anything on your client.
 - **Native dialect.** Pick the language your character grew up speaking, and
   the words your fluency doesn't cover come out in *that* instead of English.
   A half-learned tongue finally sounds like someone falling back on their own
@@ -49,27 +68,6 @@ Tongues of Azeroth before 0.5.3.
   made only of those wore a `[Broken Orcish]` tag over untouched English.
   They now fall through to your native dialect, or stay plain, like any other
   word the tongue doesn't cover.
-
-## [0.5.4]
-- **Profiles.** A new panel under `/glyphic` turns everything on a character --
-  language, fluency, accents, channels, cast phrases, the languages you
-  invented, and the shared colour palette -- into a code you can paste onto
-  another character, another realm, or another install. `/glyphic profile
-  export` and `/glyphic profile import <code>` do the same from chat.
-  The reason it exists: WoW stores settings in a file named after the account,
-  realm and character they belong to, so they are welded to one character on
-  one install. That is invisible until the ground moves. When a beta ends, or a
-  character is rerolled under a new name, there is no file to copy -- the
-  destination does not exist yet, or is spelled differently. A code does not
-  care where it is going.
-  Importing replaces everything on the character and asks you to confirm first,
-  telling you which character and which date the code came from, so you can
-  tell two backups apart. The interface reloads afterwards.
-  Codes carry a checksum. Chat windows, forum posts and spreadsheet cells all
-  truncate long text, and a truncated code would otherwise decode into
-  plausible nonsense and quietly import the wrong thing; instead it is refused
-  with a reason. Codes are data and never code: nothing inside one is ever
-  executed, so a profile someone hands you cannot run anything on your client.
 
 ## [0.5.3]
 - Tongues of Azeroth is now **Glyphic**. Same addon, same author, same project

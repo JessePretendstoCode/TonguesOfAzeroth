@@ -3,7 +3,7 @@
 ## Notes: Speak Azeroth's languages in character -- 66 of them, plus accents, cast lines, and languages you invent yourself.
 ## IconTexture: Interface\AddOns\Glyphic\Media\Glyphic-On
 ## Author: JessePretendstoCode
-## Version: 0.5.5
+## Version: 0.5.4
 ## SavedVariablesPerCharacter: GlyphicDB
 ## SavedVariables: GlyphicAccountDB
 ## OptionalDeps: TonguesOfAzeroth
