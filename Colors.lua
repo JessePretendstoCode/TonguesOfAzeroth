@@ -319,18 +319,41 @@ end
 --=========================================================================--
 --  Painting
 --=========================================================================--
--- Wrap a span in a color, surviving any color codes already inside it.
+-- Wrap a span in a color, leaving any color codes already inside it intact.
 --
 -- This is the whole reason it isn't a bare concatenation: a chat line can carry
--- an item link, which ends in "|r". That "|r" would close OUR color early and
--- leave the rest of the sentence uncolored, so the color is re-opened after
--- every one of them.
+-- an item link, or a tag naming two tongues, and those end in "|r". That "|r"
+-- would close OUR color early and leave the rest of the sentence uncolored.
+--
+-- The obvious answer -- re-open our color after every inner "|r" -- is wrong,
+-- and wrong in a way that is invisible until something nests. "|c" and "|r"
+-- are a stack in the client, so re-opening leaves one unclosed code per inner
+-- span, and those escape the end of the wrap and color everything after it.
+-- With a two-tongue tag that was two leaked codes, and the message body came
+-- out painted in the second language.
+--
+-- So the spans are laid side by side instead of inside one another: the text
+-- between existing color codes is wrapped a piece at a time and the codes that
+-- were already there are copied through untouched. Every "|c" this emits is
+-- closed by the "|r" that follows it, and nothing survives past the end.
+-- Text with no color in it comes out exactly as it did before.
 function Colors.Wrap(text, hex)
     if type(text) ~= "string" or text == "" then return text end
     if not hex or not Colors.ParseHex(hex) then return text end
     local open = "|cff" .. strlower(hex)
-    local inner = text:gsub("|r", "|r" .. open)
-    return open .. inner .. "|r"
+    local out, pos = {}, 1
+    while true do
+        local s = strfind(text, "|c", pos, true)
+        local e = s and strfind(text, "|r", s, true)
+        -- An unterminated "|c" is not ours to repair. Treat the rest as one
+        -- piece and let it through the way it arrived.
+        if not e then break end
+        if s > pos then out[#out + 1] = open .. text:sub(pos, s - 1) .. "|r" end
+        out[#out + 1] = text:sub(s, e + 1)
+        pos = e + 2
+    end
+    if pos <= #text then out[#out + 1] = open .. text:sub(pos) .. "|r" end
+    return table.concat(out)
 end
 
 -- Paint a "[Partial Orcish, Darnassian] " tag, giving each tongue it names its

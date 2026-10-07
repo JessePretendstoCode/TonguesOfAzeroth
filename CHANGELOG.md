@@ -23,7 +23,10 @@ Tongues of Azeroth before 0.5.3.
   The tongue you were attempting leads and carries the fluency word; a native
   dialect is spoken perfectly by definition, so grading it says nothing.
   Each tongue in the tag is painted in its own colour, so a two-language line
-  looks like two languages at a glance. A line
+  looks like two languages at a glance. The words themselves stay the colour
+  your settings say they should be: colouring a tag used to leave an unclosed
+  colour code behind it for each language it named, which painted the rest of
+  the line too. That also quietly affected any line carrying an item link. A line
   that ended up entirely in one tongue names only that one, which means
   speaking at no fluency at all no longer claims a language that isn't there.
 - **Both halves of a mixed line can now be read.** A listener who knows
