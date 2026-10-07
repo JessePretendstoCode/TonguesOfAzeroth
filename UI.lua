@@ -362,13 +362,15 @@ local function langItems()
     return items
 end
 
--- The tongue list for "Mother tongue". Deliberately NOT langItems(): that one
+-- The tongue list for "Native dialect". Deliberately NOT langItems(): that one
 -- hides the languages your race already speaks in-game, which is exactly where
--- most characters' mother tongue lives. A night elf whose Darnassian was
+-- most characters' native dialect lives. A night elf whose Darnassian was
 -- filtered out of the speak list still grew up speaking Darnassian.
 local function motherItems()
     local all = Language.GetLanguages()
-    local items = { { text = "None -- leave the rest in English", value = "" } }
+    -- Just "None". What it means is spelled out in the hint directly below the
+    -- dropdown, and saying it twice made the control itself hard to read.
+    local items = { { text = "None", value = "" } }
 
     local favs = (ns.GetFavorites and ns.GetFavorites()) or {}
     local shown = {}
@@ -717,7 +719,7 @@ local function RefreshLearned()
     if motherDropdown then
         local m = d.motherTongue
         motherDropdown:SetSelected(m or "",
-            m and Language.GetLanguageName(m) or "None -- leave the rest in English")
+            m and Language.GetLanguageName(m) or "None")
     end
     RefreshVoice()
     -- Again at the end, not only inside the reflow: the preview line above the
