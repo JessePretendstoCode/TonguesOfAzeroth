@@ -1687,6 +1687,12 @@ local function passiveLangIdFromTag(tag)
     return passiveNameToId[tag]
 end
 
+-- Colors.lua paints each tongue in a multi-tongue tag separately and needs the
+-- same name-to-tongue reading this does, fluency adjective and all. One
+-- implementation, because two would drift and the symptom would be a tag
+-- painted in the wrong language rather than anything that looks like a bug.
+function ns.LangIdFromTagName(name) return passiveLangIdFromTag(name) end
+
 -- Every tongue a tag names, in the order it names them. Used where more than
 -- the headline language matters -- a listener who reads only the second one
 -- still needs the line recognised as speech rather than as ordinary chat.
@@ -2933,7 +2939,7 @@ local function usage()
     Print("  |cffffff00/glyphic names [on|off|color|clear]|r  - leave player names readable in your speech")
     Print("  |cffffff00/glyphic minimap|r  - show/hide the minimap button")
     Print("  |cffffff00/glyphic output <1-N|default>|r  - send translations to a chat window")
-    Print("  |cffffff00/glyphic mother <language>|r  - the tongue you fall back on (|cffffff00none|r to switch off)")
+    Print("  |cffffff00/glyphic native <language>|r  - the tongue you fall back on (|cffffff00none|r to switch off)")
     Print("  |cffffff00/glyphic tag [on|off]|r  - show fluency in the [Language] tag (e.g. [Broken Orcish])")
     Print("  |cffffff00/glyphic game|r  - play the Decipher language trainer")
     Print("  |cffffff00/glyphic accent [on|off|<id>|list]|r  - speak in a dialect accent")
@@ -2966,18 +2972,18 @@ local function handleSlash(input)
         ns.ToggleInCharacter()
     elseif cmd == "lang" or cmd == "language" then
         setLanguage(rest)
-    elseif cmd == "mother" or cmd == "fallback" then
+    elseif cmd == "native" or cmd == "dialect" or cmd == "mother" or cmd == "fallback" then
         migrateDB()
         local arg = string.lower(rest or ""):gsub("^%s+", ""):gsub("%s+$", "")
         if arg == "" then
             local m = motherTongue()
-            Print(m and ("Mother tongue is |cffffff00" .. Language.GetLanguageName(m)
+            Print(m and ("Native dialect is |cffffff00" .. Language.GetLanguageName(m)
                     .. "|r. Words your fluency doesn't cover come out in it.")
-                or "No mother tongue. Words your fluency doesn't cover stay in English.")
-            Print("  |cffffff00/glyphic mother <language>|r or |cffffff00/glyphic mother none|r")
+                or "No native dialect. Words your fluency doesn't cover stay in English.")
+            Print("  |cffffff00/glyphic native <language>|r or |cffffff00/glyphic native none|r")
         elseif arg == "none" or arg == "off" or arg == "clear" then
             GlyphicDB.motherTongue = nil
-            Print("Mother tongue cleared. The rest of your speech stays in English.")
+            Print("Native dialect cleared. The rest of your speech stays in English.")
             if ns.OnSettingsChanged then ns.OnSettingsChanged() end
         elseif not Language.IsValid(arg) then
             Print("Unknown language '|cffff0000" .. arg .. "|r'. Use |cffffff00/glyphic list|r.")
@@ -2987,10 +2993,10 @@ local function handleSlash(input)
             -- as if it were on while changing nothing.
             Print("|cffffff00" .. Language.GetLanguageName(arg)
                 .. "|r reads as ordinary speech, so there is nothing to fall back to."
-                .. " Use |cffffff00/glyphic mother none|r for that.")
+                .. " Use |cffffff00/glyphic native none|r for that.")
         else
             GlyphicDB.motherTongue = arg
-            Print("Mother tongue set to |cffffff00" .. Language.GetLanguageName(arg)
+            Print("Native dialect set to |cffffff00" .. Language.GetLanguageName(arg)
                 .. "|r. Words your fluency doesn't cover will come out in it.")
             if ns.OnSettingsChanged then ns.OnSettingsChanged() end
         end

@@ -24,6 +24,7 @@ ns.Colors = Colors
 local Language = ns.Language
 
 local strformat, strlower, strmatch = string.format, string.lower, string.match
+local strfind = string.find
 local floor = math.floor
 
 --=========================================================================--
@@ -332,6 +333,40 @@ function Colors.Wrap(text, hex)
     return open .. inner .. "|r"
 end
 
+-- Paint a "[Partial Orcish, Darnassian] " tag, giving each tongue it names its
+-- own color.
+--
+-- A two-tongue line really is two languages, and painting the whole bracket in
+-- the first one's color says the opposite -- the reader sees one word for
+-- "Darnassian" in Orcish red and has no cue that the tongues differ, which is
+-- the exact job the palette exists to do.
+--
+-- The brackets, the comma and the spacing stay in the headline color, so the
+-- line still reads as one tag belonging to one speaker. That is what the outer
+-- Wrap is for: it re-opens its own color after every inner "|r", so the names
+-- punch through and everything between them falls back.
+--
+-- Resolving a name to a tongue is Core's job (it owns the fluency adjectives
+-- that prefix it), and Core loads after this file, so the function is looked up
+-- when a line is painted rather than when this one loads. A tag whose names we
+-- cannot resolve -- another addon's, or a language this client has never heard
+-- of -- simply comes out in one color, as it did before.
+local function paintTag(tag, hex)
+    local inner, trail = strmatch(tag, "^%[([^%]]*)%](%s*)$")
+    local resolve = ns.LangIdFromTagName
+    if not inner or not resolve or not strfind(inner, ",", 1, true) then
+        return Colors.Wrap(tag, hex)
+    end
+    local painted = inner:gsub("[^,]+", function(part)
+        local lead, name, tail = strmatch(part, "^(%s*)(.-)(%s*)$")
+        if not name or name == "" then return part end
+        local id = resolve(name)
+        if not id then return part end
+        return lead .. Colors.Wrap(name, Colors.Hex(id)) .. tail
+    end)
+    return Colors.Wrap("[" .. painted .. "]" .. trail, hex)
+end
+
 -- Paint one chat line for `langId`.
 --
 --   message : the text the client is about to display
@@ -363,9 +398,15 @@ function Colors.Apply(message, langId, opts)
     local tag, rest = strmatch(message, "^(%[[^%]]+%]%s*)(.*)$")
     if tag then
         if tagColor and speech then
-            return Colors.Wrap(tag .. rest, hex)
+            -- One tongue stays one span. Splitting it would render the same
+            -- but doubles the escape codes on every line in the window for no
+            -- gain, and the overwhelming majority of lines name one tongue.
+            if not strfind(tag, ",", 1, true) then
+                return Colors.Wrap(tag .. rest, hex)
+            end
+            return paintTag(tag, hex) .. Colors.Wrap(rest, hex)
         elseif tagColor then
-            return Colors.Wrap(tag, hex) .. rest
+            return paintTag(tag, hex) .. rest
         end
         return tag .. Colors.Wrap(rest, hex)
     end

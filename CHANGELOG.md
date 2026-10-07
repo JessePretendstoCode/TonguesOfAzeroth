@@ -4,24 +4,26 @@ All notable changes to Glyphic are documented here. The addon was called
 Tongues of Azeroth before 0.5.3.
 
 ## [0.5.5]
-- **Mother tongue.** Pick the language your character grew up speaking, and
+- **Native dialect.** Pick the language your character grew up speaking, and
   the words your fluency doesn't cover come out in *that* instead of English.
   A half-learned tongue finally sounds like someone falling back on their own
   rather than a flawless Common speaker sprinkling in foreign words. Set it
-  under Speaking, or with `/glyphic mother <language>` (`none` to switch off).
+  at the top of the Languages panel, or with `/glyphic native <language>`
   It is off by default and stays off when you upgrade, because it changes how
   every line you speak sounds and that should be asked for.
   Fluency now reads as a slider between two real languages: at nothing you
   speak entirely your own, at full you speak entirely theirs, and in between
   the line is genuinely part one and part the other. Speaking a tongue you
-  know nothing of used to leave your chat in plain English; with a mother
-  tongue set it no longer does, which is the whole point.
+  know nothing of used to leave your chat in plain English; with a native
+  dialect set it no longer does, which is the whole point.
   Your accent has little left to do once this is on. An accent reshapes
-  English, and a mother tongue is what removes the English.
+  English, and a native dialect is what removes the English.
 - **A tag that names every tongue in the line.** A sentence that came out
   part Orcish and part Darnassian now says so: `[Partial Orcish, Darnassian]`.
-  The tongue you were attempting leads and carries the fluency word; a mother
-  tongue is spoken perfectly by definition, so grading it says nothing. A line
+  The tongue you were attempting leads and carries the fluency word; a native
+  dialect is spoken perfectly by definition, so grading it says nothing.
+  Each tongue in the tag is painted in its own colour, so a two-language line
+  looks like two languages at a glance. A line
   that ended up entirely in one tongue names only that one, which means
   speaking at no fluency at all no longer claims a language that isn't there.
 - **Both halves of a mixed line can now be read.** A listener who knows
@@ -34,10 +36,15 @@ Tongues of Azeroth before 0.5.3.
 - **Fixed:** a line you understood was relabelled with *your* fluency, not the
   speaker's, so reading a sentence perfectly could still show it as
   `[Broken Darnassian]`. Decoded lines now keep the tag they arrived with.
+- **The Languages panel scrolls.** It had grown past the bottom of the options
+  window, which put the end of the language list out of reach. The list is no
+  longer a scroll region inside a panel that doesn't scroll -- the whole page
+  moves, and the rows stopped being clipped at the right-hand edge while they
+  were at it.
 - **Fixed:** a handful of words come back from a tongue unchanged -- Orcish
   "no" is still "no" -- and the addon counted them as translated, so a line
   made only of those wore a `[Broken Orcish]` tag over untouched English.
-  They now fall through to your mother tongue, or stay plain, like any other
+  They now fall through to your native dialect, or stay plain, like any other
   word the tongue doesn't cover.
 
 ## [0.5.4]

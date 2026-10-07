@@ -98,8 +98,12 @@ local learnedBars = {}
 local learnedOrder = {}
 local learnedSwatches = {}
 local learnedStars = {}
-local learnedScroll, learnedChild, learnedRowH = nil, nil, 38
-local learnedTopId
+-- `learnedChild` holds the language rows. It used to be the child of a scroll
+-- region of its own; the whole panel scrolls now, so it is a plain frame that
+-- grows with the number of rows and pushes the footer down. `learnedContent`
+-- is the panel's scrolling content frame -- everything on the panel hangs off
+-- it, not off the panel.
+local learnedChild, learnedContent, learnedRowH = nil, nil, 38
 -- Assigned by BuildLearnedPanel; lets rows be made after the panel exists.
 local makeLearnedRow
 local learnedRevision
@@ -574,8 +578,22 @@ local function learnedDisplayOrder()
     return order
 end
 
+-- Tell the panel's scroll region how long the page is. Measured from the last
+-- widget rather than from a constant because the language list in the middle
+-- of it changes height: hiding your racial tongues, or inventing one, moves
+-- everything below by a row.
+local function sizeLearnedContent()
+    if not (learnedContent and learnedContent.SetContentHeight) then return end
+    local last = learnedPanel and learnedPanel._lastChild
+    if not last then return end
+    local top, bot = learnedContent:GetTop(), last:GetBottom()
+    if top and bot and top > bot then
+        learnedContent:SetContentHeight(top - bot + 20)
+    end
+end
+
 -- Show only the languages your race can't already speak (when the option is on)
--- and re-flow the visible rows so there are no gaps, resizing the scroll child.
+-- and re-flow the visible rows so there are no gaps, resizing the page.
 local function reflowLearnedRows()
     syncLearnedRows()
     if not (learnedChild and #learnedOrder > 0) then return end
@@ -604,17 +622,9 @@ local function reflowLearnedRows()
         if not placed[id] and rowRef.row then rowRef.row:Hide() end
     end
     learnedChild:SetHeight(visible * learnedRowH + 6)
-    if learnedScroll then
-        -- Pinning a new language to the top is no help if the list is still
-        -- scrolled where it was, so switching tongues snaps back up to it.
-        if order[1] and order[1] ~= learnedTopId then
-            learnedTopId = order[1]
-            learnedScroll:SetVerticalScroll(0)
-        end
-        local v = learnedScroll:GetVerticalScroll()
-        local maxv = learnedScroll:GetVerticalScrollRange()
-        if v > maxv then learnedScroll:SetVerticalScroll(maxv) end
-    end
+    -- The footer hangs off the bottom of this frame, so the page is a different
+    -- length every time a row appears or disappears.
+    sizeLearnedContent()
 end
 
 -- A row's label: the tongue, plus the dialects that have no row of their own.
@@ -710,6 +720,10 @@ local function RefreshLearned()
             m and Language.GetLanguageName(m) or "None -- leave the rest in English")
     end
     RefreshVoice()
+    -- Again at the end, not only inside the reflow: the preview line above the
+    -- list wraps to a second row for a long sentence, which moves the footer
+    -- without touching a single language row.
+    sizeLearnedContent()
 end
 
 -- The minimap button is driven through LibDBIcon (bundled) so it behaves exactly
@@ -1695,13 +1709,26 @@ local function BuildLearnedPanel()
     learnedPanel.name = "Languages"
     learnedPanel.parent = mainPanel.name
 
-    local title = learnedPanel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+    -- This panel outgrew the window. It now carries two dropdowns, five
+    -- checkboxes, a live preview and a row for every language you know, and on
+    -- a character with a few tongues the bottom of the list was simply off the
+    -- bottom of the options frame with no way to reach it.
+    --
+    -- So the whole thing scrolls, the same way the other four panels already
+    -- do, and the list in the middle stopped being a scroll region of its own.
+    -- Nesting them would fight over the mouse wheel -- it goes to whichever
+    -- frame is under the cursor, so passing over the list would silently stop
+    -- moving the page -- and two scrollbars for one panel is its own answer.
+    local content = Compat.CreateScrollContent(learnedPanel, 900)
+    learnedContent = content
+
+    local title = content:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
     title:SetPoint("TOPLEFT", 16, -16)
     title:SetText("Languages")
 
-    local subtitle = learnedPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    local subtitle = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -8)
-    subtitle:SetPoint("RIGHT", learnedPanel, "RIGHT", -32, 0)
+    subtitle:SetPoint("RIGHT", content, "RIGHT", -32, 0)
     subtitle:SetJustifyH("LEFT")
     subtitle:SetText("Which tongue you speak, how fluently you speak each one, and the color it reads in. |cffffd200Drag the handle|r on a bar to set fluency; |cffffd200star|r a language to keep it near the top. The tongue you're speaking is always the first row.")
 
@@ -1714,11 +1741,37 @@ local function BuildLearnedPanel()
     -- primaries only (a sub-dialect shares its parent's fluency and color, so
     -- it gets no row), while this list also carries sub-dialects, your
     -- favorites and "None".
-    local speakLabel = learnedPanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    speakLabel:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -14)
+    -- Native dialect comes first because it is the one answer that does not
+    -- change: it is who your character is, set once and left alone, where the
+    -- tongue you are speaking changes with whoever you are standing next to.
+    -- Reading downward the panel now asks the questions in that order.
+    local nativeLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    nativeLabel:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -14)
+    nativeLabel:SetText("Native dialect")
+
+    motherDropdown = Compat.CreateDropdown(content, 260)
+    motherDropdown:SetPoint("TOPLEFT", nativeLabel, "BOTTOMLEFT", 0, -6)
+    motherDropdown:SetItems(motherItems())
+    motherDropdown.onSelect = function(value)
+        db().motherTongue = (value ~= "" and value) or nil
+        if ns.OnSettingsChanged then ns.OnSettingsChanged() else RefreshLearned() end
+    end
+
+    local motherHint = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+    motherHint:SetPoint("TOPLEFT", motherDropdown, "BOTTOMLEFT", 2, -4)
+    motherHint:SetWidth(430)
+    motherHint:SetJustifyH("LEFT")
+    motherHint:SetText("The tongue your character grew up speaking. Words your "
+        .. "fluency in the language below does not cover come out in this one "
+        .. "instead of English, so a half-learned language sounds like someone "
+        .. "falling back on their own. Your accent only shapes English, so it has "
+        .. "little left to do once this is set.")
+
+    local speakLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    speakLabel:SetPoint("TOPLEFT", motherHint, "BOTTOMLEFT", -2, -14)
     speakLabel:SetText("Speaking")
 
-    langDropdown = Compat.CreateDropdown(learnedPanel, 260)
+    langDropdown = Compat.CreateDropdown(content, 260)
     langDropdown:SetPoint("TOPLEFT", speakLabel, "BOTTOMLEFT", 0, -6)
     langDropdown:SetItems(langItems())
     langDropdown.onSelect = function(value)
@@ -1737,40 +1790,17 @@ local function BuildLearnedPanel()
         if ns.OnSettingsChanged then ns.OnSettingsChanged() else RefreshLearned() end
     end
 
-    -- Directly under Speaking, because the two are read as one sentence: this
-    -- is the tongue you reach for when the one above runs out.
-    local motherLabel = learnedPanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    motherLabel:SetPoint("TOPLEFT", langDropdown, "BOTTOMLEFT", 0, -12)
-    motherLabel:SetText("Mother tongue")
-
-    motherDropdown = Compat.CreateDropdown(learnedPanel, 260)
-    motherDropdown:SetPoint("TOPLEFT", motherLabel, "BOTTOMLEFT", 0, -6)
-    motherDropdown:SetItems(motherItems())
-    motherDropdown.onSelect = function(value)
-        db().motherTongue = (value ~= "" and value) or nil
-        if ns.OnSettingsChanged then ns.OnSettingsChanged() else RefreshLearned() end
-    end
-
-    local motherHint = learnedPanel:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-    motherHint:SetPoint("TOPLEFT", motherDropdown, "BOTTOMLEFT", 2, -4)
-    motherHint:SetWidth(430)
-    motherHint:SetJustifyH("LEFT")
-    motherHint:SetText("Words your fluency above does not cover come out in this tongue "
-        .. "instead of English, so a half-learned language sounds like someone "
-        .. "falling back on their own. Your accent only shapes English, so it has "
-        .. "little left to do once this is set.")
-
     -- Global learning method: passive (learn by hearing). The Trainer minigame is
     -- always available from its own panel; this toggles the automatic learning.
-    passiveCheck = Compat.CreateCheckbox(learnedPanel, "Passive learning -- overhearing a tongue slowly builds your fluency in it")
-    passiveCheck:SetPoint("TOPLEFT", motherHint, "BOTTOMLEFT", -2, -14)
+    passiveCheck = Compat.CreateCheckbox(content, "Passive learning -- overhearing a tongue slowly builds your fluency in it")
+    passiveCheck:SetPoint("TOPLEFT", langDropdown, "BOTTOMLEFT", -2, -14)
     passiveCheck:SetScript("OnClick", function(self)
         db().passiveLearning = self:GetChecked() and true or false
     end)
 
     -- Filters this list and the language dropdown alike, so it belongs with the
     -- list it filters rather than on the panel you land on.
-    nativeHideCheck = Compat.CreateCheckbox(learnedPanel, "Hide languages my race already speaks")
+    nativeHideCheck = Compat.CreateCheckbox(content, "Hide languages my race already speaks")
     nativeHideCheck:SetPoint("TOPLEFT", passiveCheck, "BOTTOMLEFT", 0, -6)
     nativeHideCheck:SetScript("OnClick", function(self)
         db().hideNativeLanguages = self:GetChecked() and true or false
@@ -1785,7 +1815,7 @@ local function BuildLearnedPanel()
     -- the tooltips. They sit here, above the list, because the per-language
     -- swatches are on its rows -- the switch next to the thing it switches.
     local function colorCheck(label, tip, get, set)
-        local cb = Compat.CreateCheckbox(learnedPanel, label)
+        local cb = Compat.CreateCheckbox(content, label)
         cb:SetScript("OnClick", function(self)
             if ns.Colors then set(self:GetChecked() and true or false) end
             if ns.OnSettingsChanged then ns.OnSettingsChanged() end
@@ -1828,33 +1858,33 @@ local function BuildLearnedPanel()
     --
     -- The summary shares the header's line rather than taking another, so the
     -- block costs the language list as little height as possible.
-    local voiceLabel = learnedPanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    local voiceLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     voiceLabel:SetPoint("TOPLEFT", colorTagCheck, "BOTTOMLEFT", 0, -16)
     voiceLabel:SetText("Your voice")
     voiceLabel:SetTextColor(1, 0.82, 0.2)
 
-    voiceText = learnedPanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    voiceText = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     voiceText:SetPoint("LEFT", voiceLabel, "RIGHT", 10, 0)
     voiceText:SetJustifyH("LEFT")
 
-    local voiceRule = learnedPanel:CreateTexture(nil, "ARTWORK")
+    local voiceRule = content:CreateTexture(nil, "ARTWORK")
     voiceRule:SetHeight(1)
     voiceRule:SetPoint("LEFT", voiceText, "RIGHT", 8, 0)
-    voiceRule:SetPoint("RIGHT", learnedPanel, "RIGHT", -32, 0)
+    voiceRule:SetPoint("RIGHT", content, "RIGHT", -32, 0)
     Compat.SolidTexture(voiceRule, 1, 1, 1, 0.12)
 
-    voiceHint = learnedPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    voiceHint = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     voiceHint:SetPoint("TOPLEFT", voiceLabel, "BOTTOMLEFT", 0, -6)
-    voiceHint:SetPoint("RIGHT", learnedPanel, "RIGHT", -32, 0)
+    voiceHint:SetPoint("RIGHT", content, "RIGHT", -32, 0)
     voiceHint:SetJustifyH("LEFT")
 
-    local previewLabel = learnedPanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    local previewLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     previewLabel:SetPoint("TOPLEFT", voiceHint, "BOTTOMLEFT", 0, -10)
     previewLabel:SetText("Preview")
 
-    previewInput = CreateFrame("EditBox", "TonguesOfAzerothPreviewInput", learnedPanel, "InputBoxTemplate")
+    previewInput = CreateFrame("EditBox", "TonguesOfAzerothPreviewInput", content, "InputBoxTemplate")
     previewInput:SetPoint("LEFT", previewLabel, "RIGHT", 12, 0)
-    previewInput:SetPoint("RIGHT", learnedPanel, "RIGHT", -36, 0)
+    previewInput:SetPoint("RIGHT", content, "RIGHT", -36, 0)
     previewInput:SetHeight(20)
     previewInput:SetAutoFocus(false)
     previewInput:SetText(SAMPLE)
@@ -1862,14 +1892,14 @@ local function BuildLearnedPanel()
     previewInput:SetScript("OnEnterPressed", previewInput.ClearFocus)
     previewInput:SetScript("OnEscapePressed", previewInput.ClearFocus)
 
-    previewOutput = learnedPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+    previewOutput = content:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
     previewOutput:SetPoint("TOPLEFT", previewLabel, "BOTTOMLEFT", 0, -8)
-    previewOutput:SetPoint("RIGHT", learnedPanel, "RIGHT", -32, 0)
+    previewOutput:SetPoint("RIGHT", content, "RIGHT", -32, 0)
     previewOutput:SetJustifyH("LEFT")
     previewOutput:SetHeight(32)
     previewOutput:SetSpacing(2)
 
-    local langLabel = learnedPanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    local langLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     langLabel:SetPoint("TOPLEFT", previewOutput, "BOTTOMLEFT", 0, -14)
     langLabel:SetText("Your languages")
 
@@ -1889,7 +1919,7 @@ local function BuildLearnedPanel()
         return b
     end
 
-    local learnAllBtn = textButton(learnedPanel, 84, "Learn all", 0.4, 0.6, 0.4)
+    local learnAllBtn = textButton(content, 84, "Learn all", 0.4, 0.6, 0.4)
     learnAllBtn:SetPoint("LEFT", langLabel, "RIGHT", 20, 0)
     learnAllBtn:SetScript("OnClick", function()
         Compat.ShowConfirm({
@@ -1898,7 +1928,7 @@ local function BuildLearnedPanel()
         })
     end)
 
-    local resetAllBtn = textButton(learnedPanel, 84, "Reset all", 0.7, 0.4, 0.4)
+    local resetAllBtn = textButton(content, 84, "Reset all", 0.7, 0.4, 0.4)
     resetAllBtn:SetPoint("LEFT", learnAllBtn, "RIGHT", 8, 0)
     resetAllBtn:SetScript("OnClick", function()
         Compat.ShowConfirm({
@@ -1907,33 +1937,35 @@ local function BuildLearnedPanel()
         })
     end)
 
-    -- Footer note, pinned to the bottom so the scroll area can size against it.
-    local note = learnedPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-    note:SetPoint("BOTTOMLEFT", learnedPanel, "BOTTOMLEFT", 16, 14)
-    note:SetPoint("BOTTOMRIGHT", learnedPanel, "BOTTOMRIGHT", -28, 14)
-    note:SetJustifyH("LEFT")
-    note:SetText("Fluency is how fully you speak a tongue -- build it by hearing it, in the Language Trainer, or with the buttons above. Decoding only works on text produced by Glyphic.")
-
-    -- Scrollable single-column list: each row is a language with its fluency bar
-    -- and two icon buttons -- a check (make fully fluent) and a circle-slash
-    -- (reset to 0%), both behind a confirmation. Mouse-wheel scrolls.
-    local scroll = CreateFrame("ScrollFrame", "TonguesOfAzerothLearnedScroll", learnedPanel)
-    scroll:SetPoint("TOPLEFT", langLabel, "BOTTOMLEFT", 0, -6)
-    scroll:SetPoint("BOTTOMRIGHT", note, "TOPRIGHT", 0, 10)
-    scroll:EnableMouseWheel(true)
-
+    -- Single-column list: each row is a language with its fluency bar and two
+    -- icon buttons -- a check (make fully fluent) and a circle-slash (reset to
+    -- 0%), both behind a confirmation.
     local ROW_H = 38
     learnedRowH = ROW_H
-    local CHILD_W = 560
+    -- The list used to be 560 wide inside a narrower scroll frame, which
+    -- clipped the right-hand end of every row. Nothing clips it now, so it is
+    -- the width actually available: the panel's content, less the indent it
+    -- starts at and the margin the footer keeps.
+    local CHILD_W = 516
 
-    local child = CreateFrame("Frame", nil, scroll)
-    -- A scroll child needs a real size of its own: at zero width it draws
-    -- nothing at all, however many rows are parented to it. Only the width is
-    -- settled here -- reflowLearnedRows owns the height, which depends on how
-    -- many rows are actually shown.
-    child:SetSize(CHILD_W, ROW_H)
-    scroll:SetScrollChild(child)
-    learnedScroll, learnedChild = scroll, child
+    -- A plain frame, not a scroll region. The height is reflowLearnedRows's,
+    -- and it has to be non-zero from the start or nothing parented to it draws
+    -- at all; the footer below follows it down as it grows.
+    local child = CreateFrame("Frame", "TonguesOfAzerothLearnedList", content)
+    child:SetHeight(ROW_H)
+    child:SetPoint("TOPLEFT", langLabel, "BOTTOMLEFT", 0, -6)
+    child:SetPoint("RIGHT", content, "RIGHT", -28, 0)
+    learnedChild = child
+
+    -- Footer note. Last thing on the page, so it is what the page is measured
+    -- against; pinning it to the bottom of the panel would have left it
+    -- floating over the middle of a list taller than the window.
+    local note = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    note:SetPoint("TOPLEFT", child, "BOTTOMLEFT", 0, -12)
+    note:SetPoint("RIGHT", content, "RIGHT", -28, 0)
+    note:SetJustifyH("LEFT")
+    note:SetText("Fluency is how fully you speak a tongue -- build it by hearing it, in the Language Trainer, or with the buttons above. Decoding only works on text produced by Glyphic.")
+    learnedPanel._lastChild = note
 
     -- One row per primary language; sub-languages share their parent's word set
     -- (and fluency), so the parent covers them. Rows for tongues your race
@@ -2198,14 +2230,6 @@ local function BuildLearnedPanel()
 
     -- syncLearnedRows owns learnedOrder, so it does the first pass too.
     syncLearnedRows()
-
-    scroll:SetScript("OnMouseWheel", function(self, delta)
-        local v = self:GetVerticalScroll() - delta * ROW_H
-        if v < 0 then v = 0 end
-        local maxv = self:GetVerticalScrollRange()
-        if v > maxv then v = maxv end
-        self:SetVerticalScroll(v)
-    end)
 
     learnedPanel.refresh = RefreshLearned
     learnedPanel:SetScript("OnShow", RefreshLearned)
