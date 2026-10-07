@@ -3,6 +3,17 @@
 All notable changes to Glyphic are documented here. The addon was called
 Tongues of Azeroth before 0.5.3.
 
+## [0.5.5]
+- **The tongues your race already speaks are shown by default.** Hiding them
+  is defensible -- the game already translates those for you -- but it reads
+  as the addon being broken: a night elf opens the list, finds no Darnassian,
+  and reasonably concludes it is missing. The option is still there under
+  Languages, and turning it back on sticks.
+- **Fixed:** the accent list on the project page and in the README still named
+  Darnassian, Tauren, Forsaken and Pandaren, which were retired back in
+  0.2.14. There are eight accents and now the documentation says so. Nothing
+  changed in the addon -- it was the description that was wrong.
+
 ## [0.5.4]
 - **Profiles.** A new panel under `/glyphic` turns everything on a character --
   language, fluency, accents, channels, cast phrases, the languages you

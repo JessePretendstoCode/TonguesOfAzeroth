@@ -68,7 +68,7 @@ Another 60 or so generated tongues and dialects sit behind those, each with its 
 
 ## Accents
 
-Prefer to be understood? Accents rewrite your English into a spoken dialect rather than a foreign language. Choose one, set its strength, and speak normally. There are twelve: Dwarven, Troll, Orcish, Darnassian, Draenei, Tauren, Forsaken, Pandaren, Goblin, Gilnean, Vrykul and Pirate.
+Prefer to be understood? Accents rewrite your English into a spoken dialect rather than a foreign language. Choose one, set its strength, and speak normally. There are eight: Dwarven, Troll, Orcish, Draenei, Goblin, Gilnean, Vrykul and Pirate.
 
 Accents and languages compose. Whatever your fluency leaves in English keeps your accent, so a Dwarf at 50% Orcish sounds like a Dwarf speaking broken Orcish. At 100% there is no English left for the accent to touch.
 

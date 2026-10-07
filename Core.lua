@@ -457,8 +457,24 @@ local function migrateDB()
     end
     -- Hide the tongues your race already speaks in-game (Common for a Human,
     -- Orcish + Taur-ahe for a Tauren, ...) from the speak list. Display-only.
+    --
+    -- Off by default since 0.5.5. On paper hiding them is right -- the client
+    -- already translates those for you, so Glyphic doing it too is redundant --
+    -- but in practice it reads as the addon being broken. A night elf opens the
+    -- list, finds no Darnassian, and concludes it is missing rather than
+    -- deliberately omitted. That question arrived often enough to outweigh the
+    -- tidier list.
     if db.hideNativeLanguages == nil then
-        db.hideNativeLanguages = true
+        db.hideNativeLanguages = false
+    end
+    -- The default used to be on, and a default that has already been written
+    -- into someone's saved variables is indistinguishable from a choice they
+    -- made. Everyone still carrying the old value is moved across once, which
+    -- is the only way the change reaches the players who were confused by it;
+    -- the flag means anyone who turns hiding back on keeps it.
+    if not db.nativeHideDefaultFlipped then
+        db.nativeHideDefaultFlipped = true
+        db.hideNativeLanguages = false
     end
     -- Automatically switch Glyphic off while inside an instance (and back on when you
     -- leave). Blizzard's "secret" chat protection blocks addons from reading chat

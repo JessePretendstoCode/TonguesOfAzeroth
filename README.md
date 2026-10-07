@@ -41,10 +41,10 @@ in character when you want to be heard in it.
   eldritch ones (Kalimag, Titan, Draconic, Nerubian, Nazja, Ethereal…). The Troll and Elf
   sub-dialects share their parent's vocabulary but bend it, so `Amani`, `Gurubashi` and
   `Drakkari` come out recognisably Zandali without being identical to it.
-- Accents, which flavor your *English* with a spoken dialect rather than translating it:
-  Dwarven ("I cannae do this, aye!"), Troll ("da voodoo, mon."), Orcish, Darnassian,
-  Draenei, Tauren, Forsaken, Pandaren, Goblin, Gilnean, Vrykul and Pirate. Each has its
-  own strength slider, so you can go subtle or thick.
+- Accents, which flavor your *English* with a spoken dialect rather than translating it.
+    There are eight: Dwarven ("I cannae do this, aye!"), Troll ("da voodoo, mon."),
+    Orcish, Draenei, Goblin, Gilnean, Vrykul and Pirate. Each has its own strength
+    slider, so you can go subtle or thick.
 - A language trainer, called Decipher. It's a Wordle-style minigame: pick a language,
   solve daily-style word puzzles, climb reputation ranks, and build fluency, shown on
   live progress bars. Solving words unlocks partial decoding of that language before

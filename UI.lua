@@ -159,7 +159,12 @@ local function db()
     if not GlyphicDB.accent then GlyphicDB.accent = {} end
     if GlyphicDB.accent.strength == nil then GlyphicDB.accent.strength = 100 end
     if GlyphicDB.accent.emotes == nil then GlyphicDB.accent.emotes = false end
-    if GlyphicDB.hideNativeLanguages == nil then GlyphicDB.hideNativeLanguages = true end
+    -- hideNativeLanguages is deliberately NOT defaulted here. It is Core's
+    -- key -- Core's migration owns it and Core's nativeHidingOn reads it --
+    -- and a copy of the default in this file is a second place for it to
+    -- drift, which no test can see because the two agree until the day they
+    -- do not. If this somehow runs first the field is nil, which reads as
+    -- "do not hide", which is the default anyway.
     if GlyphicDB.autoDisableInInstances == nil then GlyphicDB.autoDisableInInstances = true end
     -- Mirrors Core's migration: a profile that never picked an accent has none,
     -- rather than silently arriving with Dwarven selected.
