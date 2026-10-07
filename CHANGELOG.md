@@ -3,6 +3,14 @@
 All notable changes to Glyphic are documented here. The addon was called
 Tongues of Azeroth before 0.5.3.
 
+## [0.5.6]
+- **Fixed: importing a profile threw an error.** The settings were applied
+  correctly and the interface still reloaded, so nothing was lost or left
+  half-imported -- but the confirmation threw a Lua error on its way out,
+  which is not what you want to see on the screen that just told you your
+  settings were being replaced. The same fault was waiting on the "import
+  failed" path.
+
 ## [0.5.5]
 - **The tongues your race already speaks are shown by default.** Hiding them
   is defensible -- the game already translates those for you -- but it reads

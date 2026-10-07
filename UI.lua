@@ -3744,7 +3744,7 @@ function ns.ConfirmProfileImport(parsed)
             local applied, err = ns.Profile.Apply(parsed)
             if not applied then
                 profileStatusMsg("Import failed: " .. tostring(err), true)
-                Print("|cffff0000Import failed:|r " .. tostring(err))
+                ns.Print("|cffff0000Import failed:|r " .. tostring(err))
                 return
             end
             -- A reload rather than a refresh. Settings are read by a dozen
@@ -3752,7 +3752,7 @@ function ns.ConfirmProfileImport(parsed)
             -- list, cast lookups), and chasing every one of them to invalidate
             -- correctly is a far bigger surface for a bug than simply starting
             -- again from the saved variables we just wrote.
-            Print("Profile imported from |cffffff00" .. from .. "|r. Reloading the interface...")
+            ns.Print("Profile imported from |cffffff00" .. from .. "|r. Reloading the interface...")
             if ReloadUI then ReloadUI() end
         end,
     })
