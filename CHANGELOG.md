@@ -3,6 +3,26 @@
 All notable changes to Glyphic are documented here. The addon was called
 Tongues of Azeroth before 0.5.3.
 
+## [0.5.7]
+- **Full immersion.** A new option under Languages: *Only understand languages
+  I've learned here*. With it on, Common and your racial tongues stop being
+  automatic -- you read them exactly as well as your fluency in this addon
+  says you do, and no better. A night elf who never studied Orcish cannot read
+  Orcish, whatever her character sheet says.
+  The garbled text is the game's own. Glyphic uses Blizzard's actual word
+  tables and Blizzard's actual hash, so a line hidden by the addon reads the
+  way a line hidden by the client reads -- right down to "lol" coming out
+  "Kek". Partial fluency works the way the game's does too: the same words
+  stay legible every time, so re-reading a line never changes what it said.
+  Off by default and it stays off; this is not something to discover after an
+  update. Quest givers and bosses have their own separate switch, since a boss
+  callout is a mechanic as much as it is flavour. Which channels it applies to
+  follows your existing Chat Channel settings.
+  One honest limit: this can only ever take understanding away. Speech in a
+  language your character never knew is scrambled by the game before any addon
+  can see it, and the original never reaches your computer -- so those lines
+  are left exactly as they arrived, at any fluency. No addon can undo that one.
+
 ## [0.5.6]
 - **Fixed: importing a profile threw an error.** The settings were applied
   correctly and the interface still reloaded, so nothing was lost or left

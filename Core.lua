@@ -476,6 +476,18 @@ local function migrateDB()
         db.nativeHideDefaultFlipped = true
         db.hideNativeLanguages = false
     end
+
+    -- Full immersion: stop understanding the game's own languages unless
+    -- Glyphic says you studied them. Off, and staying off -- it makes most of
+    -- the chat window unreadable on purpose, which is wonderful if you asked
+    -- for it and alarming if you did not. No one-time flip for this one; a
+    -- default that rewrites your chat is a default nobody should arrive at by
+    -- upgrading.
+    if db.fullImmersion == nil then db.fullImmersion = false end
+    -- Quest givers and raid bosses, separately. Boss callouts are mechanics as
+    -- much as flavour, so losing them is a different decision from losing
+    -- player chatter and gets its own switch.
+    if db.immersionNPCs == nil then db.immersionNPCs = false end
     -- Automatically switch Glyphic off while inside an instance (and back on when you
     -- leave). Blizzard's "secret" chat protection blocks addons from reading chat
     -- during boss fights, so translations can't be decoded there. On by default;
@@ -835,21 +847,47 @@ local NATIVE_LANG_NAMES = {
 local nativeLangSet = nil
 local didNativeInit = false
 
+-- The same answer keyed by Blizzard's own number instead of ours. Full
+-- immersion needs to know whether the *client* understood a line, which is a
+-- question about Blizzard's language list and not about Glyphic's -- and the
+-- two are not interchangeable, because the client knows tongues Glyphic has no
+-- name for and the mapping above is deliberately incomplete.
+local nativeBlizzSet = nil
+
 local function computeNativeLanguages()
     nativeLangSet = nil
+    nativeBlizzSet = nil
     if type(GetNumLanguages) ~= "function" or type(GetLanguageByIndex) ~= "function" then
         return
     end
     local n = GetNumLanguages()
     if not n or n < 1 then return end
-    local set = {}
+    local set, blizz = {}, {}
     for i = 1, n do
         local name, id = GetLanguageByIndex(i)
         local toa = (type(id) == "number" and NATIVE_LANG_IDS[id])
             or (type(name) == "string" and NATIVE_LANG_NAMES[string.lower(name)])
         if toa then set[toa] = true end
+        if type(id) == "number" then blizz[id] = true end
     end
     if next(set) then nativeLangSet = set end
+    if next(blizz) then nativeBlizzSet = blizz end
+end
+
+-- Does the client itself understand this language? Only then did it hand us
+-- the speaker's actual words, and only then is there anything to take away.
+--
+-- Computes on demand when the set is missing rather than trusting the login
+-- pass to have run. The set is built from the client's own language list,
+-- which is populated some time during login, and a chat line can arrive
+-- before that -- in which case a nil set reads as "understands nothing" and
+-- full immersion quietly does nothing at all for the rest of the session.
+-- That failure is invisible: the chat window simply looks like the setting is
+-- off. Two API calls on a line we were about to rewrite anyway is cheaper
+-- than a feature that silently declines to work.
+function ns.ClientKnowsLanguage(blizzId)
+    if not nativeBlizzSet then computeNativeLanguages() end
+    return (nativeBlizzSet and nativeBlizzSet[blizzId]) == true
 end
 
 local function nativeHidingOn()
@@ -1761,6 +1799,59 @@ local function realLanguageId(languageName)
     if not id or not Language.IsValid(id) then return nil end
     return id
 end
+
+--=========================================================================--
+--  Full immersion
+--=========================================================================--
+-- The game decides what you understand by what your character was born as.
+-- Full immersion hands that decision to Glyphic instead, so understanding
+-- Orcish means having studied Orcish rather than having rolled Horde.
+--
+-- It can only ever subtract. Speech in a tongue the client does not know
+-- arrives already garbled and the original never reaches this machine, so
+-- those lines are passed through untouched no matter how fluent Glyphic
+-- thinks you are -- there is nothing there to reveal. Which also means the
+-- only lines this touches are ones you could otherwise read, and that is the
+-- whole feature: your own faction's chatter stops being automatic.
+function ns.FullImmersionOn()
+    local db = GlyphicDB
+    return (db and db.fullImmersion) and true or false
+end
+
+-- Returns the rewritten line and the tongue to paint it as, or nil to leave
+-- the line alone. `blizzId` is Blizzard's numeric language for the message.
+local function immersionRewrite(msg, tag, sender, blizzId, fromNPC)
+    if not ns.FullImmersionOn() then return nil end
+    -- A tagged line is Glyphic speech riding inside Common; the tag is the
+    -- real language and the decoder below owns it. Garbling it here would
+    -- hit the carrier rather than the content.
+    if tag then return nil end
+    if type(blizzId) ~= "number" or blizzId == 0 then return nil end
+    if isSelf(sender) then return nil end
+    if fromNPC and not (GlyphicDB and GlyphicDB.immersionNPCs) then return nil end
+    if not ns.ClientKnowsLanguage(blizzId) then return nil end
+
+    local glyphId = NATIVE_LANG_IDS[blizzId]
+    -- No Glyphic equivalent means no way to have studied it, which is a
+    -- fluency of zero rather than a reason to skip the line.
+    local fluency = (glyphId and fluencyPercent(glyphId)) or 0
+    -- Another fast path rather than a rule. A fluent speaker's line survives
+    -- the garbler unchanged and is caught by the `out == msg` test at the
+    -- bottom, so this only saves the work -- but it saves it on every line of
+    -- your own faction's chatter, which is most of what you read.
+    if fluency >= 100 then return nil end
+
+    local out = ns.Immersion
+        and ns.Immersion.Garble(msg, blizzId, ns.Immersion.SkillFromFluency(fluency))
+    -- Blizzard ships one word for Gilnean and two for Pandaren, which cannot
+    -- garble a sentence so much as stutter it. Glyphic has real tongues for
+    -- both, so those fall back to our own generator rather than to nothing.
+    if not out and glyphId then
+        out = Language.TranslateText(msg, 100 - fluency, glyphId)
+    end
+    if not out or out == msg then return nil end
+    return out, glyphId
+end
 ns.InvalidatePassiveNames = function() passiveNameToId = nil end
 
 -- Cast phrases name their tongue in prose after the speech -- `snarls "Aman!"
@@ -1976,6 +2067,24 @@ local function inlineChatFilter(_, event, msg, sender, languageName, ...)
         isReal = langId ~= nil
     end
 
+    -- Full immersion, before anything tries to read the line: a tongue you
+    -- have not studied should be no more legible to the decoder than it is to
+    -- you. The numeric language is the tenth chat argument, which is the
+    -- seventh left in the varargs -- read positionally for the same reason the
+    -- GUID above is, and costing no more than the feature itself if it moves.
+    --
+    -- Marked `isReal` so the rest of the filter treats it as genuine in-game
+    -- speech, which it is: that skips the decoder, which has nothing to offer
+    -- a line nobody encoded, and still paints it in the tongue's color.
+    local blizzLangId = select("#", ...) >= 7 and select(7, ...) or nil
+    local garbled, garbledId = immersionRewrite(msg, tag, sender, blizzLangId, false)
+    if garbled then
+        msg = garbled
+        stripped = garbled
+        langId = garbledId or langId
+        isReal = langId ~= nil
+    end
+
     -- `decoded` lines are already readable end to end, so a name highlight has
     -- nothing left to tell you there and would just be noise. It only runs on
     -- speech you can't read, which no longer includes your own: that is now
@@ -2060,9 +2169,41 @@ local function inlineChatFilter(_, event, msg, sender, languageName, ...)
     return false
 end
 
+-- NPCs get their own filter rather than a branch in the one above, and a much
+-- smaller one. Everything the main filter does -- channel options, name
+-- harvesting, decoding, passive learning -- is about other players, and
+-- routing quest givers and raid bosses through all of it to reach a single
+-- setting would put that whole pipeline behind a toggle nobody tested it with.
+-- This does the one thing the toggle promises and nothing else.
+local function npcImmersionFilter(_, _, msg, sender, languageName, ...)
+    if isSecret(msg) or isSecret(sender) then return false end
+    if not msg or msg == "" then return false end
+    migrateDB()
+    -- The NPC toggle itself is checked inside immersionRewrite, not here. One
+    -- place decides whether a line is garbled, so a test that drives the
+    -- decision drives all of it.
+
+    local blizzLangId = select("#", ...) >= 7 and select(7, ...) or nil
+    local garbled, garbledId = immersionRewrite(msg, nil, sender, blizzLangId, true)
+    if not garbled then return false end
+    if Colors and garbledId then
+        return false, Colors.Apply(garbled, garbledId, { speech = true }), sender,
+            languageName, ...
+    end
+    return false, garbled, sender, languageName, ...
+end
+
+local NPC_CHAT_EVENTS = {
+    "CHAT_MSG_MONSTER_SAY", "CHAT_MSG_MONSTER_YELL",
+    "CHAT_MSG_MONSTER_WHISPER", "CHAT_MSG_MONSTER_PARTY",
+}
+
 if ChatFrame_AddMessageEventFilter then
     for event in pairs(CHAT_EVENTS) do
         ChatFrame_AddMessageEventFilter(event, inlineChatFilter)
+    end
+    for i = 1, #NPC_CHAT_EVENTS do
+        ChatFrame_AddMessageEventFilter(NPC_CHAT_EVENTS[i], npcImmersionFilter)
     end
 end
 

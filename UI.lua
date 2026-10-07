@@ -57,6 +57,7 @@ local mainContent
 local langDropdown, motherDropdown, enableCheck, previewInput, previewOutput
 local voiceText, voiceHint
 local minimapCheck, fluencyCheck, nativeHideCheck, autoDisableCheck
+local immersionCheck, immersionNPCCheck
 local namesCheck, nameColorCheck
 local widgetCheck, widgetLockCheck
 local accentDropdown, accentSlider, accentValueText
@@ -718,6 +719,8 @@ local function RefreshLearned()
     if colorRealCheck then colorRealCheck:SetChecked(colorRealCheck._get() and true or false) end
     if passiveCheck then passiveCheck:SetChecked(d.passiveLearning ~= false) end
     if nativeHideCheck then nativeHideCheck:SetChecked(d.hideNativeLanguages and true or false) end
+    if immersionCheck then immersionCheck:SetChecked(d.fullImmersion and true or false) end
+    if immersionNPCCheck then immersionNPCCheck:SetChecked(d.immersionNPCs and true or false) end
     if langDropdown then
         langDropdown:SetSelected(d.language, Language.GetLanguageName(d.language))
     end
@@ -1817,6 +1820,32 @@ local function BuildLearnedPanel()
         if ns.OnSettingsChanged then ns.OnSettingsChanged() else RefreshLearned() end
     end)
 
+    -- Full immersion. Beside the fluency list because that list is what it
+    -- defers to: the whole switch is "understanding is what this panel says it
+    -- is, not what my race says it is".
+    immersionCheck = Compat.CreateCheckbox(content,
+        "Only understand languages I've learned here")
+    immersionCheck:SetPoint("TOPLEFT", nativeHideCheck, "BOTTOMLEFT", 0, -6)
+    immersionCheck:SetScript("OnClick", function(self)
+        db().fullImmersion = self:GetChecked() and true or false
+    end)
+    local immersionHint = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    immersionHint:SetPoint("TOPLEFT", immersionCheck, "BOTTOMLEFT", 6, -2)
+    immersionHint:SetPoint("RIGHT", content, "RIGHT", -28, 0)
+    immersionHint:SetJustifyH("LEFT")
+    immersionHint:SetJustifyV("TOP")
+    immersionHint:SetText("Common and your racial tongues stop being automatic: "
+        .. "you read them only as well as the list below says you do, in WoW's "
+        .. "own lettering. This can only take understanding away -- speech in a "
+        .. "language your character never knew arrives scrambled by the game "
+        .. "itself, and no addon can unscramble it.")
+
+    immersionNPCCheck = Compat.CreateCheckbox(content, "...including quest givers and bosses")
+    immersionNPCCheck:SetPoint("TOPLEFT", immersionHint, "BOTTOMLEFT", -6, -6)
+    immersionNPCCheck:SetScript("OnClick", function(self)
+        db().immersionNPCs = self:GetChecked() and true or false
+    end)
+
     -- Chat colors. Labels are kept short so the three sit on one line and cost
     -- the language list below only a single row of height; the detail lives in
     -- the tooltips. They sit here, above the list, because the per-language
@@ -1841,7 +1870,7 @@ local function BuildLearnedPanel()
         "Paint the [Language] tag in that tongue's color, so you can tell Demonic from Old God at a glance -- including on lines you can't read yet.\n\nIndependent of \"Tint speech\": turn this off with that on and the words are tinted while the tag stays in its usual color.",
         function() return ns.Colors and ns.Colors.TagsEnabled() end,
         function(v) ns.Colors.SetTagsEnabled(v) end)
-    colorTagCheck:SetPoint("TOPLEFT", nativeHideCheck, "BOTTOMLEFT", 0, -10)
+    colorTagCheck:SetPoint("TOPLEFT", immersionNPCCheck, "BOTTOMLEFT", 0, -10)
 
     colorSpeechCheck = colorCheck("Tint speech",
         "Color the spoken words themselves. Off by default -- the tag alone marks the language without repainting whole conversations.\n\nIndependent of \"Color tags\": either can be on without the other.",
