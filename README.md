@@ -308,7 +308,9 @@ Each panel answers one question, which is how to guess where a setting lives:
   journal keeps reading in the tongue of whoever gave it to you. Quests already in your
   log when you switch this on stay readable, since nothing will tell an addon who gave
   you one after the fact -- hand one in and it's recorded for next time, and
-  `/glyphic quest` will tell you which of those a quest is in. Buttons are never
+  `/glyphic quest` will tell you which of those a quest is in. Quests with nobody
+  behind them stay readable too: one from an item in your bags, a bulletin board or
+  walking into a place has no speaker to borrow a tongue from. Buttons are never
   touched -- you can still accept a quest you can't read -- and quest log titles stay
   readable so you can still manage your log. It works with replacement quest frames,
   because it changes the text the game hands out rather than the frames that draw it.

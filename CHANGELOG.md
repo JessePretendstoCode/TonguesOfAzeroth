@@ -36,6 +36,10 @@ Tongues of Azeroth before 0.5.3.
   player for every quest in the log, tauren ones included. Handing one in
   fixes it for next time: returning to the giver is the second and last
   occasion they and the quest are in the same place.
+  A quest with nobody behind it is left alone: one you start by right-clicking
+  something in your bags, or by walking into a place, or off a bulletin board.
+  There is no API that says "this came from an item" and none is needed -- the
+  absence of a speaker is the signal.
   `/glyphic quest` says which of the four reasons a quest is reading plainly
   -- the feature off, the wrappers not on, the quest predating the record, or
   the client not saying which quest is open. Three of those are not faults,

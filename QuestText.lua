@@ -26,6 +26,11 @@
     is the worst one available: it puts Orcish in front of a Horde player for
     every quest in their log, tauren ones included.
 
+    Nobody talking means nothing hidden. A quest you start by right-clicking
+    something in your bags, or by walking into a place, or off a bulletin
+    board, has no speaker -- so it is left in plain English rather than being
+    handed the accent of whoever you happened to talk to last.
+
     How far does it go? Everything the NPC shows you: the greeting, the
     offer, its title, the objectives, the progress and the thanks, the gossip
     window and the objective tracker. Not the buttons -- Accept still says
@@ -355,9 +360,14 @@ end
 -- and which tongue a quest was offered in.
 local frame = CreateFrame("Frame")
 
+-- Assigned either way, nil included. There is no API that says "this quest
+-- came from an item", and there does not need to be: a quest opened from your
+-- bags, from a bulletin board, from an area trigger or from the adventure map
+-- has no unit behind it, and that absence is the whole signal. Keeping the
+-- last NPC you spoke to would put a dwarf's accent on a letter you found in a
+-- drawer ten minutes later.
 local function noteSpeaker()
-    local lang = QuestText.LanguageForUnit("npc")
-    if lang then currentLang = lang end
+    currentLang = QuestText.LanguageForUnit("npc")
 end
 
 -- Write down whichever quest is on screen, in the tongue of whoever is holding
