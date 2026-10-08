@@ -122,9 +122,13 @@ local function questLangs()
     return GlyphicDB.questLangs
 end
 
+-- `false` is a real answer and not an absence: it means we watched this quest
+-- being offered and there was nobody holding it out -- an item in your bags, a
+-- bulletin board, walking into a place. That is different from never having
+-- seen the quest at all, and the two are handled differently below.
 function QuestText.RememberQuest(questID, blizzId)
     if type(questID) ~= "number" or questID <= 0 then return end
-    if type(blizzId) ~= "number" then return end
+    if blizzId ~= false and type(blizzId) ~= "number" then return end
     questLangs()[questID] = blizzId
 end
 
@@ -133,14 +137,28 @@ function QuestText.ForgetQuest(questID)
     questLangs()[questID] = nil
 end
 
--- nil when we never saw the quest offered, and nil is the whole point: there
--- is no way to ask an accepted quest who gave it to you. Guessing used to mean
--- falling back to your own faction's tongue, which put Orcish in a Horde
--- player's journal for every quest in it -- including the tauren ones, which
--- is the single most visible way this feature can be wrong.
+-- Three answers, and the difference between the last two is the whole design:
+--   a number -- we watched this quest being offered, in that tongue
+--   false    -- we watched it being offered by nobody, so it has no tongue
+--   nil      -- we never saw it offered and never will
 function QuestText.LanguageForQuest(questID)
     if type(questID) ~= "number" or questID <= 0 then return nil end
     return questLangs()[questID]
+end
+
+-- What the journal and the tracker should read a quest in; nil to leave it be.
+--
+-- A quest nobody offered stays plain, because nobody said it. A quest we
+-- simply never saw falls back to your own faction's tongue -- a guess, and
+-- knowingly a wrong one for the tauren who actually handed it over, but the
+-- alternative is a log that stays in English forever for everything you were
+-- carrying the day you switched this on. Handing one in replaces the guess
+-- with the truth, so the log corrects itself as you play.
+function QuestText.JournalLanguage(questID)
+    local known = QuestText.LanguageForQuest(questID)
+    if known == false then return nil end
+    if type(known) == "number" then return known end
+    return QuestText.PlayerLanguage()
 end
 
 -- A row in the quest log is not a quest. The tracker and the journal both hand
@@ -278,7 +296,7 @@ function QuestText.Install()
         local original = GetQuestLogQuestText
         GetQuestLogQuestText = function(questID, ...)
             local a, b, c = original(questID, ...)
-            local lang = QuestText.LanguageForQuest(
+            local lang = QuestText.JournalLanguage(
                 type(questID) == "number" and questID or selectedQuestID())
             if not lang then return a, b, c end
             return QuestText.Garble(a, lang), QuestText.Garble(b, lang), c
@@ -321,7 +339,7 @@ function QuestText.Install()
         local original = GetQuestLogLeaderBoard
         GetQuestLogLeaderBoard = function(objIndex, questIndex, ...)
             local text, kind, done = original(objIndex, questIndex, ...)
-            local lang = QuestText.LanguageForQuest(
+            local lang = QuestText.JournalLanguage(
                 questIDForLogIndex(questIndex) or selectedQuestID())
             if not lang then return text, kind, done end
             return QuestText.Garble(text, lang), kind, done
@@ -331,7 +349,7 @@ function QuestText.Install()
         local original = C_QuestLog.GetQuestObjectives
         C_QuestLog.GetQuestObjectives = function(questID, ...)
             local objectives = original(questID, ...)
-            local lang = QuestText.LanguageForQuest(questID)
+            local lang = QuestText.JournalLanguage(questID)
             if lang and type(objectives) == "table" and QuestText.Active() then
                 for i = 1, #objectives do
                     local row = objectives[i]
@@ -374,12 +392,14 @@ end
 -- it out. Used at the offer and again at the turn-in: handing a quest back is
 -- the second and last time the giver and the quest are in the same place, so
 -- it is also the only chance to backfill one taken before any of this was on.
--- No check on currentLang here: RememberQuest already refuses a tongue that
--- isn't a number, and a second guard in front of it is one nothing can test.
+-- `currentLang or false` rather than `currentLang`: "there was nobody holding
+-- this out" is worth writing down. Without it an item quest is indistinguish-
+-- able from one taken before any of this existed, and the journal would hand
+-- your own faction's tongue to a letter nobody spoke.
 local function rememberCurrent()
     if type(GetQuestID) ~= "function" then return end
     local ok, id = pcall(GetQuestID)
-    if ok then QuestText.RememberQuest(id, currentLang) end
+    if ok then QuestText.RememberQuest(id, currentLang or false) end
 end
 
 frame:SetScript("OnEvent", function(_, event, ...)
@@ -460,16 +480,23 @@ function QuestText.Report()
     for _ in pairs((GlyphicDB and GlyphicDB.questLangs) or {}) do total = total + 1 end
     if id then
         local lang = QuestText.LanguageForQuest(id)
-        if lang then
-            known = 1
-            local glyphId = ns.NATIVE_LANG_IDS and ns.NATIVE_LANG_IDS[lang]
+        local function nameOf(blizzId)
+            local glyphId = ns.NATIVE_LANG_IDS and ns.NATIVE_LANG_IDS[blizzId]
             local name = glyphId and ns.Language and ns.Language.GetLanguageName
                 and ns.Language.GetLanguageName(glyphId)
-            add("its tongue: " .. (name or glyphId or ("id " .. lang)))
+            return name or glyphId or ("id " .. tostring(blizzId))
+        end
+        if type(lang) == "number" then
+            known = 1
+            add("its tongue: " .. nameOf(lang) .. " |cff808080(from its giver)|r")
+        elseif lang == false then
+            add("its tongue: none -- nobody handed you this one, so it is left "
+                .. "in plain words")
         else
-            add("its tongue: |cffff6060not recorded -- you had this quest before "
-                .. "quest text was switched on, so Glyphic never met the giver. "
-                .. "Hand it in, or take a new one.|r")
+            add("its tongue: " .. nameOf(QuestText.PlayerLanguage())
+                .. " |cffff6060(guessed -- you had this quest before quest text "
+                .. "was switched on, so Glyphic never met the giver. Hand it in "
+                .. "and the real one is recorded.)|r")
         end
     end
     add("quests with a recorded tongue: " .. total)

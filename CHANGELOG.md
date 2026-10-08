@@ -29,17 +29,19 @@ Tongues of Azeroth before 0.5.3.
   their faction for the many quest givers who aren't a player race at all, and
   it's remembered per quest so your journal still reads in the tongue of
   whoever gave it to you long after they're out of sight.
-  Quests already in your log when you switch this on stay readable, as do ones
-  shared to you by a party member. Nothing in the game will tell an addon who
-  gave you a quest after the fact, and the obvious guess -- your own faction's
-  tongue -- is the worst answer available: it puts Orcish in front of a Horde
-  player for every quest in the log, tauren ones included. Handing one in
-  fixes it for next time: returning to the giver is the second and last
-  occasion they and the quest are in the same place.
-  A quest with nobody behind it is left alone: one you start by right-clicking
-  something in your bags, or by walking into a place, or off a bulletin board.
-  There is no API that says "this came from an item" and none is needed -- the
-  absence of a speaker is the signal.
+  Quests already in your log when you switch this on fall back to your own
+  faction's tongue -- Orcish for Horde, Common for Alliance. Nothing in the
+  game will tell an addon who gave you a quest after the fact, so this is
+  knowingly the wrong answer for the tauren who actually handed it over; the
+  alternative is a log that stays in English forever for everything you were
+  carrying that day. Handing one in replaces the guess with the truth, since
+  returning to the giver is the second and last occasion they and the quest
+  are in the same place, so the log corrects itself as you play.
+  A quest with nobody behind it is a separate case and stays in plain words:
+  one you start by right-clicking something in your bags, or by walking into
+  a place, or off a bulletin board. There is no API that says "this came from
+  an item" and none is needed -- the absence of a speaker is the signal, and
+  it is recorded as an answer so those never get swept into the guess above.
   `/glyphic quest` says which of the four reasons a quest is reading plainly
   -- the feature off, the wrappers not on, the quest predating the record, or
   the client not saying which quest is open. Three of those are not faults,
