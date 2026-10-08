@@ -25,10 +25,12 @@ Accent.lua
 Profile.lua
 Core.lua
 QuestText.lua
+QuestLearn.lua
 CastLibrary.lua
 Casts.lua
 GameVoices.lua
 Voice.lua
 Whispers.lua
 Game.lua
+Toast.lua
 UI.lua

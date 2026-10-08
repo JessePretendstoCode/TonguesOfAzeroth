@@ -49,6 +49,15 @@ in character when you want to be heard in it.
   solve daily-style word puzzles, climb reputation ranks, and build fluency, shown on
   live progress bars. Solving words unlocks partial decoding of that language before
   you're fully fluent.
+- Fluency you earn by playing, two ways, both switchable on the trainer panel.
+  Overhearing another player's tagged speech slowly teaches you that tongue. And
+  finishing a quest teaches you one word of the language its giver spoke -- literally
+  one word: fluency is already the fraction of words that come through clear, so a word
+  out of Orcish's hundred is one percent, and a hundred quests makes you fluent. Zandali
+  is 77 words and Gnomish is 128, so those take 77 and 128 quests. While levelling only
+  green-or-better quests count, so you can't farm a starting zone; at the level cap,
+  where nothing pays experience any more, everything counts. A small draggable toast
+  names the word you picked up.
 - A strength slider, 0 to 100, for how much of your text is translated. `0` leaves your
   text alone and lets accents through, `100` translates it completely. In between, words
   convert deterministically, one by one, as you raise the level.

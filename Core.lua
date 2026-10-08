@@ -508,6 +508,13 @@ local function migrateDB()
         db.passiveLearning = true
     end
 
+    -- Learning from quests. On by default alongside passive learning, and for
+    -- the same reason: both are fluency arriving from ordinary play, and a
+    -- player who wants to earn it only at the trainer turns both off together.
+    if db.questLearning == nil then
+        db.questLearning = true
+    end
+
     -- One-time: "strength" used to be a single global slider; now speaking
     -- strength IS your per-language fluency. Seed the language you were actively
     -- speaking from that old strength (only if you have no fluency in it yet) so

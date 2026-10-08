@@ -59,6 +59,36 @@ Tongues of Azeroth before 0.5.3.
   Only when both come up empty does it fall back to the NPC's side, Orcish for
   Horde and Common for Alliance. If your records were written before this --
   a troll or goblin reading Orcish -- `/glyphic quest reset` clears them.
+- **Quests teach you the tongue they were given in.** A third way to earn
+  fluency, on the Language Trainer panel beside passive learning, and the only
+  one that works for somebody playing alone: the trainer is a minigame you have
+  to go and sit down at, and overhearing only counts other players' tagged
+  speech. Under full immersion that leaves a solo character with every word
+  around them hidden and no way up. Finish a job for somebody and you come away
+  with one word of their language.
+  One word is a literal quantity, not a figure of speech. Fluency is already
+  "what fraction of the words come through clear", so one word out of a
+  tongue's vocabulary is exactly that fraction, and the vocabulary is Blizzard's
+  own word list. Orcish has a hundred words, so Orcish takes a hundred quests.
+  Zandali has 77 and Gnomish 128, and those take 77 and 128. There is no dial
+  for this because the answer was already written in the word list.
+  Which quests count is the game's own question about which quests are worth
+  doing. While you are levelling a quest has to be green or better -- the band
+  that still pays experience -- so a level 40 cannot farm a starting zone for a
+  hundred cheap words. That band widens as you level, because the client's own
+  green range widens, so the rule keeps meaning the same thing at every level.
+  At the level cap it inverts. Nothing pays experience up there, so the same
+  rule would switch the feature off at exactly the level most roleplayers live
+  at; at the cap, every quest counts. The cap is whatever your client says it
+  is, so it is 60 on Classic and 90 on retail without either being written
+  down anywhere.
+  Quests with no recorded tongue teach nothing, which is the same two cases the
+  journal already refuses to guess at: one taken before any of this was on has
+  no giver left to ask, and one off an item or a bulletin board had no speaker
+  to learn from.
+  A small toast names the word and counts it -- *Lok'tar, 41 of 100* -- and can
+  be dragged anywhere you like. Three hand-ins at a quest hub queue up rather
+  than overwriting each other.
   `/glyphic quest reset` forgets every recorded tongue, for when the records
   are wrong rather than missing. The right one is written down again the next
   time you stand in front of the giver.

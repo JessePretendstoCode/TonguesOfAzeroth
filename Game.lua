@@ -156,7 +156,7 @@ local COLORS = {
 local gameFrame, grid
 local tiles = {}
 local input, clueLabel, clueText, statusText, statsText, repBar
-local passiveCheck
+local passiveCheck, questCheck
 local built = false
 local wordLen = 5
 
@@ -345,6 +345,9 @@ function updateStats()
 
     if passiveCheck then
         passiveCheck:SetChecked(GlyphicDB and GlyphicDB.passiveLearning ~= false)
+    end
+    if questCheck then
+        questCheck:SetChecked(GlyphicDB and GlyphicDB.questLearning ~= false)
     end
 
     -- Live-update the Languages panel's fluency bars if it's open too.
@@ -662,6 +665,31 @@ local function build()
         GlyphicDB = GlyphicDB or {}
         GlyphicDB.passiveLearning = self:GetChecked() and true or false
     end)
+
+    -- The third way in, and the only one that works for somebody playing
+    -- alone: overhearing needs other people talking, and the trainer needs
+    -- you to stop playing and come here.
+    questCheck = Compat.CreateCheckbox(f,
+        "Learn from quests -- finishing one teaches a word of its giver's tongue")
+    local questShift = 0
+    if questCheck.labelText and questCheck.labelText.GetStringWidth then
+        questShift = -((questCheck.labelText:GetStringWidth() or 0) / 2) - 1
+    end
+    questCheck:SetPoint("TOP", passiveCheck, "BOTTOM", questShift - passiveShift, -4)
+    questCheck:SetScript("OnClick", function(self)
+        GlyphicDB = GlyphicDB or {}
+        GlyphicDB.questLearning = self:GetChecked() and true or false
+    end)
+
+    local questHint = f:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+    questHint:SetPoint("TOP", questCheck, "BOTTOM", -questShift, -2)
+    questHint:SetPoint("LEFT", f, "LEFT", 20, 0)
+    questHint:SetPoint("RIGHT", f, "RIGHT", -20, 0)
+    questHint:SetJustifyH("CENTER")
+    -- The number is the point: a tongue takes as many quests as it has words,
+    -- so saying "about a hundred" is both true and the whole design.
+    questHint:SetText("One word per quest, so a tongue takes about a hundred of them."
+        .. "\nGreen or better while you are levelling; at the level cap, any quest counts.")
 
     -- Match the grid to the saved difficulty before the first round.
     applyLength(diffFor(DB().difficulty).len)
