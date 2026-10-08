@@ -29,6 +29,11 @@ Tongues of Azeroth before 0.5.3.
   their faction for the many quest givers who aren't a player race at all, and
   it's remembered per quest so your journal still reads in the tongue of
   whoever gave it to you long after they're out of sight.
+  Quests already in your log when you switch this on stay readable, as do ones
+  shared to you by a party member. Nothing in the game will tell an addon who
+  gave you a quest after the fact, and the obvious guess -- your own faction's
+  tongue -- is the worst answer available: it puts Orcish in front of a Horde
+  player for every quest in the log, tauren ones included.
   Two things are deliberately left alone. The buttons are yours, not theirs --
   Accept still says Accept and still works, because not understanding somebody
   has never stopped anyone agreeing to fetch ten boar livers. And the titles in

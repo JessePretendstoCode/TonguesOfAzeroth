@@ -19,6 +19,13 @@
     already accepted has no NPC left to ask, so the tongue is remembered at
     the moment it was offered and read back from the journal afterwards.
 
+    And if there is no record -- a quest taken before this was switched on, or
+    shared to you by somebody in your party -- the journal and the tracker
+    leave it in plain English. There is no API that will tell you who gave you
+    a quest after the fact, and the obvious guess (your own faction's tongue)
+    is the worst one available: it puts Orcish in front of a Horde player for
+    every quest in their log, tauren ones included.
+
     How far does it go? Everything the NPC shows you: the greeting, the
     offer, its title, the objectives, the progress and the thanks, the gossip
     window and the objective tracker. Not the buttons -- Accept still says
@@ -121,12 +128,35 @@ function QuestText.ForgetQuest(questID)
     questLangs()[questID] = nil
 end
 
+-- nil when we never saw the quest offered, and nil is the whole point: there
+-- is no way to ask an accepted quest who gave it to you. Guessing used to mean
+-- falling back to your own faction's tongue, which put Orcish in a Horde
+-- player's journal for every quest in it -- including the tauren ones, which
+-- is the single most visible way this feature can be wrong.
 function QuestText.LanguageForQuest(questID)
-    if type(questID) == "number" and questID > 0 then
-        local remembered = questLangs()[questID]
-        if remembered then return remembered end
+    if type(questID) ~= "number" or questID <= 0 then return nil end
+    return questLangs()[questID]
+end
+
+-- A row in the quest log is not a quest. The tracker and the journal both hand
+-- out log indices, which shuffle whenever a quest is added or abandoned, so
+-- nothing is remembered against one.
+local function questIDForLogIndex(index)
+    if type(index) ~= "number" or index <= 0 then return nil end
+    if C_QuestLog and C_QuestLog.GetInfo then
+        local ok, info = pcall(C_QuestLog.GetInfo, index)
+        if ok and type(info) == "table" and type(info.questID) == "number"
+            and info.questID > 0 then
+            return info.questID
+        end
     end
-    return currentLang or QuestText.PlayerLanguage()
+    if type(GetQuestLogTitle) == "function" then
+        local row = { GetQuestLogTitle(index) }
+        for i = 1, #row do
+            if type(row[i]) == "number" and row[i] > 100 then return row[i] end
+        end
+    end
+    return nil
 end
 
 -- Whichever quest the journal is currently showing, across the API rename.
@@ -178,7 +208,10 @@ end
 function QuestText.Garble(text, blizzId)
     if type(text) ~= "string" or text == "" then return text end
     if not QuestText.Active() then return text end
-    blizzId = blizzId or currentLang or QuestText.PlayerLanguage()
+    -- No tongue means no garbling. Reaching for the player's own faction here
+    -- would make every unattributable line read as Orcish or Common, which is
+    -- a confident wrong answer where silence was available.
+    blizzId = blizzId or currentLang
     if type(blizzId) ~= "number" then return text end
 
     local key = blizzId .. "\001" .. text
@@ -217,15 +250,10 @@ local function wrapText(name)
     end
 end
 
--- Returns several strings, all of them prose (description and objectives).
-local function wrapTexts(name)
-    local original = _G[name]
-    if type(original) ~= "function" then return end
-    _G[name] = function(...)
-        local a, b, c = original(...)
-        return QuestText.Garble(a), QuestText.Garble(b), c
-    end
-end
+-- The journal is read long after the giver is gone, so everything below asks
+-- the quest rather than the room. The sticky "whoever I spoke to last" answer
+-- these used to take is wrong in the ordinary case: open your log in a city
+-- and every quest in it reads in the tongue of the innkeeper you just greeted.
 
 function QuestText.Install()
     if installed then return end
@@ -240,9 +268,19 @@ function QuestText.Install()
     wrapText("GetProgressText")
     wrapText("GetRewardText")
 
-    -- The journal's body text. The title beside it is left alone on purpose:
-    -- see the note at the top of this file.
-    wrapTexts("GetQuestLogQuestText")
+    -- The journal's body text: description and objective paragraph. Classic
+    -- reads the selected row, retail can be handed a quest directly. The title
+    -- beside it is left alone on purpose: see the note at the top of this file.
+    if type(GetQuestLogQuestText) == "function" then
+        local original = GetQuestLogQuestText
+        GetQuestLogQuestText = function(questID, ...)
+            local a, b, c = original(questID, ...)
+            local lang = QuestText.LanguageForQuest(
+                type(questID) == "number" and questID or selectedQuestID())
+            if not lang then return a, b, c end
+            return QuestText.Garble(a, lang), QuestText.Garble(b, lang), c
+        end
+    end
 
     -- Gossip, which is the chattiest thing an NPC does and the least likely to
     -- be load-bearing. Classic spells it as globals; retail moved it into
@@ -273,19 +311,25 @@ function QuestText.Install()
     -- The objective tracker and the journal's checklist. Both read from here,
     -- so this is the one place that covers the panel on the right of the
     -- screen without going near its frames.
+    -- GetQuestLogLeaderBoard(objectiveIndex, questLogIndex). The second
+    -- argument is optional and names a row in the log rather than a quest, so
+    -- it has to be turned into a questID before it can be asked anything.
     if type(GetQuestLogLeaderBoard) == "function" then
         local original = GetQuestLogLeaderBoard
-        GetQuestLogLeaderBoard = function(...)
-            local text, kind, done = original(...)
-            return QuestText.Garble(text), kind, done
+        GetQuestLogLeaderBoard = function(objIndex, questIndex, ...)
+            local text, kind, done = original(objIndex, questIndex, ...)
+            local lang = QuestText.LanguageForQuest(
+                questIDForLogIndex(questIndex) or selectedQuestID())
+            if not lang then return text, kind, done end
+            return QuestText.Garble(text, lang), kind, done
         end
     end
     if C_QuestLog and type(C_QuestLog.GetQuestObjectives) == "function" then
         local original = C_QuestLog.GetQuestObjectives
         C_QuestLog.GetQuestObjectives = function(questID, ...)
             local objectives = original(questID, ...)
-            if type(objectives) == "table" and QuestText.Active() then
-                local lang = QuestText.LanguageForQuest(questID)
+            local lang = QuestText.LanguageForQuest(questID)
+            if lang and type(objectives) == "table" and QuestText.Active() then
                 for i = 1, #objectives do
                     local row = objectives[i]
                     if type(row) == "table" and type(row.text) == "string" then
@@ -331,10 +375,19 @@ frame:SetScript("OnEvent", function(_, event, ...)
             local ok, id = pcall(GetQuestID)
             if ok then QuestText.RememberQuest(id, currentLang) end
         end
+    elseif event == "QUEST_ACCEPTED" then
+        -- A second chance at the record. Auto-accept addons and quests picked
+        -- up off an item never show the offer, so QUEST_DETAIL never fires;
+        -- if there is still somebody in front of us, this catches it.
+        local id = ...
+        if type(id) ~= "number" or id <= 0 then id = select(2, ...) end
+        local lang = QuestText.LanguageForUnit("npc") or currentLang
+        if lang then QuestText.RememberQuest(id, lang) end
     elseif event == "GOSSIP_CLOSED" or event == "QUEST_FINISHED" then
-        -- Deliberately NOT cleared. The quest log is read after you walk away,
-        -- and a tongue that evaporates when the window shuts would leave the
-        -- journal reading in your own language a second later.
+        -- Cleared, now that nothing reads the journal through it. Leaving it
+        -- set meant the last NPC you greeted lent their tongue to every quest
+        -- in your log, which is how a tauren quest came out in Orcish.
+        currentLang = nil
     elseif event == "QUEST_REMOVED" then
         QuestText.ForgetQuest(...)
     elseif event == "PLAYER_LOGIN" then
@@ -344,7 +397,8 @@ end)
 
 for _, event in ipairs({
     "GOSSIP_SHOW", "QUEST_GREETING", "QUEST_DETAIL", "QUEST_PROGRESS",
-    "QUEST_COMPLETE", "QUEST_REMOVED", "PLAYER_LOGIN",
+    "QUEST_COMPLETE", "QUEST_ACCEPTED", "QUEST_REMOVED",
+    "GOSSIP_CLOSED", "QUEST_FINISHED", "PLAYER_LOGIN",
 }) do
     pcall(frame.RegisterEvent, frame, event)
 end

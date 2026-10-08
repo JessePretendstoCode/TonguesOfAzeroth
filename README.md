@@ -305,7 +305,9 @@ Each panel answers one question, which is how to guess where a setting lives:
   one place Glyphic hides something the game never hid. It covers quest offers, gossip
   windows, your journal and the objective tracker. The tongue is the speaker's, taken from
   their race and falling back to their faction, and it's remembered per quest so your
-  journal keeps reading in the tongue of whoever gave it to you. Buttons are never
+  journal keeps reading in the tongue of whoever gave it to you. Quests already in your
+  log when you switch this on stay readable, since nothing will tell an addon who gave
+  you one after the fact. Buttons are never
   touched -- you can still accept a quest you can't read -- and quest log titles stay
   readable so you can still manage your log. It works with replacement quest frames,
   because it changes the text the game hands out rather than the frames that draw it.

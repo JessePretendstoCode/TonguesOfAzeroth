@@ -1886,8 +1886,9 @@ local function BuildLearnedPanel()
     immersionQuestHint:SetText("Quest offers, gossip windows, your journal and the "
         .. "objective tracker. You can still accept a quest you can't read -- the "
         .. "buttons are yours, not theirs -- and your quest log keeps its titles "
-        .. "so you can still tell one job from another. Needs |cffffd200Include "
-        .. "all NPC text and speech|r above.")
+        .. "so you can still tell one job from another. Quests already in your log "
+        .. "stay readable: nothing can tell Glyphic who gave you one after the "
+        .. "fact. Needs |cffffd200Include all NPC text and speech|r above.")
 
     -- What everything above and below adds up to. Every dial that shapes your
     -- voice is on this panel now, so the readout and the preview are too: pick
