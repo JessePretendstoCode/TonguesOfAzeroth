@@ -1836,6 +1836,7 @@ local function BuildLearnedPanel()
     immersionCheck:SetPoint("TOPLEFT", langDropdown, "BOTTOMLEFT", -2, -14)
     immersionCheck:SetScript("OnClick", function(self)
         db().fullImmersion = self:GetChecked() and true or false
+        if ns.QuestText then ns.QuestText.Refresh() end
     end)
     local immersionHint = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     immersionHint:SetPoint("TOPLEFT", immersionCheck, "BOTTOMLEFT", 6, -2)
@@ -1853,7 +1854,18 @@ local function BuildLearnedPanel()
     immersionNPCCheck:SetPoint("TOPLEFT", immersionHint, "BOTTOMLEFT", -6, -6)
     immersionNPCCheck:SetScript("OnClick", function(self)
         db().immersionNPCs = self:GetChecked() and true or false
+        if ns.QuestText then ns.QuestText.Refresh() end
     end)
+    local immersionNPCHint = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+    immersionNPCHint:SetPoint("TOPLEFT", immersionNPCCheck, "BOTTOMLEFT", 6, -2)
+    immersionNPCHint:SetPoint("RIGHT", content, "RIGHT", -28, 0)
+    immersionNPCHint:SetJustifyH("LEFT")
+    immersionNPCHint:SetJustifyV("TOP")
+    immersionNPCHint:SetText("Boss callouts, quest text, gossip windows and the "
+        .. "objective tracker, in whatever tongue the speaker's race would use. "
+        .. "You can still accept a quest you can't read -- the buttons are yours, "
+        .. "not theirs -- and your quest log keeps its titles so you can still "
+        .. "tell one job from another.")
 
     -- What everything above and below adds up to. Every dial that shapes your
     -- voice is on this panel now, so the readout and the preview are too: pick
@@ -1866,7 +1878,7 @@ local function BuildLearnedPanel()
     -- The summary shares the header's line rather than taking another, so the
     -- block costs the language list as little height as possible.
     local voiceLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    voiceLabel:SetPoint("TOPLEFT", immersionNPCCheck, "BOTTOMLEFT", 0, -16)
+    voiceLabel:SetPoint("TOPLEFT", immersionNPCHint, "BOTTOMLEFT", -6, -16)
     voiceLabel:SetText("Your voice")
     voiceLabel:SetTextColor(1, 0.82, 0.2)
 

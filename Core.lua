@@ -1731,6 +1731,37 @@ function ns.FullImmersionOn()
     return (db and db.fullImmersion) and true or false
 end
 
+-- Garble `text` as Blizzard's language `blizzId`, at whatever fluency Glyphic
+-- says you have in it. Returns the rewritten text and the Glyphic tongue it is
+-- in, or nil when nothing changed.
+--
+-- Shared with the quest and gossip text, which asks the same question in a
+-- different place. One implementation means an orc quest giver and an orc in
+-- /say are illegible to the same degree and in the same words -- two copies of
+-- this would agree right up until one of them was tuned.
+function ns.ImmersionGarbleText(text, blizzId)
+    local glyphId = NATIVE_LANG_IDS[blizzId]
+    -- No Glyphic equivalent means no way to have studied it, which is a
+    -- fluency of zero rather than a reason to skip the line.
+    local fluency = (glyphId and fluencyPercent(glyphId)) or 0
+    -- A fast path rather than a rule. A fluent speaker's line survives the
+    -- garbler unchanged and is caught by the `out == text` test at the bottom,
+    -- so this only saves the work -- but it saves it on every line of your own
+    -- faction's chatter, which is most of what you read.
+    if fluency >= 100 then return nil end
+
+    local out = ns.Immersion
+        and ns.Immersion.Garble(text, blizzId, ns.Immersion.SkillFromFluency(fluency))
+    -- Blizzard ships one word for Gilnean and two for Pandaren, which cannot
+    -- garble a sentence so much as stutter it. Glyphic has real tongues for
+    -- both, so those fall back to our own generator rather than to nothing.
+    if not out and glyphId then
+        out = Language.TranslateText(text, 100 - fluency, glyphId)
+    end
+    if not out or out == text then return nil end
+    return out, glyphId
+end
+
 -- Returns the rewritten line and the tongue to paint it as, or nil to leave
 -- the line alone. `blizzId` is Blizzard's numeric language for the message.
 local function immersionRewrite(msg, tag, sender, blizzId, fromNPC)
@@ -1744,26 +1775,7 @@ local function immersionRewrite(msg, tag, sender, blizzId, fromNPC)
     if fromNPC and not (GlyphicDB and GlyphicDB.immersionNPCs) then return nil end
     if not ns.ClientKnowsLanguage(blizzId) then return nil end
 
-    local glyphId = NATIVE_LANG_IDS[blizzId]
-    -- No Glyphic equivalent means no way to have studied it, which is a
-    -- fluency of zero rather than a reason to skip the line.
-    local fluency = (glyphId and fluencyPercent(glyphId)) or 0
-    -- Another fast path rather than a rule. A fluent speaker's line survives
-    -- the garbler unchanged and is caught by the `out == msg` test at the
-    -- bottom, so this only saves the work -- but it saves it on every line of
-    -- your own faction's chatter, which is most of what you read.
-    if fluency >= 100 then return nil end
-
-    local out = ns.Immersion
-        and ns.Immersion.Garble(msg, blizzId, ns.Immersion.SkillFromFluency(fluency))
-    -- Blizzard ships one word for Gilnean and two for Pandaren, which cannot
-    -- garble a sentence so much as stutter it. Glyphic has real tongues for
-    -- both, so those fall back to our own generator rather than to nothing.
-    if not out and glyphId then
-        out = Language.TranslateText(msg, 100 - fluency, glyphId)
-    end
-    if not out or out == msg then return nil end
-    return out, glyphId
+    return ns.ImmersionGarbleText(msg, blizzId)
 end
 ns.InvalidatePassiveNames = function() passiveNameToId = nil end
 

@@ -293,9 +293,17 @@ Each panel answers one question, which is how to guess where a setting lives:
   language's fluency directly. This is the one place fluency is edited, and it's the only
   number there: how well you speak a tongue is how fluent you are in it.
 - Remove in-game learned languages, off by default. Common and your racial tongues stop
-  being automatic and you read them only as well as this list says you do. Include all NPC
-  text and speech is a separate switch beneath it, since a boss callout is a mechanic as
-  much as it is flavour. Both follow the channels picked under Chat Channels.
+  being automatic and you read them only as well as this list says you do, in WoW's own
+  lettering -- Blizzard's word tables and Blizzard's hash, so `lol` still comes out `Kek`.
+  Chat follows the channels picked under Chat Channels.
+- Include all NPC text and speech is a separate switch beneath it, since a boss callout is
+  a mechanic as much as it is flavour. It covers monster say/yell/whisper, quest text,
+  gossip windows and the objective tracker. The tongue is the speaker's, taken from their
+  race and falling back to their faction, and it's remembered per quest so your journal
+  keeps reading in the tongue of whoever gave it to you. Buttons are never touched -- you
+  can still accept a quest you can't read -- and quest log titles stay readable so you can
+  still manage your log. It works with replacement quest frames, because it changes the
+  text the game hands out rather than the frames that draw it.
 - Set each language's chat color from the swatch on its row: click to pick, right-click
   to restore the default. Sub-dialects follow their parent (recoloring Zandali recolors
   Amani, Gurubashi and Drakkari with it); give one its own color with

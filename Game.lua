@@ -260,6 +260,11 @@ function ns.Trainer.SetFluency(id, frac)
     frac = tonumber(frac) or 0
     if frac < 0 then frac = 0 elseif frac > 1 then frac = 1 end
     d.points[key] = frac
+    -- Quest and gossip text is garbled once and remembered, since the tracker
+    -- asks for the same line many times a second. Fluency is the one input to
+    -- that answer which can change without the text changing, so every writer
+    -- of fluency has to say so -- there are two, and this is both of them.
+    if ns.QuestText then ns.QuestText.ClearCache() end
     return frac
 end
 
@@ -276,6 +281,7 @@ function ns.Trainer.ResetFluency(id)
     local d = DB()
     d.points[key] = 0
     d.words[key] = nil
+    if ns.QuestText then ns.QuestText.ClearCache() end
 end
 
 local function setTile(r, c, letter, state)

@@ -24,6 +24,7 @@ Colors.lua
 Accent.lua
 Profile.lua
 Core.lua
+QuestText.lua
 CastLibrary.lua
 Casts.lua
 GameVoices.lua

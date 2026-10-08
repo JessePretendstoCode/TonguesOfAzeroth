@@ -15,9 +15,24 @@ Tongues of Azeroth before 0.5.3.
   "Kek". Partial fluency works the way the game's does too: the same words
   stay legible every time, so re-reading a line never changes what it said.
   Off by default and it stays off; this is not something to discover after an
-  update. Quest givers and bosses have their own separate switch, since a boss
-  callout is a mechanic as much as it is flavour. Which channels it applies to
-  follows your existing Chat Channel settings.
+  update. NPCs have their own separate switch, since a boss callout is a
+  mechanic as much as it is flavour. Which channels it applies to follows your
+  existing Chat Channel settings.
+- **Quest text, gossip and the objective tracker**, under the same NPC switch.
+  An orc quest giver hands you an offer in Orcish; a night elf hands you one
+  in Darnassian. The tongue comes from the speaker's race, falling back to
+  their faction for the many quest givers who aren't a player race at all, and
+  it's remembered per quest so your journal still reads in the tongue of
+  whoever gave it to you long after they're out of sight.
+  Two things are deliberately left alone. The buttons are yours, not theirs --
+  Accept still says Accept and still works, because not understanding somebody
+  has never stopped anyone agreeing to fetch ten boar livers. And the titles in
+  your quest log stay readable, so you can still tell one job from another and
+  abandon the right one.
+  This is the one place Glyphic hides something the game never hid, since quest
+  text carries no language of its own. It works with replacement quest frames
+  (Immersion, Storyline and the like) because it changes the text the game
+  hands out rather than the frames that draw it.
   One honest limit: this can only ever take understanding away. Speech in a
   language your character never knew is scrambled by the game before any addon
   can see it, and the original never reaches your computer -- so those lines
