@@ -273,7 +273,7 @@ Each panel answers one question, which is how to guess where a setting lives:
 - Everything else is a button through to the panel that owns it, so settings live where the
   thing they configure lives.
 
-### Languages tab
+### Languages & Fluency tab
 
 - Choose the language you're speaking from the dropdown at the top. It carries
   sub-dialects, your favorites and a None entry (plain English, useful when you only
@@ -292,18 +292,15 @@ Each panel answers one question, which is how to guess where a setting lives:
 - See your fluency (rank and %) per language on live bars, and drag the handle to set that
   language's fluency directly. This is the one place fluency is edited, and it's the only
   number there: how well you speak a tongue is how fluent you are in it.
-- Hide languages my race already speaks, which filters this list and the dropdown alike.
-- Passive learning. Overhearing a tongue slowly builds fluency in it.
+- Remove in-game learned languages, off by default. Common and your racial tongues stop
+  being automatic and you read them only as well as this list says you do. Include all NPC
+  text and speech is a separate switch beneath it, since a boss callout is a mechanic as
+  much as it is flavour. Both follow the channels picked under Chat Channels.
 - Set each language's chat color from the swatch on its row: click to pick, right-click
   to restore the default. Sub-dialects follow their parent (recoloring Zandali recolors
   Amani, Gurubashi and Drakkari with it); give one its own color with
-  `/toa color amani <hex>`.
-- Color tags, on by default, paints the `[Language]` tag. Tint speech colors the spoken
-  words. The two are independent, so you can turn tags off with speech on, and the words
-  are tinted while the tag keeps the channel's normal color. Tint in-game languages also
-  colors real Orcish, Darnassian and the rest from players who don't run the addon. That
-  one is off by default, because nearly all chat is Common or your own faction's tongue,
-  so it tints most of the window rather than picking anything out of it.
+  `/toa color amani <hex>`. Whether any color reaches chat at all is set under Chat
+  Channels.
 - When someone speaks that language via Tongues of Azeroth, you see their
   translated line in chat plus a second line: `"translated" → "original"`.
 
@@ -317,7 +314,13 @@ Split by the two directions the pipeline runs in.
   which comes with a note explaining that Blizzard blocks addons from reading chat during
   boss fights either way, so this is a game restriction rather than a bug.
 - *When you listen:* pick the decode display style (in-line, emote or whisper-colored
-  line) and which chat window translations are shown in.
+  line) and which chat window translations are shown in. Color tags, on by default, paints
+  the `[Language]` tag. Tint speech colors the spoken words. The two are independent, so
+  you can turn tags off with speech on, and the words are tinted while the tag keeps the
+  channel's normal color. Tint in-game languages also colors real Orcish, Darnassian and
+  the rest from players who don't run the addon. That one is off by default, because
+  nearly all chat is Common or your own faction's tongue, so it tints most of the window
+  rather than picking anything out of it.
 
 ### Accents tab
 
@@ -345,6 +348,9 @@ The language trainer, "Decipher"
 - A Wordle-style word puzzle. Pick the language you're learning, guess the daily-style
   word, and earn fluency and reputation ranks for that language.
 - Fluency unlocks partial decoding of that language before you're fully fluent.
+- Passive learning, on by default, sits on this panel too: overhearing a tongue slowly
+  builds fluency in it. It feeds the same number the puzzle does, which is why it is here
+  rather than beside the bars that only display that number.
 
 Settings are stored per character (`SavedVariablesPerCharacter`), with one exception: the
 language color palette is account-wide, since a color scheme is a preference you want on

@@ -337,7 +337,7 @@ local function migrateDB()
     -- from fluency. Two numbers for one question turned out to be worse than
     -- the problem it solved: nobody could say which one they were reading. How
     -- well you speak a tongue is just your fluency in it, set on its own row
-    -- under Languages. Cleared rather than left behind so it can't quietly
+    -- under Languages & Fluency. Cleared rather than left behind so it can't quietly
     -- throttle anyone who ran a build that had it.
     db.speakLevel = nil
     -- The redundant generic "troll" language was merged into "zandali"; carry
@@ -455,27 +455,14 @@ local function migrateDB()
     if db.tagFluency == nil then
         db.tagFluency = true
     end
-    -- Hide the tongues your race already speaks in-game (Common for a Human,
-    -- Orcish + Taur-ahe for a Tauren, ...) from the speak list. Display-only.
-    --
-    -- Off by default since 0.5.5. On paper hiding them is right -- the client
-    -- already translates those for you, so Glyphic doing it too is redundant --
-    -- but in practice it reads as the addon being broken. A night elf opens the
-    -- list, finds no Darnassian, and concludes it is missing rather than
-    -- deliberately omitted. That question arrived often enough to outweigh the
-    -- tidier list.
-    if db.hideNativeLanguages == nil then
-        db.hideNativeLanguages = false
-    end
-    -- The default used to be on, and a default that has already been written
-    -- into someone's saved variables is indistinguishable from a choice they
-    -- made. Everyone still carrying the old value is moved across once, which
-    -- is the only way the change reaches the players who were confused by it;
-    -- the flag means anyone who turns hiding back on keeps it.
-    if not db.nativeHideDefaultFlipped then
-        db.nativeHideDefaultFlipped = true
-        db.hideNativeLanguages = false
-    end
+    -- Hiding the tongues your race already speaks is gone. It was off by
+    -- default from 0.5.5 because it read as the addon being broken -- a night
+    -- elf opened the list, found no Darnassian, and concluded it was missing
+    -- rather than deliberately omitted -- and full immersion has since taken
+    -- over the question it was really asking. Clearing the keys rather than
+    -- ignoring them keeps a dead switch out of exported profiles.
+    db.hideNativeLanguages = nil
+    db.nativeHideDefaultFlipped = nil
 
     -- Full immersion: stop understanding the game's own languages unless
     -- Glyphic says you studied them. Off, and staying off -- it makes most of
@@ -785,10 +772,10 @@ end
 -- attempting does not cover fall back on. nil when they have none, which is the
 -- old behaviour: the remainder stays English.
 --
--- "Mother tongue" rather than "native language" on purpose. ns.IsNativeLanguage
--- below already means something else entirely -- a tongue the player's *race*
--- speaks through WoW's own system, which this addon hides from the speak list --
--- and one word meaning both would be read wrongly by whoever touches this next.
+-- "Mother tongue" rather than "native language" on purpose. "Native" is taken
+-- below, where it means something else entirely -- a tongue the player's
+-- *race* speaks through WoW's own system -- and one word meaning both would be
+-- read wrongly by whoever touches this next.
 --
 -- Returned rather than read inline because four separate paths translate -- chat,
 -- /glyphic say, cast phrases and the options preview -- and a mother tongue that
@@ -809,14 +796,14 @@ function ns.GetMotherTongue()
 end
 
 --=========================================================================--
---  Native languages (hide the tongues your race already speaks in-game)
+--  Native languages (which tongues the client itself understands)
 --
 --  WoW reports the languages a character actually speaks via
 --  GetLanguageByIndex(), whose second return is a locale-independent numeric
---  languageID (from Languages.db2). We map those IDs to our own language ids and
---  hide them from the "speak" list -- speaking Common as a Human is just plain
---  text, so Glyphic can focus on the tongues you *can't* already speak. This is
---  display-only: /glyphic lang, the Learned tab, and the Trainer keep every language.
+--  languageID (from Languages.db2). Full immersion needs this: it can only take
+--  understanding away from a line the client already handed over in plain text,
+--  so "does the client know this tongue?" decides whether there is anything to
+--  take. Nothing is hidden from any list on the strength of it.
 --=========================================================================--
 -- Blizzard languageID -> Glyphic language id. Matching on the number (not the
 -- localized name) means this works identically on every client locale.
@@ -831,46 +818,25 @@ local NATIVE_LANG_IDS = {
     [180] = "moonkin",    [181] = "thalassian", [182] = "thalassian",
     [303] = "furbolg",
 }
--- Fallback for very old clients whose GetLanguageByIndex returns only a name
--- (English clients only; every modern client returns the ID above).
-local NATIVE_LANG_NAMES = {
-    orcish = "orcish", darnassian = "darnassian", taurahe = "taurahe",
-    dwarvish = "dwarven", common = "common", demonic = "demonic",
-    thalassian = "thalassian", gnomish = "gnomish", zandali = "zandali",
-    forsaken = "gutterspeak", gutterspeak = "gutterspeak", draenei = "draenei",
-    gilnean = "gilnean", goblin = "goblin", pandaren = "pandaren",
-    draconic = "draconic", kalimag = "kalimag", titan = "titan",
-}
-
--- { [toaId] = true } for the tongues this character natively speaks, or nil if
--- we couldn't determine any -- in which case nothing is ever hidden (fail open).
-local nativeLangSet = nil
-local didNativeInit = false
-
--- The same answer keyed by Blizzard's own number instead of ours. Full
--- immersion needs to know whether the *client* understood a line, which is a
--- question about Blizzard's language list and not about Glyphic's -- and the
--- two are not interchangeable, because the client knows tongues Glyphic has no
--- name for and the mapping above is deliberately incomplete.
+-- { [blizzardLanguageID] = true } for the tongues this character speaks in
+-- game, or nil if we couldn't determine any. Keyed by Blizzard's own number
+-- rather than ours on purpose: the client knows tongues Glyphic has no name
+-- for, and the mapping above is deliberately incomplete, so asking the
+-- question in Glyphic's vocabulary would answer it wrongly.
 local nativeBlizzSet = nil
 
 local function computeNativeLanguages()
-    nativeLangSet = nil
     nativeBlizzSet = nil
     if type(GetNumLanguages) ~= "function" or type(GetLanguageByIndex) ~= "function" then
         return
     end
     local n = GetNumLanguages()
     if not n or n < 1 then return end
-    local set, blizz = {}, {}
+    local blizz = {}
     for i = 1, n do
-        local name, id = GetLanguageByIndex(i)
-        local toa = (type(id) == "number" and NATIVE_LANG_IDS[id])
-            or (type(name) == "string" and NATIVE_LANG_NAMES[string.lower(name)])
-        if toa then set[toa] = true end
+        local _, id = GetLanguageByIndex(i)
         if type(id) == "number" then blizz[id] = true end
     end
-    if next(set) then nativeLangSet = set end
     if next(blizz) then nativeBlizzSet = blizz end
 end
 
@@ -890,63 +856,10 @@ function ns.ClientKnowsLanguage(blizzId)
     return (nativeBlizzSet and nativeBlizzSet[blizzId]) == true
 end
 
-local function nativeHidingOn()
-    local db = GlyphicDB
-    return (db and db.hideNativeLanguages and nativeLangSet ~= nil) and true or false
-end
-
--- True only when `id` is a tongue the player natively speaks AND hiding is on.
-function ns.IsNativeLanguage(id)
-    if not nativeHidingOn() then return false end
-    return nativeLangSet[id] == true
-end
-
--- GetLanguages() minus the native tongues (when the option is on). Never returns
--- an empty list: if the filter would hide everything, the full list is returned.
-function ns.GetSpeakableLanguages()
-    local all = Language.GetLanguages()
-    if not nativeHidingOn() then return all end
-    local out = {}
-    for i = 1, #all do
-        if not nativeLangSet[all[i].id] then out[#out + 1] = all[i] end
-    end
-    if #out == 0 then return all end
-    return out
-end
-
--- Primary languages minus the native tongues (when the option is on). Used by
--- the Learned tab and the Trainer so they, too, drop what your race already
--- speaks. Never returns an empty list (fail open, same as GetSpeakableLanguages).
-function ns.GetSpeakablePrimaryLanguages()
-    local all = (Language.GetPrimaryLanguages and Language.GetPrimaryLanguages()) or {}
-    if not nativeHidingOn() then return all end
-    local out = {}
-    for i = 1, #all do
-        if not nativeLangSet[all[i].id] then out[#out + 1] = all[i] end
-    end
-    if #out == 0 then return all end
-    return out
-end
-
--- If the language you're set to speak just got hidden, fall back to the first
--- visible one so the dropdown never shows a native/blank selection.
-function ns.EnsureSpeakLanguageVisible()
-    local db = GlyphicDB
-    if not db then return end
-    if ns.IsNativeLanguage(db.language) then
-        local speak = ns.GetSpeakableLanguages()
-        if speak[1] then db.language = speak[1].id end
-    end
-end
-
--- Refresh the native set (cheap) and, once only, drop off a hidden language.
--- Called at login and on world entry (in case faction/allied-race unlocks it).
+-- Refresh the client's language set. Called at login and on world entry, in
+-- case a faction change or an allied-race unlock has added one.
 ns.RefreshNativeLanguages = function()
     computeNativeLanguages()
-    if not didNativeInit and nativeLangSet then
-        didNativeInit = true
-        ns.EnsureSpeakLanguageVisible()
-    end
     if ns.OnSettingsChanged then ns.OnSettingsChanged() end
 end
 
@@ -2390,12 +2303,11 @@ function ns.GetKnownLanguages()
 
     -- With the favorites-only toggle on (the star on the floating bar), a
     -- curated list takes cycling over completely, so favorites are not filtered
-    -- by what you've learned the way the fallback below is. Tongues your race
-    -- natively speaks are still skipped, since cycling onto one is never useful.
+    -- by what you've learned the way the fallback below is.
     local favs = ns.GetFavorites()
     if db.favOnly and #favs > 0 then
         for i = 1, #favs do
-            if not ns.IsNativeLanguage(favs[i]) then add(favs[i]) end
+            add(favs[i])
         end
         add(db.language)
         return list
@@ -2410,9 +2322,7 @@ function ns.GetKnownLanguages()
             local ok, _, _, f = pcall(ns.Trainer.GetProgress, id)
             if ok and type(f) == "number" then frac = f end
         end
-        -- Skip tongues your race natively speaks (when hiding is on) so cycling
-        -- and the floating bar never land on one you'd never RP with Glyphic.
-        if (isLearned or frac > 0) and not ns.IsNativeLanguage(id) then add(id) end
+        if isLearned or frac > 0 then add(id) end
     end
     add(db.language) -- always include what you're currently speaking
     return list
@@ -2524,8 +2434,7 @@ end
 -- the primary languages (sub-languages share a parent's fluency) and refresh once.
 function ns.MakeAllFluent()
     migrateDB()
-    local langs = (ns.GetSpeakablePrimaryLanguages and ns.GetSpeakablePrimaryLanguages())
-        or (Language.GetPrimaryLanguages and Language.GetPrimaryLanguages()) or {}
+    local langs = (Language.GetPrimaryLanguages and Language.GetPrimaryLanguages()) or {}
     GlyphicDB.learned = GlyphicDB.learned or {}
     for i = 1, #langs do
         local id = langs[i].id
@@ -2537,8 +2446,7 @@ end
 
 function ns.ResetAllFluency()
     migrateDB()
-    local langs = (ns.GetSpeakablePrimaryLanguages and ns.GetSpeakablePrimaryLanguages())
-        or (Language.GetPrimaryLanguages and Language.GetPrimaryLanguages()) or {}
+    local langs = (Language.GetPrimaryLanguages and Language.GetPrimaryLanguages()) or {}
     for i = 1, #langs do
         local id = langs[i].id
         if ns.Trainer and ns.Trainer.ResetFluency then ns.Trainer.ResetFluency(id) end
@@ -2632,7 +2540,7 @@ local function listLearned()
         end
     end
     if not any then
-        Print("  |cffff0000(none)|r - check languages under Interface -> AddOns -> Languages")
+        Print("  |cffff0000(none)|r - check languages under Interface -> AddOns -> Languages & Fluency")
     end
 end
 

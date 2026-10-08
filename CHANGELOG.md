@@ -4,8 +4,8 @@ All notable changes to Glyphic are documented here. The addon was called
 Tongues of Azeroth before 0.5.3.
 
 ## [0.5.7]
-- **Full immersion.** A new option under Languages: *Only understand languages
-  I've learned here*. With it on, Common and your racial tongues stop being
+- **Full immersion.** A new option under Languages & Fluency: *Remove in-game
+  learned languages*. With it on, Common and your racial tongues stop being
   automatic -- you read them exactly as well as your fluency in this addon
   says you do, and no better. A night elf who never studied Orcish cannot read
   Orcish, whatever her character sheet says.
@@ -22,6 +22,20 @@ Tongues of Azeroth before 0.5.3.
   language your character never knew is scrambled by the game before any addon
   can see it, and the original never reaches your computer -- so those lines
   are left exactly as they arrived, at any fluency. No addon can undo that one.
+- **Settings moved to the panels they belong on.** The Languages tab is now
+  *Languages & Fluency*, and it keeps the things that are about languages:
+  which tongue you speak, how fluent you are in each one, and its color.
+  Passive learning moved to the Language Trainer, next to the other way of
+  earning fluency. Color tags, Tint speech and Tint in-game languages moved to
+  Chat Channels, under *When you listen* -- a swatch on a language row picks
+  which color a tongue gets, but whether any color reaches your chat window is
+  a question about the window.
+- **Removed: "Hide languages my race already speaks".** It was switched off by
+  default in 0.5.5 because it read as the addon being broken, and full
+  immersion now answers the question it was really asking -- properly, by
+  changing what you understand rather than what you are shown. Nothing is
+  hidden from the language list any more. The old setting is cleared out of
+  your saved variables rather than left sitting in exported profiles.
 - Tidied the settings panels: the small print under a control is grey
   everywhere now, instead of some of it being grey and some flat white.
 

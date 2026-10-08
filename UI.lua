@@ -56,7 +56,7 @@ local chatPanel, chatContent
 local mainContent
 local langDropdown, motherDropdown, enableCheck, previewInput, previewOutput
 local voiceText, voiceHint
-local minimapCheck, fluencyCheck, nativeHideCheck, autoDisableCheck
+local minimapCheck, fluencyCheck, autoDisableCheck
 local immersionCheck, immersionNPCCheck
 local namesCheck, nameColorCheck
 local widgetCheck, widgetLockCheck
@@ -108,7 +108,6 @@ local learnedChild, learnedContent, learnedRowH = nil, nil, 38
 -- Assigned by BuildLearnedPanel; lets rows be made after the panel exists.
 local makeLearnedRow
 local learnedRevision
-local passiveCheck
 local decodeStyleDropdown
 local outputDropdown
 local colorTagCheck, colorSpeechCheck, colorRealCheck
@@ -160,12 +159,6 @@ local function db()
     if not GlyphicDB.accent then GlyphicDB.accent = {} end
     if GlyphicDB.accent.strength == nil then GlyphicDB.accent.strength = 100 end
     if GlyphicDB.accent.emotes == nil then GlyphicDB.accent.emotes = false end
-    -- hideNativeLanguages is deliberately NOT defaulted here. It is Core's
-    -- key -- Core's migration owns it and Core's nativeHidingOn reads it --
-    -- and a copy of the default in this file is a second place for it to
-    -- drift, which no test can see because the two agree until the day they
-    -- do not. If this somehow runs first the field is nil, which reads as
-    -- "do not hide", which is the default anyway.
     if GlyphicDB.autoDisableInInstances == nil then GlyphicDB.autoDisableInInstances = true end
     -- Mirrors Core's migration: a profile that never picked an accent has none,
     -- rather than silently arriving with Dwarven selected.
@@ -271,9 +264,8 @@ end
 local function langItems()
     -- List the languages you can speak. Sub-languages are grouped and indented
     -- under the primary whose word set they share. The dropdown scrolls, so the
-    -- full list stays usable. Tongues your race already knows in-game are hidden
-    -- here (unless that option is off) -- see ns.GetSpeakableLanguages.
-    local all = (ns.GetSpeakableLanguages and ns.GetSpeakableLanguages()) or Language.GetLanguages()
+    -- full list stays usable.
+    local all = Language.GetLanguages()
     local subsOf, primaries = {}, {}
     for i = 1, #all do
         local l = all[i]
@@ -353,7 +345,7 @@ local function langItems()
         -- None is pinned above, so it must not come round again under the
         -- header. Right-clicking any row still favorites it, which has always
         -- meant None could be favorited and listed twice.
-        if id ~= "none" and not (ns.IsNativeLanguage and ns.IsNativeLanguage(id)) then
+        if id ~= "none" then
             favRows[#favRows + 1] = { text = Language.GetLanguageName(id), value = id }
         end
     end
@@ -525,6 +517,9 @@ local function RefreshChat()
         outputDropdown:SetItems(outputItems())
         outputDropdown:SetSelected(d.outputFrame or 0, outputWindowLabel(d.outputFrame or 0))
     end
+    if colorTagCheck then colorTagCheck:SetChecked(colorTagCheck._get() and true or false) end
+    if colorSpeechCheck then colorSpeechCheck:SetChecked(colorSpeechCheck._get() and true or false) end
+    if colorRealCheck then colorRealCheck:SetChecked(colorRealCheck._get() and true or false) end
 
     if chatContent and chatContent.SetContentHeight and chatPanel._lastChild then
         local top, bot = chatContent:GetTop(), chatPanel._lastChild:GetBottom()
@@ -600,8 +595,7 @@ local function sizeLearnedContent()
     end
 end
 
--- Show only the languages your race can't already speak (when the option is on)
--- and re-flow the visible rows so there are no gaps, resizing the page.
+-- Re-flow the rows so there are no gaps, and resize the page to match.
 local function reflowLearnedRows()
     syncLearnedRows()
     if not (learnedChild and #learnedOrder > 0) then return end
@@ -613,14 +607,10 @@ local function reflowLearnedRows()
         local rowF = rowRef and rowRef.row
         if rowF then
             placed[id] = true
-            if ns.IsNativeLanguage and ns.IsNativeLanguage(id) then
-                rowF:Hide()
-            else
-                rowF:ClearAllPoints()
-                rowF:SetPoint("TOPLEFT", learnedChild, "TOPLEFT", 0, -(visible * learnedRowH))
-                rowF:Show()
-                visible = visible + 1
-            end
+            rowF:ClearAllPoints()
+            rowF:SetPoint("TOPLEFT", learnedChild, "TOPLEFT", 0, -(visible * learnedRowH))
+            rowF:Show()
+            visible = visible + 1
         end
     end
     -- A deleted custom language keeps its row (frames can't be destroyed), so
@@ -714,11 +704,6 @@ local function RefreshLearned()
         end
       end
     end
-    if colorTagCheck then colorTagCheck:SetChecked(colorTagCheck._get() and true or false) end
-    if colorSpeechCheck then colorSpeechCheck:SetChecked(colorSpeechCheck._get() and true or false) end
-    if colorRealCheck then colorRealCheck:SetChecked(colorRealCheck._get() and true or false) end
-    if passiveCheck then passiveCheck:SetChecked(d.passiveLearning ~= false) end
-    if nativeHideCheck then nativeHideCheck:SetChecked(d.hideNativeLanguages and true or false) end
     if immersionCheck then immersionCheck:SetChecked(d.fullImmersion and true or false) end
     if immersionNPCCheck then immersionNPCCheck:SetChecked(d.immersionNPCs and true or false) end
     if langDropdown then
@@ -1275,7 +1260,7 @@ local function SetupLanguageWidget()
             local n = (ns.GetFavorites and #ns.GetFavorites()) or 0
             if n == 0 then
                 GameTooltip:AddLine(
-                    "No favorites yet. Star a language on its row under Options -> Languages.",
+                    "No favorites yet. Star a language on its row under Options -> Languages & Fluency.",
                     0.8, 0.8, 0.8, true)
             elseif db().favOnly then
                 GameTooltip:AddLine("On: scrolling walks your " .. n .. " favorite" ..
@@ -1358,7 +1343,10 @@ local function BuildMainPanel()
 
     local function makeNavButton(label, onClick)
         local btn = CreateFrame("Button", nil, content)
-        btn:SetSize(150, 24)
+        -- Wide enough for the longest label ("Languages & Fluency"); a
+        -- FontString that doesn't fit spills past the button's background
+        -- rather than truncating, so the whole row has to size to the worst case.
+        btn:SetSize(170, 24)
         local bg = btn:CreateTexture(nil, "BACKGROUND")
         bg:SetAllPoints()
         Compat.SolidTexture(bg, 0.18, 0.16, 0.24, 1)
@@ -1383,7 +1371,7 @@ local function BuildMainPanel()
     -- Opens the Languages panel. Kept as an explicit button so the sub-panel is
     -- reachable from the standalone window too, which has no options tree to
     -- navigate.
-    local learnedBtn = makeNavButton("Languages", function()
+    local learnedBtn = makeNavButton("Languages & Fluency", function()
         if ns.OpenLearnedConfig then ns.OpenLearnedConfig() end
     end)
     learnedBtn:SetPoint("TOPRIGHT", trainerBtn, "BOTTOMRIGHT", 0, -4)
@@ -1639,7 +1627,7 @@ local function BuildChatPanel()
     listenHint:SetPoint("RIGHT", content, "RIGHT", -24, 0)
     listenHint:SetJustifyH("LEFT")
     if listenHint.SetWordWrap then listenHint:SetWordWrap(true) end
-    listenHint:SetText("How a tongue you understand is shown to you once it's decoded. Which languages you understand is set under |cffffd200Languages|r.")
+    listenHint:SetText("How a tongue you understand is shown to you once it's decoded. Which languages you understand is set under |cffffd200Languages & Fluency|r.")
 
     local styleLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     styleLabel:SetPoint("TOPLEFT", listenHint, "BOTTOMLEFT", 0, -12)
@@ -1669,12 +1657,52 @@ local function BuildChatPanel()
         outputDropdown:SetSelected(value, outputWindowLabel(value))
     end
 
+    -- Chat colors. They were next to the language list, on the grounds that the
+    -- per-language swatches live on its rows -- but a swatch picks *which*
+    -- color a tongue gets, and these three decide whether any color reaches the
+    -- chat window at all. That is a question about the window, so it is asked
+    -- here. Labels are kept short so the three sit on one line; the detail
+    -- lives in the tooltips.
+    local function colorCheck(label, tip, get, set)
+        local cb = Compat.CreateCheckbox(content, label)
+        cb:SetScript("OnClick", function(self)
+            if ns.Colors then set(self:GetChecked() and true or false) end
+            if ns.OnSettingsChanged then ns.OnSettingsChanged() end
+        end)
+        cb:HookScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetText(tip, 1, 1, 1, 1, true)
+            GameTooltip:Show()
+        end)
+        cb:HookScript("OnLeave", function() GameTooltip:Hide() end)
+        cb._get = get
+        return cb
+    end
+
+    colorTagCheck = colorCheck("Color tags",
+        "Paint the [Language] tag in that tongue's color, so you can tell Demonic from Old God at a glance -- including on lines you can't read yet.\n\nIndependent of \"Tint speech\": turn this off with that on and the words are tinted while the tag stays in its usual color.",
+        function() return ns.Colors and ns.Colors.TagsEnabled() end,
+        function(v) ns.Colors.SetTagsEnabled(v) end)
+    colorTagCheck:SetPoint("TOPLEFT", decodeStyleDropdown, "BOTTOMLEFT", 0, -16)
+
+    colorSpeechCheck = colorCheck("Tint speech",
+        "Color the spoken words themselves. Off by default -- the tag alone marks the language without repainting whole conversations.\n\nIndependent of \"Color tags\": either can be on without the other.",
+        function() return ns.Colors and ns.Colors.SpeechEnabled() end,
+        function(v) ns.Colors.SetSpeechEnabled(v) end)
+    colorSpeechCheck:SetPoint("LEFT", colorTagCheck.labelText, "RIGHT", 24, 0)
+
+    colorRealCheck = colorCheck("Tint in-game languages",
+        "Also color WoW's own languages from players who don't run the addon. Off by default: nearly all chat is Common or your faction's tongue, so this tints most of the window rather than picking anything out of it.",
+        function() return ns.Colors and ns.Colors.RealLanguagesEnabled() end,
+        function(v) ns.Colors.SetRealLanguagesEnabled(v) end)
+    colorRealCheck:SetPoint("LEFT", colorSpeechCheck.labelText, "RIGHT", 24, 0)
+
     local colorPointer = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-    colorPointer:SetPoint("TOPLEFT", decodeStyleDropdown, "BOTTOMLEFT", 0, -14)
+    colorPointer:SetPoint("TOPLEFT", colorTagCheck, "BOTTOMLEFT", 0, -8)
     colorPointer:SetPoint("RIGHT", content, "RIGHT", -24, 0)
     colorPointer:SetJustifyH("LEFT")
     if colorPointer.SetWordWrap then colorPointer:SetWordWrap(true) end
-    colorPointer:SetText("Per-language chat colors live with the languages themselves, under |cffffd200Languages|r.")
+    colorPointer:SetText("Which color each tongue gets is set on its own row, under |cffffd200Languages & Fluency|r.")
 
     chatPanel._lastChild = colorPointer
     chatPanel.refresh = RefreshChat
@@ -1713,10 +1741,10 @@ local ICON_DISCARD = "Interface\\Buttons\\UI-GroupLoot-Pass-Up"
 
 local function BuildLearnedPanel()
     learnedPanel = Compat.CreateOptionsPanel("TonguesOfAzerothLearnedOptions")
-    -- "Learned Languages" while it only held the learned list. It is the
-    -- per-language panel now -- fluency, color and what you understand, all
-    -- edited on the same row -- and the shorter name says that.
-    learnedPanel.name = "Languages"
+    -- "Learned Languages" while it only held the learned list, then "Languages"
+    -- once it grew the speaking controls. Fluency is half of what it edits and
+    -- the only half with a row per tongue, so the name says both.
+    learnedPanel.name = "Languages & Fluency"
     learnedPanel.parent = mainPanel.name
 
     -- This panel outgrew the window. It now carries two dropdowns, five
@@ -1734,7 +1762,7 @@ local function BuildLearnedPanel()
 
     local title = content:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
     title:SetPoint("TOPLEFT", 16, -16)
-    title:SetText("Languages")
+    title:SetText("Languages & Fluency")
 
     local subtitle = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -8)
@@ -1800,32 +1828,12 @@ local function BuildLearnedPanel()
         if ns.OnSettingsChanged then ns.OnSettingsChanged() else RefreshLearned() end
     end
 
-    -- Global learning method: passive (learn by hearing). The Trainer minigame is
-    -- always available from its own panel; this toggles the automatic learning.
-    passiveCheck = Compat.CreateCheckbox(content, "Passive learning -- overhearing a tongue slowly builds your fluency in it")
-    passiveCheck:SetPoint("TOPLEFT", langDropdown, "BOTTOMLEFT", -2, -14)
-    passiveCheck:SetScript("OnClick", function(self)
-        db().passiveLearning = self:GetChecked() and true or false
-    end)
-
-    -- Filters this list and the language dropdown alike, so it belongs with the
-    -- list it filters rather than on the panel you land on.
-    nativeHideCheck = Compat.CreateCheckbox(content, "Hide languages my race already speaks")
-    nativeHideCheck:SetPoint("TOPLEFT", passiveCheck, "BOTTOMLEFT", 0, -6)
-    nativeHideCheck:SetScript("OnClick", function(self)
-        db().hideNativeLanguages = self:GetChecked() and true or false
-        if ns.EnsureSpeakLanguageVisible then ns.EnsureSpeakLanguageVisible() end
-        -- Rebuilds the dropdown item list (and refreshes the panel) so the change
-        -- shows immediately.
-        if ns.OnSettingsChanged then ns.OnSettingsChanged() else RefreshLearned() end
-    end)
-
     -- Full immersion. Beside the fluency list because that list is what it
     -- defers to: the whole switch is "understanding is what this panel says it
     -- is, not what my race says it is".
     immersionCheck = Compat.CreateCheckbox(content,
-        "Only understand languages I've learned here")
-    immersionCheck:SetPoint("TOPLEFT", nativeHideCheck, "BOTTOMLEFT", 0, -6)
+        "Remove in-game learned languages -- only use Glyphic for languages")
+    immersionCheck:SetPoint("TOPLEFT", langDropdown, "BOTTOMLEFT", -2, -14)
     immersionCheck:SetScript("OnClick", function(self)
         db().fullImmersion = self:GetChecked() and true or false
     end)
@@ -1834,55 +1842,18 @@ local function BuildLearnedPanel()
     immersionHint:SetPoint("RIGHT", content, "RIGHT", -28, 0)
     immersionHint:SetJustifyH("LEFT")
     immersionHint:SetJustifyV("TOP")
-    immersionHint:SetText("Common and your racial tongues stop being automatic: "
-        .. "you read them only as well as the list below says you do, in WoW's "
-        .. "own lettering. This can only take understanding away -- speech in a "
-        .. "language your character never knew arrives scrambled by the game "
-        .. "itself, and no addon can unscramble it.")
+    immersionHint:SetText("This removes your ability to immediately understand "
+        .. "default game languages and uses Glyphic's fluency instead -- you "
+        .. "read Common and your racial tongues only as well as the list below "
+        .. "says you do. Languages you speak still reach players without "
+        .. "Glyphic exactly as they do now. Applies to the channels picked "
+        .. "under |cffffd200Chat Channels|r.")
 
-    immersionNPCCheck = Compat.CreateCheckbox(content, "...including quest givers and bosses")
+    immersionNPCCheck = Compat.CreateCheckbox(content, "Include all NPC text and speech")
     immersionNPCCheck:SetPoint("TOPLEFT", immersionHint, "BOTTOMLEFT", -6, -6)
     immersionNPCCheck:SetScript("OnClick", function(self)
         db().immersionNPCs = self:GetChecked() and true or false
     end)
-
-    -- Chat colors. Labels are kept short so the three sit on one line and cost
-    -- the language list below only a single row of height; the detail lives in
-    -- the tooltips. They sit here, above the list, because the per-language
-    -- swatches are on its rows -- the switch next to the thing it switches.
-    local function colorCheck(label, tip, get, set)
-        local cb = Compat.CreateCheckbox(content, label)
-        cb:SetScript("OnClick", function(self)
-            if ns.Colors then set(self:GetChecked() and true or false) end
-            if ns.OnSettingsChanged then ns.OnSettingsChanged() end
-        end)
-        cb:HookScript("OnEnter", function(self)
-            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-            GameTooltip:SetText(tip, 1, 1, 1, 1, true)
-            GameTooltip:Show()
-        end)
-        cb:HookScript("OnLeave", function() GameTooltip:Hide() end)
-        cb._get = get
-        return cb
-    end
-
-    colorTagCheck = colorCheck("Color tags",
-        "Paint the [Language] tag in that tongue's color, so you can tell Demonic from Old God at a glance -- including on lines you can't read yet.\n\nIndependent of \"Tint speech\": turn this off with that on and the words are tinted while the tag stays in its usual color.",
-        function() return ns.Colors and ns.Colors.TagsEnabled() end,
-        function(v) ns.Colors.SetTagsEnabled(v) end)
-    colorTagCheck:SetPoint("TOPLEFT", immersionNPCCheck, "BOTTOMLEFT", 0, -10)
-
-    colorSpeechCheck = colorCheck("Tint speech",
-        "Color the spoken words themselves. Off by default -- the tag alone marks the language without repainting whole conversations.\n\nIndependent of \"Color tags\": either can be on without the other.",
-        function() return ns.Colors and ns.Colors.SpeechEnabled() end,
-        function(v) ns.Colors.SetSpeechEnabled(v) end)
-    colorSpeechCheck:SetPoint("LEFT", colorTagCheck.labelText, "RIGHT", 24, 0)
-
-    colorRealCheck = colorCheck("Tint in-game languages",
-        "Also color WoW's own languages from players who don't run the addon. Off by default: nearly all chat is Common or your faction's tongue, so this tints most of the window rather than picking anything out of it.",
-        function() return ns.Colors and ns.Colors.RealLanguagesEnabled() end,
-        function(v) ns.Colors.SetRealLanguagesEnabled(v) end)
-    colorRealCheck:SetPoint("LEFT", colorSpeechCheck.labelText, "RIGHT", 24, 0)
 
     -- What everything above and below adds up to. Every dial that shapes your
     -- voice is on this panel now, so the readout and the preview are too: pick
@@ -1895,7 +1866,7 @@ local function BuildLearnedPanel()
     -- The summary shares the header's line rather than taking another, so the
     -- block costs the language list as little height as possible.
     local voiceLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    voiceLabel:SetPoint("TOPLEFT", colorTagCheck, "BOTTOMLEFT", 0, -16)
+    voiceLabel:SetPoint("TOPLEFT", immersionNPCCheck, "BOTTOMLEFT", 0, -16)
     voiceLabel:SetText("Your voice")
     voiceLabel:SetTextColor(1, 0.82, 0.2)
 

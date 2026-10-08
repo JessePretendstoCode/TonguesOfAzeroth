@@ -156,6 +156,7 @@ local COLORS = {
 local gameFrame, grid
 local tiles = {}
 local input, clueLabel, clueText, statusText, statsText, repBar
+local passiveCheck
 local built = false
 local wordLen = 5
 
@@ -334,6 +335,10 @@ function updateStats()
         repBar:SetProgress(frac)
         repBar:SetText(string.format("%s  -  %s  (%d%% fluent, %d words)",
             langName(), r.name, math.floor(frac * 100 + 0.5), learned))
+    end
+
+    if passiveCheck then
+        passiveCheck:SetChecked(GlyphicDB and GlyphicDB.passiveLearning ~= false)
     end
 
     -- Live-update the Languages panel's fluency bars if it's open too.
@@ -522,17 +527,11 @@ local function build()
     local pickDD = Compat.CreateDropdown(f, 210)
     pickDD:SetPoint("LEFT", pickLabel, "RIGHT", 8, 0)
     local items = {}
-    local primaries = (ns.GetSpeakablePrimaryLanguages and ns.GetSpeakablePrimaryLanguages())
-        or Language.GetPrimaryLanguages()
+    local primaries = Language.GetPrimaryLanguages()
     for i = 1, #primaries do
         items[i] = { text = primaries[i].name, value = primaries[i].id }
     end
     pickDD:SetItems(items)
-    -- If the trainer was pointed at a language your race natively speaks (now
-    -- hidden), fall back to the first trainable tongue.
-    if ns.IsNativeLanguage and ns.IsNativeLanguage(DB().lang) and primaries[1] then
-        DB().lang = primaries[1].id
-    end
     pickDD:SetSelected(DB().lang, Language.GetLanguageName(DB().lang))
     pickDD.onSelect = function(value)
         DB().lang = value
@@ -639,6 +638,16 @@ local function build()
     hint:SetPoint("RIGHT", f, "RIGHT", -20, 0)
     hint:SetJustifyH("CENTER")
     hint:SetText("Green = right letter & spot, Yellow = right letter wrong spot, Gray = not in word.\nHarder words and longer streaks earn more fluency. Reveal gives up (and resets the streak).")
+
+    -- The other way to earn fluency, so it belongs on the panel about earning
+    -- fluency rather than on the one that only displays it. Solving words here
+    -- and overhearing a tongue out in the world feed the same number.
+    passiveCheck = Compat.CreateCheckbox(f, "Passive learning -- overhearing a tongue slowly builds your fluency in it")
+    passiveCheck:SetPoint("TOPLEFT", hint, "BOTTOMLEFT", 0, -16)
+    passiveCheck:SetScript("OnClick", function(self)
+        GlyphicDB = GlyphicDB or {}
+        GlyphicDB.passiveLearning = self:GetChecked() and true or false
+    end)
 
     -- Match the grid to the saved difficulty before the first round.
     applyLength(diffFor(DB().difficulty).len)
