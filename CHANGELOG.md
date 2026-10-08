@@ -22,6 +22,10 @@ Tongues of Azeroth before 0.5.3.
   language your character never knew is scrambled by the game before any addon
   can see it, and the original never reaches your computer -- so those lines
   are left exactly as they arrived, at any fluency. No addon can undo that one.
+  Garbled speech is colored only if you asked for it. A line hidden this way
+  is indistinguishable from one the game hid itself, so it follows *Tint
+  in-game languages* under Chat Channels like any other line of real Orcish,
+  rather than painting itself.
 - **Settings moved to the panels they belong on.** The Languages tab is now
   *Languages & Fluency*, and it keeps the things that are about languages:
   which tongue you speak, how fluent you are in each one, and its color.

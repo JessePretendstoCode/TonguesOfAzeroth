@@ -1988,14 +1988,28 @@ local function inlineChatFilter(_, event, msg, sender, languageName, ...)
     --
     -- Marked `isReal` so the rest of the filter treats it as genuine in-game
     -- speech, which it is: that skips the decoder, which has nothing to offer
-    -- a line nobody encoded, and still paints it in the tongue's color.
+    -- a line nobody encoded.
     local blizzLangId = select("#", ...) >= 7 and select(7, ...) or nil
     local garbled, garbledId = immersionRewrite(msg, tag, sender, blizzLangId, false)
     if garbled then
         msg = garbled
         stripped = garbled
-        langId = garbledId or langId
-        isReal = langId ~= nil
+        isReal = true
+        -- Colored only if you asked for WoW's own languages to be colored.
+        -- The whole point of garbling with Blizzard's word tables is that the
+        -- result is indistinguishable from speech the client garbled itself,
+        -- so it answers to the same opt-in instead of bringing its own -- and
+        -- `isReal` forces speech color on below, which would otherwise paint
+        -- every line of Common in the window with both color settings off.
+        --
+        -- langId is cleared rather than left alone when the option is off: it
+        -- is the "this line is in a tongue" test for the name highlighter too,
+        -- and a name inside garbled text is garbled with everything else.
+        if Colors and Colors.RealLanguagesEnabled() then
+            langId = garbledId or langId
+        else
+            langId = nil
+        end
     end
 
     -- `decoded` lines are already readable end to end, so a name highlight has
@@ -2075,8 +2089,13 @@ local function inlineChatFilter(_, event, msg, sender, languageName, ...)
         end
     end
 
+    -- `garbled` as well as the paint comparison: returning nothing means "show
+    -- the line as it arrived", so a message this filter rewrote but did not
+    -- also recolor would be quietly thrown away and the original printed.
+    -- Immersion is the first thing to rewrite a line without coloring it, and
+    -- the fault was invisible while it always did both.
     local painted = paint(msg)
-    if painted ~= msg then
+    if painted ~= msg or garbled then
         return false, painted, sender, languageName, ...
     end
     return false
@@ -2099,7 +2118,10 @@ local function npcImmersionFilter(_, _, msg, sender, languageName, ...)
     local blizzLangId = select("#", ...) >= 7 and select(7, ...) or nil
     local garbled, garbledId = immersionRewrite(msg, nil, sender, blizzLangId, true)
     if not garbled then return false end
-    if Colors and garbledId then
+    -- Same opt-in as the player filter above: a garbled line is indistinguishable
+    -- from one the client garbled, so coloring it is the "Tint in-game languages"
+    -- question and not a decision this feature gets to make on its own.
+    if Colors and garbledId and Colors.RealLanguagesEnabled() then
         return false, Colors.Apply(garbled, garbledId, { speech = true }), sender,
             languageName, ...
     end
