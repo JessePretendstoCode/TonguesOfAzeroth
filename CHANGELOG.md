@@ -25,10 +25,8 @@ Tongues of Azeroth before 0.5.3.
   addon's own idea and has to be asked for by name rather than arriving with
   the rest.
   An orc quest giver hands you an offer in Orcish; a night elf hands you one
-  in Darnassian. The tongue comes from the speaker's race, falling back to
-  their faction for the many quest givers who aren't a player race at all, and
-  it's remembered per quest so your journal still reads in the tongue of
-  whoever gave it to you long after they're out of sight.
+  in Darnassian. It's remembered per quest, so your journal still reads in the
+  tongue of whoever gave it to you long after they're out of sight.
   Quests already in your log when you switch this on fall back to your own
   faction's tongue -- Orcish for Horde, Common for Alliance. Nothing in the
   game will tell an addon who gave you a quest after the fact, so this is
@@ -42,14 +40,25 @@ Tongues of Azeroth before 0.5.3.
   a place, or off a bulletin board. There is no API that says "this came from
   an item" and none is needed -- the absence of a speaker is the signal, and
   it is recorded as an answer so those never get swept into the guess above.
-  NPCs are not held to the list of races you can roll. The client has race
-  files for forest trolls, ice trolls, Broken, leper gnomes and a long tail of
-  others nobody will ever play, and matching only the exact player races
-  dropped every one of them onto their faction -- which is how a Darkspear
-  quest giver came out in Orcish. Those now read as what they are. "Elf" on
-  its own is deliberately not matched: it cannot tell Darnassian from
-  Thalassian, and a confidently wrong tongue is worse than the faction's
-  honest one.
+  Working out which tongue that is takes some doing, because the game does not
+  tell addons an NPC's race and never has -- race is a thing player characters
+  have, and a quest giver is a creature with a model. Asking is not an option,
+  so Glyphic reads two things it can see and takes the stronger one.
+  First, who the NPC answers to: the reputation faction on its tooltip. An NPC
+  under "Thunder Bluff" is a tauren, one under "Bilgewater Cartel" is a goblin,
+  one under "Darkspear Trolls" is a troll. Not a race, but right about the
+  tongue nearly every time, and right even for the lone tauren posted out in
+  the Barrens. Factions are matched by id and named by your own client, so this
+  works the same on a German install as an English one.
+  Second, where you are standing. Mulgore speaks Taur-ahe, Durotar Orcish,
+  Tirisfal Gutterspeak, Dun Morogh Dwarvish, Eversong Thalassian, and so on
+  through the racial homelands. Weaker than the faction and treated as such --
+  a zone cannot tell the goblin from the orc beside him -- but in a homeland
+  nearly everyone is the one thing, and mixed zones like the Barrens claim
+  nobody and hand the question back.
+  Only when both come up empty does it fall back to the NPC's side, Orcish for
+  Horde and Common for Alliance. If your records were written before this --
+  a troll or goblin reading Orcish -- `/glyphic quest reset` clears them.
   `/glyphic quest reset` forgets every recorded tongue, for when the records
   are wrong rather than missing. The right one is written down again the next
   time you stand in front of the giver.

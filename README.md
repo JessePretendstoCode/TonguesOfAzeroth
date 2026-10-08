@@ -303,9 +303,18 @@ Each panel answers one question, which is how to guess where a setting lives:
   both switches above it are on. Everything else immersion touches is text the client
   would have garbled on its own; a quest window carries no language at all, so this is the
   one place Glyphic hides something the game never hid. It covers quest offers, gossip
-  windows, your journal and the objective tracker. The tongue is the speaker's, taken from
-  their race and falling back to their faction, and it's remembered per quest so your
-  journal keeps reading in the tongue of whoever gave it to you. Quests already in your
+  windows, your journal and the objective tracker. The tongue is the speaker's, and it's
+  remembered per quest so your journal keeps reading in the tongue of whoever gave it to
+  you. Working out which tongue takes guesswork, because the game does not tell addons an
+  NPC's race -- race belongs to player characters, and a quest giver is a creature with a
+  model. So Glyphic reads the reputation faction off the NPC's tooltip first: "Thunder
+  Bluff" means tauren, "Bilgewater Cartel" means goblin, "Darkspear Trolls" means troll.
+  That holds even for the lone tauren posted out in the Barrens, and it is matched by
+  faction id so it works on a non-English client. Failing that it reads the zone --
+  Mulgore speaks Taur-ahe, Durotar Orcish, Tirisfal Gutterspeak, Dun Morogh Dwarvish,
+  Eversong Thalassian -- which is right across the racial homelands and claims nothing in
+  mixed zones. Only when neither says anything does it fall back to the NPC's side.
+  Quests already in your
   log when you switch this on fall back to your own faction's tongue, since nothing will
   tell an addon who gave you one after the fact -- hand one in and the real tongue is
   recorded. Quests with nobody behind them stay readable: one from an item in your bags,

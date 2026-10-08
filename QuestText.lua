@@ -101,6 +101,71 @@ local RACE_PATTERNS = {
 }
 QuestText.RACE_PATTERNS = RACE_PATTERNS
 
+--=========================================================================--
+--  What an NPC *does* tell you
+--=========================================================================--
+-- Its reputation faction, on the third line of its tooltip: "Thunder Bluff"
+-- under a tauren, "Darkspear Trolls" under a troll, "Bilgewater Cartel" under
+-- a goblin. Not a race, but a far better proxy than anything else on offer --
+-- a Thunder Bluff quest giver is a tauren essentially every time, and unlike
+-- the zone it is still right for the lone tauren standing in the Barrens.
+--
+-- Keyed by faction id rather than by name so the matching survives a German
+-- client: the id is fixed, and the client is asked for its own localized name
+-- at runtime. Every one of these was checked against Blizzard's faction list
+-- rather than recalled.
+local FACTION_TONGUE = {
+    [47]   = 6,    -- Ironforge
+    [54]   = 13,   -- Gnomeregan Exiles
+    [68]   = 33,   -- Undercity
+    [69]   = 2,    -- Darnassus
+    [72]   = 7,    -- Stormwind
+    [76]   = 1,    -- Orgrimmar
+    [81]   = 3,    -- Thunder Bluff
+    [530]  = 14,   -- Darkspear Trolls
+    [911]  = 10,   -- Silvermoon City
+    [922]  = 10,   -- Tranquillien
+    [930]  = 35,   -- Exodar
+    [1133] = 40,   -- Bilgewater Cartel
+    [1134] = 39,   -- Gilneas
+    [21]   = 40,   -- Booty Bay (Steamwheedle, and goblins to a one)
+    [59]   = 6,    -- Thorium Brotherhood
+    [576]  = 303,  -- Timbermaw Hold
+}
+
+-- The same answers in English, for any client that will not hand over a
+-- faction's localized name. Lowercased at build time.
+local FACTION_TONGUE_BY_NAME = {
+    ["ironforge"] = 6, ["gnomeregan"] = 13, ["gnomeregan exiles"] = 13,
+    ["undercity"] = 33, ["darnassus"] = 2, ["stormwind"] = 7,
+    ["orgrimmar"] = 1, ["thunder bluff"] = 3, ["darkspear trolls"] = 14,
+    ["silvermoon city"] = 10, ["tranquillien"] = 10, ["exodar"] = 35,
+    ["the exodar"] = 35, ["bilgewater cartel"] = 40, ["gilneas"] = 39,
+    ["booty bay"] = 40, ["thorium brotherhood"] = 6, ["timbermaw hold"] = 303,
+}
+
+-- Where you are, for the NPCs with no reputation faction at all. Weaker than
+-- the faction -- it cannot tell the goblin in the Barrens from the orc beside
+-- him -- but in a racial homeland it is right about nearly everyone, and the
+-- homelands are where this matters most.
+--
+-- The two id sets are not the same map numbered twice: Classic calls Durotar
+-- 1411 and the modern client calls it 1, so both are listed and the flavour
+-- decides which is consulted. Merging them would have the modern Orgrimmar
+-- (85) collide with whatever Classic numbers 85.
+local ZONE_TONGUE_CLASSIC = {
+    [1411] = 1,  [1412] = 3,  [1420] = 33, [1421] = 33,
+    [1426] = 6,  [1429] = 7,  [1438] = 2,  [1439] = 2,
+    [1941] = 10, [1942] = 10, [1943] = 35, [1950] = 35,
+    [1947] = 35, [1954] = 10,
+}
+local ZONE_TONGUE_MODERN = {
+    [1]  = 1,  [7]  = 3,  [18] = 33, [21] = 33,
+    [27] = 6,  [37] = 7,  [57] = 2,  [62] = 2,
+    [94] = 10, [95] = 10, [97] = 35,
+    [85] = 1,  [88] = 3,  [89] = 2,
+}
+
 local FACTION_LANGUAGE = { Horde = 1, Alliance = 7 }
 
 -- The tongue you are addressed in when nothing better is known. Neutral and
@@ -134,8 +199,102 @@ function QuestText.RaceFile(unit)
     return (file:lower():gsub("[^%a]", ""))
 end
 
+-- The unit tooltip's text, which is the only place the reputation faction is
+-- written down. Modern clients hand it over as data; the older ones have to be
+-- asked for a tooltip and read back off it.
+local scanner
+function QuestText.TooltipLines(unit)
+    local out = {}
+    if C_TooltipInfo and type(C_TooltipInfo.GetUnit) == "function" then
+        local ok, data = pcall(C_TooltipInfo.GetUnit, unit)
+        if ok and type(data) == "table" and type(data.lines) == "table" then
+            for i = 1, #data.lines do
+                local left = data.lines[i] and data.lines[i].leftText
+                if type(left) == "string" then out[#out + 1] = left end
+            end
+            if #out > 0 then return out end
+        end
+    end
+    if not scanner and type(CreateFrame) == "function" then
+        local ok, frame = pcall(CreateFrame, "GameTooltip",
+            "GlyphicUnitScanner", nil, "GameTooltipTemplate")
+        if ok then scanner = frame end
+    end
+    if scanner and type(scanner.SetUnit) == "function" then
+        pcall(scanner.SetOwner, scanner, UIParent, "ANCHOR_NONE")
+        pcall(scanner.ClearLines, scanner)
+        if pcall(scanner.SetUnit, scanner, unit) then
+            local n = (scanner.NumLines and scanner:NumLines()) or 0
+            for i = 1, n do
+                local fs = _G["GlyphicUnitScannerTextLeft" .. i]
+                local text = fs and fs.GetText and fs:GetText()
+                if type(text) == "string" then out[#out + 1] = text end
+            end
+        end
+        pcall(scanner.Hide, scanner)
+    end
+    return out
+end
+
+-- Built once, from ids, so a German client matches "Donnerfels" without this
+-- file ever having heard the word.
+local factionTongues
+local function factionTongueByName()
+    if factionTongues then return factionTongues end
+    factionTongues = {}
+    for id, tongue in pairs(FACTION_TONGUE) do
+        local name
+        if C_Reputation and type(C_Reputation.GetFactionDataByID) == "function" then
+            local ok, data = pcall(C_Reputation.GetFactionDataByID, id)
+            if ok and type(data) == "table" then name = data.name end
+        end
+        if not name and type(GetFactionInfoByID) == "function" then
+            local ok, n = pcall(GetFactionInfoByID, id)
+            if ok then name = n end
+        end
+        if type(name) == "string" and name ~= "" then
+            factionTongues[name:lower()] = tongue
+        end
+    end
+    for name, tongue in pairs(FACTION_TONGUE_BY_NAME) do
+        if factionTongues[name] == nil then factionTongues[name] = tongue end
+    end
+    return factionTongues
+end
+
+-- Dropped when the player logs in, so a faction whose name was not loaded yet
+-- at file scope gets another chance.
+function QuestText.ForgetFactionNames() factionTongues = nil end
+
+function QuestText.FactionTongue(unit)
+    local known = factionTongueByName()
+    local lines = QuestText.TooltipLines(unit)
+    for i = 1, #lines do
+        local line = lines[i]:lower():gsub("^%s+", ""):gsub("%s+$", "")
+        local tongue = known[line]
+        if tongue then return tongue end
+    end
+    return nil
+end
+
+-- The racial homeland you are standing in, if it is one.
+function QuestText.ZoneTongue()
+    if not (C_Map and type(C_Map.GetBestMapForUnit) == "function") then return nil end
+    local ok, id = pcall(C_Map.GetBestMapForUnit, "player")
+    if not ok or type(id) ~= "number" then return nil end
+    local Compat = ns.Compat
+    local classic = Compat and Compat.hasProximityAddonMessages
+    return (classic and ZONE_TONGUE_CLASSIC or ZONE_TONGUE_MODERN)[id]
+end
+
 function QuestText.LanguageForUnit(unit)
     if type(UnitExists) ~= "function" or not UnitExists(unit) then return nil end
+
+    -- Who they answer to beats where they are standing, which beats which
+    -- army they belong to. Each step is a weaker claim than the one above.
+    local tongue = QuestText.FactionTongue(unit)
+    if tongue then return tongue end
+
     local file = QuestText.RaceFile(unit)
     if file then
         local id = RACE_LANGUAGE[file]
@@ -145,6 +304,9 @@ function QuestText.LanguageForUnit(unit)
             if file:find(needle, 1, true) then return lang end
         end
     end
+    tongue = QuestText.ZoneTongue()
+    if tongue then return tongue end
+
     if type(UnitFactionGroup) == "function" then
         local faction = UnitFactionGroup(unit)
         if FACTION_LANGUAGE[faction] then return FACTION_LANGUAGE[faction] end
@@ -498,6 +660,9 @@ frame:SetScript("OnEvent", function(_, event, ...)
     elseif event == "QUEST_REMOVED" then
         QuestText.ForgetQuest(...)
     elseif event == "PLAYER_LOGIN" then
+        -- Faction names are not all loaded at file scope, and a name that came
+        -- back empty then would otherwise stay empty for the session.
+        QuestText.ForgetFactionNames()
         QuestText.Refresh()
     end
 end)
@@ -547,13 +712,16 @@ function QuestText.Report()
         local file = QuestText.RaceFile("npc")
         add("talking to: " .. tostring(name))
         add("  its race, per the client: " .. (file
-            or "|cffff6060nothing, and there never will be -- the game does not "
-            .. "tell addons an NPC's race. Faction is being used instead.|r"))
-        if type(UnitCreatureType) == "function" then
-            add("  its creature type: " .. tostring(UnitCreatureType("npc")))
-        end
+            or "|cff808080nothing, and there never will be -- the game does not "
+            .. "tell addons an NPC's race|r"))
+        local repLang = QuestText.FactionTongue("npc")
+        add("  who it answers to: " .. (repLang and langName(repLang)
+            or "|cff808080nothing its tooltip names|r"))
+        local zoneLang = QuestText.ZoneTongue()
+        add("  this zone's homeland tongue: " .. (zoneLang and langName(zoneLang)
+            or "|cff808080not a racial homeland|r"))
         if type(UnitFactionGroup) == "function" then
-            add("  its faction: " .. tostring(UnitFactionGroup("npc")))
+            add("  its side: " .. tostring(UnitFactionGroup("npc")))
         end
         local lang = QuestText.LanguageForUnit("npc")
         add("  so Glyphic reads it as: " .. (lang and langName(lang) or "nothing"))
