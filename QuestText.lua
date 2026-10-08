@@ -73,11 +73,11 @@ local RACE_LANGUAGE = {
 }
 QuestText.RACE_LANGUAGE = RACE_LANGUAGE
 
--- The table above is player races. NPCs are not held to that list: the client
--- has race files for forest trolls, ice trolls, broken draenei and a long tail
--- of others that no player will ever roll, and an exact-match lookup drops
--- every one of them onto their faction -- which is how a Darkspear reads as
--- Orcish.
+-- Kept, but read the warning: UnitRace answers for players and returns nil for
+-- every creature in the game. Race is a character property; an NPC has a
+-- display and a creature type instead. So in practice nothing below is reached
+-- for a quest giver, and every one of them lands on their faction. Two rounds
+-- of widening this table did nothing for exactly that reason.
 --
 -- Ordered, and the order is the point: the first needle that appears anywhere
 -- in the race file wins, so compounds have to be checked before the family
@@ -547,7 +547,8 @@ function QuestText.Report()
         local file = QuestText.RaceFile("npc")
         add("talking to: " .. tostring(name))
         add("  its race, per the client: " .. (file
-            or "|cffff6060nothing -- this is why the faction is being used|r"))
+            or "|cffff6060nothing, and there never will be -- the game does not "
+            .. "tell addons an NPC's race. Faction is being used instead.|r"))
         if type(UnitCreatureType) == "function" then
             add("  its creature type: " .. tostring(UnitCreatureType("npc")))
         end
