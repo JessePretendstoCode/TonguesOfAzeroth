@@ -1421,7 +1421,7 @@ local function BuildMainPanel()
         if ns.OnSettingsChanged then ns.OnSettingsChanged() else RefreshMain() end
     end)
 
-    local enableHint = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    local enableHint = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     enableHint:SetPoint("TOPLEFT", enableCheck, "BOTTOMLEFT", 24, -2)
     enableHint:SetPoint("RIGHT", content, "RIGHT", -170, 0)
     enableHint:SetJustifyH("LEFT")
@@ -1508,7 +1508,7 @@ local function BuildChatPanel()
     local speakHeader = sectionHeader(content, "When you speak")
     speakHeader:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -16)
 
-    local channelHint = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    local channelHint = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     channelHint:SetPoint("TOPLEFT", speakHeader, "BOTTOMLEFT", 0, -6)
     channelHint:SetPoint("RIGHT", content, "RIGHT", -24, 0)
     channelHint:SetJustifyH("LEFT")
@@ -1621,7 +1621,7 @@ local function BuildChatPanel()
     -- The instance restriction is a Blizzard limitation, not an addon bug. It
     -- sits with the option it explains rather than at the top of the panel you
     -- land on, where it was the first thing a new player read.
-    local instanceNote = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    local instanceNote = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     instanceNote:SetPoint("TOPLEFT", autoDisableCheck, "BOTTOMLEFT", 24, -2)
     instanceNote:SetPoint("RIGHT", content, "RIGHT", -24, 0)
     instanceNote:SetJustifyH("LEFT")
@@ -1634,7 +1634,7 @@ local function BuildChatPanel()
     local listenHeader = sectionHeader(content, "When you listen")
     listenHeader:SetPoint("TOPLEFT", instanceNote, "BOTTOMLEFT", -24, -20)
 
-    local listenHint = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    local listenHint = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     listenHint:SetPoint("TOPLEFT", listenHeader, "BOTTOMLEFT", 0, -6)
     listenHint:SetPoint("RIGHT", content, "RIGHT", -24, 0)
     listenHint:SetJustifyH("LEFT")
@@ -1669,7 +1669,7 @@ local function BuildChatPanel()
         outputDropdown:SetSelected(value, outputWindowLabel(value))
     end
 
-    local colorPointer = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    local colorPointer = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     colorPointer:SetPoint("TOPLEFT", decodeStyleDropdown, "BOTTOMLEFT", 0, -14)
     colorPointer:SetPoint("RIGHT", content, "RIGHT", -24, 0)
     colorPointer:SetJustifyH("LEFT")
@@ -1829,7 +1829,7 @@ local function BuildLearnedPanel()
     immersionCheck:SetScript("OnClick", function(self)
         db().fullImmersion = self:GetChecked() and true or false
     end)
-    local immersionHint = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    local immersionHint = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     immersionHint:SetPoint("TOPLEFT", immersionCheck, "BOTTOMLEFT", 6, -2)
     immersionHint:SetPoint("RIGHT", content, "RIGHT", -28, 0)
     immersionHint:SetJustifyH("LEFT")
@@ -1909,7 +1909,7 @@ local function BuildLearnedPanel()
     voiceRule:SetPoint("RIGHT", content, "RIGHT", -32, 0)
     Compat.SolidTexture(voiceRule, 1, 1, 1, 0.12)
 
-    voiceHint = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    voiceHint = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     voiceHint:SetPoint("TOPLEFT", voiceLabel, "BOTTOMLEFT", 0, -6)
     voiceHint:SetPoint("RIGHT", content, "RIGHT", -32, 0)
     voiceHint:SetJustifyH("LEFT")
@@ -1996,7 +1996,7 @@ local function BuildLearnedPanel()
     -- Footer note. Last thing on the page, so it is what the page is measured
     -- against; pinning it to the bottom of the panel would have left it
     -- floating over the middle of a list taller than the window.
-    local note = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    local note = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     note:SetPoint("TOPLEFT", child, "BOTTOMLEFT", 0, -12)
     note:SetPoint("RIGHT", content, "RIGHT", -28, 0)
     note:SetJustifyH("LEFT")
@@ -2335,7 +2335,7 @@ local function BuildAccentPanel()
     -- No enable checkbox here any more: "None" in the list below is the off
     -- switch, and whether your voice applies at all is the one in-character
     -- switch on the front panel.
-    local hint = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    local hint = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     hint:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -12)
     hint:SetPoint("RIGHT", content, "RIGHT", -24, 0)
     hint:SetJustifyH("LEFT")
@@ -2381,7 +2381,7 @@ local function BuildAccentPanel()
         refreshAccentPreview()
     end)
 
-    local tailHint = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    local tailHint = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     -- -34, the same gap used between the two sliders above: a slider's
     -- Off/value/Often labels hang below its frame rather than inside it, so a
     -- smaller offset lands this text on top of them.
@@ -2402,7 +2402,7 @@ local function BuildAccentPanel()
     -- The accent used to carry its own copy of the channel grid, so "where does
     -- my voice apply" had two answers that could quietly disagree. One list
     -- under Chat Channels governs both halves now; this just points at it.
-    local channelHint = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    local channelHint = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     channelHint:SetPoint("TOPLEFT", accentEmotesCheck, "BOTTOMLEFT", 0, -14)
     channelHint:SetPoint("RIGHT", content, "RIGHT", -24, 0)
     channelHint:SetJustifyH("LEFT")
@@ -2687,7 +2687,7 @@ local function BuildCustomPanel()
     shareLabel:SetPoint("TOPLEFT", saveBtn, "BOTTOMLEFT", -6, -18)
     shareLabel:SetText("Share")
 
-    local shareHint = customPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    local shareHint = customPanel:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     shareHint:SetPoint("TOPLEFT", shareLabel, "BOTTOMLEFT", 0, -4)
     shareHint:SetPoint("RIGHT", customPanel, "RIGHT", -32, 0)
     shareHint:SetJustifyH("LEFT")
@@ -3827,7 +3827,7 @@ local function BuildProfilePanel()
     outLabel:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -18)
     outLabel:SetText("Save a copy")
 
-    local outHint = profilePanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    local outHint = profilePanel:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     outHint:SetPoint("TOPLEFT", outLabel, "BOTTOMLEFT", 0, -4)
     outHint:SetPoint("RIGHT", profilePanel, "RIGHT", -32, 0)
     outHint:SetJustifyH("LEFT")
@@ -3857,7 +3857,7 @@ local function BuildProfilePanel()
     inLabel:SetPoint("TOPLEFT", makeBtn, "BOTTOMLEFT", 6, -24)
     inLabel:SetText("Restore a copy")
 
-    local inHint = profilePanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    local inHint = profilePanel:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     inHint:SetPoint("TOPLEFT", inLabel, "BOTTOMLEFT", 0, -4)
     inHint:SetPoint("RIGHT", profilePanel, "RIGHT", -32, 0)
     inHint:SetJustifyH("LEFT")
@@ -3918,7 +3918,7 @@ local function BuildCastPanel()
     if subtitle.SetWordWrap then subtitle:SetWordWrap(true) end
     subtitle:SetText("Speak a line of your own when a spell lands -- Corvin roars \"Nuk'luk!\" -- in whatever tongue you're currently speaking. Words in \"quotes\" are spoken aloud and get translated; the rest is narration and stays in English.")
 
-    local limits = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    local limits = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     limits:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -10)
     limits:SetPoint("RIGHT", content, "RIGHT", -24, 0)
     limits:SetJustifyH("LEFT")
@@ -3965,7 +3965,7 @@ local function BuildCastPanel()
         self.valueText:SetText(value == 0 and "No pause" or (value .. " seconds"))
     end)
 
-    local throttleHint = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    local throttleHint = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     throttleHint:SetPoint("TOPLEFT", castSpellGapSlider, "BOTTOMLEFT", -4, -34)
     throttleHint:SetPoint("RIGHT", content, "RIGHT", -24, 0)
     throttleHint:SetJustifyH("LEFT")
@@ -4178,7 +4178,7 @@ local function BuildCastPanel()
     hearLabel:SetPoint("TOPLEFT", castStatus, "BOTTOMLEFT", 0, -24)
     hearLabel:SetText("Hearing other players")
 
-    local hearIntro = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    local hearIntro = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     hearIntro:SetPoint("TOPLEFT", hearLabel, "BOTTOMLEFT", 0, -6)
     hearIntro:SetPoint("RIGHT", content, "RIGHT", -24, 0)
     hearIntro:SetJustifyH("LEFT")

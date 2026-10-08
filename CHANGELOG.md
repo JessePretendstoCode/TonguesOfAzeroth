@@ -22,6 +22,8 @@ Tongues of Azeroth before 0.5.3.
   language your character never knew is scrambled by the game before any addon
   can see it, and the original never reaches your computer -- so those lines
   are left exactly as they arrived, at any fluency. No addon can undo that one.
+- Tidied the settings panels: the small print under a control is grey
+  everywhere now, instead of some of it being grey and some flat white.
 
 ## [0.5.6]
 - **Fixed: importing a profile threw an error.** The settings were applied
