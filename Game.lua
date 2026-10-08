@@ -643,7 +643,15 @@ local function build()
     -- fluency rather than on the one that only displays it. Solving words here
     -- and overhearing a tongue out in the world feed the same number.
     passiveCheck = Compat.CreateCheckbox(f, "Passive learning -- overhearing a tongue slowly builds your fluency in it")
-    passiveCheck:SetPoint("TOPLEFT", hint, "BOTTOMLEFT", 0, -16)
+    -- Centered like everything else on this panel, which takes arithmetic: the
+    -- box is a 24px frame with its label hung off the right edge, so anchoring
+    -- the frame to the middle centers the box and pushes the words off to one
+    -- side. Shift left by half the label to center the pair instead.
+    local passiveShift = 0
+    if passiveCheck.labelText and passiveCheck.labelText.GetStringWidth then
+        passiveShift = -((passiveCheck.labelText:GetStringWidth() or 0) / 2) - 1
+    end
+    passiveCheck:SetPoint("TOP", hint, "BOTTOM", passiveShift, -16)
     passiveCheck:SetScript("OnClick", function(self)
         GlyphicDB = GlyphicDB or {}
         GlyphicDB.passiveLearning = self:GetChecked() and true or false
