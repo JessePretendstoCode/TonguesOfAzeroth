@@ -33,7 +33,13 @@ Tongues of Azeroth before 0.5.3.
   shared to you by a party member. Nothing in the game will tell an addon who
   gave you a quest after the fact, and the obvious guess -- your own faction's
   tongue -- is the worst answer available: it puts Orcish in front of a Horde
-  player for every quest in the log, tauren ones included.
+  player for every quest in the log, tauren ones included. Handing one in
+  fixes it for next time: returning to the giver is the second and last
+  occasion they and the quest are in the same place.
+  `/glyphic quest` says which of the four reasons a quest is reading plainly
+  -- the feature off, the wrappers not on, the quest predating the record, or
+  the client not saying which quest is open. Three of those are not faults,
+  and they are indistinguishable from the chair.
   Two things are deliberately left alone. The buttons are yours, not theirs --
   Accept still says Accept and still works, because not understanding somebody
   has never stopped anyone agreeing to fetch ten boar livers. And the titles in

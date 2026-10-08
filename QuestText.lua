@@ -151,7 +151,13 @@ local function questIDForLogIndex(index)
         end
     end
     if type(GetQuestLogTitle) == "function" then
+        -- Every flavour that still has this returns the questID eighth, after
+        -- title, level, suggestedGroup, isHeader, isCollapsed, isComplete and
+        -- frequency. Trusting the slot beats scanning for "a number that looks
+        -- like an id", which skips low-numbered classic quests and can pick up
+        -- a level or a group size instead.
         local row = { GetQuestLogTitle(index) }
+        if type(row[8]) == "number" and row[8] > 0 then return row[8] end
         for i = 1, #row do
             if type(row[i]) == "number" and row[i] > 100 then return row[i] end
         end
@@ -165,16 +171,8 @@ local function selectedQuestID()
         local ok, id = pcall(C_QuestLog.GetSelectedQuest)
         if ok and type(id) == "number" and id > 0 then return id end
     end
-    if type(GetQuestLogSelection) == "function" and type(GetQuestLogTitle) == "function" then
-        local index = GetQuestLogSelection()
-        if index and index > 0 then
-            local info = { GetQuestLogTitle(index) }
-            -- The questID moved around between flavours; take the first number
-            -- in the row that looks like one rather than guessing at a slot.
-            for i = 1, #info do
-                if type(info[i]) == "number" and info[i] > 100 then return info[i] end
-            end
-        end
+    if type(GetQuestLogSelection) == "function" then
+        return questIDForLogIndex(GetQuestLogSelection())
     end
     return nil
 end
@@ -362,25 +360,45 @@ local function noteSpeaker()
     if lang then currentLang = lang end
 end
 
+-- Write down whichever quest is on screen, in the tongue of whoever is holding
+-- it out. Used at the offer and again at the turn-in: handing a quest back is
+-- the second and last time the giver and the quest are in the same place, so
+-- it is also the only chance to backfill one taken before any of this was on.
+-- No check on currentLang here: RememberQuest already refuses a tongue that
+-- isn't a number, and a second guard in front of it is one nothing can test.
+local function rememberCurrent()
+    if type(GetQuestID) ~= "function" then return end
+    local ok, id = pcall(GetQuestID)
+    if ok then QuestText.RememberQuest(id, currentLang) end
+end
+
 frame:SetScript("OnEvent", function(_, event, ...)
-    if event == "GOSSIP_SHOW" or event == "QUEST_GREETING"
-        or event == "QUEST_PROGRESS" or event == "QUEST_COMPLETE" then
+    if event == "GOSSIP_SHOW" or event == "QUEST_GREETING" then
         noteSpeaker()
     elseif event == "QUEST_DETAIL" then
-        noteSpeaker()
         -- Recorded at the offer rather than at acceptance: this is the only
-        -- moment both the quest and the NPC are in front of us, and the
-        -- accepted event does not agree across flavours about what it passes.
-        if type(GetQuestID) == "function" and currentLang then
-            local ok, id = pcall(GetQuestID)
-            if ok then QuestText.RememberQuest(id, currentLang) end
-        end
+        -- moment both the quest and the NPC are reliably in front of us, and
+        -- the accepted event does not agree across flavours about what it
+        -- passes.
+        noteSpeaker()
+        rememberCurrent()
+    elseif event == "QUEST_PROGRESS" or event == "QUEST_COMPLETE" then
+        -- Coming back to hand it in. Nothing needs this for a quest we already
+        -- know, but it is how a quest taken before the feature was switched on
+        -- finally gets a tongue -- at the moment you meet its giver again.
+        noteSpeaker()
+        rememberCurrent()
     elseif event == "QUEST_ACCEPTED" then
         -- A second chance at the record. Auto-accept addons and quests picked
         -- up off an item never show the offer, so QUEST_DETAIL never fires;
         -- if there is still somebody in front of us, this catches it.
-        local id = ...
-        if type(id) ~= "number" or id <= 0 then id = select(2, ...) end
+        --
+        -- Classic passes (questLogIndex, questID) and retail passes (questID).
+        -- Taking the first number either way would file a Classic quest under
+        -- its row in the log, which is both wrong and a number that belongs to
+        -- some other quest tomorrow.
+        local first, second = ...
+        local id = (type(second) == "number" and second > 0) and second or first
         local lang = QuestText.LanguageForUnit("npc") or currentLang
         if lang then QuestText.RememberQuest(id, lang) end
     elseif event == "GOSSIP_CLOSED" or event == "QUEST_FINISHED" then
@@ -406,3 +424,45 @@ end
 -- Test seam. The harness has no events and no NPC to look at.
 function QuestText._SetSpeaker(blizzId) currentLang = blizzId end
 function QuestText._Speaker() return currentLang end
+
+--=========================================================================--
+--  Diagnosis
+--=========================================================================--
+-- "Nothing in my journal is garbled" has several completely different causes
+-- -- the feature off, the wrappers not on, the quest predating the record, or
+-- this client not answering which quest is selected -- and they are
+-- indistinguishable from the outside. Rather than guess, say which one it is.
+function QuestText.Report()
+    local lines = {}
+    local function add(s) lines[#lines + 1] = s end
+
+    local db = GlyphicDB or {}
+    add("full immersion: " .. (db.fullImmersion and "on" or "off"))
+    add("NPC text: " .. (db.immersionNPCs and "on" or "off"))
+    add("quest text: " .. (db.immersionQuests and "on" or "off"))
+    add("wrappers installed: " .. (installed and "yes" or "no"))
+
+    local id = selectedQuestID()
+    add("selected quest: " .. (id and tostring(id)
+        or "|cffff6060none -- this client is not telling Glyphic which quest is open|r"))
+
+    local known, total = 0, 0
+    for _ in pairs((GlyphicDB and GlyphicDB.questLangs) or {}) do total = total + 1 end
+    if id then
+        local lang = QuestText.LanguageForQuest(id)
+        if lang then
+            known = 1
+            local glyphId = ns.NATIVE_LANG_IDS and ns.NATIVE_LANG_IDS[lang]
+            local name = glyphId and ns.Language and ns.Language.GetLanguageName
+                and ns.Language.GetLanguageName(glyphId)
+            add("its tongue: " .. (name or glyphId or ("id " .. lang)))
+        else
+            add("its tongue: |cffff6060not recorded -- you had this quest before "
+                .. "quest text was switched on, so Glyphic never met the giver. "
+                .. "Hand it in, or take a new one.|r")
+        end
+    end
+    add("quests with a recorded tongue: " .. total)
+
+    return lines, known
+end

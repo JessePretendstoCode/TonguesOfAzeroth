@@ -307,7 +307,8 @@ Each panel answers one question, which is how to guess where a setting lives:
   their race and falling back to their faction, and it's remembered per quest so your
   journal keeps reading in the tongue of whoever gave it to you. Quests already in your
   log when you switch this on stay readable, since nothing will tell an addon who gave
-  you one after the fact. Buttons are never
+  you one after the fact -- hand one in and it's recorded for next time, and
+  `/glyphic quest` will tell you which of those a quest is in. Buttons are never
   touched -- you can still accept a quest you can't read -- and quest log titles stay
   readable so you can still manage your log. It works with replacement quest frames,
   because it changes the text the game hands out rather than the frames that draw it.

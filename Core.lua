@@ -823,6 +823,9 @@ local NATIVE_LANG_IDS = {
     [180] = "moonkin",    [181] = "thalassian", [182] = "thalassian",
     [303] = "furbolg",
 }
+-- Shared so the quest-text diagnostic can name a tongue the player would
+-- recognise instead of reciting Blizzard's number at them.
+ns.NATIVE_LANG_IDS = NATIVE_LANG_IDS
 -- { [blizzardLanguageID] = true } for the tongues this character speaks in
 -- game, or nil if we couldn't determine any. Keyed by Blizzard's own number
 -- rather than ours on purpose: the client knows tongues Glyphic has no name
@@ -3130,6 +3133,17 @@ local function handleSlash(input)
             Print("cycling walks |cffffff00every language you've learned|r.")
         end
         if ns.OnSettingsChanged then ns.OnSettingsChanged() end
+    elseif cmd == "quest" or cmd == "quests" then
+        -- "Nothing in my journal is garbled" has four unrelated causes and
+        -- they look identical from the chair. This says which one it is.
+        if not ns.QuestText then
+            Print("quest text is not loaded.")
+        else
+            Print("quest text, right now:")
+            for _, line in ipairs((ns.QuestText.Report())) do
+                Print("  " .. line)
+            end
+        end
     elseif cmd == "timings" or cmd == "timing" then
         -- Undocumented on purpose: this is for answering "why did that take so
         -- long" with a number instead of a guess, not a setting anybody tunes.
