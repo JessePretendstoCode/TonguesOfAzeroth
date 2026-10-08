@@ -42,6 +42,17 @@ Tongues of Azeroth before 0.5.3.
   a place, or off a bulletin board. There is no API that says "this came from
   an item" and none is needed -- the absence of a speaker is the signal, and
   it is recorded as an answer so those never get swept into the guess above.
+  NPCs are not held to the list of races you can roll. The client has race
+  files for forest trolls, ice trolls, Broken, leper gnomes and a long tail of
+  others nobody will ever play, and matching only the exact player races
+  dropped every one of them onto their faction -- which is how a Darkspear
+  quest giver came out in Orcish. Those now read as what they are. "Elf" on
+  its own is deliberately not matched: it cannot tell Darnassian from
+  Thalassian, and a confidently wrong tongue is worse than the faction's
+  honest one.
+  `/glyphic quest reset` forgets every recorded tongue, for when the records
+  are wrong rather than missing. The right one is written down again the next
+  time you stand in front of the giver.
   `/glyphic quest` says which of the four reasons a quest is reading plainly
   -- the feature off, the wrappers not on, the quest predating the record, or
   the client not saying which quest is open. Three of those are not faults,

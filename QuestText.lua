@@ -73,6 +73,34 @@ local RACE_LANGUAGE = {
 }
 QuestText.RACE_LANGUAGE = RACE_LANGUAGE
 
+-- The table above is player races. NPCs are not held to that list: the client
+-- has race files for forest trolls, ice trolls, broken draenei and a long tail
+-- of others that no player will ever roll, and an exact-match lookup drops
+-- every one of them onto their faction -- which is how a Darkspear reads as
+-- Orcish.
+--
+-- Ordered, and the order is the point: the first needle that appears anywhere
+-- in the race file wins, so compounds have to be checked before the family
+-- word they contain. "Elf" on its own is deliberately absent, because it
+-- cannot tell Darnassian from Thalassian and a wrong tongue is worse than the
+-- faction's.
+local RACE_PATTERNS = {
+    { "nightelf", 2 },   { "bloodelf", 10 },  { "voidelf", 10 },
+    { "highelf", 10 },   { "nightborne", 10 }, { "sanlayn", 10 },
+    { "highmountain", 3 }, { "tauren", 3 },   { "yaungol", 3 },
+    { "darkspear", 14 }, { "zandalari", 14 }, { "troll", 14 },
+    { "draenei", 35 },   { "broken", 35 },    { "eredar", 8 },
+    { "darkiron", 6 },   { "earthen", 6 },    { "dwarf", 6 },
+    { "mechagnome", 13 }, { "gnome", 13 },
+    { "maghar", 1 },     { "vulpera", 1 },    { "orc", 1 },
+    { "forsaken", 33 },  { "scourge", 33 },   { "undead", 33 },
+    { "kultiran", 7 },   { "human", 7 },
+    { "worgen", 39 },    { "goblin", 40 },    { "pandaren", 42 },
+    { "dracthyr", 11 },  { "dragonspawn", 11 }, { "drakonid", 11 },
+    { "furbolg", 303 },
+}
+QuestText.RACE_PATTERNS = RACE_PATTERNS
+
 local FACTION_LANGUAGE = { Horde = 1, Alliance = 7 }
 
 -- The tongue you are addressed in when nothing better is known. Neutral and
@@ -89,13 +117,32 @@ end
 -- nothing to say about a wisp or a talking crate. Faction answers for those,
 -- and the player's own tongue answers for the rest -- a guess, but the only
 -- honest one available, and stated as a guess rather than dressed up.
+-- The race file the client reports for a unit, lowercased, or nil. Separate
+-- from the lookup so the diagnostic can show what the client said even when
+-- nothing was made of it.
+function QuestText.RaceFile(unit)
+    if type(UnitRace) ~= "function" then return nil end
+    local ok, display, file = pcall(UnitRace, unit)
+    if not ok then return nil end
+    if type(file) ~= "string" or file == "" then
+        -- Some NPCs answer with a display name and nothing else. It is
+        -- localized, so it only helps on an English client -- but on one it
+        -- is the difference between Zandali and a shrug.
+        file = type(display) == "string" and display or nil
+    end
+    if type(file) ~= "string" or file == "" then return nil end
+    return (file:lower():gsub("[^%a]", ""))
+end
+
 function QuestText.LanguageForUnit(unit)
     if type(UnitExists) ~= "function" or not UnitExists(unit) then return nil end
-    if type(UnitRace) == "function" then
-        local _, file = UnitRace(unit)
-        if type(file) == "string" then
-            local id = RACE_LANGUAGE[file:lower()]
-            if id then return id end
+    local file = QuestText.RaceFile(unit)
+    if file then
+        local id = RACE_LANGUAGE[file]
+        if id then return id end
+        for i = 1, #RACE_PATTERNS do
+            local needle, lang = RACE_PATTERNS[i][1], RACE_PATTERNS[i][2]
+            if file:find(needle, 1, true) then return lang end
         end
     end
     if type(UnitFactionGroup) == "function" then
@@ -135,6 +182,18 @@ end
 function QuestText.ForgetQuest(questID)
     if type(questID) ~= "number" then return end
     questLangs()[questID] = nil
+end
+
+-- For when the records are wrong rather than missing -- a tongue improved, a
+-- race the table has only just learned about. Clearing them sends every quest
+-- back to the faction guess, and the right one is written down again the next
+-- time you stand in front of the giver.
+function QuestText.ForgetAll()
+    local n = 0
+    for _ in pairs(questLangs()) do n = n + 1 end
+    GlyphicDB.questLangs = {}
+    QuestText.ClearCache()
+    return n
 end
 
 -- Three answers, and the difference between the last two is the whole design:
@@ -462,6 +521,13 @@ function QuestText._Speaker() return currentLang end
 -- -- the feature off, the wrappers not on, the quest predating the record, or
 -- this client not answering which quest is selected -- and they are
 -- indistinguishable from the outside. Rather than guess, say which one it is.
+local function langName(blizzId)
+    local glyphId = ns.NATIVE_LANG_IDS and ns.NATIVE_LANG_IDS[blizzId]
+    local name = glyphId and ns.Language and ns.Language.GetLanguageName
+        and ns.Language.GetLanguageName(glyphId)
+    return name or glyphId or ("id " .. tostring(blizzId))
+end
+
 function QuestText.Report()
     local lines = {}
     local function add(s) lines[#lines + 1] = s end
@@ -472,6 +538,28 @@ function QuestText.Report()
     add("quest text: " .. (db.immersionQuests and "on" or "off"))
     add("wrappers installed: " .. (installed and "yes" or "no"))
 
+    -- Whoever is in front of you, and what the client was willing to say about
+    -- them. This is the block that answers "why is this troll speaking
+    -- Orcish": either the race came back empty, or it came back as something
+    -- the table has never heard of.
+    if type(UnitExists) == "function" and UnitExists("npc") then
+        local name = type(UnitName) == "function" and UnitName("npc") or "?"
+        local file = QuestText.RaceFile("npc")
+        add("talking to: " .. tostring(name))
+        add("  its race, per the client: " .. (file
+            or "|cffff6060nothing -- this is why the faction is being used|r"))
+        if type(UnitCreatureType) == "function" then
+            add("  its creature type: " .. tostring(UnitCreatureType("npc")))
+        end
+        if type(UnitFactionGroup) == "function" then
+            add("  its faction: " .. tostring(UnitFactionGroup("npc")))
+        end
+        local lang = QuestText.LanguageForUnit("npc")
+        add("  so Glyphic reads it as: " .. (lang and langName(lang) or "nothing"))
+    else
+        add("talking to: nobody")
+    end
+
     local id = selectedQuestID()
     add("selected quest: " .. (id and tostring(id)
         or "|cffff6060none -- this client is not telling Glyphic which quest is open|r"))
@@ -480,20 +568,14 @@ function QuestText.Report()
     for _ in pairs((GlyphicDB and GlyphicDB.questLangs) or {}) do total = total + 1 end
     if id then
         local lang = QuestText.LanguageForQuest(id)
-        local function nameOf(blizzId)
-            local glyphId = ns.NATIVE_LANG_IDS and ns.NATIVE_LANG_IDS[blizzId]
-            local name = glyphId and ns.Language and ns.Language.GetLanguageName
-                and ns.Language.GetLanguageName(glyphId)
-            return name or glyphId or ("id " .. tostring(blizzId))
-        end
         if type(lang) == "number" then
             known = 1
-            add("its tongue: " .. nameOf(lang) .. " |cff808080(from its giver)|r")
+            add("its tongue: " .. langName(lang) .. " |cff808080(from its giver)|r")
         elseif lang == false then
             add("its tongue: none -- nobody handed you this one, so it is left "
                 .. "in plain words")
         else
-            add("its tongue: " .. nameOf(QuestText.PlayerLanguage())
+            add("its tongue: " .. langName(QuestText.PlayerLanguage())
                 .. " |cffff6060(guessed -- you had this quest before quest text "
                 .. "was switched on, so Glyphic never met the giver. Hand it in "
                 .. "and the real one is recorded.)|r")

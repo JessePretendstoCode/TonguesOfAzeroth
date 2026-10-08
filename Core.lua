@@ -3138,6 +3138,11 @@ local function handleSlash(input)
         -- they look identical from the chair. This says which one it is.
         if not ns.QuestText then
             Print("quest text is not loaded.")
+        elseif string.lower(rest or "") == "reset" then
+            local n = ns.QuestText.ForgetAll()
+            Print("forgot the tongue of |cffffff00" .. n .. "|r quest"
+                .. (n == 1 and "" or "s") .. ". They read in your own faction's "
+                .. "tongue until you next stand in front of their givers.")
         else
             Print("quest text, right now:")
             for _, line in ipairs((ns.QuestText.Report())) do

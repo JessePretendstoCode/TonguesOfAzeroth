@@ -310,7 +310,9 @@ Each panel answers one question, which is how to guess where a setting lives:
   tell an addon who gave you one after the fact -- hand one in and the real tongue is
   recorded. Quests with nobody behind them stay readable: one from an item in your bags,
   a bulletin board or walking into a place has no speaker to borrow a tongue from.
-  `/glyphic quest` says which of those a given quest is in. Buttons are never
+  `/glyphic quest` says which of those a given quest is in, and what the client reports
+  about whoever is in front of you; `/glyphic quest reset` forgets every recorded tongue
+  if the records are wrong rather than missing. Buttons are never
   touched -- you can still accept a quest you can't read -- and quest log titles stay
   readable so you can still manage your log. It works with replacement quest frames,
   because it changes the text the game hands out rather than the frames that draw it.
