@@ -475,6 +475,11 @@ local function migrateDB()
     -- much as flavour, so losing them is a different decision from losing
     -- player chatter and gets its own switch.
     if db.immersionNPCs == nil then db.immersionNPCs = false end
+    -- Quest and gossip windows, separately again. Everything else immersion
+    -- touches is text the client would have garbled on its own; quest text
+    -- carries no language at all, so hiding it is this addon's own idea and
+    -- has to be asked for rather than arriving with the rest.
+    if db.immersionQuests == nil then db.immersionQuests = false end
     -- Automatically switch Glyphic off while inside an instance (and back on when you
     -- leave). Blizzard's "secret" chat protection blocks addons from reading chat
     -- during boss fights, so translations can't be decoded there. On by default;

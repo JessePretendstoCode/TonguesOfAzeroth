@@ -152,9 +152,17 @@ end
 --=========================================================================--
 --  Garbling
 --=========================================================================--
+-- Three switches deep, and each one earns its place. Full immersion is the
+-- decision to let this addon decide what you understand. The NPC switch widens
+-- that from players to everything with a voice. This last one is separate
+-- because it is the only part that hides text the game never hid -- a boss
+-- callout in Orcish is a line the client would have garbled anyway, but a
+-- quest never arrives with a tongue attached, so garbling one is this addon's
+-- invention and nobody should get it without asking.
 function QuestText.Active()
     local db = GlyphicDB
-    return (db and db.fullImmersion and db.immersionNPCs) and true or false
+    return (db and db.fullImmersion and db.immersionNPCs and db.immersionQuests)
+        and true or false
 end
 
 -- The tracker asks for the same objective text several times a second while

@@ -57,7 +57,7 @@ local mainContent
 local langDropdown, motherDropdown, enableCheck, previewInput, previewOutput
 local voiceText, voiceHint
 local minimapCheck, fluencyCheck, autoDisableCheck
-local immersionCheck, immersionNPCCheck
+local immersionCheck, immersionNPCCheck, immersionQuestCheck
 local namesCheck, nameColorCheck
 local widgetCheck, widgetLockCheck
 local accentDropdown, accentSlider, accentValueText
@@ -706,6 +706,7 @@ local function RefreshLearned()
     end
     if immersionCheck then immersionCheck:SetChecked(d.fullImmersion and true or false) end
     if immersionNPCCheck then immersionNPCCheck:SetChecked(d.immersionNPCs and true or false) end
+    if immersionQuestCheck then immersionQuestCheck:SetChecked(d.immersionQuests and true or false) end
     if langDropdown then
         langDropdown:SetSelected(d.language, Language.GetLanguageName(d.language))
     end
@@ -1861,11 +1862,32 @@ local function BuildLearnedPanel()
     immersionNPCHint:SetPoint("RIGHT", content, "RIGHT", -28, 0)
     immersionNPCHint:SetJustifyH("LEFT")
     immersionNPCHint:SetJustifyV("TOP")
-    immersionNPCHint:SetText("Boss callouts, quest text, gossip windows and the "
-        .. "objective tracker, in whatever tongue the speaker's race would use. "
-        .. "You can still accept a quest you can't read -- the buttons are yours, "
-        .. "not theirs -- and your quest log keeps its titles so you can still "
-        .. "tell one job from another.")
+    immersionNPCHint:SetText("Anything an NPC says out loud -- boss callouts, "
+        .. "emotes, yells and greetings -- in whatever tongue its race would use, "
+        .. "instead of arriving already translated for you.")
+
+    -- Nested under the NPC switch, and indented to say so, because quest text
+    -- is the one thing here the game never hid. A boss callout in Orcish is a
+    -- line the client would have garbled anyway; a quest window has no tongue
+    -- attached at all, so garbling one is Glyphic's own invention. Off even
+    -- when everything above it is on, until it's asked for by name.
+    immersionQuestCheck = Compat.CreateCheckbox(content,
+        "Also garble quest text and dialogue windows")
+    immersionQuestCheck:SetPoint("TOPLEFT", immersionNPCHint, "BOTTOMLEFT", 10, -6)
+    immersionQuestCheck:SetScript("OnClick", function(self)
+        db().immersionQuests = self:GetChecked() and true or false
+        if ns.QuestText then ns.QuestText.Refresh() end
+    end)
+    local immersionQuestHint = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+    immersionQuestHint:SetPoint("TOPLEFT", immersionQuestCheck, "BOTTOMLEFT", 6, -2)
+    immersionQuestHint:SetPoint("RIGHT", content, "RIGHT", -28, 0)
+    immersionQuestHint:SetJustifyH("LEFT")
+    immersionQuestHint:SetJustifyV("TOP")
+    immersionQuestHint:SetText("Quest offers, gossip windows, your journal and the "
+        .. "objective tracker. You can still accept a quest you can't read -- the "
+        .. "buttons are yours, not theirs -- and your quest log keeps its titles "
+        .. "so you can still tell one job from another. Needs |cffffd200Include "
+        .. "all NPC text and speech|r above.")
 
     -- What everything above and below adds up to. Every dial that shapes your
     -- voice is on this panel now, so the readout and the preview are too: pick
@@ -1878,7 +1900,7 @@ local function BuildLearnedPanel()
     -- The summary shares the header's line rather than taking another, so the
     -- block costs the language list as little height as possible.
     local voiceLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    voiceLabel:SetPoint("TOPLEFT", immersionNPCHint, "BOTTOMLEFT", -6, -16)
+    voiceLabel:SetPoint("TOPLEFT", immersionQuestHint, "BOTTOMLEFT", -22, -16)
     voiceLabel:SetText("Your voice")
     voiceLabel:SetTextColor(1, 0.82, 0.2)
 

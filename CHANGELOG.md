@@ -18,7 +18,12 @@ Tongues of Azeroth before 0.5.3.
   update. NPCs have their own separate switch, since a boss callout is a
   mechanic as much as it is flavour. Which channels it applies to follows your
   existing Chat Channel settings.
-- **Quest text, gossip and the objective tracker**, under the same NPC switch.
+- **Quest text, gossip and the objective tracker**, under a third switch of
+  their own, nested under the NPC one and off even when everything above it is
+  on. Everything else immersion touches is text the client would have garbled
+  by itself; a quest window carries no language at all, so hiding one is the
+  addon's own idea and has to be asked for by name rather than arriving with
+  the rest.
   An orc quest giver hands you an offer in Orcish; a night elf hands you one
   in Darnassian. The tongue comes from the speaker's race, falling back to
   their faction for the many quest givers who aren't a player race at all, and
