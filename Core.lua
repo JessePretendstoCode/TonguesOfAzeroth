@@ -3156,6 +3156,33 @@ local function handleSlash(input)
                 Print("  " .. line)
             end
         end
+    elseif cmd == "toast" then
+        -- Six looks is a choice you make by looking, not by reading a list of
+        -- adjectives, so every branch here ends with one on the screen.
+        if not ns.Toast then
+            Print("the toast is not loaded.")
+        else
+            local want = string.lower(rest or "")
+            if want == "next" then
+                ns.Toast.Preview(ns.Toast.NextStyle())
+                Print("toast style: |cffffff00" .. ns.Toast.CurrentStyle() .. "|r")
+            elseif want ~= "" and ns.Toast.SetStyle(want) then
+                ns.Toast.Preview()
+                Print("toast style: |cffffff00" .. want .. "|r")
+            else
+                if want ~= "" then
+                    Print("|cffff6060" .. want .. "|r is not a style. Pick one of these:")
+                else
+                    Print("toast style: |cffffff00" .. ns.Toast.CurrentStyle()
+                        .. "|r. The others are:")
+                end
+                for _, id in ipairs(ns.Toast.StyleNames()) do
+                    Print("  |cffffff00" .. id .. "|r  " .. (ns.Toast.StyleLabel(id) or ""))
+                end
+                Print("  |cffffd200/glyphic toast next|r steps through them.")
+                ns.Toast.Preview()
+            end
+        end
     elseif cmd == "timings" or cmd == "timing" then
         -- Undocumented on purpose: this is for answering "why did that take so
         -- long" with a number instead of a guess, not a setting anybody tunes.

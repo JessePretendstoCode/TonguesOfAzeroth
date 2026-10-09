@@ -57,7 +57,9 @@ in character when you want to be heard in it.
   is 77 words and Gnomish is 128, so those take 77 and 128 quests. While levelling only
   green-or-better quests count, so you can't farm a starting zone; at the level cap,
   where nothing pays experience any more, everything counts. A small draggable toast
-  names the word you picked up.
+  names the word you picked up, in one of six looks -- slate, parchment, banner,
+  minimal, achievement or ember. `/glyphic toast next` steps through them and shows
+  you each one on screen as it goes.
 - A strength slider, 0 to 100, for how much of your text is translated. `0` leaves your
   text alone and lets accents through, `100` translates it completely. In between, words
   convert deterministically, one by one, as you raise the level.

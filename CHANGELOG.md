@@ -89,6 +89,15 @@ Tongues of Azeroth before 0.5.3.
   A small toast names the word and counts it -- *Lok'tar, 41 of 100* -- and can
   be dragged anywhere you like. Three hand-ins at a quest hub queue up rather
   than overwriting each other.
+  It comes in six looks: *slate* (dark panel, gold edge), *parchment* (a note
+  from the quest giver), *banner* (wide, no box, like zone text), *minimal*
+  (one quiet line and no furniture), *achievement* (heavy gold frame) and
+  *ember* (near-black, warm edge). `/glyphic toast` shows you the one you are
+  on and lists the rest, `/glyphic toast next` steps through them, and
+  `/glyphic toast <name>` picks one. Every one of them previews a real toast
+  on screen rather than describing itself, because choosing between six looks
+  by reading six adjectives is no way to choose, and finishing six quests to
+  see them is worse.
   `/glyphic quest reset` forgets every recorded tongue, for when the records
   are wrong rather than missing. The right one is written down again the next
   time you stand in front of the giver.

@@ -28,35 +28,117 @@ local Toast = {}
 ns.Toast = Toast
 
 --=========================================================================--
---  Everything you would want to change
+--  Where it sits
 --=========================================================================--
-local STYLE = {
-    width       = 290,
-    height      = 46,
-
-    -- Where it sits when nobody has dragged it. High enough to clear the
-    -- quest reward window, low enough not to fight the error text.
-    point       = "TOP",
-    relPoint    = "TOP",
-    x           = 0,
-    y           = -190,
-
-    background  = { 0.04, 0.04, 0.07, 0.88 },
-    border      = { 0.55, 0.45, 0.20, 0.95 },
-
-    titleFont   = "GameFontNormal",
-    titleColor  = { 1, 0.82, 0.2 },
-    bodyFont    = "GameFontHighlightSmall",
-    bodyColor   = { 0.85, 0.85, 0.85 },
-
-    fadeIn      = 0.25,   -- seconds
-    hold        = 4.0,
-    fadeOut     = 1.0,
-
-    strata      = "HIGH",
+-- Separate from the look, because dragging it somewhere is a decision about
+-- your screen and picking a style is a decision about the addon. Changing
+-- your mind about one should not undo the other.
+local PLACEMENT = {
+    point    = "TOP",
+    relPoint = "TOP",
+    x        = 0,
+    y        = -190,          -- clears the quest window, ducks the error text
+    strata   = "HIGH",
 }
 
+--=========================================================================--
+--  The looks
+--=========================================================================--
+-- Six of them, different enough that choosing is a real choice rather than
+-- picking a shade. Add one by adding a row: nothing below reads these by
+-- name except the default, and the slash command lists whatever is here.
+--
+-- Colours are {r, g, b, a} in 0-1. A border alpha of 0 means no border, and
+-- a background alpha of 0 means no panel -- both are real styles here, not
+-- accidents.
+local PRESETS = {}
+local ORDER = {}
+
+local function preset(id, label, def)
+    def.id, def.label = id, label
+    PRESETS[id] = def
+    ORDER[#ORDER + 1] = id
+end
+
+preset("slate", "Slate -- dark panel, gold edge", {
+    width = 290, height = 46,
+    background = { 0.04, 0.04, 0.07, 0.88 },
+    border     = { 0.55, 0.45, 0.20, 0.95 },
+    wordHex    = "ffffff",
+    titleFont  = "GameFontNormal",      titleColor = { 1, 0.82, 0.2 },   titleY = -8,
+    bodyFont   = "GameFontHighlightSmall", bodyColor = { 0.85, 0.85, 0.85 }, bodyGap = -4,
+    fadeIn = 0.25, hold = 4.0, fadeOut = 1.0,
+})
+
+preset("parchment", "Parchment -- a note from the quest giver", {
+    width = 300, height = 50,
+    background = { 0.83, 0.74, 0.55, 0.94 },
+    border     = { 0.26, 0.18, 0.09, 1 },
+    wordHex    = "2b1a07",
+    titleFont  = "GameFontNormal",      titleColor = { 0.20, 0.12, 0.04 }, titleY = -9,
+    bodyFont   = "GameFontNormalSmall", bodyColor  = { 0.34, 0.24, 0.12 }, bodyGap = -4,
+    fadeIn = 0.35, hold = 5.0, fadeOut = 1.2,
+})
+
+preset("banner", "Banner -- wide, no box, like zone text", {
+    width = 460, height = 54,
+    background = { 0, 0, 0, 0 },
+    border     = { 0, 0, 0, 0 },
+    wordHex    = "ffffff",
+    titleFont  = "GameFontNormalLarge", titleColor = { 1, 0.82, 0.2 },    titleY = -4,
+    bodyFont   = "GameFontNormal",      bodyColor  = { 0.95, 0.95, 0.95 }, bodyGap = -2,
+    fadeIn = 0.4, hold = 4.0, fadeOut = 1.5,
+})
+
+preset("minimal", "Minimal -- one quiet line, no furniture", {
+    width = 320, height = 26,
+    background = { 0, 0, 0, 0 },
+    border     = { 0, 0, 0, 0 },
+    wordHex    = "ffe9a8",
+    titleFont  = "GameFontHighlightSmall", titleColor = { 0.95, 0.85, 0.5 }, titleY = -4,
+    bodyFont   = "GameFontDisableSmall",   bodyColor  = { 0.6, 0.6, 0.6 },   bodyGap = -1,
+    fadeIn = 0.2, hold = 3.0, fadeOut = 0.8,
+})
+
+preset("achievement", "Achievement -- heavy gold frame", {
+    width = 330, height = 62,
+    background = { 0.02, 0.02, 0.02, 0.95 },
+    border     = { 0.85, 0.68, 0.22, 1 },
+    wordHex    = "ffffff",
+    titleFont  = "GameFontNormalLarge", titleColor = { 1, 0.88, 0.35 },   titleY = -12,
+    bodyFont   = "GameFontHighlight",   bodyColor  = { 0.80, 0.80, 0.80 }, bodyGap = -6,
+    fadeIn = 0.3, hold = 5.0, fadeOut = 1.2,
+})
+
+preset("ember", "Ember -- near-black, warm edge", {
+    width = 300, height = 48,
+    background = { 0.07, 0.03, 0.02, 0.92 },
+    border     = { 0.72, 0.28, 0.08, 1 },
+    wordHex    = "ffd2a6",
+    titleFont  = "GameFontNormal",         titleColor = { 1, 0.62, 0.30 },   titleY = -9,
+    bodyFont   = "GameFontHighlightSmall", bodyColor  = { 0.78, 0.72, 0.68 }, bodyGap = -4,
+    fadeIn = 0.25, hold = 4.0, fadeOut = 1.0,
+})
+
+local DEFAULT_PRESET = "slate"
+
+-- The live one. Mutated in place rather than swapped, because the tests and
+-- the frame both hold on to it and a style change should reach them without
+-- either having to re-fetch.
+local STYLE = {}
 Toast.STYLE = STYLE
+Toast.PRESETS = PRESETS
+
+function Toast.StyleNames()
+    local out = {}
+    for i = 1, #ORDER do out[i] = ORDER[i] end
+    return out
+end
+
+function Toast.StyleLabel(id)
+    local p = PRESETS[id]
+    return p and p.label or nil
+end
 
 --=========================================================================--
 --  The frame
@@ -74,37 +156,93 @@ end
 local function place(f)
     local pos = saved()
     f:ClearAllPoints()
-    f:SetPoint(pos.point or STYLE.point, UIParent,
-        pos.relPoint or STYLE.relPoint,
-        pos.x or STYLE.x, pos.y or STYLE.y)
+    f:SetPoint(pos.point or PLACEMENT.point, UIParent,
+        pos.relPoint or PLACEMENT.relPoint,
+        pos.x or PLACEMENT.x, pos.y or PLACEMENT.y)
+end
+
+-- Which look is in force. Read from the save every time rather than cached,
+-- so switching profiles or editing the variable by hand takes effect.
+function Toast.CurrentStyle()
+    local want = saved().style
+    if type(want) == "string" and PRESETS[want] then return want end
+    return DEFAULT_PRESET
+end
+
+-- Copy the chosen preset into the live table. In place, because the frame and
+-- the tests both hold this table and neither should have to know a change
+-- happened.
+-- Not cleared first, which only works because every preset defines every
+-- field the dresser reads -- otherwise a missing field would silently keep
+-- the previous style's value. That is not left to trust: the tests walk every
+-- preset against the list of fields and fail on a gap.
+local function loadStyle()
+    local p = PRESETS[Toast.CurrentStyle()] or PRESETS[DEFAULT_PRESET]
+    for key, value in pairs(p) do STYLE[key] = value end
+    for key, value in pairs(PLACEMENT) do
+        if STYLE[key] == nil then STYLE[key] = value end
+    end
+end
+
+loadStyle()
+
+-- Everything the look touches, in one pass, so a style change is the same
+-- code path as building the thing in the first place. Two paths here would
+-- mean a preset that looks right on login and wrong after switching.
+local function dress(f)
+    f:SetSize(STYLE.width, STYLE.height)
+    f:SetFrameStrata(STYLE.strata)
+
+    Compat.SolidTexture(f.bg, STYLE.background[1], STYLE.background[2],
+        STYLE.background[3], STYLE.background[4])
+    if f.border and f.border.SetColor then
+        f.border:SetColor(STYLE.border[1], STYLE.border[2],
+            STYLE.border[3], STYLE.border[4])
+    end
+
+    f.title:SetFontObject(STYLE.titleFont)
+    f.title:ClearAllPoints()
+    f.title:SetPoint("TOP", 0, STYLE.titleY)
+    f.title:SetTextColor(STYLE.titleColor[1], STYLE.titleColor[2], STYLE.titleColor[3])
+
+    f.body:SetFontObject(STYLE.bodyFont)
+    f.body:ClearAllPoints()
+    f.body:SetPoint("TOP", f.title, "BOTTOM", 0, STYLE.bodyGap)
+    f.body:SetTextColor(STYLE.bodyColor[1], STYLE.bodyColor[2], STYLE.bodyColor[3])
+end
+
+-- Swap the look. Takes effect on the next toast, and on the one on screen now
+-- if there is one, which is the whole point while you are choosing.
+function Toast.SetStyle(id)
+    if type(id) ~= "string" or not PRESETS[id] then return false end
+    saved().style = id
+    loadStyle()
+    if frame then dress(frame) end
+    return true
 end
 
 local function build()
     if frame or type(CreateFrame) ~= "function" then return frame end
 
     local f = CreateFrame("Frame", "GlyphicToast", UIParent)
-    f:SetSize(STYLE.width, STYLE.height)
-    f:SetFrameStrata(STYLE.strata)
     f:SetClampedToScreen(true)
     f:Hide()
 
     local bg = f:CreateTexture(nil, "BACKGROUND")
     bg:SetAllPoints()
-    Compat.SolidTexture(bg, STYLE.background[1], STYLE.background[2],
-        STYLE.background[3], STYLE.background[4])
     f.bg = bg
-    f.border = Compat.AddBorder(f, STYLE.border[1], STYLE.border[2],
-        STYLE.border[3], STYLE.border[4])
+    -- Created at full strength and recoloured by dress(); a border is four
+    -- textures and there is no removing them afterwards, so a style with no
+    -- border gets one at zero alpha rather than a different frame.
+    f.border = Compat.AddBorder(f, 1, 1, 1, 1)
 
-    local title = f:CreateFontString(nil, "OVERLAY", STYLE.titleFont)
-    title:SetPoint("TOP", 0, -8)
-    title:SetTextColor(STYLE.titleColor[1], STYLE.titleColor[2], STYLE.titleColor[3])
+    local title = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     f.title = title
 
-    local body = f:CreateFontString(nil, "OVERLAY", STYLE.bodyFont)
-    body:SetPoint("TOP", title, "BOTTOM", 0, -4)
-    body:SetTextColor(STYLE.bodyColor[1], STYLE.bodyColor[2], STYLE.bodyColor[3])
+    local body = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     f.body = body
+
+    dress(f)
 
     -- Draggable, because "high enough to clear the quest window" is only true
     -- for people running Blizzard's quest window.
@@ -202,6 +340,14 @@ end
 function Toast._State() return phase, elapsed, #queue end
 function Toast._Frame() return frame end
 
+-- Drops the frame so the next toast builds a new one. Only the tests want
+-- this: building and restyling are two routes to the same look, and without
+-- it the second route is the only one anything ever exercises.
+function Toast._Forget()
+    Toast.Clear()
+    frame = nil
+end
+
 --=========================================================================--
 --  The one thing it currently says
 --=========================================================================--
@@ -224,10 +370,14 @@ function Toast.Word(got)
         if ok and r and g and b then color = { r, g, b } end
     end
 
+    -- The word itself is picked out from the count beside it, which on a dark
+    -- panel means white -- and on the parchment one meant white on tan, which
+    -- is how that style shipped the first time it was looked at. So the
+    -- highlight belongs to the style rather than to this line.
     local body
     if got.word and got.learned and got.total then
-        body = string.format("|cffffffff%s|r      %d of %d words",
-            got.word, got.learned, got.total)
+        body = string.format("|cff%s%s|r      %d of %d words",
+            STYLE.wordHex or "ffffff", got.word, got.learned, got.total)
     else
         body = (got.percent or 0) .. "%"
     end
@@ -237,4 +387,37 @@ function Toast.Word(got)
         titleColor = color,
         body = body,
     })
+end
+
+-- Seeing it without earning it. Choosing between six looks by finishing six
+-- quests is not a thing anyone should have to do, and the only honest preview
+-- is the real frame with real text in it.
+function Toast.Preview(styleId)
+    if styleId ~= nil and not Toast.SetStyle(styleId) then return false end
+    -- Cleared first, or flipping quickly through the styles just builds a
+    -- queue and you watch the one you picked four styles ago.
+    Toast.Clear()
+
+    local blizzId = 3                       -- Taur-ahe, a middling-length name
+    local word, index, total
+    if ns.QuestLearn and type(ns.QuestLearn.WordFor) == "function" then
+        word, index, total = ns.QuestLearn.WordFor(blizzId, 0.41)
+    end
+    return Toast.Word({
+        blizzId = blizzId,
+        glyphId = (ns.NATIVE_LANG_IDS and ns.NATIVE_LANG_IDS[blizzId]) or "taurahe",
+        word = word, learned = index, total = total, percent = 41,
+    })
+end
+
+-- The next one along, wrapping. Flipping through six looks is the fastest way
+-- to tell them apart, and it is one keystroke rather than six names.
+function Toast.NextStyle()
+    local current = Toast.CurrentStyle()
+    for i = 1, #ORDER do
+        if ORDER[i] == current then
+            return ORDER[(i % #ORDER) + 1]
+        end
+    end
+    return ORDER[1]
 end
