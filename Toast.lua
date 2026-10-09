@@ -64,6 +64,7 @@ preset("slate", "Slate -- dark panel, gold edge", {
     width = 290, height = 46,
     background = { 0.04, 0.04, 0.07, 0.88 },
     border     = { 0.55, 0.45, 0.20, 0.95 },
+    layout = "stack", icon = false, iconSize = 0, tint = true,
     wordHex    = "ffffff",
     titleFont  = "GameFontNormal",      titleColor = { 1, 0.82, 0.2 },   titleY = -8,
     bodyFont   = "GameFontHighlightSmall", bodyColor = { 0.85, 0.85, 0.85 }, bodyGap = -4,
@@ -74,6 +75,10 @@ preset("parchment", "Parchment -- a note from the quest giver", {
     width = 300, height = 50,
     background = { 0.83, 0.74, 0.55, 0.94 },
     border     = { 0.26, 0.18, 0.09, 1 },
+    -- The one style that does not take the tongue's colour. Language colours
+    -- are chosen to read on the dark chat frame, and every one of them sinks
+    -- into tan -- Common is near-white and Taur-ahe is a browner tan still.
+    layout = "stack", icon = false, iconSize = 0, tint = false,
     wordHex    = "2b1a07",
     titleFont  = "GameFontNormal",      titleColor = { 0.20, 0.12, 0.04 }, titleY = -9,
     bodyFont   = "GameFontNormalSmall", bodyColor  = { 0.34, 0.24, 0.12 }, bodyGap = -4,
@@ -84,6 +89,7 @@ preset("banner", "Banner -- wide, no box, like zone text", {
     width = 460, height = 54,
     background = { 0, 0, 0, 0 },
     border     = { 0, 0, 0, 0 },
+    layout = "stack", icon = false, iconSize = 0, tint = true,
     wordHex    = "ffffff",
     titleFont  = "GameFontNormalLarge", titleColor = { 1, 0.82, 0.2 },    titleY = -4,
     bodyFont   = "GameFontNormal",      bodyColor  = { 0.95, 0.95, 0.95 }, bodyGap = -2,
@@ -94,6 +100,7 @@ preset("minimal", "Minimal -- one quiet line, no furniture", {
     width = 320, height = 26,
     background = { 0, 0, 0, 0 },
     border     = { 0, 0, 0, 0 },
+    layout = "stack", icon = false, iconSize = 0, tint = true,
     wordHex    = "ffe9a8",
     titleFont  = "GameFontHighlightSmall", titleColor = { 0.95, 0.85, 0.5 }, titleY = -4,
     bodyFont   = "GameFontDisableSmall",   bodyColor  = { 0.6, 0.6, 0.6 },   bodyGap = -1,
@@ -104,6 +111,7 @@ preset("achievement", "Achievement -- heavy gold frame", {
     width = 330, height = 62,
     background = { 0.02, 0.02, 0.02, 0.95 },
     border     = { 0.85, 0.68, 0.22, 1 },
+    layout = "stack", icon = false, iconSize = 0, tint = true,
     wordHex    = "ffffff",
     titleFont  = "GameFontNormalLarge", titleColor = { 1, 0.88, 0.35 },   titleY = -12,
     bodyFont   = "GameFontHighlight",   bodyColor  = { 0.80, 0.80, 0.80 }, bodyGap = -6,
@@ -114,10 +122,28 @@ preset("ember", "Ember -- near-black, warm edge", {
     width = 300, height = 48,
     background = { 0.07, 0.03, 0.02, 0.92 },
     border     = { 0.72, 0.28, 0.08, 1 },
+    layout = "stack", icon = false, iconSize = 0, tint = true,
     wordHex    = "ffd2a6",
     titleFont  = "GameFontNormal",         titleColor = { 1, 0.62, 0.30 },   titleY = -9,
     bodyFont   = "GameFontHighlightSmall", bodyColor  = { 0.78, 0.72, 0.68 }, bodyGap = -4,
     fadeIn = 0.25, hold = 4.0, fadeOut = 1.0,
+})
+
+-- The odd one out, and the reason layout is a field rather than an assumption.
+-- A loot row says what dropped and who got it; a learned word is the same two
+-- facts in the same shape, so it borrows the shape -- icon, the word itself in
+-- its tongue's colour where an item wears its quality's, and the tongue
+-- underneath where the player's name goes.
+preset("loot", "Loot -- icon and two lines, like an item drop", {
+    width = 300, height = 44,
+    background = { 0, 0, 0, 0.55 },
+    border     = { 0, 0, 0, 0 },
+    layout = "row", icon = "Interface\\Icons\\INV_Misc_Book_09", iconSize = 32,
+    tint = true,
+    wordHex    = "ffffff",
+    titleFont  = "GameFontNormal",         titleColor = { 1, 1, 1 },         titleY = -7,
+    bodyFont   = "GameFontHighlightSmall", bodyColor  = { 0.65, 0.65, 0.65 }, bodyGap = -3,
+    fadeIn = 0.2, hold = 4.5, fadeOut = 1.0,
 })
 
 local DEFAULT_PRESET = "slate"
@@ -201,14 +227,38 @@ local function dress(f)
     end
 
     f.title:SetFontObject(STYLE.titleFont)
-    f.title:ClearAllPoints()
-    f.title:SetPoint("TOP", 0, STYLE.titleY)
     f.title:SetTextColor(STYLE.titleColor[1], STYLE.titleColor[2], STYLE.titleColor[3])
-
     f.body:SetFontObject(STYLE.bodyFont)
-    f.body:ClearAllPoints()
-    f.body:SetPoint("TOP", f.title, "BOTTOM", 0, STYLE.bodyGap)
     f.body:SetTextColor(STYLE.bodyColor[1], STYLE.bodyColor[2], STYLE.bodyColor[3])
+    f.title:ClearAllPoints()
+    f.body:ClearAllPoints()
+
+    if STYLE.layout == "row" then
+        -- A loot row: square on the left, two lines of text beside it, both
+        -- ragged-left. Lines are hung off the frame's own edges rather than
+        -- off each other, because the gap between them is what makes it read
+        -- as one entry and stacking them would let the fonts decide it.
+        local pad = 5
+        f.iconFrame:SetSize(STYLE.iconSize, STYLE.iconSize)
+        f.iconFrame:ClearAllPoints()
+        f.iconFrame:SetPoint("LEFT", pad, 0)
+        f.icon:SetTexture(STYLE.icon)
+        f.iconFrame:Show()
+
+        local textLeft = pad + STYLE.iconSize + 7
+        f.title:SetPoint("TOPLEFT", textLeft, STYLE.titleY)
+        f.title:SetPoint("RIGHT", -pad, 0)
+        f.title:SetJustifyH("LEFT")
+        f.body:SetPoint("TOPLEFT", textLeft, STYLE.titleY + STYLE.bodyGap - 12)
+        f.body:SetPoint("RIGHT", -pad, 0)
+        f.body:SetJustifyH("LEFT")
+    else
+        f.iconFrame:Hide()
+        f.title:SetPoint("TOP", 0, STYLE.titleY)
+        f.title:SetJustifyH("CENTER")
+        f.body:SetPoint("TOP", f.title, "BOTTOM", 0, STYLE.bodyGap)
+        f.body:SetJustifyH("CENTER")
+    end
 end
 
 -- Swap the look. Takes effect on the next toast, and on the one on screen now
@@ -235,6 +285,20 @@ local function build()
     -- textures and there is no removing them afterwards, so a style with no
     -- border gets one at zero alpha rather than a different frame.
     f.border = Compat.AddBorder(f, 1, 1, 1, 1)
+
+    -- The loot-row square. Built always and hidden by the styles that do not
+    -- want it, rather than created on demand -- a frame that only exists in
+    -- one style is a frame only one style ever tests.
+    local iconFrame = CreateFrame("Frame", nil, f)
+    local icon = iconFrame:CreateTexture(nil, "ARTWORK")
+    -- Inset by a pixel so the border underneath shows as an edge, and the
+    -- texture trimmed because Blizzard's icon art has its own baked-in frame
+    -- that looks like a smudge next to a real one.
+    icon:SetPoint("TOPLEFT", 1, -1)
+    icon:SetPoint("BOTTOMRIGHT", -1, 1)
+    icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+    Compat.AddBorder(iconFrame, 0, 0, 0, 1)
+    f.iconFrame, f.icon = iconFrame, icon
 
     local title = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     f.title = title
@@ -363,30 +427,40 @@ function Toast.Word(got)
     end
 
     -- The colour the tongue already wears in chat, so the toast reads as part
-    -- of the same addon rather than a notification from somewhere else.
+    -- of the same addon rather than a notification from somewhere else -- and
+    -- on the loot row it stands in for an item's quality colour. Only where
+    -- the style says it can: these colours were picked to read against the
+    -- dark chat frame, so a style with a pale panel has to keep its own ink.
     local color
-    if ns.Colors and type(ns.Colors.Get) == "function" then
+    if STYLE.tint and ns.Colors and type(ns.Colors.Get) == "function" then
         local ok, r, g, b = pcall(ns.Colors.Get, got.glyphId)
         if ok and r and g and b then color = { r, g, b } end
     end
 
-    -- The word itself is picked out from the count beside it, which on a dark
-    -- panel means white -- and on the parchment one meant white on tan, which
-    -- is how that style shipped the first time it was looked at. So the
-    -- highlight belongs to the style rather than to this line.
-    local body
-    if got.word and got.learned and got.total then
-        body = string.format("|cff%s%s|r      %d of %d words",
-            STYLE.wordHex or "ffffff", got.word, got.learned, got.total)
+    local count = (got.learned and got.total)
+        and string.format("%d of %d words", got.learned, got.total)
+        or ((got.percent or 0) .. "%")
+
+    local title, body
+    if STYLE.layout == "row" then
+        -- Loot's own arrangement: the thing you got on the first line, where
+        -- it came from on the second. An item wears its quality's colour
+        -- there; a word wears its tongue's.
+        title = got.word or name
+        body = name .. "   |cff909090" .. count .. "|r"
     else
-        body = (got.percent or 0) .. "%"
+        -- The word is picked out from the count beside it, which on a dark
+        -- panel means white -- and on the parchment one meant white on tan,
+        -- which is how that style shipped the first time it was looked at. So
+        -- the highlight belongs to the style rather than to this line.
+        title = "You pick up a word of " .. name
+        body = got.word
+            and string.format("|cff%s%s|r      %s",
+                STYLE.wordHex or "ffffff", got.word, count)
+            or count
     end
 
-    return Toast.Show({
-        title = "You pick up a word of " .. name,
-        titleColor = color,
-        body = body,
-    })
+    return Toast.Show({ title = title, titleColor = color, body = body })
 end
 
 -- Seeing it without earning it. Choosing between six looks by finishing six

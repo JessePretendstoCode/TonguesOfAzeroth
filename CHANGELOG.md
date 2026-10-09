@@ -89,15 +89,25 @@ Tongues of Azeroth before 0.5.3.
   A small toast names the word and counts it -- *Lok'tar, 41 of 100* -- and can
   be dragged anywhere you like. Three hand-ins at a quest hub queue up rather
   than overwriting each other.
-  It comes in six looks: *slate* (dark panel, gold edge), *parchment* (a note
+  It comes in seven looks: *slate* (dark panel, gold edge), *parchment* (a note
   from the quest giver), *banner* (wide, no box, like zone text), *minimal*
-  (one quiet line and no furniture), *achievement* (heavy gold frame) and
-  *ember* (near-black, warm edge). `/glyphic toast` shows you the one you are
-  on and lists the rest, `/glyphic toast next` steps through them, and
-  `/glyphic toast <name>` picks one. Every one of them previews a real toast
-  on screen rather than describing itself, because choosing between six looks
-  by reading six adjectives is no way to choose, and finishing six quests to
-  see them is worse.
+  (one quiet line and no furniture), *achievement* (heavy gold frame), *ember*
+  (near-black, warm edge) and *loot*, which is the odd one out.
+  *Loot* borrows the shape of an item drop, because a loot row and a learned
+  word are the same two facts in the same arrangement: an icon, the thing you
+  got, and underneath it where it came from. So the word sits where the item
+  name goes, wearing its tongue's colour the way an item wears its quality's,
+  and the tongue sits underneath where the looter's name goes.
+  That colour is a per-style decision rather than something the toast always
+  does. The language colours were picked to read against the dark chat frame,
+  and every one of them disappears into *parchment*'s tan -- Common is nearly
+  white -- so parchment keeps its own dark ink and the rest take the tongue's.
+  `/glyphic toast` shows you the one you are on and lists the rest,
+  `/glyphic toast next` steps through them, and `/glyphic toast <name>` picks
+  one. Every one of them previews a real toast on screen rather than
+  describing itself, because choosing between seven looks by reading seven
+  adjectives is no way to choose, and finishing seven quests to see them is
+  worse.
   `/glyphic quest reset` forgets every recorded tongue, for when the records
   are wrong rather than missing. The right one is written down again the next
   time you stand in front of the giver.
