@@ -60,9 +60,10 @@ in character when you want to be heard in it.
   names the word you picked up, in one of seven looks -- slate, parchment, banner,
   minimal, achievement, ember, or loot. *Loot* is the default and borrows the shape
   of an item drop: an icon, the word where the item name goes in the tongue's own
-  colour, the tongue underneath where the looter's name goes, and a gold hairline
-  above and below. `/glyphic toast next` steps through them and shows you each one
-  on screen as it goes.
+  colour, the tongue underneath where the looter's name goes, a gold hairline above
+  and below, and edges that fade away instead of stopping at a rectangle.
+  `/glyphic toast next` steps through them and shows you each one on screen as it
+  goes.
 - A strength slider, 0 to 100, for how much of your text is translated. `0` leaves your
   text alone and lets accents through, `100` translates it completely. In between, words
   convert deterministically, one by one, as you raise the level.

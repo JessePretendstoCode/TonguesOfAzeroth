@@ -394,6 +394,31 @@ function Compat.SolidTexture(tex, r, g, b, a)
     end
 end
 
+-- A one-colour texture that fades along its length. The shape of this call
+-- changed in 10.0: it used to be eight loose numbers, and became two colour
+-- objects. Both spellings are still out there across the flavours we ship to,
+-- so neither is assumed.
+--
+-- The texture has to carry a colour before a gradient will show on it -- a
+-- gradient modulates what is already there, and a blank texture modulates to
+-- nothing. White is the neutral base, with the real colour supplied by the
+-- gradient's own stops.
+function Compat.GradientTexture(tex, orientation, r, g, b, a1, a2)
+    Compat.SolidTexture(tex, 1, 1, 1, 1)
+    if tex.SetGradient and type(CreateColor) == "function" then
+        tex:SetGradient(orientation, CreateColor(r, g, b, a1), CreateColor(r, g, b, a2))
+        return true
+    end
+    if tex.SetGradientAlpha then
+        tex:SetGradientAlpha(orientation, r, g, b, a1, r, g, b, a2)
+        return true
+    end
+    -- Neither spelling: a flat panel at the stronger end, which is the old
+    -- hard rectangle. Worse looking, never invisible.
+    Compat.SolidTexture(tex, r, g, b, (a1 > a2) and a1 or a2)
+    return false
+end
+
 -- 1px edge border drawn on a frame's own BORDER layer (never covers content).
 -- Avoids SetBackdrop / BackdropTemplate, so it is immune to template churn.
 function Compat.AddBorder(frame, r, g, b, a)

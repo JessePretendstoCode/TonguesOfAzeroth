@@ -64,7 +64,7 @@ preset("slate", "Slate -- dark panel, gold edge", {
     width = 290, height = 46,
     background = { 0.04, 0.04, 0.07, 0.88 },
     border     = { 0.55, 0.45, 0.20, 0.95 },
-    layout = "stack", icon = false, iconSize = 0, tint = true, flair = false,
+    layout = "stack", icon = false, iconSize = 0, tint = true, flair = false, fade = 0,
     wordHex    = "ffffff",
     titleFont  = "GameFontNormal",      titleColor = { 1, 0.82, 0.2 },   titleY = -8,
     bodyFont   = "GameFontHighlightSmall", bodyColor = { 0.85, 0.85, 0.85 }, bodyGap = -4,
@@ -78,7 +78,7 @@ preset("parchment", "Parchment -- a note from the quest giver", {
     -- The one style that does not take the tongue's colour. Language colours
     -- are chosen to read on the dark chat frame, and every one of them sinks
     -- into tan -- Common is near-white and Taur-ahe is a browner tan still.
-    layout = "stack", icon = false, iconSize = 0, tint = false, flair = false,
+    layout = "stack", icon = false, iconSize = 0, tint = false, flair = false, fade = 0,
     wordHex    = "2b1a07",
     titleFont  = "GameFontNormal",      titleColor = { 0.20, 0.12, 0.04 }, titleY = -9,
     bodyFont   = "GameFontNormalSmall", bodyColor  = { 0.34, 0.24, 0.12 }, bodyGap = -4,
@@ -89,7 +89,7 @@ preset("banner", "Banner -- wide, no box, like zone text", {
     width = 460, height = 54,
     background = { 0, 0, 0, 0 },
     border     = { 0, 0, 0, 0 },
-    layout = "stack", icon = false, iconSize = 0, tint = true, flair = false,
+    layout = "stack", icon = false, iconSize = 0, tint = true, flair = false, fade = 0,
     wordHex    = "ffffff",
     titleFont  = "GameFontNormalLarge", titleColor = { 1, 0.82, 0.2 },    titleY = -4,
     bodyFont   = "GameFontNormal",      bodyColor  = { 0.95, 0.95, 0.95 }, bodyGap = -2,
@@ -100,7 +100,7 @@ preset("minimal", "Minimal -- one quiet line, no furniture", {
     width = 320, height = 26,
     background = { 0, 0, 0, 0 },
     border     = { 0, 0, 0, 0 },
-    layout = "stack", icon = false, iconSize = 0, tint = true, flair = false,
+    layout = "stack", icon = false, iconSize = 0, tint = true, flair = false, fade = 0,
     wordHex    = "ffe9a8",
     titleFont  = "GameFontHighlightSmall", titleColor = { 0.95, 0.85, 0.5 }, titleY = -4,
     bodyFont   = "GameFontDisableSmall",   bodyColor  = { 0.6, 0.6, 0.6 },   bodyGap = -1,
@@ -111,7 +111,7 @@ preset("achievement", "Achievement -- heavy gold frame", {
     width = 330, height = 62,
     background = { 0.02, 0.02, 0.02, 0.95 },
     border     = { 0.85, 0.68, 0.22, 1 },
-    layout = "stack", icon = false, iconSize = 0, tint = true, flair = false,
+    layout = "stack", icon = false, iconSize = 0, tint = true, flair = false, fade = 0,
     wordHex    = "ffffff",
     titleFont  = "GameFontNormalLarge", titleColor = { 1, 0.88, 0.35 },   titleY = -12,
     bodyFont   = "GameFontHighlight",   bodyColor  = { 0.80, 0.80, 0.80 }, bodyGap = -6,
@@ -122,7 +122,7 @@ preset("ember", "Ember -- near-black, warm edge", {
     width = 300, height = 48,
     background = { 0.07, 0.03, 0.02, 0.92 },
     border     = { 0.72, 0.28, 0.08, 1 },
-    layout = "stack", icon = false, iconSize = 0, tint = true, flair = false,
+    layout = "stack", icon = false, iconSize = 0, tint = true, flair = false, fade = 0,
     wordHex    = "ffd2a6",
     titleFont  = "GameFontNormal",         titleColor = { 1, 0.62, 0.30 },   titleY = -9,
     bodyFont   = "GameFontHighlightSmall", bodyColor  = { 0.78, 0.72, 0.68 }, bodyGap = -4,
@@ -151,7 +151,11 @@ preset("loot", "Loot -- icon and two lines, like an item drop", {
     background = { 0, 0, 0, 0.55 },
     border     = { 0, 0, 0, 0 },
     layout = "row", icon = "Interface\\Icons\\INV_Misc_Book_11", iconSize = 32,
-    tint = true, flair = true,
+    -- No hard edge. The panel bleeds away at both ends the way the loot feed
+    -- and the level-up text do, so it sits on the world rather than on top of
+    -- it. Only the borderless styles can do this: a fade inside a drawn frame
+    -- just looks like a mistake.
+    tint = true, flair = true, fade = 46,
     wordHex    = "ffffff",
     titleFont  = "GameFontNormal",         titleColor = { 1, 1, 1 },         titleY = -11,
     bodyFont   = "GameFontHighlightSmall", bodyColor  = { 0.65, 0.65, 0.65 }, bodyGap = -3,
@@ -231,8 +235,29 @@ local function dress(f)
     f:SetSize(STYLE.width, STYLE.height)
     f:SetFrameStrata(STYLE.strata)
 
-    Compat.SolidTexture(f.bg, STYLE.background[1], STYLE.background[2],
-        STYLE.background[3], STYLE.background[4])
+    local r, g, b, a = STYLE.background[1], STYLE.background[2],
+        STYLE.background[3], STYLE.background[4]
+    local fade = STYLE.fade or 0
+    -- Clamped, because a fade wider than half the toast would leave the two
+    -- tails overlapping and the middle inside out.
+    if fade > STYLE.width / 2 then fade = math.floor(STYLE.width / 2) end
+    Compat.SolidTexture(f.bg, r, g, b, a)
+    f.bg:ClearAllPoints()
+    f.bg:SetPoint("TOPLEFT", fade, 0)
+    f.bg:SetPoint("BOTTOMRIGHT", -fade, 0)
+    for _, side in ipairs({ "bgLeft", "bgRight" }) do
+        local tex = f[side]
+        tex:SetWidth(fade > 0 and fade or 1)
+        if fade > 0 then
+            -- Transparent at the outer edge, full where it meets the middle.
+            local from, to = 0, a
+            if side == "bgRight" then from, to = a, 0 end
+            Compat.GradientTexture(tex, "HORIZONTAL", r, g, b, from, to)
+            tex:Show()
+        else
+            tex:Hide()
+        end
+    end
     if f.border and f.border.SetColor then
         f.border:SetColor(STYLE.border[1], STYLE.border[2],
             STYLE.border[3], STYLE.border[4])
@@ -294,9 +319,18 @@ local function build()
     f:SetClampedToScreen(true)
     f:Hide()
 
+    -- The panel is three pieces, not one: a solid middle and a fading tail at
+    -- each end. A style with fade = 0 pins the middle to both edges and the
+    -- tails have no width, which is the hard rectangle again -- so the plain
+    -- styles go through the same three textures rather than a second path.
     local bg = f:CreateTexture(nil, "BACKGROUND")
-    bg:SetAllPoints()
     f.bg = bg
+    f.bgLeft = f:CreateTexture(nil, "BACKGROUND")
+    f.bgRight = f:CreateTexture(nil, "BACKGROUND")
+    f.bgLeft:SetPoint("TOPLEFT")
+    f.bgLeft:SetPoint("BOTTOMLEFT")
+    f.bgRight:SetPoint("TOPRIGHT")
+    f.bgRight:SetPoint("BOTTOMRIGHT")
     -- Created at full strength and recoloured by dress(); a border is four
     -- textures and there is no removing them afterwards, so a style with no
     -- border gets one at zero alpha rather than a different frame.

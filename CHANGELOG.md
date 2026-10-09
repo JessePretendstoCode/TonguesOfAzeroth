@@ -97,10 +97,15 @@ Tongues of Azeroth before 0.5.3.
   word are the same two facts in the same arrangement: an icon, the thing you
   got, and underneath it where it came from. So the word sits where the item
   name goes, wearing its tongue's colour the way an item wears its quality's,
-  and the tongue sits underneath where the looter's name goes. A gold hairline
+  and the tongue sits   underneath where the looter's name goes. A gold hairline
   above and below sets the row off the way the loot feed is set off -- the
   same divider the level-up text and the boss banner are drawn between, cut
   out of the game's own art rather than drawn fresh, so it ages with the UI.
+  It has no hard edge either: the panel bleeds away to nothing at both ends
+  rather than stopping at a rectangle, so it sits on the world instead of on
+  top of it. Only the borderless styles can do that -- a fade inside a drawn
+  frame just looks like a mistake -- so it is a per-style setting and the
+  framed ones keep their edges.
   It is the default, because it is the one that looks like the rest of the
   game rather than like an addon.
   That colour is a per-style decision rather than something the toast always
