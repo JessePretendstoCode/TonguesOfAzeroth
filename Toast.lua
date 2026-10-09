@@ -64,7 +64,7 @@ preset("slate", "Slate -- dark panel, gold edge", {
     width = 290, height = 46,
     background = { 0.04, 0.04, 0.07, 0.88 },
     border     = { 0.55, 0.45, 0.20, 0.95 },
-    layout = "stack", icon = false, iconSize = 0, tint = true,
+    layout = "stack", icon = false, iconSize = 0, tint = true, flair = false,
     wordHex    = "ffffff",
     titleFont  = "GameFontNormal",      titleColor = { 1, 0.82, 0.2 },   titleY = -8,
     bodyFont   = "GameFontHighlightSmall", bodyColor = { 0.85, 0.85, 0.85 }, bodyGap = -4,
@@ -78,7 +78,7 @@ preset("parchment", "Parchment -- a note from the quest giver", {
     -- The one style that does not take the tongue's colour. Language colours
     -- are chosen to read on the dark chat frame, and every one of them sinks
     -- into tan -- Common is near-white and Taur-ahe is a browner tan still.
-    layout = "stack", icon = false, iconSize = 0, tint = false,
+    layout = "stack", icon = false, iconSize = 0, tint = false, flair = false,
     wordHex    = "2b1a07",
     titleFont  = "GameFontNormal",      titleColor = { 0.20, 0.12, 0.04 }, titleY = -9,
     bodyFont   = "GameFontNormalSmall", bodyColor  = { 0.34, 0.24, 0.12 }, bodyGap = -4,
@@ -89,7 +89,7 @@ preset("banner", "Banner -- wide, no box, like zone text", {
     width = 460, height = 54,
     background = { 0, 0, 0, 0 },
     border     = { 0, 0, 0, 0 },
-    layout = "stack", icon = false, iconSize = 0, tint = true,
+    layout = "stack", icon = false, iconSize = 0, tint = true, flair = false,
     wordHex    = "ffffff",
     titleFont  = "GameFontNormalLarge", titleColor = { 1, 0.82, 0.2 },    titleY = -4,
     bodyFont   = "GameFontNormal",      bodyColor  = { 0.95, 0.95, 0.95 }, bodyGap = -2,
@@ -100,7 +100,7 @@ preset("minimal", "Minimal -- one quiet line, no furniture", {
     width = 320, height = 26,
     background = { 0, 0, 0, 0 },
     border     = { 0, 0, 0, 0 },
-    layout = "stack", icon = false, iconSize = 0, tint = true,
+    layout = "stack", icon = false, iconSize = 0, tint = true, flair = false,
     wordHex    = "ffe9a8",
     titleFont  = "GameFontHighlightSmall", titleColor = { 0.95, 0.85, 0.5 }, titleY = -4,
     bodyFont   = "GameFontDisableSmall",   bodyColor  = { 0.6, 0.6, 0.6 },   bodyGap = -1,
@@ -111,7 +111,7 @@ preset("achievement", "Achievement -- heavy gold frame", {
     width = 330, height = 62,
     background = { 0.02, 0.02, 0.02, 0.95 },
     border     = { 0.85, 0.68, 0.22, 1 },
-    layout = "stack", icon = false, iconSize = 0, tint = true,
+    layout = "stack", icon = false, iconSize = 0, tint = true, flair = false,
     wordHex    = "ffffff",
     titleFont  = "GameFontNormalLarge", titleColor = { 1, 0.88, 0.35 },   titleY = -12,
     bodyFont   = "GameFontHighlight",   bodyColor  = { 0.80, 0.80, 0.80 }, bodyGap = -6,
@@ -122,31 +122,43 @@ preset("ember", "Ember -- near-black, warm edge", {
     width = 300, height = 48,
     background = { 0.07, 0.03, 0.02, 0.92 },
     border     = { 0.72, 0.28, 0.08, 1 },
-    layout = "stack", icon = false, iconSize = 0, tint = true,
+    layout = "stack", icon = false, iconSize = 0, tint = true, flair = false,
     wordHex    = "ffd2a6",
     titleFont  = "GameFontNormal",         titleColor = { 1, 0.62, 0.30 },   titleY = -9,
     bodyFont   = "GameFontHighlightSmall", bodyColor  = { 0.78, 0.72, 0.68 }, bodyGap = -4,
     fadeIn = 0.25, hold = 4.0, fadeOut = 1.0,
 })
 
+-- The gold divider the level-up text and the boss banner are drawn between:
+-- a hairline that is white-hot in the middle and fades to nothing at both
+-- ends. Taken from the game's own art rather than drawn, so it ages with the
+-- UI. The numbers are the content box of the line inside a 512x512 atlas
+-- (x 11..407, y 7..17), measured off the file rather than remembered.
+local FLAIR = {
+    texture = "Interface\\LevelUp\\LevelUpTex",
+    coords  = { 0.02148438, 0.796875, 0.01367188, 0.03515625 },
+    height  = 7,
+}
+
 -- The odd one out, and the reason layout is a field rather than an assumption.
 -- A loot row says what dropped and who got it; a learned word is the same two
 -- facts in the same shape, so it borrows the shape -- icon, the word itself in
 -- its tongue's colour where an item wears its quality's, and the tongue
--- underneath where the player's name goes.
+-- underneath where the player's name goes. A gold line above and below sets
+-- it off the way the loot feed is set off, which is what it is imitating.
 preset("loot", "Loot -- icon and two lines, like an item drop", {
-    width = 300, height = 44,
+    width = 300, height = 52,
     background = { 0, 0, 0, 0.55 },
     border     = { 0, 0, 0, 0 },
-    layout = "row", icon = "Interface\\Icons\\INV_Misc_Book_09", iconSize = 32,
-    tint = true,
+    layout = "row", icon = "Interface\\Icons\\INV_Misc_Book_11", iconSize = 32,
+    tint = true, flair = true,
     wordHex    = "ffffff",
-    titleFont  = "GameFontNormal",         titleColor = { 1, 1, 1 },         titleY = -7,
+    titleFont  = "GameFontNormal",         titleColor = { 1, 1, 1 },         titleY = -11,
     bodyFont   = "GameFontHighlightSmall", bodyColor  = { 0.65, 0.65, 0.65 }, bodyGap = -3,
     fadeIn = 0.2, hold = 4.5, fadeOut = 1.0,
 })
 
-local DEFAULT_PRESET = "slate"
+local DEFAULT_PRESET = "loot"
 
 -- The live one. Mutated in place rather than swapped, because the tests and
 -- the frame both hold on to it and a style change should reach them without
@@ -233,6 +245,10 @@ local function dress(f)
     f.title:ClearAllPoints()
     f.body:ClearAllPoints()
 
+    for i = 1, #f.flair do
+        if STYLE.flair then f.flair[i]:Show() else f.flair[i]:Hide() end
+    end
+
     if STYLE.layout == "row" then
         -- A loot row: square on the left, two lines of text beside it, both
         -- ragged-left. Lines are hung off the frame's own edges rather than
@@ -299,6 +315,21 @@ local function build()
     icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
     Compat.AddBorder(iconFrame, 0, 0, 0, 1)
     f.iconFrame, f.icon = iconFrame, icon
+
+    -- The gold hairlines. Same reasoning as the square: always built, hidden
+    -- by the styles that do not want them. They are pinned to the frame's own
+    -- top and bottom edges, so a style only has to say yes or no and never
+    -- where.
+    f.flair = {}
+    for i, edge in ipairs({ "TOP", "BOTTOM" }) do
+        local line = f:CreateTexture(nil, "ARTWORK")
+        line:SetTexture(FLAIR.texture)
+        line:SetTexCoord(FLAIR.coords[1], FLAIR.coords[2], FLAIR.coords[3], FLAIR.coords[4])
+        line:SetHeight(FLAIR.height)
+        line:SetPoint(edge .. "LEFT", 0, 0)
+        line:SetPoint(edge .. "RIGHT", 0, 0)
+        f.flair[i] = line
+    end
 
     local title = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     f.title = title
