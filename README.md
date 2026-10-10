@@ -432,21 +432,28 @@ Each panel answers one question, which is how to guess where a setting lives:
   Quests already in your
   log when you switch this on fall back to your own faction's tongue, since nothing will
   tell an addon who gave you one after the fact -- hand one in and the real tongue is
-  recorded. Quests with nobody behind them stay readable: one from an item in your bags,
-  a bulletin board or walking into a place has no speaker to borrow a tongue from.
+  recorded. Quests with nobody behind them stay readable while only the story is hidden:
+  one from an item in your bags, a bulletin board or walking into a place has no speaker
+  to borrow a tongue from.
   `/glyphic quest` says which of those a given quest is in, and what the client reports
   about whoever is in front of you; `/glyphic quest reset` forgets every recorded tongue
   if the records are wrong rather than missing. Buttons are never
-  touched -- you can still accept a quest you can't read -- and quest log titles stay
-  readable so you can still manage your log. It works with replacement quest frames,
-  because it changes the text the game hands out rather than the frames that draw it.
+  touched -- you can still accept a quest you can't read. It works with replacement quest
+  frames, because it changes the text the game hands out rather than the frames that
+  draw it.
 - Two surfaces under that one have switches of their own, because they are the parts you
-  operate the game with rather than parts of the story. *Include the objective tracker
-  and quest log checklist* is on, since the quest checkbox always named it. *Include the
+  operate the game with rather than parts of the story. *Include your quest log and the
+  objective tracker* is on, since the quest checkbox always named it. *Include the
   replies you click to answer an NPC* is off: nothing ever named that one, and garbling
   it meant a character with immersion on could not find *I wish to train* in a trainer's
   menu. Both are available to anyone who wants them, and the Hard tier of a challenge
   turns the second on for you.
+- The quest log switch covers the whole page: the titles down the side, the checklist
+  under each one, and the tracker on your screen. It is also the switch that says the
+  written word itself is foreign, so with it on a quest off a notice board stops being
+  readable too -- a board in Darnassus is not written in English for your benefit. Zone
+  headers stay in plain words either way, since a header is the client sorting your log
+  rather than anything somebody wrote.
 - Set each language's chat color from the swatch on its row: click to pick, right-click
   to restore the default. Sub-dialects follow their parent (recoloring Zandali recolors
   Amani, Gurubashi and Drakkari with it); give one its own color with

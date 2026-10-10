@@ -2134,10 +2134,9 @@ local function BuildLearnedPanel()
         db().immersionQuests = self:GetChecked() and true or false
         if ns.QuestText then ns.QuestText.Refresh() end
     end)
-    infoFor(content, immersionQuestCheck, "Quest offers, gossip windows and your "
-        .. "journal. You can still accept a quest you can't read -- the buttons "
-        .. "are yours, not theirs -- and your quest log keeps its titles so you "
-        .. "can still tell one job from another. Quests you already had fall back "
+    infoFor(content, immersionQuestCheck, "Quest offers and gossip windows -- the "
+        .. "story an NPC tells you. You can still accept a quest you can't read; "
+        .. "the buttons are yours, not theirs. Quests you already had fall back "
         .. "to your own faction's tongue, since nothing can tell Glyphic who gave "
         .. "you one after the fact -- hand one in and the real tongue is "
         .. "recorded. Needs |cffffd200Include all NPC text and speech|r above.")
@@ -2149,12 +2148,18 @@ local function BuildLearnedPanel()
     -- difficulty setting. Something that changes how hard the game is to play
     -- should be something you went and asked for.
     CH.trackerCheck = Compat.CreateCheckbox(content,
-        "Include the objective tracker and quest log checklist")
+        "Include your quest log and the objective tracker")
     CH.trackerCheck:SetPoint("TOPLEFT", immersionQuestCheck, "BOTTOMLEFT", 16, -6)
     CH.trackerCheck:SetScript("OnClick", function(self)
         db().immersionTracker = self:GetChecked() and true or false
         if ns.QuestText then ns.QuestText.Refresh() end
     end)
+    infoFor(content, CH.trackerCheck, "The whole page: the titles down the side, "
+        .. "the checklist under each one, and the tracker on your screen. This is "
+        .. "the switch that says the written word is foreign too, so a quest off a "
+        .. "notice board stops being readable with it. Zone headers stay in plain "
+        .. "words -- those are the client sorting your log, not anything somebody "
+        .. "wrote. Turn it off and the story is still hidden but the log is yours.")
 
     CH.optionsCheck = Compat.CreateCheckbox(content,
         "Include the replies you click to answer an NPC")

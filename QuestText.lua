@@ -35,16 +35,23 @@
     offer, its title, the objectives, the progress and the thanks, and the
     gossip window. Not the buttons -- Accept still says Accept, and still
     works, because not understanding somebody has never stopped anyone
-    agreeing to fetch ten boar livers. And not the titles in your own quest
-    log, which are your shorthand for a job you already took rather than
-    anything the quest giver said; garbling those costs you the ability to
-    abandon the right quest and buys nothing you would read in character.
+    agreeing to fetch ten boar livers.
 
-    The objective tracker and the clickable gossip list sit behind switches
-    of their own, because they are not prose. Everything above is a story you
-    can be shut out of and lose nothing but the story; those two are what you
+    The journal and the clickable gossip list sit behind switches of their
+    own, because they are not prose. Everything above is a story you can be
+    shut out of and lose nothing but the story; those two are what you
     operate the game with, and hiding them stops being flavour and starts
     being a difficulty setting.
+
+    The journal switch covers the whole page: the objectives, the checklist,
+    the tracker, and the titles down the side. The titles were held back from
+    it once, on the grounds that a title is your own shorthand for a job you
+    already took rather than anything the giver said. That held while the
+    prose was the only thing hidden. It stops holding once the page itself is
+    the point, and a list of plain English titles sitting over garbled
+    objectives reads as the feature half working rather than as a decision.
+    Zone headers stay readable either way: a header is the client sorting
+    your log, not a thing anybody wrote.
 ---------------------------------------------------------------------------]]
 
 local _, ns = ...
@@ -382,10 +389,26 @@ end
 -- with the truth, so the log corrects itself as you play.
 function QuestText.JournalLanguage(questID)
     local known = QuestText.LanguageForQuest(questID)
-    if known == false then return nil end
     if type(known) == "number" then return known end
+    if known == false then
+        -- Nobody said it, so with only the prose hidden there is nothing to
+        -- hide: a letter in your bags is a letter, and it is in whatever you
+        -- read. But the journal switch means the written word itself is
+        -- foreign, and a notice board in Darnassus is not written in English
+        -- for your benefit. Without this, every quest off a board or an item
+        -- stayed readable on Medium and Hard, beside garbled ones from the
+        -- NPC standing next to it -- which reads as the feature misfiring.
+        if not QuestText.TrackerActive() then return nil end
+    end
     return QuestText.PlayerLanguage()
 end
+
+-- The untouched GetQuestLogTitle, kept from before the wrapper went on.
+-- Garbling a title needs a quest id, and finding a quest id means reading the
+-- title row -- so resolving the id through the global would call the wrapper
+-- for every call, for ever. C_QuestLog.GetInfo needs no such care: it is
+-- asked for the quest id, which its wrapper does not touch.
+local rawQuestLogTitle
 
 -- A row in the quest log is not a quest. The tracker and the journal both hand
 -- out log indices, which shuffle whenever a quest is added or abandoned, so
@@ -399,13 +422,14 @@ local function questIDForLogIndex(index)
             return info.questID
         end
     end
-    if type(GetQuestLogTitle) == "function" then
+    local getTitle = rawQuestLogTitle or GetQuestLogTitle
+    if type(getTitle) == "function" then
         -- Every flavour that still has this returns the questID eighth, after
         -- title, level, suggestedGroup, isHeader, isCollapsed, isComplete and
         -- frequency. Trusting the slot beats scanning for "a number that looks
         -- like an id", which skips low-numbered classic quests and can pick up
         -- a level or a group size instead.
-        local row = { GetQuestLogTitle(index) }
+        local row = { getTitle(index) }
         if type(row[8]) == "number" and row[8] > 0 then return row[8] end
         for i = 1, #row do
             if type(row[i]) == "number" and row[i] > 100 then return row[i] end
@@ -540,8 +564,7 @@ function QuestText.Install()
     wrapText("GetRewardText")
 
     -- The journal's body text: description and objective paragraph. Classic
-    -- reads the selected row, retail can be handed a quest directly. The title
-    -- beside it is left alone on purpose: see the note at the top of this file.
+    -- reads the selected row, retail can be handed a quest directly.
     if type(GetQuestLogQuestText) == "function" then
         local original = GetQuestLogQuestText
         GetQuestLogQuestText = function(questID, ...)
@@ -610,6 +633,79 @@ function QuestText.Install()
                 end
             end
             return objectives
+        end
+    end
+
+    -- The third way to ask the same question. GetQuestObjectiveInfo answers
+    -- one objective at a time and is a separate call into the client rather
+    -- than a wrapper around the two above, so hooking those two leaves it
+    -- untouched -- which is how a journal came out with one quest's
+    -- objectives garbled and the next quest's in plain English.
+    if type(GetQuestObjectiveInfo) == "function" then
+        local original = GetQuestObjectiveInfo
+        GetQuestObjectiveInfo = function(questID, objIndex, ...)
+            local text, kind, finished, fulfilled, required =
+                original(questID, objIndex, ...)
+            if type(text) ~= "string" or not QuestText.TrackerActive() then
+                return text, kind, finished, fulfilled, required
+            end
+            local lang = QuestText.JournalLanguage(questID)
+            if not lang then return text, kind, finished, fulfilled, required end
+            return QuestText.Garble(text, lang), kind, finished, fulfilled, required
+        end
+    end
+
+    -- The titles down the side of the journal. These were left readable on
+    -- the grounds that a title is your own shorthand for a job you already
+    -- took rather than anything the giver said -- true while the rest of the
+    -- page was the only thing hidden, and false once the page is the point.
+    -- A list of plain English titles over garbled objectives reads as the
+    -- feature half working rather than as a decision.
+    --
+    -- Behind the journal switch rather than the prose one, because that is
+    -- the switch that means "the written word is foreign too": Easy leaves
+    -- the log readable, Medium and Hard do not.
+    --
+    -- Headers are left alone either way. A header is the client sorting your
+    -- log by zone, not a thing anybody wrote, and garbling them costs you the
+    -- ability to find a quest without buying any more of the fiction.
+    local function retitle(index, title, level, group, isHeader, ...)
+        if type(title) == "string" and title ~= "" and not isHeader
+            and QuestText.TrackerActive() then
+            local lang = QuestText.JournalLanguage(questIDForLogIndex(index))
+            if lang then title = QuestText.Garble(title, lang) end
+        end
+        return title, level, group, isHeader, ...
+    end
+
+    if type(GetQuestLogTitle) == "function" then
+        local original = GetQuestLogTitle
+        rawQuestLogTitle = original
+        GetQuestLogTitle = function(index, ...)
+            return retitle(index, original(index, ...))
+        end
+    end
+    if C_QuestLog and type(C_QuestLog.GetTitleForQuestID) == "function" then
+        local original = C_QuestLog.GetTitleForQuestID
+        C_QuestLog.GetTitleForQuestID = function(questID, ...)
+            local title = original(questID, ...)
+            if type(title) ~= "string" or not QuestText.TrackerActive() then
+                return title
+            end
+            local lang = QuestText.JournalLanguage(questID)
+            return lang and QuestText.Garble(title, lang) or title
+        end
+    end
+    if C_QuestLog and type(C_QuestLog.GetInfo) == "function" then
+        local original = C_QuestLog.GetInfo
+        C_QuestLog.GetInfo = function(index, ...)
+            local info = original(index, ...)
+            if type(info) == "table" and type(info.title) == "string"
+                and not info.isHeader and QuestText.TrackerActive() then
+                local lang = QuestText.JournalLanguage(info.questID)
+                if lang then info.title = QuestText.Garble(info.title, lang) end
+            end
+            return info
         end
     end
 end

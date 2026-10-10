@@ -152,9 +152,32 @@ Tongues of Azeroth before 0.5.3.
   nothing but the story. The objective tracker and the list of replies you
   click to answer an NPC are the parts you operate the game with, and hiding
   those stops being flavour and starts being a difficulty setting.
-  *Include the objective tracker and quest log checklist* is on, because the
+  *Include your quest log and the objective tracker* is on, because the
   quest checkbox always named it and turning it off would quietly make a
   setting you already ticked do less than it did yesterday.
+  That switch covers the whole page: **the titles down the side of the
+  journal as well as the checklist under them.** The titles were held back
+  from it at first, on the grounds that a title is your own shorthand for a
+  job you already took rather than anything the giver said. That held while
+  the prose was the only thing hidden. It stops holding once the page itself
+  is the point -- a list of plain English titles sitting over garbled
+  objectives reads as the feature half working rather than as a decision.
+  Zone headers stay readable either way: a header is the client sorting your
+  log by zone, not a thing anybody wrote, and garbling one costs you the
+  ability to find a quest without buying any more of the fiction.
+  It is also the switch that says **the written word itself is foreign**, so
+  a quest with nobody behind it stops being readable with it on. With only
+  the prose hidden, nobody said it and so nothing is hidden -- a letter in
+  your bags is a letter. With the journal hidden, a notice board in Darnassus
+  is not written in English for your benefit, and leaving it plain put a
+  readable quest in the log beside garbled ones from the NPC standing next to
+  the board.
+  **Fixed: some objectives were garbled and others were not.** There are
+  three ways to ask the client for an objective and only two of them were
+  covered. `GetQuestObjectiveInfo` answers one objective at a time and is a
+  separate call rather than a wrapper over the other two, so a journal could
+  show one quest's objectives in a tongue you do not read and the next
+  quest's in plain English, in the same list, with no visible reason.
   **The replies you click to answer an NPC are now readable by default**,
   which is a change. They were garbled along with everything else, and the
   result was a character with full immersion on who could not find *I wish to
