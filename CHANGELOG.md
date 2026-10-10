@@ -364,16 +364,20 @@ Tongues of Azeroth before 0.5.3.
   addon to reach it.
   **A word costs more on the harder tiers.** Easy pays a whole word per
   quest, as it always has; Medium takes two hand-ins for one and Hard takes
-  five. On the tiers where you can read the least, becoming able to read is
+  three. On the tiers where you can read the least, becoming able to read is
   meant to be the run rather than something that happens on the way through
   it.
   A hand-in that only got you part of the way says so. The toast comes up
   headed *Getting There* instead of *Word Learned!*, names the tongue and
   your count, and names no word -- because no word was finished, and naming
-  one anyway would name the same word five times over and read as the addon
+  one anyway would name the same word three times over and read as the addon
   repeating itself. The count is not rounded up either: a part-word shows as
   the words you actually have, so the hand-in that finishes one is the one
   where the number moves.
+  Three rather than a larger number because the cost multiplies the tongue's
+  own size. Orcish has a hundred words, so five would be five hundred quests
+  in Orcish alone -- past hard and into a run nobody finishes. Three is three
+  hundred, which is a levelling run.
 - **The explanations on Languages & Fluency are behind an information icon.**
   Every switch on that page had a paragraph of grey small print under it, and
   six of them stacked meant reading a wall of text to reach the language list

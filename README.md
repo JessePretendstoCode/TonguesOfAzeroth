@@ -76,9 +76,9 @@ in character when you want to be heard in it.
   class -- lose every language you have learned, and level up
   understanding nobody. Each difficulty takes away one more thing and asks more of you
   for a word: *Easy* is everybody speaking a tongue you do not, a quest a word.
-  *Medium* writes your journal and your objectives in it too, a couple of hand-ins a
+  *Medium* writes your journal and your objectives in it too, two hand-ins a
   word. *Hard* hides the quest tracking entirely -- tracker, map pins, minimap -- and
-  every name over every head with it, a handful of hand-ins a word.
+  every name over every head with it, three hand-ins a word.
   Words land in whatever tongue each quest was given in,
   so a run ends as a travel history rather than one bar: fluent in Orcish,
   conversational in Taur-ahe, a smattering of Zandali. The settings a challenge publishes
@@ -353,7 +353,7 @@ Each panel answers one question, which is how to guess where a setting lives:
   - *Hard*: all of the above, plus the quest tracking is gone -- the objective tracker,
     the pins on your world map, the pins and blue areas on your minimap -- and so is
     every floating name over every player and NPC. The replies you click to answer an
-    NPC are in the tongue as well. A word takes five hand-ins.
+    NPC are in the tongue as well. A word takes three hand-ins.
 - The tracker is hidden rather than garbled, because garbled it is still a list of
   counters and a number is a number in every language. It comes back when the run ends,
   and only if you had it open to begin with.

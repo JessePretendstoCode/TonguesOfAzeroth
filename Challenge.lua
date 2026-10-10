@@ -249,7 +249,13 @@ local CHALLENGES = {
                     immersionGossipOptions  = true,
                 }),
                 cvars = cvars(TRACKING_HIDDEN, NAMES_HIDDEN),
-                wordCost = 5,
+                -- Three rather than a bigger number, because the cost is
+                -- multiplied by the tongue's own size: Orcish has a hundred
+                -- words, so five would be five hundred quests in Orcish
+                -- alone and the run stops being hard and starts being one
+                -- you do not finish. Three is three hundred, which is a
+                -- levelling run.
+                wordCost = 3,
                 hideTracker = true,
             },
         },

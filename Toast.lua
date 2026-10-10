@@ -569,8 +569,8 @@ function Toast.Word(got)
     end
 
     return Toast.Show({
-        -- Only claim a word when one was finished. Four hand-ins out of
-        -- five announcing "Word Learned!" and naming nothing is the addon
+        -- Only claim a word when one was finished. Two hand-ins out of
+        -- three announcing "Word Learned!" and naming nothing is the addon
         -- telling you something that did not happen.
         header = got.partial and "Getting There" or "Word Learned!",
         title = title,

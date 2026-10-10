@@ -392,19 +392,19 @@ function QuestLearn.Learn(questID, questLevel)
     local learned = math.floor(after * total + 0.5)
 
     -- On a tier where a word costs several hand-ins, most hand-ins buy part
-    -- of one. Naming a word anyway would name the same word four times over
+    -- of one. Naming a word anyway would name the same word twice over
     -- and then name the next one, which reads as the addon repeating itself
     -- rather than as progress. So the toast gets the count and no lesson,
     -- which is the true thing to say: you are closer.
     --
     -- Compared before the clamp below, which exists so the toast never says
-    -- "0 of 100" and would otherwise report the first hand-in of five as a
+    -- "0 of 100" and would otherwise report the first hand-in of three as a
     -- whole word earned.
     local partial = learned == math.floor(before * total + 0.5)
 
     -- The floor is for a whole word only. Rounding a part-word up would
-    -- show "1 of 100" on each of the first four hand-ins and then show it
-    -- again on the fifth, so the one that actually earned the word is the
+    -- show "1 of 100" on each of the first two hand-ins and then show it
+    -- again on the third, so the one that actually earned the word is the
     -- one that looks like nothing happened.
     if learned < 1 and not partial then learned = 1
     elseif learned > total then learned = total end
