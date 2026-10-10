@@ -70,9 +70,9 @@ in character when you want to be heard in it.
   at a rectangle.
   `/glyphic toast next` steps through them and shows you each one on screen as it
   goes.
-- Challenges, in their own section at the foot of the main panel. The first is
-  **Stranger**: start on a character at level 10 or below, lose every language you have
-  learned, and level up understanding nobody. The three difficulties change what you can
+- Challenges, at the foot of the main panel's list of places to go, under a rule of their
+  own. The first is **Stranger**: start on a character at level 10 or below, lose every
+  language you have learned, and level up understanding nobody. The three difficulties change what you can
   read, not how fast you learn -- *Easy* hides the prose but leaves your objectives
   readable, *Medium* takes the tracker and quest log with it, *Hard* takes the replies
   you click to answer an NPC too. Words land in whatever tongue each quest was given in,
@@ -304,13 +304,17 @@ Each panel answers one question, which is how to guess where a setting lives:
   nothing in chat. Only the typed `/toa on`, `/toa off` and `/toa ic` report back.
 - Under Interface, show or hide the minimap button and the floating language bar, and lock
   the bar in place. The bar is on by default, since it's the only always-visible readout
-  of what you're speaking and whether you're in character.
+  of what you're speaking and whether you're in character. The IC/OOC control on it is a
+  real button wearing the game's own plate, so it looks like the thing it is; right-click
+  the bar for the language list, with a radio circle beside every entry and the one
+  you're speaking filled in.
 - Everything else is a button through to the panel that owns it, so settings live where the
-  thing they configure lives.
-- Challenges, at the foot of the panel behind a rule of its own, because a challenge is
-  not a preference: everything above that line is a dial you set to taste, and this is an
-  arrangement you agree to. The line says whether one is running and how it is going; the
-  button opens the panel below.
+  thing they configure lives. They are listed in the same order as Blizzard's settings
+  tree, because the two are the same list.
+- Challenges is the last of them, under a rule of its own, because a challenge is not a
+  preference: everything above that line is somewhere you go to tune the addon, and this
+  is the one entry that changes what the addon is doing. While a run is live, a short
+  line under the button says which tier and what level you have reached.
 
 ### Challenges
 
@@ -319,10 +323,11 @@ Each panel answers one question, which is how to guess where a setting lives:
   10 or below with no challenge already running; it wipes every language you have learned,
   and the run belongs to that character alone. The panel lists those with a tick or a
   cross beside each, so a refusal tells you which rule refused it.
-- The difficulty changes what you can read, not how fast you learn. *Easy* hides quest
+- The difficulty is a dropdown, and picking one shows you what it does. *Easy* hides quest
   text, gossip and NPC speech but leaves your objectives readable, so you always know what
   to do and never why. *Medium* takes the objective tracker and quest log with it. *Hard*
-  takes the replies you click to answer an NPC as well.
+  takes the replies you click to answer an NPC as well. None of them changes how fast you
+  learn. Start is greyed out until you can actually start.
 - While a run is live, the settings it published go grey, along with the fluency slider
   and the two learning toggles on the trainer. Cosmetics stay live -- nobody ever made a
   run easier by picking a different toast -- and importing a profile is refused, since it

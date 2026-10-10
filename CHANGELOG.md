@@ -179,9 +179,10 @@ Tongues of Azeroth before 0.5.3.
   is indistinguishable from one the game hid itself, so it follows *Tint
   in-game languages* under Chat Channels like any other line of real Orcish,
   rather than painting itself.
-- **Challenges.** A new section at the foot of the main panel, under a rule of
-  its own because a challenge is not a preference: everything above that line
-  is a dial you set to taste, and this is an arrangement you agree to.
+- **Challenges.** A new entry at the foot of the main panel's list of places
+  to go, under a rule of its own because a challenge is not a preference:
+  everything above that line is somewhere you go to tune the addon, and this
+  is the one that changes what the addon is doing.
   The first one is **Stranger**. You arrive understanding nobody -- every
   quest and every NPC is in a tongue you do not speak -- and the only way out
   is to work for the people who speak it. Starting requires a character at
@@ -234,6 +235,44 @@ Tongues of Azeroth before 0.5.3.
   your saved variables rather than left sitting in exported profiles.
 - Tidied the settings panels: the small print under a control is grey
   everywhere now, instead of some of it being grey and some flat white.
+- **The buttons are the game's buttons now.** Every button in the addon --
+  the navigation list, Save, Import, Start, Abandon, the whole lot -- was a
+  flat purple rectangle with a one-pixel edge. It read as a placeholder
+  sitting on top of WoW rather than as part of it, and worse, it gave no
+  answer at all to "is this thing clickable". They now wear the client's own
+  button plate with gold lettering, press in when you click them, and go
+  stone-grey with grey text when they are not available.
+  Drawn from the game's art rather than by inheriting `UIPanelButtonTemplate`.
+  The template has been rebuilt more than once across the flavours this ships
+  to -- a nine-slice on retail, three loose textures on Classic Era -- so
+  inheriting it would look right on one client and throw an error on another.
+  The textures have been in the same place since vanilla and are the part
+  that carries the look.
+  Three pieces rather than one stretched image, because the caps carry the
+  rivets and the bevel and stretching an eighty-pixel plate out to a hundred
+  and seventy smears both.
+- **The floating language bar.** The in-character switch on it was two words
+  of coloured text with a hover tint, which is not a button and did not look
+  like one. It is a button now, on the same plate as everything else, still
+  green in character and red out of it. The bar itself sits on the game's
+  tooltip backing instead of a flat fill.
+  Right-clicking it opens the language list with a radio circle beside every
+  entry and the one you are speaking filled in, under a gold *Select Language*
+  heading -- the way the game asks you to pick one of something. Before, it
+  was a column of names with one of them coloured, which read as a list of
+  commands rather than a choice.
+- **The Challenges panel** no longer stacks all three difficulties with a
+  paragraph under each. It is a dropdown and one description, which is the
+  shape of the decision: you are choosing between three, and reading three
+  paragraphs of grey small print to make one choice -- then leaving two of
+  them on screen afterwards saying nothing -- was noise.
+  And the Start button greys out when you cannot start, rather than taking
+  the click and answering with an error in chat. The crossed-out requirement
+  above it has already given the reason.
+- A **Profiles** button on the main panel's list. It had been reachable only
+  through Blizzard's settings tree, which meant it did not exist at all in
+  the addon's own standalone window. The list is also in the same order as
+  the settings tree now, since the two are the same list.
 
 ## [0.5.6]
 - **Fixed: importing a profile threw an error.** The settings were applied

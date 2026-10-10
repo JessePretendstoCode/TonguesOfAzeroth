@@ -518,6 +518,21 @@ function CH.statusText()
     return line
 end
 
+-- The same fact in the width of a nav button. Returns nil when there is
+-- nothing going on, because the column has room for a note about a live run
+-- and no room for a label announcing the absence of one.
+function CH.shortStatus()
+    local C = ns.Challenge
+    if not C then return nil end
+    local record = C.Record()
+    if not record then return nil end
+    if record.broken then
+        return "|cffff4040Voided|r |cff808080at " .. tostring(record.difficulty) .. "|r"
+    end
+    return "|cffffd200" .. tostring(record.difficulty) .. "|r |cff808080-- level "
+        .. tostring(record.level or "?") .. "|r"
+end
+
 -- The lock row only means anything while the bar is shown, so it comes and
 -- goes. The Challenges block below it is anchored to the row rather than to
 -- whichever control is currently last, so hiding the row leaves a gap rather
@@ -528,9 +543,7 @@ local function layoutMainWidgetLock()
     local d = db()
     local barOn = d.widget and d.widget.enabled and true or false
     if widgetLockCheck then widgetLockCheck:SetShown(barOn) end
-    -- The scroll height follows the real bottom of the panel, which is now
-    -- always the Challenges button.
-    mainPanel._lastChild = CH.button or (barOn and widgetLockCheck) or widgetCheck
+    mainPanel._lastChild = (barOn and widgetLockCheck) or widgetCheck
 end
 
 local function RefreshMain()
@@ -545,19 +558,28 @@ local function RefreshMain()
     layoutMainWidgetLock()
     enableCheck:SetChecked(d.inCharacter)
 
+    local short = CH.shortStatus and CH.shortStatus()
     if CH.status then
-        CH.status:SetText(CH.statusText())
+        CH.status:SetText(short or "")
+        CH.status:SetShown(short ~= nil)
     end
-    if CH.button then
-        CH.button:SetShown(ns.Challenge ~= nil)
-    end
+    if CH.button then CH.button:SetShown(ns.Challenge ~= nil) end
+    if CH.rule then CH.rule:SetShown(ns.Challenge ~= nil) end
 
     -- Size the scroll child to the actual bottom of the last element (accounts
     -- for the floating-bar lock row appearing/disappearing). Falls back to the
     -- generous default set at creation if geometry isn't ready yet.
+    --
+    -- Both columns are measured, not just the settings stack. The nav list on
+    -- the right grew past it once already and the panel simply stopped
+    -- scrolling far enough to reach the last button, with nothing on screen
+    -- to say why.
     if mainContent and mainContent.SetContentHeight and mainPanel._lastChild then
         local top = mainContent:GetTop()
         local bot = mainPanel._lastChild:GetBottom()
+        local navBot = (short and CH.status and CH.status:GetBottom())
+            or (CH.button and CH.button:IsShown() and CH.button:GetBottom())
+        if navBot and (not bot or navBot < bot) then bot = navBot end
         if top and bot and top > bot then
             mainContent:SetContentHeight(top - bot + 20)
         end
@@ -1083,13 +1105,15 @@ local function RefreshLanguageWidget()
     langWidget.sub:SetText(adj)
     langWidget.sub:SetTextColor(ar, ag, ab)
     local tr, tg, tb, inChar = stateTint()
-    langWidget.dot:SetText(inChar and "IC" or "OOC")
-    langWidget.dot:SetTextColor(tr, tg, tb)
+    if langWidget.icBtn then
+        langWidget.icBtn:SetText(inChar and "IC" or "OOC")
+        langWidget.icBtn:SetTextColor(tr, tg, tb)
+        -- Room for the plate's two 12px end caps either side of the word.
+        langWidget.icBtn:SetWidth(
+            math.max(38, math.ceil(langWidget.dot:GetStringWidth()) + 26))
+    end
     if langWidget.border then
         langWidget.border:SetColor(tr * 0.75, tg * 0.75, tb * 0.75, 0.95)
-    end
-    if langWidget.icBtn then
-        langWidget.icBtn:SetWidth(math.max(20, math.ceil(langWidget.dot:GetStringWidth()) + 8))
     end
     if langWidget.fav then
         -- Filled only when the toggle is on AND there's a list to walk, so the
@@ -1106,7 +1130,7 @@ local function RefreshLanguageWidget()
     -- The bottom row is fluency on the left, auto/off on the right, and the
     -- favorites star outside that -- it can be the wider of the two rows.
     local bottom = langWidget.sub:GetStringWidth() + langWidget.dot:GetStringWidth()
-        + WIDGET_BOTTOM_RESERVE
+        + WIDGET_BOTTOM_RESERVE + 20   -- the IC button's end caps
     if bottom > needed then needed = bottom end
     if needed < WIDGET_MIN_W then needed = WIDGET_MIN_W end
     langWidget:SetWidth(math.ceil(needed))
@@ -1142,7 +1166,8 @@ openWidgetMenu = function()
         m:EnableMouse(true)
         m:EnableMouseWheel(true)
         local bg = m:CreateTexture(nil, "BACKGROUND"); bg:SetAllPoints()
-        Compat.SolidTexture(bg, 0.04, 0.04, 0.06, 0.97)
+        bg:SetTexture("Interface\\Tooltips\\UI-Tooltip-Background")
+        bg:SetVertexColor(0.04, 0.04, 0.06, 0.97)
         Compat.AddBorder(m, 0.5, 0.45, 0.7, 0.95)
         m.langRows = {}   -- scrollable language list
         m.footRows = {}   -- pinned footer (auto-translate + settings)
@@ -1163,23 +1188,50 @@ openWidgetMenu = function()
 
     local m = widgetMenu
     local d = db()
-    local W, RH, PAD, DIV, MAXV = 190, 22, 6, 8, 10
+    -- Wider than it was by the width of the radio column, so a long language
+    -- name is not pushed into the right edge by the circle in front of it.
+    local W, RH, PAD, DIV, MAXV = 212, 22, 6, 8, 10
 
-    local function makeRow(pool, i)
+    -- `radio` rows carry the game's own radio button art, which is how every
+    -- pick-one list in WoW says "pick one". Without it the menu was a column
+    -- of words with one of them green, and nothing on screen said the list
+    -- was a choice rather than a set of commands.
+    --
+    -- UI-RadioButton rather than UI-DropDownRadioChecks: both draw the same
+    -- circle, but the first has shipped since vanilla and the second belongs
+    -- to the dropdown template, which is exactly the kind of thing that moves
+    -- between flavours.
+    local RADIO = "Interface\\Buttons\\UI-RadioButton"
+    local function makeRow(pool, i, radio)
         local r = pool[i]
         if not r then
             r = CreateFrame("Button", nil, m)
             r:SetHeight(RH)
             r:EnableMouseWheel(true)
             local t = r:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-            t:SetPoint("LEFT", 10, 0); t:SetPoint("RIGHT", -10, 0); t:SetJustifyH("LEFT")
+            t:SetPoint("LEFT", radio and 28 or 10, 0)
+            t:SetPoint("RIGHT", -10, 0); t:SetJustifyH("LEFT")
             r.text = t
+            if radio then
+                local dotTex = r:CreateTexture(nil, "ARTWORK")
+                dotTex:SetSize(16, 16)
+                dotTex:SetPoint("LEFT", 8, 0)
+                dotTex:SetTexture(RADIO)
+                r.radio = dotTex
+            end
             local h = r:CreateTexture(nil, "HIGHLIGHT"); h:SetAllPoints()
             Compat.SolidTexture(h, 1, 1, 1, 0.18)
             r:SetScript("OnMouseWheel", function(_, delta) if m.Scroll then m:Scroll(delta) end end)
             pool[i] = r
         end
         return r
+    end
+
+    -- The sheet is four 16px frames side by side: empty ring, filled ring,
+    -- highlight, disabled.
+    local function setRadio(tex, on)
+        if not (tex and tex.SetTexCoord) then return end
+        if on then tex:SetTexCoord(0.25, 0.5, 0, 1) else tex:SetTexCoord(0, 0.25, 0, 1) end
     end
 
     local items = langItems()   -- full grouped list (every language), same as main dropdown
@@ -1198,18 +1250,31 @@ openWidgetMenu = function()
     if m.offset < 0 then m.offset = 0 end
     if m.offset > maxOffset then m.offset = maxOffset end
 
+    -- A title over the list, the way the game titles its own menus. Without
+    -- one the menu opened on a bare column of language names with two
+    -- unrelated commands under it, and nothing said what the column was.
+    if not m.title then
+        local t = m:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        t:SetPoint("TOPLEFT", m, "TOPLEFT", 12, -PAD - 3)
+        t:SetTextColor(1, 0.82, 0.2)
+        t:SetText("Select Language")
+        m.title = t
+    end
+    local listTop = PAD + RH
+
     local function renderLangs()
         for i = 1, #m.langRows do m.langRows[i]:Hide() end
         for slot = 1, visible do
             local item = items[m.offset + slot]
             if item then
-                local r = makeRow(m.langRows, slot)
+                local r = makeRow(m.langRows, slot, true)
                 r:ClearAllPoints()
-                r:SetPoint("TOPLEFT", m, "TOPLEFT", 4, -PAD - (slot - 1) * RH)
+                r:SetPoint("TOPLEFT", m, "TOPLEFT", 4, -listTop - (slot - 1) * RH)
                 r:SetPoint("RIGHT", m, "RIGHT", -4, 0)
                 local isCur = (item.value == d.language)
                 r.text:SetText(item.text)
-                if isCur then r.text:SetTextColor(0.4, 0.85, 0.4) else r.text:SetTextColor(0.9, 0.9, 0.9) end
+                setRadio(r.radio, isCur)
+                if isCur then r.text:SetTextColor(1, 0.82, 0.2) else r.text:SetTextColor(0.9, 0.9, 0.9) end
                 r:SetScript("OnClick", function()
                     db().language = item.value
                     if ns.OnSettingsChanged then ns.OnSettingsChanged() end
@@ -1231,7 +1296,7 @@ openWidgetMenu = function()
     renderLangs()
 
     -- Footer pinned below the (scrollable) language list.
-    local footTop = PAD + visible * RH + DIV
+    local footTop = listTop + visible * RH + DIV
     for i = 1, #m.footRows do m.footRows[i]:Hide() end
 
     if not m.divider then
@@ -1240,9 +1305,10 @@ openWidgetMenu = function()
         dv:SetHeight(1)
         m.divider = dv
     end
+    local divY = -(listTop + visible * RH + DIV / 2)
     m.divider:ClearAllPoints()
-    m.divider:SetPoint("TOPLEFT", m, "TOPLEFT", 6, -(PAD + visible * RH + DIV / 2))
-    m.divider:SetPoint("TOPRIGHT", m, "TOPRIGHT", -6, -(PAD + visible * RH + DIV / 2))
+    m.divider:SetPoint("TOPLEFT", m, "TOPLEFT", 6, divY)
+    m.divider:SetPoint("TOPRIGHT", m, "TOPRIGHT", -6, divY)
 
     local rAuto = makeRow(m.footRows, 1)
     rAuto:ClearAllPoints()
@@ -1286,9 +1352,13 @@ local function SetupLanguageWidget()
         f:EnableMouseWheel(true)
         f:RegisterForDrag("LeftButton")
 
+        -- The game's own tooltip backing rather than a flat fill. It is the
+        -- texture every floating readout in WoW sits on, so the bar stops
+        -- looking like a coloured rectangle somebody left on the screen.
         local bg = f:CreateTexture(nil, "BACKGROUND")
         bg:SetAllPoints()
-        Compat.SolidTexture(bg, 0.05, 0.05, 0.08, 0.9)
+        bg:SetTexture("Interface\\Tooltips\\UI-Tooltip-Background")
+        bg:SetVertexColor(0.07, 0.07, 0.1, 0.92)
         -- Kept so the bar's edge can carry the in/out-of-character state. The
         -- bar is usually read peripherally, mid-conversation, so the signal has
         -- to survive not being looked at directly -- which a word cannot.
@@ -1308,21 +1378,24 @@ local function SetupLanguageWidget()
         -- Its own button (like the star) so the click doesn't fall through to
         -- the frame's cycle-on-click, and it forwards the wheel so scrolling
         -- over it still cycles languages.
+        -- Wearing the game's button plate, because "I can't tell what is a
+        -- button and what is not" was a fair complaint about two words of
+        -- coloured text with a hover tint on them.
         local icBtn = CreateFrame("Button", nil, f)
+        -- The small font, because the bar is a HUD element read out of the
+        -- corner of an eye and the plate is only 18 pixels tall.
+        Compat.PanelButton(icBtn, "", 40, 18, "GameFontNormalSmall")
         icBtn:SetPoint("BOTTOMRIGHT", -24, 4)
-        icBtn:SetSize(36, 16)
         icBtn:SetFrameLevel(f:GetFrameLevel() + 2)
         icBtn:EnableMouseWheel(true)
         icBtn:SetScript("OnMouseWheel", function(_, delta)
             if ns.CycleLanguage then ns.CycleLanguage(delta > 0 and 1 or -1) end
         end)
-        local icHL = icBtn:CreateTexture(nil, "HIGHLIGHT")
-        icHL:SetAllPoints()
-        Compat.SolidTexture(icHL, 1, 1, 1, 0.18)
 
-        local dot = icBtn:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-        dot:SetPoint("RIGHT", icBtn, "RIGHT", 0, 0)
-        f.dot = dot
+        -- The plate's own font string, so the state colour lands on the text
+        -- the button is actually showing rather than on a second one sitting
+        -- over the top of it.
+        f.dot = icBtn.text
         f.icBtn = icBtn
 
         -- Its tooltip reports the very thing the button changes, and the cursor
@@ -1459,57 +1532,78 @@ local function BuildMainPanel()
     local function makeNavButton(label, onClick)
         local btn = CreateFrame("Button", nil, content)
         -- Wide enough for the longest label ("Languages & Fluency"); a
-        -- FontString that doesn't fit spills past the button's background
-        -- rather than truncating, so the whole row has to size to the worst case.
-        btn:SetSize(170, 24)
-        local bg = btn:CreateTexture(nil, "BACKGROUND")
-        bg:SetAllPoints()
-        Compat.SolidTexture(bg, 0.18, 0.16, 0.24, 1)
-        Compat.AddBorder(btn, 0.5, 0.45, 0.7, 0.9)
-        local text = btn:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-        text:SetPoint("CENTER", 0, 0)
-        text:SetText(label)
-        local hl = btn:CreateTexture(nil, "HIGHLIGHT")
-        hl:SetAllPoints()
-        Compat.SolidTexture(hl, 1, 1, 1, 0.12)
+        -- FontString that doesn't fit spills past the button's plate rather
+        -- than truncating, so the whole row has to size to the worst case.
+        Compat.PanelButton(btn, label, 170, 24)
         btn:SetScript("OnClick", onClick)
         return btn
     end
 
     -- Nav buttons are stacked vertically down the right edge so a growing list
-    -- of sub-panels stays clear of the title on the left.
-    local trainerBtn = makeNavButton("Language Trainer", function()
-        if ns.OpenTrainer then ns.OpenTrainer() end
-    end)
-    trainerBtn:SetPoint("TOPRIGHT", content, "TOPRIGHT", -16, -16)
+    -- of sub-panels stays clear of the title on the left. The order matches
+    -- the order the same panels appear in Blizzard's settings tree, because
+    -- the two lists are the same list and somebody who learns one has learned
+    -- the other.
+    --
+    -- Opening a panel from here rather than only from the tree matters in the
+    -- standalone window, which has no tree to navigate.
+    local prev
+    local function stack(btn)
+        if prev then
+            btn:SetPoint("TOPRIGHT", prev, "BOTTOMRIGHT", 0, -4)
+        else
+            btn:SetPoint("TOPRIGHT", content, "TOPRIGHT", -16, -16)
+        end
+        prev = btn
+        return btn
+    end
 
-    -- Opens the Languages panel. Kept as an explicit button so the sub-panel is
-    -- reachable from the standalone window too, which has no options tree to
-    -- navigate.
-    local learnedBtn = makeNavButton("Languages & Fluency", function()
+    stack(makeNavButton("Languages & Fluency", function()
         if ns.OpenLearnedConfig then ns.OpenLearnedConfig() end
-    end)
-    learnedBtn:SetPoint("TOPRIGHT", trainerBtn, "BOTTOMRIGHT", 0, -4)
-
-    local chatBtn = makeNavButton("Chat Channels", function()
+    end))
+    stack(makeNavButton("Chat Channels", function()
         if ns.OpenChatConfig then ns.OpenChatConfig() end
-    end)
-    chatBtn:SetPoint("TOPRIGHT", learnedBtn, "BOTTOMRIGHT", 0, -4)
-
-    local accentBtn = makeNavButton("Accents", function()
+    end))
+    stack(makeNavButton("Accents", function()
         if ns.OpenAccentConfig then ns.OpenAccentConfig() end
-    end)
-    accentBtn:SetPoint("TOPRIGHT", chatBtn, "BOTTOMRIGHT", 0, -4)
-
-    local customBtn = makeNavButton("Create Language", function()
+    end))
+    stack(makeNavButton("Create Language", function()
         if ns.OpenCustomConfig then ns.OpenCustomConfig() end
-    end)
-    customBtn:SetPoint("TOPRIGHT", accentBtn, "BOTTOMRIGHT", 0, -4)
-
-    local castBtn = makeNavButton("Cast Phrases", function()
+    end))
+    stack(makeNavButton("Cast Phrases", function()
         if ns.OpenCastConfig then ns.OpenCastConfig() end
+    end))
+    stack(makeNavButton("Profiles", function()
+        if ns.OpenProfileConfig then ns.OpenProfileConfig() end
+    end))
+    local trainerBtn = stack(makeNavButton("Language Trainer", function()
+        if ns.OpenTrainer then ns.OpenTrainer() end
+    end))
+
+    -- Challenges goes at the foot of the same column but under a rule, which
+    -- is the whole of the distinction: everything above the line is somewhere
+    -- you go to tune the addon, and this is the one entry that changes what
+    -- the addon is doing. It is still a destination, so it belongs in the
+    -- list of destinations rather than wedged in among the checkboxes.
+    CH.rule = content:CreateTexture(nil, "ARTWORK")
+    CH.rule:SetHeight(1)
+    CH.rule:SetPoint("TOPRIGHT", trainerBtn, "BOTTOMRIGHT", 0, -10)
+    CH.rule:SetWidth(170)
+    Compat.SolidTexture(CH.rule, 1, 1, 1, 0.16)
+
+    CH.button = makeNavButton("Challenges", function()
+        if ns.OpenChallengeConfig then ns.OpenChallengeConfig() end
     end)
-    castBtn:SetPoint("TOPRIGHT", customBtn, "BOTTOMRIGHT", 0, -4)
+    CH.button:SetPoint("TOPRIGHT", CH.rule, "BOTTOMRIGHT", 0, -10)
+
+    -- One short line under the button, and only while something is happening.
+    -- A permanent "no challenge running" in the corner of the main panel is a
+    -- label for the absence of a thing, which is noise.
+    CH.status = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+    CH.status:SetPoint("TOPRIGHT", CH.button, "BOTTOMRIGHT", 0, -5)
+    CH.status:SetWidth(170)
+    CH.status:SetJustifyH("RIGHT")
+    if CH.status.SetWordWrap then CH.status:SetWordWrap(true) end
 
     -- One switch over everything the addon says in your name: the tongue, the
     -- accent, and the cast phrases with the voice clips that ride on them. It
@@ -1570,40 +1664,10 @@ local function BuildMainPanel()
         db().widget.locked = self:GetChecked() and true or false
     end)
 
-    -- Below everything else and behind a rule of its own, because a challenge
-    -- is not a preference. Everything above this line is a dial you set to
-    -- taste; this is an arrangement you agree to, and putting it in the same
-    -- stack would invite people to half-do it.
-    CH.header = sectionHeader(content, "Challenges", 170)
-    CH.header:SetPoint("TOPLEFT", widgetLockCheck, "BOTTOMLEFT", -40, -22)
-
-    CH.hint = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-    CH.hint:SetPoint("TOPLEFT", CH.header, "BOTTOMLEFT", 0, -8)
-    CH.hint:SetPoint("RIGHT", content, "RIGHT", -180, 0)
-    CH.hint:SetJustifyH("LEFT")
-    CH.hint:SetJustifyV("TOP")
-    if CH.hint.SetWordWrap then CH.hint:SetWordWrap(true) end
-    CH.hint:SetText("A fixed set of settings and a record of how far you got "
-        .. "with them. Starting one wipes the languages on this character and "
-        .. "takes the switches it uses out of your hands until you stop.")
-
-    CH.status = content:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
-    CH.status:SetPoint("TOPLEFT", CH.hint, "BOTTOMLEFT", 0, -8)
-    CH.status:SetPoint("RIGHT", content, "RIGHT", -180, 0)
-    CH.status:SetJustifyH("LEFT")
-
-    -- On the left under its own heading rather than up in the nav column,
-    -- because the column is a list of places to go and tune things and this
-    -- is the one entry that changes what the addon is doing.
-    CH.button = makeNavButton("Challenges", function()
-        if ns.OpenChallengeConfig then ns.OpenChallengeConfig() end
-    end)
-    CH.button:SetPoint("TOPLEFT", CH.status, "BOTTOMLEFT", 0, -10)
-
     -- Last element, so the scroll height can be sized to it exactly. Which one
     -- that is depends on whether the lock row is showing; layoutMainWidgetLock
     -- keeps it current.
-    mainPanel._lastChild = CH.button
+    mainPanel._lastChild = widgetLockCheck
 
     mainPanel.refresh = RefreshMain
     mainPanel:SetScript("OnShow", RefreshMain)
@@ -2736,14 +2800,7 @@ end
 -- needs the same buttons, and two copies of this would drift until the two
 -- panels stopped looking like the same addon.
 local function styleButton(btn, label, w)
-    btn:SetSize(w or 110, 24)
-    local bg = btn:CreateTexture(nil, "BACKGROUND"); bg:SetAllPoints()
-    Compat.SolidTexture(bg, 0.18, 0.16, 0.24, 1)
-    Compat.AddBorder(btn, 0.5, 0.45, 0.7, 0.9)
-    local t = btn:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    t:SetPoint("CENTER", 0, 0); t:SetText(label)
-    local hl = btn:CreateTexture(nil, "HIGHLIGHT"); hl:SetAllPoints()
-    Compat.SolidTexture(hl, 1, 1, 1, 0.12)
+    Compat.PanelButton(btn, label, w or 110, 24)
 end
 
 local function BuildCustomPanel()
@@ -4042,28 +4099,22 @@ local function RefreshChallenge()
 
     CH.panelStatus:SetText(CH.statusText())
 
-    -- The difficulty rows double as the picker before a run and as the
-    -- record of which one you took during it, so they are never hidden --
-    -- only frozen. A panel that swapped its contents at the start would hide
-    -- the one thing you most want to reread at level 30.
-    for _, row in ipairs(CH.tiers) do
-        local chosen = record and (record.difficulty == row.def.label)
-        if record then
-            row.check:Disable()
-            row.check:SetChecked(chosen)
-        else
-            row.check:Enable()
-            row.check:SetChecked(CH.picked == row.def.id)
-        end
-        local label = rawget(row.check, "labelText")
-        if label then
-            if record and not chosen then
-                label:SetTextColor(0.45, 0.45, 0.45)
-            else
-                label:SetTextColor(1, 1, 1)
-            end
-        end
-        row.hint:SetTextColor(0.5, 0.5, 0.5)
+    -- The picker doubles as the record of which tier you took, so it is never
+    -- hidden during a run -- only frozen. A panel that swapped its contents
+    -- at the start would hide the one thing you most want to reread at level
+    -- 30.
+    local shown = record and C.Current() and C.Current().difficulty or CH.picked
+    local tierDef = C.Difficulty(C.DEFAULT, shown)
+    if CH.tierDrop then
+        CH.tierDrop:SetSelected(shown, tierDef and tierDef.label or shown)
+        CH.setLocked(CH.tierDrop, record ~= nil)
+        -- The dropdown has no label of its own, so the frozen state has to be
+        -- said on the thing that does show text.
+        CH.tierDrop.label:SetTextColor(record and 0.6 or 1, record and 0.6 or 1,
+            record and 0.6 or 1)
+    end
+    if CH.tierBlurb then
+        CH.tierBlurb:SetText((tierDef and tierDef.blurb) or "")
     end
 
     -- Requirements, each with its own tick or cross, so somebody refused
@@ -4086,6 +4137,15 @@ local function RefreshChallenge()
     CH.abandonBtn:SetShown(record ~= nil)
     CH.reqHeader:SetShown(record == nil)
     for _, line in ipairs(CH.reqs) do line:SetShown(record == nil) end
+
+    -- Greyed rather than live-and-complaining. A button you can press that
+    -- answers with an error is a button that lied about being pressable, and
+    -- the crossed-out line above it has already given the reason.
+    if C.CanStart(C.DEFAULT) then
+        CH.startBtn:Enable()
+    else
+        CH.startBtn:Disable()
+    end
 
     -- The score. Blank space while there is nothing to say rather than a row
     -- of zeroes, which reads as a broken panel.
@@ -4159,32 +4219,38 @@ local function BuildChallengePanel()
     if blurb.SetWordWrap then blurb:SetWordWrap(true) end
     blurb:SetText((def and def.blurb) or "")
 
-    -- The tiers. Checkboxes rather than a dropdown because all three have to
-    -- be readable at once: the choice is between three descriptions, and a
-    -- dropdown shows you one at a time.
-    CH.tiers = {}
-    local anchor = blurb
-    for _, id in ipairs((def and def.order) or {}) do
-        local tierDef = def.difficulties[id]
-        local check = Compat.CreateCheckbox(panel, tierDef.label)
-        check:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -10)
-        check:SetScript("OnClick", function()
-            CH.picked = id
+    -- One dropdown and one description, rather than a checkbox and a
+    -- paragraph per tier. Three stacked blurbs is three paragraphs of small
+    -- grey text to read before the single decision they inform, and the two
+    -- you did not pick stay on screen afterwards saying nothing.
+    local tierLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    tierLabel:SetPoint("TOPLEFT", blurb, "BOTTOMLEFT", 0, -14)
+    tierLabel:SetText("Difficulty")
+
+    CH.tierDrop = Compat.CreateDropdown(panel, 200)
+    CH.tierDrop:SetPoint("TOPLEFT", tierLabel, "BOTTOMLEFT", 0, -6)
+    do
+        local items = {}
+        for _, id in ipairs((def and def.order) or {}) do
+            items[#items + 1] = { value = id, text = def.difficulties[id].label }
+        end
+        CH.tierDrop:SetItems(items)
+        CH.tierDrop.onSelect = function(value)
+            CH.picked = value
             RefreshChallenge()
-        end)
-        local hint = panel:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-        hint:SetPoint("TOPLEFT", check, "BOTTOMLEFT", 24, -1)
-        hint:SetPoint("RIGHT", panel, "RIGHT", -32, 0)
-        hint:SetJustifyH("LEFT")
-        hint:SetJustifyV("TOP")
-        if hint.SetWordWrap then hint:SetWordWrap(true) end
-        hint:SetText(tierDef.blurb)
-        CH.tiers[#CH.tiers + 1] = { def = tierDef, check = check, hint = hint }
-        anchor = hint
+        end
     end
 
+    CH.tierBlurb = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    CH.tierBlurb:SetPoint("TOPLEFT", CH.tierDrop, "BOTTOMLEFT", 2, -8)
+    CH.tierBlurb:SetPoint("RIGHT", panel, "RIGHT", -32, 0)
+    CH.tierBlurb:SetJustifyH("LEFT")
+    CH.tierBlurb:SetJustifyV("TOP")
+    CH.tierBlurb:SetHeight(32)
+    if CH.tierBlurb.SetWordWrap then CH.tierBlurb:SetWordWrap(true) end
+
     CH.reqHeader = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    CH.reqHeader:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", -24, -16)
+    CH.reqHeader:SetPoint("TOPLEFT", CH.tierBlurb, "BOTTOMLEFT", -2, -16)
     CH.reqHeader:SetText("Before you can start")
     CH.reqHeader:SetTextColor(1, 0.82, 0.2)
 

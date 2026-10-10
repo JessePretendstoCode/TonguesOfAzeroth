@@ -931,6 +931,141 @@ local function longestEntries(items, total)
     return n
 end
 
+--=========================================================================--
+--  Buttons that look like the game's buttons.
+--=========================================================================--
+-- The addon's own buttons were a flat purple rectangle with a 1px edge, which
+-- read as a placeholder sitting on top of WoW rather than as part of it, and
+-- gave no visual answer to "is this thing clickable".
+--
+-- Drawn from the client's own art rather than through UIPanelButtonTemplate.
+-- The template has been rebuilt more than once across the flavours we ship
+-- to -- it is a nine-slice on retail and three loose textures on Classic Era,
+-- with different child names -- and inheriting it would make the button look
+-- right on one client and raise an error on another. The *textures* have been
+-- in the same place since vanilla and are the part that actually carries the
+-- look, so those are what we use.
+--
+-- Three pieces rather than one stretched sheet: the caps carry the rivets and
+-- the bevel, and stretching an 80px plate out to 170 smears both.
+local BUTTON_ART = {
+    normal   = "Interface\\Buttons\\UI-Panel-Button-Up",
+    pushed   = "Interface\\Buttons\\UI-Panel-Button-Down",
+    disabled = "Interface\\Buttons\\UI-Panel-Button-Disabled",
+}
+-- The sheet is 128x32 and the plate occupies its top-left 80x22, so the right
+-- edge of every slice is a fraction of 128 and the bottom is 22/32.
+local BUTTON_CAP, BUTTON_V = 12, 0.6875
+local BUTTON_SLICES = {
+    { point = "LEFT",  l = 0,       r = 0.09375 },
+    { point = "RIGHT", l = 0.53125, r = 0.625   },
+    { point = nil,     l = 0.09375, r = 0.53125 },   -- middle, stretched
+}
+
+-- Dress an existing Button so it looks like one of the game's. Returns the
+-- button for chaining.
+function Compat.PanelButton(btn, label, width, height, font)
+    btn:SetSize(width or 110, height or 22)
+
+    local function plate(path, layer)
+        local set = {}
+        for i = 1, #BUTTON_SLICES do
+            local s = BUTTON_SLICES[i]
+            local t = btn:CreateTexture(nil, layer)
+            t:SetTexture(path)
+            if t.SetTexCoord then t:SetTexCoord(s.l, s.r, 0, BUTTON_V) end
+            if s.point then
+                t:SetPoint("TOP" .. s.point)
+                t:SetPoint("BOTTOM" .. s.point)
+                t:SetWidth(BUTTON_CAP)
+            else
+                t:SetPoint("TOPLEFT", BUTTON_CAP, 0)
+                t:SetPoint("BOTTOMRIGHT", -BUTTON_CAP, 0)
+            end
+            set[#set + 1] = t
+        end
+        return set
+    end
+
+    local function show(set, on)
+        for i = 1, #set do
+            if on then set[i]:Show() else set[i]:Hide() end
+        end
+    end
+
+    btn._plates = {
+        normal   = plate(BUTTON_ART.normal,   "BACKGROUND"),
+        pushed   = plate(BUTTON_ART.pushed,   "BACKGROUND"),
+        disabled = plate(BUTTON_ART.disabled, "BACKGROUND"),
+    }
+
+    local hl = plate("Interface\\Buttons\\UI-Panel-Button-Highlight", "HIGHLIGHT")
+    for i = 1, #hl do
+        if hl[i].SetBlendMode then hl[i]:SetBlendMode("ADD") end
+    end
+
+    local text = btn:CreateFontString(nil, "OVERLAY", font or "GameFontNormal")
+    text:SetPoint("CENTER", 0, 0)
+    text:SetText(label or "")
+    btn.text = text
+
+    -- State kept in upvalues rather than on the frame. Fields hung off a
+    -- frame are reachable by anything that can see it, and "is this button
+    -- held down" is nobody's business but this function's.
+    local pressed, tint = false, nil
+
+    -- The text sits a pixel low when the plate is pressed, the way the game's
+    -- does. It is a small thing and it is most of what makes a click feel like
+    -- it landed.
+    local function dress()
+        local enabled = (btn.IsEnabled == nil) or btn:IsEnabled()
+        local down = pressed and enabled
+        show(btn._plates.normal,   enabled and not down)
+        show(btn._plates.pushed,   down)
+        show(btn._plates.disabled, not enabled)
+        text:ClearAllPoints()
+        text:SetPoint("CENTER", down and 1 or 0, down and -1 or 0)
+        if not enabled then
+            text:SetTextColor(0.5, 0.5, 0.5)
+        elseif tint then
+            text:SetTextColor(tint[1], tint[2], tint[3])
+        else
+            text:SetTextColor(1, 0.82, 0)
+        end
+    end
+    btn.Dress = dress
+
+    -- Remembered rather than applied once, because pressing the button
+    -- re-dresses it and a colour written straight onto the font string would
+    -- be gold again the moment somebody clicked. Used by the floating bar,
+    -- where the IC/OOC button's text carries the state.
+    function btn:SetTextColor(r, g, b)
+        tint = r and { r, g, b } or nil
+        dress()
+    end
+
+    -- Wrapped rather than hung off OnEnable/OnDisable, because those only fire
+    -- in game: the test harness calls Disable() on a plain table and would
+    -- never see the art fail to change.
+    local rawEnable, rawDisable = btn.Enable, btn.Disable
+    if rawEnable then
+        function btn:Enable() rawEnable(self); dress() end
+    end
+    if rawDisable then
+        function btn:Disable() rawDisable(self); dress() end
+    end
+
+    btn:SetScript("OnMouseDown", function() pressed = true;  dress() end)
+    btn:SetScript("OnMouseUp",   function() pressed = false; dress() end)
+    btn:SetScript("OnHide",      function() pressed = false; dress() end)
+
+    function btn:SetText(t) text:SetText(t) end
+    function btn:GetText() return text:GetText() end
+
+    dress()
+    return btn
+end
+
 function Compat.CreateDropdown(parent, width)
     local dd = CreateFrame("Button", nil, parent)
     dd:SetSize(width or 200, 26)
