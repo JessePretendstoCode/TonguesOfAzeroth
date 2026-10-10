@@ -70,6 +70,18 @@ in character when you want to be heard in it.
   at a rectangle.
   `/glyphic toast next` steps through them and shows you each one on screen as it
   goes.
+- Challenges, in their own section at the foot of the main panel. The first is
+  **Stranger**: start on a character at level 10 or below, lose every language you have
+  learned, and level up understanding nobody. The three difficulties change what you can
+  read, not how fast you learn -- *Easy* hides the prose but leaves your objectives
+  readable, *Medium* takes the tracker and quest log with it, *Hard* takes the replies
+  you click to answer an NPC too. Words land in whatever tongue each quest was given in,
+  so a run ends as a travel history rather than one bar: fluent in Orcish,
+  conversational in Taur-ahe, a smattering of Zandali. The settings a challenge publishes
+  go grey for the length of it, and Glyphic checks them on every login -- a run that
+  moved one is marked *Voided at level 23* and keeps going with that on its record.
+  Abandoning puts every setting back and keeps the fluency you earned. `/glyphic
+  challenge` prints the record.
 - A strength slider, 0 to 100, for how much of your text is translated. `0` leaves your
   text alone and lets accents through, `100` translates it completely. In between, words
   convert deterministically, one by one, as you raise the level.
@@ -247,6 +259,8 @@ All of them appear in the config dropdown and in `/toa list`.
 | `/toa names color`          | Color protected names in your chat window               |
 | `/toa names clear`          | Forget every remembered name and rebuild from your group |
 | `/toa game`                 | Open the "Decipher" language trainer minigame           |
+| `/toa challenge`            | Your challenge record: tier, levels, quests, tongues    |
+| `/toa challenge abandon`    | End the run, restore your settings, keep the fluency    |
 | `/toa minimap`              | Show / hide the minimap button                          |
 | `/toa cast`                 | Open the Cast Phrases panel                             |
 | `/toa cast on` / `off`      | Toggle speaking when you cast                           |
@@ -293,6 +307,34 @@ Each panel answers one question, which is how to guess where a setting lives:
   of what you're speaking and whether you're in character.
 - Everything else is a button through to the panel that owns it, so settings live where the
   thing they configure lives.
+- Challenges, at the foot of the panel behind a rule of its own, because a challenge is
+  not a preference: everything above that line is a dial you set to taste, and this is an
+  arrangement you agree to. The line says whether one is running and how it is going; the
+  button opens the panel below.
+
+### Challenges
+
+- **Stranger** is the one that ships. You arrive understanding nobody, and the only way
+  out is to work for the people who speak the tongue. Starting needs a character at level
+  10 or below with no challenge already running; it wipes every language you have learned,
+  and the run belongs to that character alone. The panel lists those with a tick or a
+  cross beside each, so a refusal tells you which rule refused it.
+- The difficulty changes what you can read, not how fast you learn. *Easy* hides quest
+  text, gossip and NPC speech but leaves your objectives readable, so you always know what
+  to do and never why. *Medium* takes the objective tracker and quest log with it. *Hard*
+  takes the replies you click to answer an NPC as well.
+- While a run is live, the settings it published go grey, along with the fluency slider
+  and the two learning toggles on the trainer. Cosmetics stay live -- nobody ever made a
+  run easier by picking a different toast -- and importing a profile is refused, since it
+  would replace the record along with everything else.
+- It is an honour system with a tripwire. Saved variables are a text file on your disk,
+  so rather than pretend otherwise Glyphic re-checks the locked settings on every login
+  and whenever anything changes. A run that moved one is marked *Voided at level 23: the
+  gossip list was changed* and carries on with that on its record. Voided runs stay
+  locked; abandoning is the way out and gives everything back at once.
+- Abandoning restores every setting to what it was, including the ones that had never
+  been set, and keeps the fluency you earned. The finished record is kept and shown under
+  the next one.
 
 ### Languages & Fluency tab
 
@@ -324,7 +366,7 @@ Each panel answers one question, which is how to guess where a setting lives:
   both switches above it are on. Everything else immersion touches is text the client
   would have garbled on its own; a quest window carries no language at all, so this is the
   one place Glyphic hides something the game never hid. It covers quest offers, gossip
-  windows, your journal and the objective tracker. The tongue is the speaker's, and it's
+  windows and your journal. The tongue is the speaker's, and it's
   remembered per quest so your journal keeps reading in the tongue of whoever gave it to
   you. Working out which tongue takes guesswork, because the game does not tell addons an
   NPC's race -- race belongs to player characters, and a quest giver is a creature with a
@@ -346,6 +388,13 @@ Each panel answers one question, which is how to guess where a setting lives:
   touched -- you can still accept a quest you can't read -- and quest log titles stay
   readable so you can still manage your log. It works with replacement quest frames,
   because it changes the text the game hands out rather than the frames that draw it.
+- Two surfaces under that one have switches of their own, because they are the parts you
+  operate the game with rather than parts of the story. *Include the objective tracker
+  and quest log checklist* is on, since the quest checkbox always named it. *Include the
+  replies you click to answer an NPC* is off: nothing ever named that one, and garbling
+  it meant a character with immersion on could not find *I wish to train* in a trainer's
+  menu. Both are available to anyone who wants them, and the Hard tier of a challenge
+  turns the second on for you.
 - Set each language's chat color from the swatch on its row: click to pick, right-click
   to restore the default. Sub-dialects follow their parent (recoloring Zandali recolors
   Amani, Gurubashi and Drakkari with it); give one its own color with

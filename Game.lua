@@ -343,12 +343,26 @@ function updateStats()
             langName(), r.name, math.floor(frac * 100 + 0.5), learned))
     end
 
-    if passiveCheck then
-        passiveCheck:SetChecked(GlyphicDB and GlyphicDB.passiveLearning ~= false)
+    -- Both are part of the arrangement a challenge publishes, so they go grey
+    -- for the length of one. Quest learning especially: a run with it off is
+    -- not harder, it is unwinnable, since quests are the only way out of the
+    -- fog for somebody playing alone.
+    local learningLocked = (ns.Challenge and ns.Challenge.IsLocked("questLearning"))
+        and true or false
+    local function dress(check, checked)
+        if not check then return end
+        check:SetChecked(checked)
+        local label = rawget(check, "labelText")
+        if learningLocked then
+            check:Disable()
+            if label then label:SetTextColor(0.5, 0.5, 0.5) end
+        else
+            check:Enable()
+            if label then label:SetTextColor(1, 1, 1) end
+        end
     end
-    if questCheck then
-        questCheck:SetChecked(GlyphicDB and GlyphicDB.questLearning ~= false)
-    end
+    dress(passiveCheck, GlyphicDB and GlyphicDB.passiveLearning ~= false)
+    dress(questCheck, GlyphicDB and GlyphicDB.questLearning ~= false)
 
     -- Live-update the Languages panel's fluency bars if it's open too.
     if ns.RefreshLearnedIfShown then ns.RefreshLearnedIfShown() end

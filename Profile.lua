@@ -326,6 +326,12 @@ function Profile.Apply(parsed)
     if type(parsed) ~= "table" or type(parsed.db) ~= "table" then
         return false, "nothing to apply"
     end
+    -- Refused outright rather than audited afterwards, because this replaces
+    -- the whole table -- the run's own record included. There would be
+    -- nothing left to compare against and nothing left to mark.
+    if ns.Challenge and ns.Challenge.IsLocked("profile") then
+        return false, "a challenge is running on this character; abandon it first"
+    end
 
     if type(_G.GlyphicDB) ~= "table" then _G.GlyphicDB = {} end
     replaceInPlace(_G.GlyphicDB, parsed.db)

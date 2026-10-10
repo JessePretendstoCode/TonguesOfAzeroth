@@ -58,6 +58,11 @@ local langDropdown, motherDropdown, enableCheck, previewInput, previewOutput
 local voiceText, voiceHint
 local minimapCheck, fluencyCheck, autoDisableCheck
 local immersionCheck, immersionNPCCheck, immersionQuestCheck
+-- Lua 5.1 allows a chunk 200 locals and this file sits on the ceiling, so
+-- everything the challenge work needs -- two checkboxes, a note, the panel
+-- and its widgets, and the two greying helpers -- shares one table instead of
+-- taking a name each.
+local CH = {}
 local namesCheck, nameColorCheck
 local widgetCheck, widgetLockCheck
 local accentDropdown, accentSlider, accentValueText
@@ -160,6 +165,14 @@ local function db()
     if GlyphicDB.accent.strength == nil then GlyphicDB.accent.strength = 100 end
     if GlyphicDB.accent.emotes == nil then GlyphicDB.accent.emotes = false end
     if GlyphicDB.autoDisableInInstances == nil then GlyphicDB.autoDisableInInstances = true end
+    -- Mirrors Core's defaults. Both only mean anything while the three
+    -- immersion switches above them are on, but a checkbox has to show
+    -- something the first time the panel opens, and nil would draw the
+    -- tracker as off when it is on.
+    if GlyphicDB.immersionTracker == nil then GlyphicDB.immersionTracker = true end
+    if GlyphicDB.immersionGossipOptions == nil then
+        GlyphicDB.immersionGossipOptions = false
+    end
     -- Mirrors Core's migration: a profile that never picked an accent has none,
     -- rather than silently arriving with Dwarven selected.
     if GlyphicDB.accent.id == nil then
@@ -451,15 +464,73 @@ local function sectionHeader(parent, text, rightInset)
     return label
 end
 
+--=========================================================================--
+--  Locked controls
+--=========================================================================--
+-- A challenge takes a handful of settings out of the player's hands for the
+-- length of a run. This is how that looks: greyed and unclickable, the same
+-- way the name-colour checkbox goes when the setting it depends on is off.
+--
+-- This is the showing, not the stopping. Everything that writes fluency is
+-- refused in Core whether or not a panel is open, and the audit catches a key
+-- that moves anyway. What greying buys is that nobody clicks a thing twice
+-- wondering why it did nothing.
+function CH.setLocked(widget, locked)
+    if not widget then return end
+    -- rawget, because a dropdown has no label of this name and a frame's
+    -- metatable will happily answer for one.
+    local label = rawget(widget, "labelText")
+    if locked then
+        if widget.Disable then widget:Disable() end
+        if label then label:SetTextColor(0.5, 0.5, 0.5) end
+    else
+        if widget.Enable then widget:Enable() end
+        if label then label:SetTextColor(1, 1, 1) end
+    end
+end
+
+function CH.lockedBy(key)
+    return (ns.Challenge and ns.Challenge.IsLocked(key)) and true or false
+end
+
+-- One line, shown on the main panel and at the top of the Challenges panel,
+-- so the two cannot disagree about whether you are in the middle of a run.
+function CH.statusText()
+    local C = ns.Challenge
+    if not C then return "" end
+    local record = C.Record()
+    if not record then
+        local last = C.LastRecord()
+        if last then
+            return "|cff808080Last run: " .. last.name .. " on "
+                .. tostring(last.difficulty) .. ", reached level "
+                .. tostring(last.level or "?") .. ".|r"
+        end
+        return "|cff808080No challenge running.|r"
+    end
+    local line = "|cffffd200" .. record.name .. "|r on |cffffff00"
+        .. tostring(record.difficulty) .. "|r -- level "
+        .. tostring(record.level or "?") .. ", " .. record.quests .. " quest"
+        .. (record.quests == 1 and "" or "s") .. "."
+    if record.broken then
+        line = line .. "  |cffff4040" .. (C.BrokenText() or "Voided.") .. "|r"
+    end
+    return line
+end
+
 -- The lock row only means anything while the bar is shown, so it comes and
--- goes. It is the last control on the panel, so nothing needs re-anchoring
--- underneath it -- only the scroll height has to follow, which RefreshMain
--- reads off `_lastChild`.
+-- goes. The Challenges block below it is anchored to the row rather than to
+-- whichever control is currently last, so hiding the row leaves a gap rather
+-- than shuffling the section -- which is the cheaper of the two wrongs, and
+-- the one that cannot put a heading through a checkbox.
 local function layoutMainWidgetLock()
     if not (mainPanel and widgetCheck) then return end
     local d = db()
     local barOn = d.widget and d.widget.enabled and true or false
-    mainPanel._lastChild = (barOn and widgetLockCheck) or widgetCheck
+    if widgetLockCheck then widgetLockCheck:SetShown(barOn) end
+    -- The scroll height follows the real bottom of the panel, which is now
+    -- always the Challenges button.
+    mainPanel._lastChild = CH.button or (barOn and widgetLockCheck) or widgetCheck
 end
 
 local function RefreshMain()
@@ -473,6 +544,13 @@ local function RefreshMain()
     end
     layoutMainWidgetLock()
     enableCheck:SetChecked(d.inCharacter)
+
+    if CH.status then
+        CH.status:SetText(CH.statusText())
+    end
+    if CH.button then
+        CH.button:SetShown(ns.Challenge ~= nil)
+    end
 
     -- Size the scroll child to the actual bottom of the last element (accounts
     -- for the floating-bar lock row appearing/disappearing). Falls back to the
@@ -675,11 +753,18 @@ local function RefreshLearned()
         end
 
         -- The handle tracks the value whether or not the fill is drawn, so a
-        -- language at 0% still shows something to grab.
+        -- language at 0% still shows something to grab. Hidden outright
+        -- during a challenge: the drag is already refused in Core, and a
+        -- handle that moves and springs back reads as a bug rather than a
+        -- rule.
+        local fluencyLocked = CH.lockedBy("fluency")
         if bar and bar.thumbEdge then
             bar.thumbEdge:ClearAllPoints()
             bar.thumbEdge:SetPoint("CENTER", bar, "LEFT", bar.barW * (frac or 0), 0)
+            bar.thumbEdge:SetShown(not fluencyLocked)
+            if bar.thumb then bar.thumb:SetShown(not fluencyLocked) end
         end
+        if rowRef.resetBtn then rowRef.resetBtn:SetAlpha(fluencyLocked and 0.35 or 1) end
 
         -- Light up the "make fluent" check when you already fully know it.
         local isFluent = (d.learned[langId] or (frac and frac >= 1)) and true or false
@@ -689,6 +774,7 @@ local function RefreshLearned()
             else
                 rowRef.fluentBtn.icon:SetVertexColor(0.55, 0.55, 0.55, 0.9)
             end
+            rowRef.fluentBtn:SetAlpha(CH.lockedBy("learned") and 0.35 or 1)
         end
 
         local star = learnedStars[langId]
@@ -707,6 +793,27 @@ local function RefreshLearned()
     if immersionCheck then immersionCheck:SetChecked(d.fullImmersion and true or false) end
     if immersionNPCCheck then immersionNPCCheck:SetChecked(d.immersionNPCs and true or false) end
     if immersionQuestCheck then immersionQuestCheck:SetChecked(d.immersionQuests and true or false) end
+    if CH.trackerCheck then
+        CH.trackerCheck:SetChecked(d.immersionTracker and true or false)
+    end
+    if CH.optionsCheck then
+        CH.optionsCheck:SetChecked(d.immersionGossipOptions and true or false)
+    end
+
+    -- The five switches a challenge publishes. Nothing here is enforcement --
+    -- the audit is -- but a run whose settings you can still click is a run
+    -- that looks optional.
+    CH.setLocked(immersionCheck,      CH.lockedBy("fullImmersion"))
+    CH.setLocked(immersionNPCCheck,   CH.lockedBy("immersionNPCs"))
+    CH.setLocked(immersionQuestCheck, CH.lockedBy("immersionQuests"))
+    CH.setLocked(CH.trackerCheck,     CH.lockedBy("immersionTracker"))
+    CH.setLocked(CH.optionsCheck,     CH.lockedBy("immersionGossipOptions"))
+    if CH.lockNote then
+        local reason = ns.Challenge and ns.Challenge.LockReason()
+        CH.lockNote:SetText(reason or "")
+        CH.lockNote:SetShown(reason ~= nil)
+    end
+
     if langDropdown then
         langDropdown:SetSelected(d.language, Language.GetLanguageName(d.language))
     end
@@ -714,6 +821,13 @@ local function RefreshLearned()
         local m = d.motherTongue
         motherDropdown:SetSelected(m or "",
             m and Language.GetLanguageName(m) or "None")
+        -- The fallback tongue decides what an unknown word turns into, so it
+        -- is a difficulty setting wearing a preference's clothes. The
+        -- dropdown is a Button underneath, so disabling it stops the menu
+        -- opening rather than only dimming it.
+        local motherLocked = CH.lockedBy("motherTongue")
+        CH.setLocked(motherDropdown, motherLocked)
+        motherDropdown:SetAlpha(motherLocked and 0.4 or 1)
     end
     RefreshVoice()
     -- Again at the end, not only inside the reflow: the preview line above the
@@ -1456,10 +1570,40 @@ local function BuildMainPanel()
         db().widget.locked = self:GetChecked() and true or false
     end)
 
+    -- Below everything else and behind a rule of its own, because a challenge
+    -- is not a preference. Everything above this line is a dial you set to
+    -- taste; this is an arrangement you agree to, and putting it in the same
+    -- stack would invite people to half-do it.
+    CH.header = sectionHeader(content, "Challenges", 170)
+    CH.header:SetPoint("TOPLEFT", widgetLockCheck, "BOTTOMLEFT", -40, -22)
+
+    CH.hint = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+    CH.hint:SetPoint("TOPLEFT", CH.header, "BOTTOMLEFT", 0, -8)
+    CH.hint:SetPoint("RIGHT", content, "RIGHT", -180, 0)
+    CH.hint:SetJustifyH("LEFT")
+    CH.hint:SetJustifyV("TOP")
+    if CH.hint.SetWordWrap then CH.hint:SetWordWrap(true) end
+    CH.hint:SetText("A fixed set of settings and a record of how far you got "
+        .. "with them. Starting one wipes the languages on this character and "
+        .. "takes the switches it uses out of your hands until you stop.")
+
+    CH.status = content:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
+    CH.status:SetPoint("TOPLEFT", CH.hint, "BOTTOMLEFT", 0, -8)
+    CH.status:SetPoint("RIGHT", content, "RIGHT", -180, 0)
+    CH.status:SetJustifyH("LEFT")
+
+    -- On the left under its own heading rather than up in the nav column,
+    -- because the column is a list of places to go and tune things and this
+    -- is the one entry that changes what the addon is doing.
+    CH.button = makeNavButton("Challenges", function()
+        if ns.OpenChallengeConfig then ns.OpenChallengeConfig() end
+    end)
+    CH.button:SetPoint("TOPLEFT", CH.status, "BOTTOMLEFT", 0, -10)
+
     -- Last element, so the scroll height can be sized to it exactly. Which one
     -- that is depends on whether the lock row is showing; layoutMainWidgetLock
     -- keeps it current.
-    mainPanel._lastChild = widgetLockCheck
+    mainPanel._lastChild = CH.button
 
     mainPanel.refresh = RefreshMain
     mainPanel:SetScript("OnShow", RefreshMain)
@@ -1883,13 +2027,52 @@ local function BuildLearnedPanel()
     immersionQuestHint:SetPoint("RIGHT", content, "RIGHT", -28, 0)
     immersionQuestHint:SetJustifyH("LEFT")
     immersionQuestHint:SetJustifyV("TOP")
-    immersionQuestHint:SetText("Quest offers, gossip windows, your journal and the "
-        .. "objective tracker. You can still accept a quest you can't read -- the "
+    immersionQuestHint:SetText("Quest offers, gossip windows and your journal. "
+        .. "You can still accept a quest you can't read -- the "
         .. "buttons are yours, not theirs -- and your quest log keeps its titles "
         .. "so you can still tell one job from another. Quests you already had "
         .. "fall back to your own faction's tongue, since nothing can tell Glyphic "
         .. "who gave you one after the fact -- hand one in and the real tongue is "
         .. "recorded. Needs |cffffd200Include all NPC text and speech|r above.")
+
+    -- The last two, nested under the quest switch and separate from it,
+    -- because they are not prose. Everything above is a story you can be shut
+    -- out of and lose nothing but the story; these two are what you operate
+    -- the game with, and hiding them stops being flavour and starts being a
+    -- difficulty setting. Something that changes how hard the game is to play
+    -- should be something you went and asked for.
+    CH.trackerCheck = Compat.CreateCheckbox(content,
+        "Include the objective tracker and quest log checklist")
+    CH.trackerCheck:SetPoint("TOPLEFT", immersionQuestHint, "BOTTOMLEFT", 10, -6)
+    CH.trackerCheck:SetScript("OnClick", function(self)
+        db().immersionTracker = self:GetChecked() and true or false
+        if ns.QuestText then ns.QuestText.Refresh() end
+    end)
+
+    CH.optionsCheck = Compat.CreateCheckbox(content,
+        "Include the replies you click to answer an NPC")
+    CH.optionsCheck:SetPoint("TOPLEFT", CH.trackerCheck, "BOTTOMLEFT", 0, -4)
+    CH.optionsCheck:SetScript("OnClick", function(self)
+        db().immersionGossipOptions = self:GetChecked() and true or false
+        if ns.QuestText then ns.QuestText.Refresh() end
+    end)
+
+    local immersionOptionsHint = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+    immersionOptionsHint:SetPoint("TOPLEFT", CH.optionsCheck, "BOTTOMLEFT", 6, -2)
+    immersionOptionsHint:SetPoint("RIGHT", content, "RIGHT", -28, 0)
+    immersionOptionsHint:SetJustifyH("LEFT")
+    immersionOptionsHint:SetJustifyV("TOP")
+    immersionOptionsHint:SetText("Off, and deliberately: it hides "
+        .. "|cffffd200I wish to train|r along with everything else, so you are "
+        .. "navigating menus by shape. Bracing if you want it, and a trap if "
+        .. "it arrives without being asked for.")
+
+    CH.lockNote = content:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
+    CH.lockNote:SetPoint("TOPLEFT", immersionOptionsHint, "BOTTOMLEFT", -6, -6)
+    CH.lockNote:SetPoint("RIGHT", content, "RIGHT", -28, 0)
+    CH.lockNote:SetJustifyH("LEFT")
+    CH.lockNote:SetTextColor(1, 0.82, 0.2)
+    CH.lockNote:Hide()
 
     -- What everything above and below adds up to. Every dial that shapes your
     -- voice is on this panel now, so the readout and the preview are too: pick
@@ -1902,7 +2085,7 @@ local function BuildLearnedPanel()
     -- The summary shares the header's line rather than taking another, so the
     -- block costs the language list as little height as possible.
     local voiceLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    voiceLabel:SetPoint("TOPLEFT", immersionQuestHint, "BOTTOMLEFT", -22, -16)
+    voiceLabel:SetPoint("TOPLEFT", immersionOptionsHint, "BOTTOMLEFT", -22, -16)
     voiceLabel:SetText("Your voice")
     voiceLabel:SetTextColor(1, 0.82, 0.2)
 
@@ -2268,7 +2451,10 @@ local function BuildLearnedPanel()
             GameTooltip:Hide()
         end)
 
-        learnedRows[entry.id] = { name = name, bar = bar, fluentBtn = fluentBtn, row = rowF }
+        learnedRows[entry.id] = {
+            name = name, bar = bar, fluentBtn = fluentBtn,
+            resetBtn = resetBtn, row = rowF,
+        }
     end
 
     -- syncLearnedRows owns learnedOrder, so it does the first pass too.
@@ -3813,6 +3999,259 @@ function ns.ShowProfileCode()
     end
 end
 
+--=========================================================================--
+--  Challenges -- a published arrangement, and how far you got with it
+--=========================================================================--
+-- Everything else in the options is a preference. This is the opposite: a
+-- fixed configuration you agree to, so that two people who say they did the
+-- same thing actually did. The panel's whole job is to make the bargain
+-- legible before it is struck -- what gets hidden, what gets wiped, what
+-- stops being yours to change -- and then to keep score.
+
+-- Shared by the panel's Abandon button and /glyphic challenge abandon, so the
+-- warning cannot drift between the two routes.
+function ns.ConfirmChallengeAbandon()
+    local C = ns.Challenge
+    local record = C and C.Record()
+    if not record then return end
+    Compat.ShowConfirm({
+        text = "Abandon |cffffd200" .. record.name .. "|r at level "
+            .. tostring(record.level or "?") .. "?\n\n"
+            .. "Your settings go back to what they were before the run, and "
+            .. "you |cff80ff80keep every word you learned|r -- you did learn "
+            .. "them.\n\nThe run itself is over and cannot be resumed.",
+        acceptText = "Abandon",
+        cancelText = "Keep going",
+        onAccept = function()
+            C.Abandon()
+            ns.Print("Challenge abandoned. Your settings are back as they were.")
+            if ns.OnSettingsChanged then ns.OnSettingsChanged() end
+        end,
+    })
+end
+
+local function RefreshChallenge()
+    if not CH.panel then return end
+    local C = ns.Challenge
+    if not C then return end
+    -- Audited on the way in, which is also what keeps the level current:
+    -- there is no event for "you dinged" worth registering for one number,
+    -- and anyone reading their record has just opened the panel.
+    C.Audit()
+    local record = C.Record()
+
+    CH.panelStatus:SetText(CH.statusText())
+
+    -- The difficulty rows double as the picker before a run and as the
+    -- record of which one you took during it, so they are never hidden --
+    -- only frozen. A panel that swapped its contents at the start would hide
+    -- the one thing you most want to reread at level 30.
+    for _, row in ipairs(CH.tiers) do
+        local chosen = record and (record.difficulty == row.def.label)
+        if record then
+            row.check:Disable()
+            row.check:SetChecked(chosen)
+        else
+            row.check:Enable()
+            row.check:SetChecked(CH.picked == row.def.id)
+        end
+        local label = rawget(row.check, "labelText")
+        if label then
+            if record and not chosen then
+                label:SetTextColor(0.45, 0.45, 0.45)
+            else
+                label:SetTextColor(1, 1, 1)
+            end
+        end
+        row.hint:SetTextColor(0.5, 0.5, 0.5)
+    end
+
+    -- Requirements, each with its own tick or cross, so somebody refused
+    -- entry can see which line refused them.
+    for i, line in ipairs(CH.reqs) do
+        local req = C.Requirements(C.DEFAULT)[i]
+        if not req then
+            line:SetText("")
+        elseif req.note then
+            line:SetText("|cff808080-  " .. req.text .. "|r")
+        elseif req.met then
+            line:SetText("|cff55ff55OK|r  " .. req.text)
+        else
+            line:SetText("|cffff5555X|r  " .. req.text
+                .. (req.detail and (" |cff808080(" .. req.detail .. ")|r") or ""))
+        end
+    end
+
+    CH.startBtn:SetShown(record == nil)
+    CH.abandonBtn:SetShown(record ~= nil)
+    CH.reqHeader:SetShown(record == nil)
+    for _, line in ipairs(CH.reqs) do line:SetShown(record == nil) end
+
+    -- The score. Blank space while there is nothing to say rather than a row
+    -- of zeroes, which reads as a broken panel.
+    if record then
+        local lines = {
+            "Started " .. ((record.startedAt ~= "" and record.startedAt) or "recently")
+                .. " at level " .. tostring(record.startLevel or "?"),
+            "Now level |cffffff00" .. tostring(record.level or "?") .. "|r after |cffffff00"
+                .. record.quests .. "|r quest" .. (record.quests == 1 and "" or "s"),
+        }
+        if #record.tongues == 0 then
+            lines[#lines + 1] = "|cff808080No tongue has taught you anything yet.|r"
+        else
+            local parts = {}
+            for i = 1, #record.tongues do
+                parts[#parts + 1] = record.tongues[i].name .. " |cffffff00"
+                    .. record.tongues[i].percent .. "%|r"
+            end
+            lines[#lines + 1] = table.concat(parts, "   ")
+        end
+        if record.broken then
+            lines[#lines + 1] = "|cffff4040" .. (C.BrokenText() or "") .. "|r"
+        end
+        CH.recordHeader:Show()
+        CH.recordText:SetText(table.concat(lines, "\n"))
+    else
+        CH.recordHeader:Hide()
+        CH.recordText:SetText("")
+    end
+end
+
+local function BuildChallengePanel()
+    CH.panel = Compat.CreateOptionsPanel("TonguesOfAzerothChallengeOptions")
+    CH.panel.name = "Challenges"
+    CH.panel.parent = mainPanel.name
+    local panel = CH.panel
+    local C = ns.Challenge
+    local def = C and C.Definition(C.DEFAULT)
+    CH.picked = (C and C.DEFAULT_DIFFICULTY) or "medium"
+
+    local title = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+    title:SetPoint("TOPLEFT", 16, -16)
+    title:SetText("Challenges")
+
+    local subtitle = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -8)
+    subtitle:SetPoint("RIGHT", panel, "RIGHT", -32, 0)
+    subtitle:SetJustifyH("LEFT")
+    if subtitle.SetWordWrap then subtitle:SetWordWrap(true) end
+    subtitle:SetText("A fixed arrangement of settings, agreed to rather than "
+        .. "tuned. While one is running the switches it uses stop being yours "
+        .. "to change, so that two people who say they did this did the same "
+        .. "thing. Nothing here is needed to use immersion normally -- the "
+        .. "ordinary switches are on |cffffd200Languages & Fluency|r and work "
+        .. "on their own.")
+
+    CH.panelStatus = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
+    CH.panelStatus:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -14)
+    CH.panelStatus:SetPoint("RIGHT", panel, "RIGHT", -32, 0)
+    CH.panelStatus:SetJustifyH("LEFT")
+
+    local nameLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    nameLabel:SetPoint("TOPLEFT", CH.panelStatus, "BOTTOMLEFT", 0, -18)
+    nameLabel:SetText((def and def.name) or "Stranger")
+    nameLabel:SetTextColor(1, 0.82, 0.2)
+
+    local blurb = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    blurb:SetPoint("TOPLEFT", nameLabel, "BOTTOMLEFT", 0, -6)
+    blurb:SetPoint("RIGHT", panel, "RIGHT", -32, 0)
+    blurb:SetJustifyH("LEFT")
+    if blurb.SetWordWrap then blurb:SetWordWrap(true) end
+    blurb:SetText((def and def.blurb) or "")
+
+    -- The tiers. Checkboxes rather than a dropdown because all three have to
+    -- be readable at once: the choice is between three descriptions, and a
+    -- dropdown shows you one at a time.
+    CH.tiers = {}
+    local anchor = blurb
+    for _, id in ipairs((def and def.order) or {}) do
+        local tierDef = def.difficulties[id]
+        local check = Compat.CreateCheckbox(panel, tierDef.label)
+        check:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -10)
+        check:SetScript("OnClick", function()
+            CH.picked = id
+            RefreshChallenge()
+        end)
+        local hint = panel:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+        hint:SetPoint("TOPLEFT", check, "BOTTOMLEFT", 24, -1)
+        hint:SetPoint("RIGHT", panel, "RIGHT", -32, 0)
+        hint:SetJustifyH("LEFT")
+        hint:SetJustifyV("TOP")
+        if hint.SetWordWrap then hint:SetWordWrap(true) end
+        hint:SetText(tierDef.blurb)
+        CH.tiers[#CH.tiers + 1] = { def = tierDef, check = check, hint = hint }
+        anchor = hint
+    end
+
+    CH.reqHeader = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    CH.reqHeader:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", -24, -16)
+    CH.reqHeader:SetText("Before you can start")
+    CH.reqHeader:SetTextColor(1, 0.82, 0.2)
+
+    CH.reqs = {}
+    local reqAnchor = CH.reqHeader
+    for i = 1, #((C and C.Requirements(C.DEFAULT)) or {}) do
+        local line = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+        line:SetPoint("TOPLEFT", reqAnchor, "BOTTOMLEFT", (i == 1) and 6 or 0, -6)
+        line:SetPoint("RIGHT", panel, "RIGHT", -32, 0)
+        line:SetJustifyH("LEFT")
+        CH.reqs[i] = line
+        reqAnchor = line
+    end
+
+    CH.startBtn = CreateFrame("Button", nil, panel)
+    styleButton(CH.startBtn, "Start", 130)
+    CH.startBtn:SetPoint("TOPLEFT", reqAnchor, "BOTTOMLEFT", -6, -16)
+    CH.startBtn:SetScript("OnClick", function()
+        local ok, why = C.CanStart(C.DEFAULT)
+        if not ok then
+            ns.Print("|cffff0000Cannot start:|r " .. tostring(why))
+            return
+        end
+        local tierDef = C.Difficulty(C.DEFAULT, CH.picked)
+        Compat.ShowConfirm({
+            text = "Start |cffffd200" .. def.name .. "|r on |cffffff00"
+                .. tierDef.label .. "|r?\n\n"
+                .. "|cffff8080Every language this character has learned is "
+                .. "wiped|r, back to nothing.\n\n"
+                .. "Full immersion, NPC speech and quest text are switched on "
+                .. "and locked until you abandon the run.",
+            acceptText = "Start",
+            cancelText = "Cancel",
+            onAccept = function()
+                local started, err = C.Start(C.DEFAULT, CH.picked)
+                if not started then
+                    ns.Print("|cffff0000Cannot start:|r " .. tostring(err))
+                    return
+                end
+                ns.Print("|cffffd200" .. def.name .. "|r begins. Good luck.")
+                if ns.OnSettingsChanged then ns.OnSettingsChanged() end
+            end,
+        })
+    end)
+
+    CH.abandonBtn = CreateFrame("Button", nil, panel)
+    styleButton(CH.abandonBtn, "Abandon", 130)
+    CH.abandonBtn:SetPoint("TOPLEFT", CH.startBtn, "TOPLEFT")
+    CH.abandonBtn:SetScript("OnClick", function()
+        ns.ConfirmChallengeAbandon()
+    end)
+
+    CH.recordHeader = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    CH.recordHeader:SetPoint("TOPLEFT", CH.startBtn, "BOTTOMLEFT", 6, -18)
+    CH.recordHeader:SetText("Your run")
+    CH.recordHeader:SetTextColor(1, 0.82, 0.2)
+
+    CH.recordText = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    CH.recordText:SetPoint("TOPLEFT", CH.recordHeader, "BOTTOMLEFT", 0, -8)
+    CH.recordText:SetPoint("RIGHT", panel, "RIGHT", -32, 0)
+    CH.recordText:SetJustifyH("LEFT")
+    CH.recordText:SetJustifyV("TOP")
+
+    panel.refresh = RefreshChallenge
+    panel:SetScript("OnShow", RefreshChallenge)
+end
+
 local function BuildProfilePanel()
     profilePanel = Compat.CreateOptionsPanel("TonguesOfAzerothProfileOptions")
     profilePanel.name = "Profiles"
@@ -4262,6 +4701,13 @@ local function BuildPanels()
     BuildCastPanel()
     Compat.RegisterOptionsPanel(castPanel, castPanel.name, mainPanel.name)
 
+    -- After the panels that tune things and before Profiles, because it is
+    -- neither: not a dial, and not a once-a-year housekeeping job.
+    if ns.Challenge then
+        BuildChallengePanel()
+        Compat.RegisterOptionsPanel(CH.panel, CH.panel.name, mainPanel.name)
+    end
+
     -- Last in the list on purpose: it is the panel you reach for once, before
     -- a beta ends or when setting up an alt, not one you live in.
     BuildProfilePanel()
@@ -4274,6 +4720,7 @@ local function BuildPanels()
     accentPanel._backAction = function() ns.OpenConfig() end
     customPanel._backAction = function() ns.OpenConfig() end
     castPanel._backAction = function() ns.OpenConfig() end
+    if CH.panel then CH.panel._backAction = function() ns.OpenConfig() end end
 
     panelsBuilt = true
 end
@@ -4316,12 +4763,18 @@ initFrame:SetScript("OnEvent", function(self, event, name)
 end)
 
 ns.OnSettingsChanged = function()
+    -- First, so every panel below redraws against a run that already knows
+    -- it was broken. Audited here rather than only on login because this
+    -- fires on every write a panel makes, which is exactly the moment a
+    -- locked setting would have moved.
+    if ns.Challenge and ns.Challenge.Audit then ns.Challenge.Audit() end
     if mainPanel and mainPanel:IsVisible() then RefreshMain() end
     if learnedPanel and learnedPanel:IsVisible() then RefreshLearned() end
     if chatPanel and chatPanel:IsVisible() then RefreshChat() end
     if accentPanel and accentPanel:IsVisible() then RefreshAccent() end
     if customPanel and customPanel:IsVisible() then RefreshCustom() end
     if castPanel and castPanel:IsVisible() then RefreshCasts() end
+    if CH.panel and CH.panel:IsVisible() then RefreshChallenge() end
     -- Keep the main language dropdown in sync when custom languages change.
     if langDropdown then langDropdown:SetItems(langItems()) end
     if motherDropdown then motherDropdown:SetItems(motherItems()) end
@@ -4375,6 +4828,13 @@ end
 function ns.OpenProfileConfig()
     BuildPanels()
     Compat.OpenOptionsPanel(profilePanel)
+end
+
+function ns.OpenChallengeConfig()
+    BuildPanels()
+    if not CH.panel then return end
+    Compat.OpenOptionsPanel(CH.panel)
+    RefreshChallenge()
 end
 
 -- `key` comes from the keybinding (the spell that was under the cursor), so the

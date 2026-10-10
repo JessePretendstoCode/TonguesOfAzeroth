@@ -26,6 +26,7 @@ Profile.lua
 Core.lua
 QuestText.lua
 QuestLearn.lua
+Challenge.lua
 CastLibrary.lua
 Casts.lua
 GameVoices.lua

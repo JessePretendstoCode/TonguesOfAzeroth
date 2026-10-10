@@ -31,15 +31,20 @@
     board, has no speaker -- so it is left in plain English rather than being
     handed the accent of whoever you happened to talk to last.
 
-    How far does it go? Everything the NPC shows you: the greeting, the
-    offer, its title, the objectives, the progress and the thanks, the gossip
-    window and the objective tracker. Not the buttons -- Accept still says
-    Accept, and still works, because not understanding somebody has never
-    stopped anyone agreeing to fetch ten boar livers. And not the titles in
-    your own quest log, which are your shorthand for a job you already took
-    rather than anything the quest giver said; garbling those costs you the
-    ability to abandon the right quest and buys nothing you would read in
-    character.
+    How far does it go? Everything the NPC says to you: the greeting, the
+    offer, its title, the objectives, the progress and the thanks, and the
+    gossip window. Not the buttons -- Accept still says Accept, and still
+    works, because not understanding somebody has never stopped anyone
+    agreeing to fetch ten boar livers. And not the titles in your own quest
+    log, which are your shorthand for a job you already took rather than
+    anything the quest giver said; garbling those costs you the ability to
+    abandon the right quest and buys nothing you would read in character.
+
+    The objective tracker and the clickable gossip list sit behind switches
+    of their own, because they are not prose. Everything above is a story you
+    can be shut out of and lose nothing but the story; those two are what you
+    operate the game with, and hiding them stops being flavour and starts
+    being a difficulty setting.
 ---------------------------------------------------------------------------]]
 
 local _, ns = ...
@@ -437,6 +442,30 @@ function QuestText.Active()
         and true or false
 end
 
+-- Two surfaces narrower than the rest, each behind its own switch.
+--
+-- They are split out because the three above are one decision -- "let the
+-- addon decide what I understand" -- and these two are not. Everything under
+-- Active() is prose: a story you can be shut out of and lose nothing but the
+-- story. The tracker and the gossip list are the parts you operate the game
+-- with, and hiding them stops being flavour and starts being a difficulty
+-- setting. Something that changes how hard the game is to play should be
+-- something you asked for by name.
+--
+-- Both narrow Active() rather than standing beside it, so neither can garble
+-- anything while the parent switches are off. That also means the call sites
+-- can lean on Garble's own Active() check, since these being true makes it
+-- true.
+function QuestText.TrackerActive()
+    local db = GlyphicDB
+    return (QuestText.Active() and db.immersionTracker) and true or false
+end
+
+function QuestText.OptionsActive()
+    local db = GlyphicDB
+    return (QuestText.Active() and db.immersionGossipOptions) and true or false
+end
+
 -- The tracker asks for the same objective text several times a second while
 -- anything on screen is animating, and garbling is a hash per word. The answer
 -- never changes for a given string and tongue, so it is worked out once.
@@ -538,7 +567,7 @@ function QuestText.Install()
         local original = C_GossipInfo.GetOptions
         C_GossipInfo.GetOptions = function(...)
             local options = original(...)
-            if type(options) == "table" and QuestText.Active() then
+            if type(options) == "table" and QuestText.OptionsActive() then
                 for i = 1, #options do
                     local row = options[i]
                     if type(row) == "table" and type(row.name) == "string" then
@@ -560,6 +589,7 @@ function QuestText.Install()
         local original = GetQuestLogLeaderBoard
         GetQuestLogLeaderBoard = function(objIndex, questIndex, ...)
             local text, kind, done = original(objIndex, questIndex, ...)
+            if not QuestText.TrackerActive() then return text, kind, done end
             local lang = QuestText.JournalLanguage(
                 questIDForLogIndex(questIndex) or selectedQuestID())
             if not lang then return text, kind, done end
@@ -571,7 +601,7 @@ function QuestText.Install()
         C_QuestLog.GetQuestObjectives = function(questID, ...)
             local objectives = original(questID, ...)
             local lang = QuestText.JournalLanguage(questID)
-            if lang and type(objectives) == "table" and QuestText.Active() then
+            if lang and type(objectives) == "table" and QuestText.TrackerActive() then
                 for i = 1, #objectives do
                     local row = objectives[i]
                     if type(row) == "table" and type(row.text) == "string" then

@@ -480,6 +480,18 @@ local function migrateDB()
     -- carries no language at all, so hiding it is this addon's own idea and
     -- has to be asked for rather than arriving with the rest.
     if db.immersionQuests == nil then db.immersionQuests = false end
+    -- The objective tracker, under the quest switch. On, because it is named
+    -- on the quest checkbox's own label -- anyone who ticked that asked for
+    -- this -- and turning it off here would quietly make an existing setting
+    -- do less than it did yesterday.
+    if db.immersionTracker == nil then db.immersionTracker = true end
+    -- The clickable gossip list, under the same switch, and off. This one was
+    -- never named anywhere: the quest checkbox says "gossip windows", which
+    -- reads as what the NPC tells you, not as the menu you answer with. The
+    -- result was that a character with immersion on could not find "I wish to
+    -- train", which is not a hard game, it is a broken one. Garbling it is a
+    -- fine thing to want and a terrible thing to be handed.
+    if db.immersionGossipOptions == nil then db.immersionGossipOptions = false end
     -- Automatically switch Glyphic off while inside an instance (and back on when you
     -- leave). Blizzard's "secret" chat protection blocks addons from reading chat
     -- during boss fights, so translations can't be decoded there. On by default;
@@ -2448,10 +2460,24 @@ end
 --  Fluency control (shared by the Fluency slider, Make Fluent, Reset)
 --  Fluency == speaking strength, so these change how you SOUND in a tongue.
 --=========================================================================--
+-- A challenge is a published arrangement of settings, and fluency is the one
+-- number the whole run is measuring, so for the length of one it stops being
+-- yours to set by hand. Checked here rather than at each button because the
+-- slider, the two bulk buttons and the slash command are four doors into the
+-- same room, and a lock on three of them is a lock on none.
+--
+-- Note this reads false during Challenge.Start, which wipes fluency before it
+-- writes the run down. That ordering is deliberate and is what lets a
+-- challenge begin from zero without having to make an exception for itself.
+local function fluencyLocked()
+    return (ns.Challenge and ns.Challenge.IsLocked("fluency")) and true or false
+end
+
 -- Set fluency to a 0-1 fraction (used by the per-language slider). Fluency only;
 -- comprehension (the "learned" flag) is managed separately.
 function ns.SetLanguageFluency(langId, frac)
     if not (langId and ns.Trainer and ns.Trainer.SetFluency) then return 0 end
+    if fluencyLocked() then return 0 end
     migrateDB()
     local applied = ns.Trainer.SetFluency(langId, frac)
     if ns.RefreshFluencyIfShown then ns.RefreshFluencyIfShown() end
@@ -2462,6 +2488,7 @@ end
 -- you both speak and read it. (The "Make Fluent" button, after confirmation.)
 function ns.MakeLanguageFluent(langId)
     if not langId then return end
+    if fluencyLocked() then return end
     migrateDB()
     if ns.Trainer and ns.Trainer.SetFluency then ns.Trainer.SetFluency(langId, 1) end
     GlyphicDB.learned = GlyphicDB.learned or {}
@@ -2473,6 +2500,7 @@ end
 -- flag, so it's as if you never knew it. (The "Reset" button, after confirm.)
 function ns.ResetLanguageFluency(langId)
     if not langId then return end
+    if fluencyLocked() then return end
     migrateDB()
     if ns.Trainer and ns.Trainer.ResetFluency then ns.Trainer.ResetFluency(langId) end
     if GlyphicDB.learned then GlyphicDB.learned[langId] = nil end
@@ -2482,6 +2510,7 @@ end
 -- Bulk versions for the Learned panel's "Learn all" / "Reset all" buttons. We loop
 -- the primary languages (sub-languages share a parent's fluency) and refresh once.
 function ns.MakeAllFluent()
+    if fluencyLocked() then return end
     migrateDB()
     local langs = (Language.GetPrimaryLanguages and Language.GetPrimaryLanguages()) or {}
     GlyphicDB.learned = GlyphicDB.learned or {}
@@ -2494,6 +2523,7 @@ function ns.MakeAllFluent()
 end
 
 function ns.ResetAllFluency()
+    if fluencyLocked() then return end
     migrateDB()
     local langs = (Language.GetPrimaryLanguages and Language.GetPrimaryLanguages()) or {}
     for i = 1, #langs do
@@ -2857,6 +2887,70 @@ local function showDecodeResult(original, decoded, langId, langName, inferredStr
     showDecode("Test", original, decoded, langId, langName)
 end
 
+--=========================================================================--
+--  /glyphic challenge
+--=========================================================================--
+-- Reads the run back rather than offering to start one from here. Starting
+-- wipes every language on the character, and that is not a thing a mistyped
+-- line should be able to do -- the panel asks first, and this points at it.
+local function challengeCommand(rest)
+    local C = ns.Challenge
+    if not C then
+        Print("challenges are not loaded.")
+        return
+    end
+    local arg = string.lower(rest or "")
+    local run = C.Current()
+
+    if arg == "abandon" or arg == "quit" or arg == "stop" then
+        if not run then
+            Print("no challenge is running on this character.")
+            return
+        end
+        if ns.ConfirmChallengeAbandon then
+            ns.ConfirmChallengeAbandon()
+        else
+            C.Abandon()
+            Print("challenge abandoned. Your settings are back as they were, "
+                .. "and you keep every word you learned.")
+        end
+        return
+    end
+
+    if arg ~= "" and arg ~= "status" then
+        Print("Usage: |cffffff00/glyphic challenge|r or "
+            .. "|cffffff00/glyphic challenge abandon|r.")
+        return
+    end
+
+    if not run then
+        Print("no challenge is running. Open |cffffd200Challenges|r on the "
+            .. "options panel to start one.")
+        if ns.OpenChallengeConfig then ns.OpenChallengeConfig() end
+        return
+    end
+
+    local record = C.Record()
+    Print("|cffffd200" .. record.name .. "|r on |cffffff00"
+        .. tostring(record.difficulty) .. "|r, started "
+        .. (record.startedAt ~= "" and record.startedAt or "a while ago")
+        .. " at level " .. tostring(record.startLevel or "?") .. ".")
+    Print("  level |cffffff00" .. tostring(record.level or "?") .. "|r, "
+        .. "|cffffff00" .. record.quests .. "|r quest"
+        .. (record.quests == 1 and "" or "s") .. " finished.")
+    if #record.tongues == 0 then
+        Print("  |cff808080no tongue has taught you anything yet.|r")
+    else
+        for i = 1, #record.tongues do
+            local t = record.tongues[i]
+            Print("  " .. t.name .. " |cffffff00" .. t.percent .. "%|r")
+        end
+    end
+    if record.broken then
+        Print("  |cffff4040" .. C.BrokenText() .. "|r")
+    end
+end
+
 local function testDecode(input)
     migrateDB()
     local langId, text = input:match("^(%S+)%s+(.+)$")
@@ -3145,6 +3239,12 @@ local function handleSlash(input)
         -- they look identical from the chair. This says which one it is.
         if not ns.QuestText then
             Print("quest text is not loaded.")
+        elseif string.lower(rest or "") == "reset" and ns.Challenge
+            and ns.Challenge.IsLocked("learned") then
+            -- Forgetting which tongue every quest was offered in would put
+            -- the whole journal back into the player's own faction's tongue,
+            -- which is a different run from the one being recorded.
+            Print(ns.Challenge.LockReason())
         elseif string.lower(rest or "") == "reset" then
             local n = ns.QuestText.ForgetAll()
             Print("forgot the tongue of |cffffff00" .. n .. "|r quest"
@@ -3265,6 +3365,8 @@ local function handleSlash(input)
         else
             Print("Usage: |cffffff00/glyphic profile export|r or |cffffff00/glyphic profile import <code>|r.")
         end
+    elseif cmd == "challenge" or cmd == "challenges" then
+        challengeCommand(rest)
     elseif cmd == "decode" or cmd == "testdecode" then
         testDecode(rest)
     elseif cmd == "encode" or cmd == "enc" then
@@ -3276,7 +3378,12 @@ local function handleSlash(input)
         -- sets/reads the active language's fluency.
         local langId = GlyphicDB.language
         local n = tonumber(rest)
-        if n then
+        if n and ns.Challenge and ns.Challenge.IsLocked("fluency") then
+            -- SetLanguageFluency would refuse this anyway. Said out loud here
+            -- because a slash command that quietly does nothing is the worst
+            -- of the three possible behaviours.
+            Print(ns.Challenge.LockReason())
+        elseif n then
             n = math.max(0, math.min(100, math.floor(n + 0.5)))
             ns.SetLanguageFluency(langId, n / 100)
             Print("Fluency in |cffffff00" .. Language.GetLanguageName(langId) .. "|r set to |cffffff00" .. n .. "%|r.")

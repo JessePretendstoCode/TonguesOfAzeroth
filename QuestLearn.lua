@@ -378,6 +378,15 @@ function QuestLearn.Learn(questID, questLevel)
     if learned < 1 then learned = 1 elseif learned > total then learned = total end
 
     local plain, garbled = QuestLearn.WordFor(blizzId, after)
+
+    -- Counted here rather than on the event, so the run's tally is quests
+    -- that actually taught something. Everything above this line is a reason
+    -- a hand-in teaches nothing -- wrong level, no tongue recorded, already
+    -- fluent -- and none of those is progress worth writing down.
+    if ns.Challenge and type(ns.Challenge.NoteQuest) == "function" then
+        ns.Challenge.NoteQuest()
+    end
+
     return {
         blizzId = blizzId,
         glyphId = glyphId,

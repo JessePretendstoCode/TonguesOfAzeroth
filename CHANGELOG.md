@@ -146,6 +146,22 @@ Tongues of Azeroth before 0.5.3.
   -- the feature off, the wrappers not on, the quest predating the record, or
   the client not saying which quest is open. Three of those are not faults,
   and they are indistinguishable from the chair.
+  Two of the four surfaces it touches now have switches of their own, under
+  the quest one, because they are not the same kind of thing as the rest.
+  Everything else here is prose: a story you can be shut out of and lose
+  nothing but the story. The objective tracker and the list of replies you
+  click to answer an NPC are the parts you operate the game with, and hiding
+  those stops being flavour and starts being a difficulty setting.
+  *Include the objective tracker and quest log checklist* is on, because the
+  quest checkbox always named it and turning it off would quietly make a
+  setting you already ticked do less than it did yesterday.
+  **The replies you click to answer an NPC are now readable by default**,
+  which is a change. They were garbled along with everything else, and the
+  result was a character with full immersion on who could not find *I wish to
+  train* in a trainer's menu -- not a hard game, a broken one. Nothing named
+  that surface on any checkbox, so nobody had asked for it. It is still there
+  under *Include the replies you click to answer an NPC*, off until you say
+  otherwise, and the Hard tier of a challenge turns it on for you.
   Two things are deliberately left alone. The buttons are yours, not theirs --
   Accept still says Accept and still works, because not understanding somebody
   has never stopped anyone agreeing to fetch ten boar livers. And the titles in
@@ -163,6 +179,45 @@ Tongues of Azeroth before 0.5.3.
   is indistinguishable from one the game hid itself, so it follows *Tint
   in-game languages* under Chat Channels like any other line of real Orcish,
   rather than painting itself.
+- **Challenges.** A new section at the foot of the main panel, under a rule of
+  its own because a challenge is not a preference: everything above that line
+  is a dial you set to taste, and this is an arrangement you agree to.
+  The first one is **Stranger**. You arrive understanding nobody -- every
+  quest and every NPC is in a tongue you do not speak -- and the only way out
+  is to work for the people who speak it. Starting requires a character at
+  level 10 or below with no other challenge running, wipes every language you
+  have learned, and belongs to that character alone.
+  The three difficulties change what you can read, not how fast you learn.
+  On *Easy* the prose is hidden but your objectives stay readable, so you
+  always know what to do and never why. *Medium* takes the objective tracker
+  and the quest log with it, so working out the job is part of the job. *Hard*
+  takes the replies you click to answer an NPC as well, so finding the class
+  trainer's menu is on you.
+  The learn rate is untouched at one word per quest, and the words land in
+  whatever tongue each quest was given in. That spread is the point: a run
+  ends as a travel history rather than a single bar -- fluent in Orcish,
+  conversational in Taur-ahe, a smattering of Zandali -- which is what
+  actually happened to you.
+  For the length of a run the settings the challenge publishes go grey, as do
+  the fluency slider and the two learning toggles. Everything cosmetic stays
+  live; locking the toast style would cost you something and buy the challenge
+  nothing. Importing a profile is refused outright rather than audited, since
+  it would replace the run's own record along with everything else.
+  It is an honour system with a tripwire. Saved variables are a text file on
+  your disk and there is no pretending otherwise, so rather than guard the
+  file, Glyphic checks the locked settings on every login and whenever
+  anything changes, and a run that moved one is marked *Voided at level 23:
+  the gossip list was changed*. The run keeps going and the record keeps its
+  numbers; it simply says what happened. The settings stay locked on a voided
+  run, because unlocking would make breaking the run the fastest way to get
+  your settings back.
+  Abandoning puts every setting back where it was -- including the ones that
+  had never been set, which go back to unset rather than being left forced on
+  -- and keeps the fluency you earned. You did learn it, whatever became of
+  the run. The finished record is kept and shown under the next one.
+  `/glyphic challenge` prints it: the tier, the level you started at and where
+  you are now, the quests handed in, and the spread across tongues.
+  `/glyphic challenge abandon` ends one.
 - **Settings moved to the panels they belong on.** The Languages tab is now
   *Languages & Fluency*, and it keeps the things that are about languages:
   which tongue you speak, how fluent you are in each one, and its color.
