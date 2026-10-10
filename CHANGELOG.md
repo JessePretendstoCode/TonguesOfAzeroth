@@ -297,6 +297,43 @@ Tongues of Azeroth before 0.5.3.
   And the Start button greys out when you cannot start, rather than taking
   the click and answering with an error in chat. The crossed-out requirement
   above it has already given the reason.
+  There is a **Stop the run** button on it now, behind a confirmation that
+  says what it means: the run ends there, it cannot be resumed or restarted,
+  and not on that character either, because the character has already spent
+  the levels a run begins at. What you learned during it is yours whatever
+  you do, and the dialog says so too -- the warning is about the run, not
+  about the words.
+  A challenge also needs a **genuinely fresh character** now, which means no
+  experience earned rather than only the right level. The two refuse
+  different people: the level turns away someone too far along, and the
+  experience turns away someone still at the right level who has already
+  played through half of it. An allied race or a death knight starting above
+  level one is still fresh and still allowed. A level nine who ran Exile's
+  Reach is not.
+  Medium and Hard now **take the client's own help away** for the length of a
+  run. Medium hides quest objectives and the pins they put on your map; Hard
+  hides those and the floating names over players and NPCs as well. These are
+  console settings rather than the addon's own, so they cannot be refused the
+  way a checkbox can -- they are set when the run starts, put back exactly as
+  they were found when it ends, and set again if something changes them while
+  it is going. Nameplates are deliberately left alone: they are how you tell
+  what is hitting you, not a reading aid. The exclamation mark over a quest
+  giver's head is left alone too, because it is a world object with no
+  setting behind it, and there is no way for an addon to reach it.
+- **The explanations on Languages & Fluency are behind an information icon.**
+  Every switch on that page had a paragraph of grey small print under it, and
+  six of them stacked meant reading a wall of text to reach the language list
+  underneath. The text is all still there, on the game's own information icon
+  beside each label, which is where Blizzard puts the same kind of thing. The
+  page is about a third as tall.
+  One line stayed on the page: the warning that you are out of character and
+  none of it is reaching your chat. That is not an explanation of a control,
+  it is the reason none of the controls are doing anything, and you need it
+  without having to go looking.
+- **Fixed: the text on the main panel ran underneath the buttons down its
+  right-hand side.** The column and the prose beside it were positioned from
+  two unrelated numbers and the numbers disagreed by sixteen pixels, so every
+  wrapped line finished under the buttons. They are one number now.
 - A **Profiles** button on the main panel's list. It had been reachable only
   through Blizzard's settings tree, which meant it did not exist at all in
   the addon's own standalone window. The list is also in the same order as

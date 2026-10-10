@@ -1244,6 +1244,51 @@ function Compat.IconButton(btn, iconPath, size, tint)
     return btn
 end
 
+-- The game's information icon, with the explanation behind it instead of
+-- printed underneath the thing it explains.
+--
+-- A paragraph of grey small print under every switch is honest and unusable:
+-- six of them stacked is a wall you have to read past to reach the next
+-- checkbox, and almost none of it is wanted more than once. Blizzard puts
+-- the same kind of text behind this icon all over its own options, so the
+-- gesture is already learned.
+--
+-- The text can be a function, for the handful that depend on what the
+-- addon is currently doing and would otherwise go stale behind the icon.
+function Compat.InfoButton(parent, text, size)
+    size = size or 16
+    local b = CreateFrame("Button", nil, parent)
+    b:SetSize(size, size)
+
+    local icon = b:CreateTexture(nil, "ARTWORK")
+    icon:SetAllPoints()
+    -- In the game since vanilla, which the Common\help-i atlas the modern
+    -- panels use is not.
+    icon:SetTexture("Interface\\FriendsFrame\\InformationIcon")
+    b.icon = icon
+
+    local hl = b:CreateTexture(nil, "HIGHLIGHT")
+    hl:SetAllPoints()
+    Compat.SolidTexture(hl, 1, 1, 1, 0.3)
+
+    b.infoText = text
+    function b:SetInfoText(t) self.infoText = t end
+
+    b._toaTooltip = true
+    b:SetScript("OnEnter", function(self)
+        local body = self.infoText
+        if type(body) == "function" then body = body() end
+        if not body or body == "" then return end
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        -- Wrapped, because these are paragraphs rather than labels and an
+        -- unwrapped one runs off the side of the screen.
+        GameTooltip:SetText(body, 1, 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    b:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    return b
+end
+
 function Compat.CreateDropdown(parent, width)
     local dd = CreateFrame("Button", nil, parent)
     dd:SetSize(width or 200, 26)

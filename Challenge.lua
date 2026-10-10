@@ -56,6 +56,17 @@ local function playerLevel()
     return nil
 end
 
+-- Experience into the current level. Nil when the client cannot say, which
+-- is treated as "cannot confirm you are fresh" rather than as zero: the
+-- requirement it feeds is the one standing between a challenge and the
+-- character who already played half of it.
+local function playerXP()
+    if type(UnitXP) ~= "function" then return nil end
+    local ok, xp = pcall(UnitXP, "player")
+    if ok and type(xp) == "number" then return xp end
+    return nil
+end
+
 local function today()
     if type(date) ~= "function" then return "" end
     local ok, stamp = pcall(date, "%Y-%m-%d")
@@ -84,6 +95,53 @@ local function tier(extra)
     return out
 end
 
+-- Client settings the harder tiers take away as well.
+--
+-- These are console variables rather than our own, which makes them a
+-- different kind of lock: the switches above live in our saved variables and
+-- our own panels can refuse to move them, while these live in Blizzard's
+-- options where nothing we do can grey out a checkbox. So they are enforced
+-- instead of refused -- set on start, put back on abandon, and set again if
+-- something moves them. A player who really wants them back has the same
+-- honour system every other lock here runs on.
+--
+-- Not in `settings`, and audited separately, because the tripwire compares
+-- saved variables and a console variable is not one. Folding them together
+-- would make every "I changed a graphics setting" into a voided run.
+local MAP_HIDDEN = {
+    -- The pins on the world map and the minimap. The point of Medium is that
+    -- working out the job is part of the job, and a map that still draws a
+    -- ring around the answer gives the job away without a word of text.
+    questPOI = "0",
+    showQuestObjectivesOnMap = "0",
+}
+
+-- Floating names over heads. On Hard you cannot read what anyone says, so
+-- reading who they are off a label above them is the same hole in the
+-- fiction. Nameplates are deliberately left alone: those are a combat tool
+-- as much as a label, and taking them away would be a difficulty of a
+-- different kind than the one this run is about.
+local NAMES_HIDDEN = {
+    UnitNameNPC = "0",
+    UnitNameNonCombatCreatureName = "0",
+    UnitNameFriendlyPlayerName = "0",
+    UnitNameEnemyPlayerName = "0",
+    UnitNameFriendlySpecialNPCName = "0",
+    UnitNamePlayerGuild = "0",
+    UnitNamePlayerPVPTitle = "0",
+    -- Blizzard's own spelling. Not a typo here.
+    UnitNameHostleNPC = "0",
+    UnitNameInteractiveNPC = "0",
+}
+
+local function cvars(...)
+    local out = {}
+    for i = 1, select("#", ...) do
+        for key, value in pairs((select(i, ...))) do out[key] = value end
+    end
+    return out
+end
+
 local CHALLENGES = {
     stranger = {
         id    = "stranger",
@@ -103,26 +161,31 @@ local CHALLENGES = {
                     immersionTracker        = false,
                     immersionGossipOptions  = false,
                 }),
+                cvars = cvars(),
             },
             medium = {
                 id    = "medium",
                 label = "Medium",
-                blurb = "Your objective tracker and quest log go with it. "
-                     .. "Working out the job is now part of the job.",
+                blurb = "Your objective tracker and quest log go with it, and "
+                     .. "the map stops marking where to go. Working out the "
+                     .. "job is now part of the job.",
                 settings = tier({
                     immersionTracker        = true,
                     immersionGossipOptions  = false,
                 }),
+                cvars = cvars(MAP_HIDDEN),
             },
             hard = {
                 id    = "hard",
                 label = "Hard",
                 blurb = "Everything, including what you click to answer an "
-                     .. "NPC. Finding the class trainer's menu is on you.",
+                     .. "NPC and the names over everybody's head. Finding the "
+                     .. "class trainer's menu is on you.",
                 settings = tier({
                     immersionTracker        = true,
                     immersionGossipOptions  = true,
                 }),
+                cvars = cvars(MAP_HIDDEN, NAMES_HIDDEN),
             },
         },
     },
@@ -160,6 +223,63 @@ function Challenge.Settings(id, difficultyId)
     return out
 end
 
+-- The console variables a tier takes away, as a fresh table, for the same
+-- reason Settings hands out a copy.
+function Challenge.CVars(id, difficultyId)
+    local diff = Challenge.Difficulty(id, difficultyId)
+    if not diff then return nil end
+    local out = {}
+    for key, value in pairs(diff.cvars or {}) do out[key] = value end
+    return out
+end
+
+--=========================================================================--
+--  Console variables
+--=========================================================================--
+-- Every one of these is wrapped. The set differs by flavour -- the map pins
+-- are two variables on retail and one on Classic Era, and the name list has
+-- grown over the years -- and asking for one the client has never heard of
+-- is an error rather than a nil. A tier that names a variable this client
+-- does not have simply does not take that one away.
+--
+-- `reentry` is not paranoia: SetCVar fires CVAR_UPDATE, which is the event
+-- that calls back into here, so without it the first enforced variable would
+-- enforce the rest of them once each per variable, forever.
+local reentry = false
+
+local function readCVar(key)
+    if type(GetCVar) ~= "function" then return nil end
+    local ok, value = pcall(GetCVar, key)
+    return ok and value or nil
+end
+
+local function writeCVar(key, value)
+    if type(SetCVar) ~= "function" or value == nil then return end
+    pcall(SetCVar, key, value)
+end
+
+-- Puts the tier's variables back the way the run wants them. Called on
+-- login, after starting, and whenever anything moves one.
+function Challenge.EnforceCVars()
+    local run = Challenge.Current()
+    if not run or reentry then return end
+    local wanted = run.cvars
+    if type(wanted) ~= "table" then return end
+    reentry = true
+    for key, value in pairs(wanted) do
+        if readCVar(key) ~= value then writeCVar(key, value) end
+    end
+    reentry = false
+end
+
+local function restoreCVars(run)
+    local before = run and run.cvarsBefore
+    if type(before) ~= "table" then return end
+    reentry = true
+    for key, value in pairs(before) do writeCVar(key, value) end
+    reentry = false
+end
+
 --=========================================================================--
 --  The run
 --=========================================================================--
@@ -186,12 +306,26 @@ end
 -- mean the wipe is first mentioned in a confirmation dialog.
 function Challenge.Requirements(id)
     local level = playerLevel()
+    local xp = playerXP()
     return {
         {
             key  = "level",
             text = "Level " .. Challenge.MAX_START_LEVEL .. " or below",
             met  = (level ~= nil) and (level <= Challenge.MAX_START_LEVEL),
             detail = level and ("you are level " .. level) or nil,
+        },
+        -- Separate from the level, because the two refuse different people.
+        -- The level turns away a character who is too far along to start; the
+        -- experience turns away one who is the right level and has already
+        -- played the part of the game this run is about. A fresh allied race
+        -- or death knight arrives above level one with nothing earned, and
+        -- this lets them in while keeping out the level nine who ran Exile's
+        -- Reach in English first.
+        {
+            key  = "fresh",
+            text = "No experience earned yet",
+            met  = (xp ~= nil) and (xp == 0),
+            detail = (xp and xp > 0) and (xp .. " earned already") or nil,
         },
         {
             key  = "none",
@@ -252,18 +386,29 @@ function Challenge.Start(id, difficultyId)
 
     for key, value in pairs(settings) do GlyphicDB[key] = value end
 
+    -- Read before anything is written, and only for the variables this tier
+    -- actually takes, so abandoning puts back what was there rather than
+    -- what the client ships with. A variable this client does not have reads
+    -- nil and is skipped on the way back out too.
+    local wanted = Challenge.CVars(id, difficultyId) or {}
+    local cvarsBefore = {}
+    for key in pairs(wanted) do cvarsBefore[key] = readCVar(key) end
+
     local level = playerLevel()
     GlyphicDB.challenge = {
-        id         = id,
-        difficulty = difficultyId,
-        startedAt  = today(),
-        startLevel = level,
-        level      = level,
-        quests     = 0,
-        before     = before,
-        locks      = settings,
-        broken     = false,
+        id          = id,
+        difficulty  = difficultyId,
+        startedAt   = today(),
+        startLevel  = level,
+        level       = level,
+        quests      = 0,
+        before      = before,
+        locks       = settings,
+        cvars       = wanted,
+        cvarsBefore = cvarsBefore,
+        broken      = false,
     }
+    Challenge.EnforceCVars()
 
     if ns.QuestText and ns.QuestText.Refresh then ns.QuestText.Refresh() end
     if ns.OnSettingsChanged then ns.OnSettingsChanged() end
@@ -288,6 +433,8 @@ function Challenge.Abandon()
     for key in pairs(run.locks or {}) do
         GlyphicDB[key] = before[key]
     end
+    -- Before the run is cleared, because the restore reads off the run.
+    restoreCVars(run)
     GlyphicDB.challenge = nil
 
     if ns.QuestText and ns.QuestText.Refresh then ns.QuestText.Refresh() end
@@ -473,10 +620,21 @@ end
 -- OnSettingsChanged, which fires on every write a panel makes. Between them
 -- they cover a switch flipped in the options and a saved-variable file edited
 -- between sessions.
+--
+-- CVAR_UPDATE is the second, and it is the whole of the console-variable
+-- lock: those live in Blizzard's options where nothing here can grey out a
+-- checkbox, so the only way to hold one is to notice it moved and move it
+-- back. Cheap enough -- it fires on a settings change, not on a timer.
 local frame = CreateFrame("Frame")
 frame:RegisterEvent("PLAYER_ENTERING_WORLD")
-frame:SetScript("OnEvent", function()
+pcall(frame.RegisterEvent, frame, "CVAR_UPDATE")
+frame:SetScript("OnEvent", function(_, event)
+    if event == "CVAR_UPDATE" then
+        Challenge.EnforceCVars()
+        return
+    end
     Challenge.Audit()
+    Challenge.EnforceCVars()
 end)
 
 function Challenge._Frame() return frame end

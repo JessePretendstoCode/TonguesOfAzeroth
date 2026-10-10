@@ -264,11 +264,11 @@ local function RefreshVoice()
     end
 
     if voiceHint then
-        -- One line either way: the list below is the reason this panel is short
-        -- of vertical space, so the hint doesn't get to grow when you go out of
-        -- character.
-        voiceHint:SetText(d.inCharacter
-            and "Drag a handle below to change how much of a tongue comes through. Your accent is under |cffffd200Accents|r."
+        -- Only the warning lives here now; the instruction that used to share
+        -- the line is behind the information icon on the heading. In character
+        -- there is nothing to say, so the line collapses and the preview below
+        -- moves up into the space.
+        voiceHint:SetText(d.inCharacter and ""
             or "|cffff8080Out of character -- none of this is applied to your chat right now.|r")
     end
     refreshPreview()
@@ -1553,13 +1553,23 @@ local function BuildMainPanel()
     local content = Compat.CreateScrollContent(mainPanel, 760)
     mainContent = content
 
+    -- The nav column down the right, and how far the prose on the left has to
+    -- stop short of it. These were two unrelated numbers before and they
+    -- disagreed: the column is 170 wide sitting 16 off the right edge, so it
+    -- begins 186 in, while the text beside it was told to stop at 170 -- and
+    -- ran sixteen pixels underneath the buttons. Local to this function
+    -- because this is the only panel with a nav column, and the file is on
+    -- Lua's limit of two hundred locals.
+    local NAV = { W = 170, MARGIN = 16 }
+    NAV.TEXT_INSET = NAV.W + NAV.MARGIN + 14
+
     local title = content:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
     title:SetPoint("TOPLEFT", 16, -16)
     title:SetText("Glyphic")
 
     local subtitle = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -8)
-    subtitle:SetPoint("RIGHT", content, "RIGHT", -24, 0)
+    subtitle:SetPoint("RIGHT", content, "RIGHT", -NAV.TEXT_INSET, 0)
     subtitle:SetJustifyH("LEFT")
     subtitle:SetText("Speak the languages of Azeroth in chat, Tongues-style.")
 
@@ -1568,7 +1578,7 @@ local function BuildMainPanel()
         -- Wide enough for the longest label ("Languages & Fluency"); a
         -- FontString that doesn't fit spills past the button's plate rather
         -- than truncating, so the whole row has to size to the worst case.
-        Compat.PanelButton(btn, label, 170, 24)
+        Compat.PanelButton(btn, label, NAV.W, 24)
         btn:SetScript("OnClick", onClick)
         return btn
     end
@@ -1586,7 +1596,7 @@ local function BuildMainPanel()
         if prev then
             btn:SetPoint("TOPRIGHT", prev, "BOTTOMRIGHT", 0, -4)
         else
-            btn:SetPoint("TOPRIGHT", content, "TOPRIGHT", -16, -16)
+            btn:SetPoint("TOPRIGHT", content, "TOPRIGHT", -NAV.MARGIN, -16)
         end
         prev = btn
         return btn
@@ -1622,7 +1632,7 @@ local function BuildMainPanel()
     CH.rule = content:CreateTexture(nil, "ARTWORK")
     CH.rule:SetHeight(1)
     CH.rule:SetPoint("TOPRIGHT", trainerBtn, "BOTTOMRIGHT", 0, -10)
-    CH.rule:SetWidth(170)
+    CH.rule:SetWidth(NAV.W)
     Compat.SolidTexture(CH.rule, 1, 1, 1, 0.16)
 
     CH.button = makeNavButton("Challenges", function()
@@ -1635,7 +1645,7 @@ local function BuildMainPanel()
     -- label for the absence of a thing, which is noise.
     CH.status = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     CH.status:SetPoint("TOPRIGHT", CH.button, "BOTTOMRIGHT", 0, -5)
-    CH.status:SetWidth(170)
+    CH.status:SetWidth(NAV.W)
     CH.status:SetJustifyH("RIGHT")
     if CH.status.SetWordWrap then CH.status:SetWordWrap(true) end
 
@@ -1654,7 +1664,7 @@ local function BuildMainPanel()
 
     local enableHint = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     enableHint:SetPoint("TOPLEFT", enableCheck, "BOTTOMLEFT", 24, -2)
-    enableHint:SetPoint("RIGHT", content, "RIGHT", -170, 0)
+    enableHint:SetPoint("RIGHT", content, "RIGHT", -NAV.TEXT_INSET, 0)
     enableHint:SetJustifyH("LEFT")
     if enableHint.SetWordWrap then enableHint:SetWordWrap(true) end
     enableHint:SetText("Off mutes everything this addon says for you: your chat goes out exactly as typed, with no accent, and cast phrases stay quiet. You still read, color and decode everyone else either way. Applies to the channels picked under |cffffd200Chat Channels|r.")
@@ -1671,7 +1681,7 @@ local function BuildMainPanel()
     -- is a question people arrive with.
     -- Inset past the nav button column on the right: with the voice block gone
     -- this header sits high enough to collide with it.
-    local ifaceHeader = sectionHeader(content, "Interface", 170)
+    local ifaceHeader = sectionHeader(content, "Interface", NAV.TEXT_INSET)
     ifaceHeader:SetPoint("TOPLEFT", enableHint, "BOTTOMLEFT", -24, -20)
 
     minimapCheck = Compat.CreateCheckbox(content, "Show minimap button")
@@ -1952,6 +1962,17 @@ local function BuildChatPanel()
     chatPanel:SetScript("OnShow", RefreshChat)
 end
 
+-- Puts the game's information icon beside a label or a checkbox, with the
+-- explanation behind it. `after` is the thing it sits to the right of; a
+-- checkbox is given by name rather than by its label, since the label is
+-- the part the icon actually has to clear.
+local function infoFor(parent, after, text)
+    local anchor = (type(after) == "table" and rawget(after, "labelText")) or after
+    local b = Compat.InfoButton(parent, text)
+    b:SetPoint("LEFT", anchor, "RIGHT", 6, 0)
+    return b
+end
+
 -- Small square icon button with a tooltip: the check and circle-slash pair used
 -- on the language rows, and on a phrase row while it is being reworded. Shared
 -- so that accepting a change looks the same everywhere it can be accepted.
@@ -2023,6 +2044,12 @@ local function BuildLearnedPanel()
     nativeLabel:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -14)
     nativeLabel:SetText("Native dialect")
 
+    infoFor(content, nativeLabel, "The tongue your character grew up speaking. "
+        .. "Words your fluency in the language below does not cover come out in "
+        .. "this one instead of English, so a half-learned language sounds like "
+        .. "someone falling back on their own. Your accent only shapes English, "
+        .. "so it has little left to do once this is set.")
+
     motherDropdown = Compat.CreateDropdown(content, 260)
     motherDropdown:SetPoint("TOPLEFT", nativeLabel, "BOTTOMLEFT", 0, -6)
     motherDropdown:SetItems(motherItems())
@@ -2031,18 +2058,8 @@ local function BuildLearnedPanel()
         if ns.OnSettingsChanged then ns.OnSettingsChanged() else RefreshLearned() end
     end
 
-    local motherHint = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-    motherHint:SetPoint("TOPLEFT", motherDropdown, "BOTTOMLEFT", 2, -4)
-    motherHint:SetWidth(430)
-    motherHint:SetJustifyH("LEFT")
-    motherHint:SetText("The tongue your character grew up speaking. Words your "
-        .. "fluency in the language below does not cover come out in this one "
-        .. "instead of English, so a half-learned language sounds like someone "
-        .. "falling back on their own. Your accent only shapes English, so it has "
-        .. "little left to do once this is set.")
-
     local speakLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    speakLabel:SetPoint("TOPLEFT", motherHint, "BOTTOMLEFT", -2, -14)
+    speakLabel:SetPoint("TOPLEFT", motherDropdown, "BOTTOMLEFT", 0, -14)
     speakLabel:SetText("Speaking")
 
     langDropdown = Compat.CreateDropdown(content, 260)
@@ -2074,32 +2091,22 @@ local function BuildLearnedPanel()
         db().fullImmersion = self:GetChecked() and true or false
         if ns.QuestText then ns.QuestText.Refresh() end
     end)
-    local immersionHint = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-    immersionHint:SetPoint("TOPLEFT", immersionCheck, "BOTTOMLEFT", 6, -2)
-    immersionHint:SetPoint("RIGHT", content, "RIGHT", -28, 0)
-    immersionHint:SetJustifyH("LEFT")
-    immersionHint:SetJustifyV("TOP")
-    immersionHint:SetText("This removes your ability to immediately understand "
-        .. "default game languages and uses Glyphic's fluency instead -- you "
-        .. "read Common and your racial tongues only as well as the list below "
-        .. "says you do. Languages you speak still reach players without "
+    infoFor(content, immersionCheck, "This removes your ability to immediately "
+        .. "understand default game languages and uses Glyphic's fluency instead "
+        .. "-- you read Common and your racial tongues only as well as the list "
+        .. "below says you do. Languages you speak still reach players without "
         .. "Glyphic exactly as they do now. Applies to the channels picked "
         .. "under |cffffd200Chat Channels|r.")
 
     immersionNPCCheck = Compat.CreateCheckbox(content, "Include all NPC text and speech")
-    immersionNPCCheck:SetPoint("TOPLEFT", immersionHint, "BOTTOMLEFT", -6, -6)
+    immersionNPCCheck:SetPoint("TOPLEFT", immersionCheck, "BOTTOMLEFT", 0, -6)
     immersionNPCCheck:SetScript("OnClick", function(self)
         db().immersionNPCs = self:GetChecked() and true or false
         if ns.QuestText then ns.QuestText.Refresh() end
     end)
-    local immersionNPCHint = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-    immersionNPCHint:SetPoint("TOPLEFT", immersionNPCCheck, "BOTTOMLEFT", 6, -2)
-    immersionNPCHint:SetPoint("RIGHT", content, "RIGHT", -28, 0)
-    immersionNPCHint:SetJustifyH("LEFT")
-    immersionNPCHint:SetJustifyV("TOP")
-    immersionNPCHint:SetText("Anything an NPC says out loud -- boss callouts, "
-        .. "emotes, yells and greetings -- in whatever tongue its race would use, "
-        .. "instead of arriving already translated for you.")
+    infoFor(content, immersionNPCCheck, "Anything an NPC says out loud -- boss "
+        .. "callouts, emotes, yells and greetings -- in whatever tongue its race "
+        .. "would use, instead of arriving already translated for you.")
 
     -- Nested under the NPC switch, and indented to say so, because quest text
     -- is the one thing here the game never hid. A boss callout in Orcish is a
@@ -2108,22 +2115,17 @@ local function BuildLearnedPanel()
     -- when everything above it is on, until it's asked for by name.
     immersionQuestCheck = Compat.CreateCheckbox(content,
         "Also garble quest text and dialogue windows")
-    immersionQuestCheck:SetPoint("TOPLEFT", immersionNPCHint, "BOTTOMLEFT", 10, -6)
+    immersionQuestCheck:SetPoint("TOPLEFT", immersionNPCCheck, "BOTTOMLEFT", 16, -6)
     immersionQuestCheck:SetScript("OnClick", function(self)
         db().immersionQuests = self:GetChecked() and true or false
         if ns.QuestText then ns.QuestText.Refresh() end
     end)
-    local immersionQuestHint = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-    immersionQuestHint:SetPoint("TOPLEFT", immersionQuestCheck, "BOTTOMLEFT", 6, -2)
-    immersionQuestHint:SetPoint("RIGHT", content, "RIGHT", -28, 0)
-    immersionQuestHint:SetJustifyH("LEFT")
-    immersionQuestHint:SetJustifyV("TOP")
-    immersionQuestHint:SetText("Quest offers, gossip windows and your journal. "
-        .. "You can still accept a quest you can't read -- the "
-        .. "buttons are yours, not theirs -- and your quest log keeps its titles "
-        .. "so you can still tell one job from another. Quests you already had "
-        .. "fall back to your own faction's tongue, since nothing can tell Glyphic "
-        .. "who gave you one after the fact -- hand one in and the real tongue is "
+    infoFor(content, immersionQuestCheck, "Quest offers, gossip windows and your "
+        .. "journal. You can still accept a quest you can't read -- the buttons "
+        .. "are yours, not theirs -- and your quest log keeps its titles so you "
+        .. "can still tell one job from another. Quests you already had fall back "
+        .. "to your own faction's tongue, since nothing can tell Glyphic who gave "
+        .. "you one after the fact -- hand one in and the real tongue is "
         .. "recorded. Needs |cffffd200Include all NPC text and speech|r above.")
 
     -- The last two, nested under the quest switch and separate from it,
@@ -2134,7 +2136,7 @@ local function BuildLearnedPanel()
     -- should be something you went and asked for.
     CH.trackerCheck = Compat.CreateCheckbox(content,
         "Include the objective tracker and quest log checklist")
-    CH.trackerCheck:SetPoint("TOPLEFT", immersionQuestHint, "BOTTOMLEFT", 10, -6)
+    CH.trackerCheck:SetPoint("TOPLEFT", immersionQuestCheck, "BOTTOMLEFT", 16, -6)
     CH.trackerCheck:SetScript("OnClick", function(self)
         db().immersionTracker = self:GetChecked() and true or false
         if ns.QuestText then ns.QuestText.Refresh() end
@@ -2148,18 +2150,13 @@ local function BuildLearnedPanel()
         if ns.QuestText then ns.QuestText.Refresh() end
     end)
 
-    local immersionOptionsHint = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-    immersionOptionsHint:SetPoint("TOPLEFT", CH.optionsCheck, "BOTTOMLEFT", 6, -2)
-    immersionOptionsHint:SetPoint("RIGHT", content, "RIGHT", -28, 0)
-    immersionOptionsHint:SetJustifyH("LEFT")
-    immersionOptionsHint:SetJustifyV("TOP")
-    immersionOptionsHint:SetText("Off, and deliberately: it hides "
+    infoFor(content, CH.optionsCheck, "Off, and deliberately: it hides "
         .. "|cffffd200I wish to train|r along with everything else, so you are "
         .. "navigating menus by shape. Bracing if you want it, and a trap if "
         .. "it arrives without being asked for.")
 
     CH.lockNote = content:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
-    CH.lockNote:SetPoint("TOPLEFT", immersionOptionsHint, "BOTTOMLEFT", -6, -6)
+    CH.lockNote:SetPoint("TOPLEFT", CH.optionsCheck, "BOTTOMLEFT", 0, -6)
     CH.lockNote:SetPoint("RIGHT", content, "RIGHT", -28, 0)
     CH.lockNote:SetJustifyH("LEFT")
     CH.lockNote:SetTextColor(1, 0.82, 0.2)
@@ -2176,7 +2173,7 @@ local function BuildLearnedPanel()
     -- The summary shares the header's line rather than taking another, so the
     -- block costs the language list as little height as possible.
     local voiceLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    voiceLabel:SetPoint("TOPLEFT", immersionOptionsHint, "BOTTOMLEFT", -22, -16)
+    voiceLabel:SetPoint("TOPLEFT", CH.optionsCheck, "BOTTOMLEFT", -16, -16)
     voiceLabel:SetText("Your voice")
     voiceLabel:SetTextColor(1, 0.82, 0.2)
 
@@ -2184,12 +2181,20 @@ local function BuildLearnedPanel()
     voiceText:SetPoint("LEFT", voiceLabel, "RIGHT", 10, 0)
     voiceText:SetJustifyH("LEFT")
 
+    local voiceInfo = infoFor(content, voiceText, "Drag a handle below to change "
+        .. "how much of a tongue comes through. Your accent is under "
+        .. "|cffffd200Accents|r.")
+
     local voiceRule = content:CreateTexture(nil, "ARTWORK")
     voiceRule:SetHeight(1)
-    voiceRule:SetPoint("LEFT", voiceText, "RIGHT", 8, 0)
+    voiceRule:SetPoint("LEFT", voiceInfo, "RIGHT", 8, 0)
     voiceRule:SetPoint("RIGHT", content, "RIGHT", -32, 0)
     Compat.SolidTexture(voiceRule, 1, 1, 1, 0.12)
 
+    -- What is left on this line is the warning, not the instruction: being
+    -- out of character means none of the dials below are reaching your chat,
+    -- which is the one thing here you need told without asking. The rest
+    -- went behind the icon above.
     voiceHint = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     voiceHint:SetPoint("TOPLEFT", voiceLabel, "BOTTOMLEFT", 0, -6)
     voiceHint:SetPoint("RIGHT", content, "RIGHT", -32, 0)
@@ -2220,6 +2225,10 @@ local function BuildLearnedPanel()
     langLabel:SetPoint("TOPLEFT", previewOutput, "BOTTOMLEFT", 0, -14)
     langLabel:SetText("Your languages")
 
+    local langInfo = infoFor(content, langLabel, "Fluency is how fully you speak "
+        .. "a tongue -- build it by hearing it, in the Language Trainer, or with "
+        .. "the buttons above. Decoding only works on text produced by Glyphic.")
+
     -- Bulk "Learn all" / "Reset all" buttons on the list header row, both gated
     -- behind a confirmation.
     -- The two coloured edges are gone with the plate they were drawn on. The
@@ -2234,7 +2243,7 @@ local function BuildLearnedPanel()
     end
 
     local learnAllBtn = textButton(content, 84, "Learn all")
-    learnAllBtn:SetPoint("LEFT", langLabel, "RIGHT", 20, 0)
+    learnAllBtn:SetPoint("LEFT", langInfo, "RIGHT", 14, 0)
     learnAllBtn:SetScript("OnClick", function()
         Compat.ShowConfirm({
             text = "Become fully fluent in ALL languages?\n\nThis instantly sets every language to 100% -- you'll speak and understand all of them perfectly.",
@@ -2271,15 +2280,11 @@ local function BuildLearnedPanel()
     child:SetPoint("RIGHT", content, "RIGHT", -28, 0)
     learnedChild = child
 
-    -- Footer note. Last thing on the page, so it is what the page is measured
-    -- against; pinning it to the bottom of the panel would have left it
-    -- floating over the middle of a list taller than the window.
-    local note = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-    note:SetPoint("TOPLEFT", child, "BOTTOMLEFT", 0, -12)
-    note:SetPoint("RIGHT", content, "RIGHT", -28, 0)
-    note:SetJustifyH("LEFT")
-    note:SetText("Fluency is how fully you speak a tongue -- build it by hearing it, in the Language Trainer, or with the buttons above. Decoding only works on text produced by Glyphic.")
-    learnedPanel._lastChild = note
+    -- The list is the last thing on the page now, so it is what the page is
+    -- measured against. The footer that used to do that job said the same
+    -- thing twice over for anyone who had read this far, and it is on the
+    -- heading's icon instead.
+    learnedPanel._lastChild = child
 
     -- One row per primary language; sub-languages share their parent's word set
     -- (and fluency), so the parent covers them. Rows for tongues your race
@@ -4086,16 +4091,19 @@ function ns.ConfirmChallengeAbandon()
     local record = C and C.Record()
     if not record then return end
     Compat.ShowConfirm({
-        text = "Abandon |cffffd200" .. record.name .. "|r at level "
+        text = "Stop |cffffd200" .. record.name .. "|r at level "
             .. tostring(record.level or "?") .. "?\n\n"
-            .. "Your settings go back to what they were before the run, and "
-            .. "you |cff80ff80keep every word you learned|r -- you did learn "
-            .. "them.\n\nThe run itself is over and cannot be resumed.",
-        acceptText = "Abandon",
+            .. "|cffff8080This is permanent. The run ends here and cannot be "
+            .. "resumed, restarted or undone|r -- not on this character, "
+            .. "which has already spent the levels a run begins at.\n\n"
+            .. "Your settings go back to what they were before it started, "
+            .. "and you |cff80ff80keep every word you learned|r. You did "
+            .. "learn them.",
+        acceptText = "Stop the run",
         cancelText = "Keep going",
         onAccept = function()
             C.Abandon()
-            ns.Print("Challenge abandoned. Your settings are back as they were.")
+            ns.Print("Challenge stopped. Your settings are back as they were.")
             if ns.OnSettingsChanged then ns.OnSettingsChanged() end
         end,
     })
@@ -4310,8 +4318,11 @@ local function BuildChallengePanel()
         })
     end)
 
+    -- "Stop the run" rather than "Abandon": abandoning is what you do to a
+    -- quest, and this is the only control on the panel that ends something
+    -- permanently. The word should say that before the dialog has to.
     CH.abandonBtn = CreateFrame("Button", nil, panel)
-    styleButton(CH.abandonBtn, "Abandon", 130)
+    styleButton(CH.abandonBtn, "Stop the run", 130)
     CH.abandonBtn:SetPoint("TOPLEFT", CH.startBtn, "TOPLEFT")
     CH.abandonBtn:SetScript("OnClick", function()
         ns.ConfirmChallengeAbandon()

@@ -71,17 +71,19 @@ in character when you want to be heard in it.
   `/glyphic toast next` steps through them and shows you each one on screen as it
   goes.
 - Challenges, at the foot of the main panel's list of places to go, under a rule of their
-  own. The first is **Stranger**: start on a character at level 10 or below, lose every
-  language you have learned, and level up understanding nobody. The three difficulties change what you can
+  own. The first is **Stranger**: start on a fresh character -- level 10 or below with no
+  experience earned yet -- lose every language you have learned, and level up
+  understanding nobody. The three difficulties change what you can
   read, not how fast you learn -- *Easy* hides the prose but leaves your objectives
-  readable, *Medium* takes the tracker and quest log with it, *Hard* takes the replies
-  you click to answer an NPC too. Words land in whatever tongue each quest was given in,
+  readable, *Medium* takes the tracker, the quest log and the objectives on your map with
+  it, *Hard* takes the replies you click to answer an NPC and the floating names over
+  everyone's heads too. Words land in whatever tongue each quest was given in,
   so a run ends as a travel history rather than one bar: fluent in Orcish,
   conversational in Taur-ahe, a smattering of Zandali. The settings a challenge publishes
   go grey for the length of it, and Glyphic checks them on every login -- a run that
   moved one is marked *Voided at level 23* and keeps going with that on its record.
-  Abandoning puts every setting back and keeps the fluency you earned. `/glyphic
-  challenge` prints the record.
+  Stopping a run is permanent and says so before it does it; it puts every setting back
+  and keeps the fluency you earned. `/glyphic challenge` prints the record.
 - A strength slider, 0 to 100, for how much of your text is translated. `0` leaves your
   text alone and lets accents through, `100` translates it completely. In between, words
   convert deterministically, one by one, as you raise the level.
@@ -321,15 +323,26 @@ Each panel answers one question, which is how to guess where a setting lives:
 ### Challenges
 
 - **Stranger** is the one that ships. You arrive understanding nobody, and the only way
-  out is to work for the people who speak the tongue. Starting needs a character at level
-  10 or below with no challenge already running; it wipes every language you have learned,
-  and the run belongs to that character alone. The panel lists those with a tick or a
-  cross beside each, so a refusal tells you which rule refused it.
+  out is to work for the people who speak the tongue. Starting needs a fresh character --
+  level 10 or below *and* no experience earned yet -- with no challenge already running;
+  it wipes every language you have learned, and the run belongs to that character alone.
+  The two requirements refuse different people: the level turns away someone too far
+  along, the experience turns away someone still at the right level who has already
+  played half of it. An allied race or a death knight starting above level one is fresh
+  and allowed. The panel lists every requirement with a tick or a cross beside it, so a
+  refusal tells you which rule refused it.
 - The difficulty is a dropdown, and picking one shows you what it does. *Easy* hides quest
   text, gossip and NPC speech but leaves your objectives readable, so you always know what
-  to do and never why. *Medium* takes the objective tracker and quest log with it. *Hard*
-  takes the replies you click to answer an NPC as well. None of them changes how fast you
-  learn. Start is greyed out until you can actually start.
+  to do and never why. *Medium* takes the objective tracker and quest log with it, and
+  hides quest objectives and their pins on your map. *Hard* takes the replies you click to
+  answer an NPC as well, and the floating names over players and NPCs with them. None of
+  them changes how fast you learn. Start is greyed out until you can actually start.
+- The map and name settings are the client's own rather than the addon's, so they cannot
+  be greyed out the way a checkbox can. They are set when the run starts, put back exactly
+  as they were found when it ends, and set again if anything moves them meanwhile.
+  Nameplates are left alone on purpose -- they are how you tell what is hitting you, not a
+  reading aid -- and so is the exclamation mark over a quest giver's head, which is a
+  world object with no setting behind it for an addon to reach.
 - While a run is live, the settings it published go grey, along with the fluency slider
   and the two learning toggles on the trainer. Cosmetics stay live -- nobody ever made a
   run easier by picking a different toast -- and importing a profile is refused, since it
@@ -339,12 +352,20 @@ Each panel answers one question, which is how to guess where a setting lives:
   and whenever anything changes. A run that moved one is marked *Voided at level 23: the
   gossip list was changed* and carries on with that on its record. Voided runs stay
   locked; abandoning is the way out and gives everything back at once.
-- Abandoning restores every setting to what it was, including the ones that had never
-  been set, and keeps the fluency you earned. The finished record is kept and shown under
-  the next one.
+- **Stop the run** ends it, from the panel or with `/glyphic challenge abandon`. Both go
+  through the same confirmation, which says what it means: the run ends there and cannot
+  be resumed or restarted, and not on that character either, since it has already spent
+  the levels a run begins at. Stopping restores every setting to what it was, including
+  the ones that had never been set, and keeps the fluency you earned -- that part is
+  yours whatever you do. The finished record is kept and shown under the next one.
 
 ### Languages & Fluency tab
 
+- The explanation of each switch is on the information icon beside its label rather than
+  printed underneath it. Six paragraphs of small print stacked down the page meant reading
+  a wall of text to reach the language list at the bottom; hover an icon when you want the
+  detail. The one thing still written on the page is the warning that you are out of
+  character, because that is the reason nothing else on the page is doing anything.
 - Choose the language you're speaking from the dropdown at the top. It carries
   sub-dialects, your favorites and a None entry (plain English, useful when you only
   want an accent).
