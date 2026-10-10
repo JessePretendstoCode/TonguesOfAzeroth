@@ -1089,11 +1089,26 @@ local langWidget
 
 -- Floating-widget metrics, shared between the frame that is built once and the
 -- refresh that resizes it to the current language name.
-local WIDGET_MIN_W = 140
-local WIDGET_PAD = 8
--- Left inset of the fluency word (8) + the gap the "Auto"/"Off" text is held
--- off the right edge for the star (24) + breathing room between the two.
-local WIDGET_BOTTOM_RESERVE = 8 + 24 + 10
+--
+-- Everything here grew when the bar took the game's tooltip border. That
+-- border is sixteen pixels of art on every side where the old one was a
+-- single line, so the numbers that used to leave a comfortable margin were
+-- putting the words underneath it. A bar you cannot read is worse than a
+-- plain one, so the bar is bigger rather than the border thinner.
+-- One table rather than one local apiece: this chunk sits on Lua 5.1's limit
+-- of two hundred locals, and a handful of new measurements is not worth
+-- spending the last of them on.
+--
+-- INSET is where the border's drawn line actually falls, which is well inside
+-- the sixteen -- the rest of the strip is the fade. Blizzard's own tooltips
+-- inset their text by five for the same reason.
+--
+-- The bottom row, right to left: the star's margin (10), the star itself, the
+-- gap before the IC button (6), and the fluency word's own left inset, plus
+-- breathing room so the two halves of the row never touch.
+local WG = { EDGE = 16, INSET = 12, MIN_W = 170, H = 62, PAD = 14, STAR = 16 }
+WG.IC_X = 10 + WG.STAR + 6
+WG.RESERVE = WG.INSET + WG.IC_X + 12
 
 local function RefreshLanguageWidget()
     if not langWidget then return end
@@ -1110,7 +1125,7 @@ local function RefreshLanguageWidget()
         langWidget.icBtn:SetTextColor(tr, tg, tb)
         -- Room for the plate's two 12px end caps either side of the word.
         langWidget.icBtn:SetWidth(
-            math.max(38, math.ceil(langWidget.dot:GetStringWidth()) + 26))
+            math.max(46, math.ceil(langWidget.dot:GetStringWidth()) + 28))
     end
     if langWidget.border then
         -- Full strength, not three-quarters. The old border was a flat colour
@@ -1129,13 +1144,13 @@ local function RefreshLanguageWidget()
     -- "Eldre'Thalassian (Skyborne)" already overflows it, and a custom language
     -- can be named anything at all. Measured after every SetText above, since
     -- GetStringWidth reports the width of the current string.
-    local needed = langWidget.name:GetStringWidth() + WIDGET_PAD * 2
+    local needed = langWidget.name:GetStringWidth() + WG.PAD * 2
     -- The bottom row is fluency on the left, auto/off on the right, and the
     -- favorites star outside that -- it can be the wider of the two rows.
     local bottom = langWidget.sub:GetStringWidth() + langWidget.dot:GetStringWidth()
-        + WIDGET_BOTTOM_RESERVE + 20   -- the IC button's end caps
+        + WG.RESERVE + 28   -- the IC button's end caps
     if bottom > needed then needed = bottom end
-    if needed < WIDGET_MIN_W then needed = WIDGET_MIN_W end
+    if needed < WG.MIN_W then needed = WG.MIN_W end
     langWidget:SetWidth(math.ceil(needed))
 end
 ns.RefreshLanguageWidget = RefreshLanguageWidget
@@ -1169,11 +1184,11 @@ openWidgetMenu = function()
         m:EnableMouse(true)
         m:EnableMouseWheel(true)
         local bg = m:CreateTexture(nil, "BACKGROUND")
-        bg:SetPoint("TOPLEFT", 3, -3)
-        bg:SetPoint("BOTTOMRIGHT", -3, 3)
+        bg:SetPoint("TOPLEFT", 5, -5)
+        bg:SetPoint("BOTTOMRIGHT", -5, 5)
         bg:SetTexture("Interface\\Tooltips\\UI-Tooltip-Background")
         bg:SetVertexColor(0.04, 0.04, 0.06, 0.98)
-        Compat.GameBorder(m, 12)
+        Compat.GameBorder(m, WG.EDGE)
         m.langRows = {}   -- scrollable language list
         m.footRows = {}   -- pinned footer (auto-translate + settings)
         m.offset = 0
@@ -1197,8 +1212,8 @@ openWidgetMenu = function()
     -- name is not pushed into the right edge by the circle in front of it.
     -- The padding also grew: the border is the game's now and its line sits
     -- a few pixels in from the frame edge rather than on it.
-    local W, RH, PAD, DIV, MAXV = 216, 22, 9, 8, 10
-    local INSET = 7
+    local W, RH, PAD, DIV, MAXV = 222, 22, 11, 8, 10
+    local INSET = WG.INSET - 2
 
     -- `radio` rows carry the game's own radio button art, which is how every
     -- pick-one list in WoW says "pick one". Without it the menu was a column
@@ -1352,7 +1367,7 @@ local function SetupLanguageWidget()
     if not langWidget then
         local f = CreateFrame("Frame", "TonguesOfAzerothLangWidget", UIParent)
         -- Starting width only; RefreshLanguageWidget sizes it to its contents.
-        f:SetSize(WIDGET_MIN_W, 40)
+        f:SetSize(WG.MIN_W, WG.H)
         f:SetFrameStrata("MEDIUM")
         f:SetClampedToScreen(true)
         f:SetMovable(true)
@@ -1363,25 +1378,31 @@ local function SetupLanguageWidget()
         -- The game's own tooltip backing rather than a flat fill. It is the
         -- texture every floating readout in WoW sits on, so the bar stops
         -- looking like a coloured rectangle somebody left on the screen.
+        -- Inset by five, which is the inset Blizzard's own tooltips use with
+        -- this border: the fill stops where the drawn line starts instead of
+        -- running out under the fade and making the edge look muddy.
         local bg = f:CreateTexture(nil, "BACKGROUND")
-        bg:SetPoint("TOPLEFT", 3, -3)
-        bg:SetPoint("BOTTOMRIGHT", -3, 3)
+        bg:SetPoint("TOPLEFT", 5, -5)
+        bg:SetPoint("BOTTOMRIGHT", -5, 5)
         bg:SetTexture("Interface\\Tooltips\\UI-Tooltip-Background")
-        bg:SetVertexColor(0.07, 0.07, 0.1, 0.95)
+        bg:SetVertexColor(0.06, 0.06, 0.09, 0.95)
         -- The game's tooltip frame, down to the border, rather than a flat
         -- fill inside a one-pixel line. It still carries the in/out-of-
         -- character state in its colour: the bar is read peripherally,
         -- mid-conversation, so the signal has to survive not being looked at
         -- directly -- which a word cannot.
-        f.border = Compat.GameBorder(f, 12)
+        f.border = Compat.GameBorder(f, WG.EDGE)
 
         local name = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-        name:SetPoint("TOP", 0, -6)
+        name:SetPoint("TOP", 0, -10)
         name:SetTextColor(1, 0.82, 0.2)
         f.name = name
 
+        -- Sat on the frame's bottom edge before, which put it level with the
+        -- IC button's bottom rather than with the word written on it. Lifted
+        -- onto the button's own centre line, so the row reads as one line.
         local sub = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-        sub:SetPoint("BOTTOMLEFT", 8, 6)
+        sub:SetPoint("BOTTOMLEFT", WG.INSET, 15)
         f.sub = sub
 
         -- IC/OOC is the switch you hit mid-conversation, so it gets a real
@@ -1394,9 +1415,9 @@ local function SetupLanguageWidget()
         -- coloured text with a hover tint on them.
         local icBtn = CreateFrame("Button", nil, f)
         -- The small font, because the bar is a HUD element read out of the
-        -- corner of an eye and the plate is only 18 pixels tall.
-        Compat.PanelButton(icBtn, "", 40, 18, "GameFontNormalSmall")
-        icBtn:SetPoint("BOTTOMRIGHT", -24, 4)
+        -- corner of an eye and the plate is only 20 pixels tall.
+        Compat.PanelButton(icBtn, "", 46, 20, "GameFontNormalSmall")
+        icBtn:SetPoint("BOTTOMRIGHT", -WG.IC_X, 10)
         icBtn:SetFrameLevel(f:GetFrameLevel() + 2)
         icBtn:EnableMouseWheel(true)
         icBtn:SetScript("OnMouseWheel", function(_, delta)
@@ -1435,8 +1456,10 @@ local function SetupLanguageWidget()
         -- star doesn't fall through to the frame's cycle-on-click, and it
         -- forwards the wheel so scrolling over it still cycles.
         local fav = CreateFrame("Button", nil, f)
-        fav:SetSize(14, 14)
-        fav:SetPoint("BOTTOMRIGHT", -5, 5)
+        fav:SetSize(WG.STAR, WG.STAR)
+        -- Centred on the IC button's line rather than tucked into the corner,
+        -- which with the bigger border put it half underneath the frame.
+        fav:SetPoint("BOTTOMRIGHT", -10, 12)
         fav:SetFrameLevel(f:GetFrameLevel() + 2)
         fav:EnableMouseWheel(true)
         fav:SetScript("OnMouseWheel", function(_, delta)
@@ -1932,9 +1955,12 @@ end
 -- Small square icon button with a tooltip: the check and circle-slash pair used
 -- on the language rows, and on a phrase row while it is being reworded. Shared
 -- so that accepting a change looks the same everywhere it can be accepted.
+-- 26 rather than 24 by default: the socket spends a quarter of its width on
+-- the frame now, so the icon inside a 24px button came out at 18 and the
+-- check and the circle-slash stopped being tellable apart at a glance.
 local function iconButton(parent, tex, tip, r, g, b, size)
     local btn = CreateFrame("Button", nil, parent)
-    Compat.IconButton(btn, tex, size or 24, (r and { r, g, b }) or nil)
+    Compat.IconButton(btn, tex, size or 26, (r and { r, g, b }) or nil)
     if tip then
         btn:SetScript("OnEnter", function(self)
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
@@ -2333,7 +2359,7 @@ local function BuildLearnedPanel()
         -- buttons; before this the swatch was a flat rectangle beside two
         -- boxed icons and read as a readout you could not press.
         local swatch = CreateFrame("Button", nil, rowF)
-        Compat.IconButton(swatch, nil, 24)
+        Compat.IconButton(swatch, nil, 26)
         Compat.SolidTexture(swatch.icon, 1, 1, 1, 1)
         swatch.fill = swatch.icon
         swatch:RegisterForClicks("LeftButtonUp", "RightButtonUp")
@@ -2403,8 +2429,8 @@ local function BuildLearnedPanel()
         -- here, on the row it belongs to, where dragging it obviously means
         -- "change how well I know THIS language".
         -- Right margin for the button cluster, plus the star the name is now
-        -- indented past.
-        local barW = CHILD_W - 132
+        -- indented past. Three 26px sockets, two 8px gaps and a 6px margin.
+        local barW = CHILD_W - 138
         local bar = CreateFrame("Frame", nil, rowF)
         bar:SetSize(barW, 8)
         bar:SetPoint("TOPLEFT", name, "BOTTOMLEFT", 0, -3)

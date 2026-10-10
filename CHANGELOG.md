@@ -257,9 +257,15 @@ Tongues of Azeroth before 0.5.3.
   on the language panel, and Guess, Reveal and New Word on the trainer. Four
   purple rectangles left on a screen of client art read as broken rather than
   as plain, so it was all of them or none.
-  The round icon buttons -- favourite, learn, colour, play, and the rest --
-  sit in action-bar slots now, with the slot behind and the ring around, the
-  way every other clickable icon in the game does.
+  The small square ones -- reset, make fluent, the colour chip on every
+  language row -- sit in the game's item-slot socket now, with the slot
+  behind the icon and the metal frame around it.
+  Drawn at the button's own size rather than at the ratio the action bars
+  use. Roughly a third of that texture is transparent padding, so an action
+  bar draws it at 1.83x to put the metal where the button's edge is; copied
+  onto a twenty-four pixel row button that makes a forty-four pixel frame
+  reaching ten pixels onto each neighbour, and three controls in a row came
+  out as a heap of overlapping squares. The padding is cropped off instead.
 - **The floating language bar.** The in-character switch on it was two words
   of coloured text with a hover tint, which is not a button and did not look
   like one. It is a button now, on the same plate as everything else, still
@@ -268,6 +274,11 @@ Tongues of Azeroth before 0.5.3.
   behind a one-pixel line. The border still carries the in-character state in
   its colour: the bar is read out of the corner of your eye, mid-sentence, so
   the signal has to survive not being looked at -- which a word does not.
+  The bar is larger than it was. That border is sixteen pixels of art on
+  every side where the old one was a single line, and the spacing that used
+  to leave a comfortable margin was putting the language name and the IC
+  button underneath the frame. A bar you cannot read is worse than a plain
+  one, so the bar grew rather than the border shrinking.
   Right-clicking it opens the language list with a radio circle beside every
   entry and the one you are speaking filled in, under a gold *Select Language*
   heading and inside the same tooltip border -- the way the game asks you to

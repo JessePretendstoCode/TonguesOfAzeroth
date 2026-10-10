@@ -1139,38 +1139,53 @@ function Compat.PanelButton(btn, label, width, height, font)
 end
 
 -- The small square sibling of PanelButton: the game's item-slot socket, which
--- is what WoW uses everywhere a single icon is also a button. Same recipe the
--- action bars use -- a dark slot behind the icon, the metal ring over it at
--- 1.83x the button size, the square highlight, and the depress plate on click.
+-- is what WoW uses everywhere a single icon is also a button.
 --
+-- The action bars draw this ring at 1.83x the button, because roughly a third
+-- of the file is transparent padding either side of the metal. Copying that
+-- ratio onto a twenty-four pixel list button makes a forty-four pixel frame
+-- around it, which reaches ten pixels past the button on every side and lands
+-- squarely on top of its neighbours -- three controls in a row came out as a
+-- pile of overlapping squares.
+--
+-- So the padding is cropped off instead and the frame drawn at the button's
+-- own size. The metal reaches about 48 of the 66 the bars use, which is where
+-- the crop and the three-quarter icon both come from: same art, same
+-- proportions, nothing drawn outside the button that owns it.
+local SLOT_CROP = (1 - 48 / 66) / 2
+local SLOT_ICON = 36 / 48
+
 -- `tint` recolours the ring, which is how the accept and discard pair keep
 -- saying green and red without a hand-drawn border doing it.
 function Compat.IconButton(btn, iconPath, size, tint)
     size = size or 24
     btn:SetSize(size, size)
+    local inner = math.floor(size * SLOT_ICON + 0.5)
 
     local slot = btn:CreateTexture(nil, "BACKGROUND")
-    slot:SetAllPoints()
+    slot:SetPoint("CENTER")
+    slot:SetSize(inner, inner)
     slot:SetTexture("Interface\\Buttons\\UI-Slot-Background")
 
     local icon = btn:CreateTexture(nil, "ARTWORK")
     icon:SetPoint("CENTER")
-    icon:SetSize(size - 8, size - 8)
+    icon:SetSize(inner, inner)
     icon:SetTexture(iconPath)
     btn.icon = icon
 
-    -- Drawn larger than the button and centred on it, because the ring art
-    -- carries its own padding: sized to the frame it would sit inside the
-    -- icon instead of around it. 66/36 is the ratio the action bars use.
     local ring = btn:CreateTexture(nil, "OVERLAY")
-    ring:SetPoint("CENTER")
-    ring:SetSize(size * 1.83, size * 1.83)
+    ring:SetAllPoints()
     ring:SetTexture("Interface\\Buttons\\UI-Quickslot2")
+    ring:SetTexCoord(SLOT_CROP, 1 - SLOT_CROP, SLOT_CROP, 1 - SLOT_CROP)
     if tint then ring:SetVertexColor(tint[1], tint[2], tint[3]) end
     btn.ring = ring
 
+    -- Over the icon only. The depress art is the darkened socket floor, so
+    -- painting it across the ring as well would dim the frame rather than the
+    -- thing that moved.
     local pushed = btn:CreateTexture(nil, "OVERLAY")
-    pushed:SetAllPoints()
+    pushed:SetPoint("CENTER")
+    pushed:SetSize(inner, inner)
     pushed:SetTexture("Interface\\Buttons\\UI-Quickslot-Depress")
     pushed:Hide()
     btn:SetScript("OnMouseDown", function() pushed:Show() end)
@@ -1178,7 +1193,8 @@ function Compat.IconButton(btn, iconPath, size, tint)
     btn:SetScript("OnHide", function() pushed:Hide() end)
 
     local hl = btn:CreateTexture(nil, "HIGHLIGHT")
-    hl:SetAllPoints()
+    hl:SetPoint("CENTER")
+    hl:SetSize(inner, inner)
     hl:SetTexture("Interface\\Buttons\\ButtonHilight-Square")
     if hl.SetBlendMode then hl:SetBlendMode("ADD") end
 
