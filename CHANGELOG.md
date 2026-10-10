@@ -181,9 +181,14 @@ Tongues of Azeroth before 0.5.3.
   rather than painting itself.
 - **Challenges.** A new entry at the foot of the main panel's list of places
   to go, and the last thing under Glyphic in Blizzard's settings tree, under
-  a rule of its own because a challenge is not a preference: everything above
-  that line is somewhere you go to tune the addon, and this is the one that
-  changes what the addon is doing.
+  a rule of its own in both because a challenge is not a preference:
+  everything above that line is somewhere you go to tune the addon, and this
+  is the one that changes what the addon is doing.
+  The rule in Blizzard's sidebar is a line the settings API does not offer.
+  That API registers pages and nothing else, so the only thing an addon can
+  put in that list is another entry -- and the line is one, drawn with the
+  game's own divider texture. Clicking it opens what it was drawn above,
+  since a line is not a page and a blank one would be the only alternative.
   The first one is **Stranger**. You arrive understanding nobody -- every
   quest and every NPC is in a tongue you do not speak -- and the only way out
   is to work for the people who speak it. Starting requires a character at

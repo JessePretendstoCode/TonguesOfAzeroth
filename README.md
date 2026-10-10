@@ -314,9 +314,9 @@ Each panel answers one question, which is how to guess where a setting lives:
   tree, because the two are the same list.
 - Challenges is the last of them, under a rule of its own, because a challenge is not a
   preference: everything above that line is somewhere you go to tune the addon, and this
-  is the one entry that changes what the addon is doing. It is last in Blizzard's settings
-  tree for the same reason. While a run is live, a short line under the button says which
-  tier and what level you have reached.
+  is the one entry that changes what the addon is doing. It sits under the same rule at
+  the bottom of Blizzard's settings tree. While a run is live, a short line under the
+  button says which tier and what level you have reached.
 
 ### Challenges
 

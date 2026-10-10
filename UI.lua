@@ -4817,6 +4817,11 @@ local challengeRegistered = false
 local function RegisterChallengePanel()
     if challengeRegistered or not CH.panel then return end
     BuildPanels()
+    -- The rule above it, matching the one the main panel's own list draws.
+    -- Registered first because the sidebar lists categories in the order
+    -- they arrive, so the line has to be put down before the thing it is
+    -- drawn above.
+    Compat.RegisterOptionsSeparator(mainPanel.name, CH.panel)
     Compat.RegisterOptionsPanel(CH.panel, CH.panel.name, mainPanel.name)
     challengeRegistered = true
 end

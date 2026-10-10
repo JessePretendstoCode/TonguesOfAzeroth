@@ -562,6 +562,49 @@ function Compat.RegisterOptionsPanel(frame, name, parentName)
     end
 end
 
+-- Blizzard's settings sidebar has no notion of a separator. The Settings API
+-- registers pages and nothing else, so the only thing an addon can put in
+-- that list is another category -- which is why "put a line above it" was
+-- never a matter of getting the order right.
+--
+-- So the line is a category whose entire name is the game's own divider.
+-- Font strings render texture escapes anywhere they are drawn, and the
+-- sidebar draws its entries with one, so the list gets a real line in it
+-- without anything here reaching into frames Blizzard rebuilds every
+-- expansion.
+--
+-- Narrower than the sidebar on purpose: a texture escape is measured as a
+-- word, and one wider than the column gets truncated rather than wrapped.
+local SEPARATOR_LABEL = "|TInterface\\Common\\UI-TooltipDivider-Transparent:8:140|t"
+
+-- `target` is the panel the line was drawn above. A line is not a page, so
+-- clicking it goes where it points rather than to a blank canvas.
+function Compat.RegisterOptionsSeparator(parentName, target)
+    if not Compat.hasSettingsAPI then return end
+    local parentCategory = parentName and ns._optionCategories[parentName]
+    if not (parentCategory and Settings.RegisterCanvasLayoutSubcategory) then return end
+
+    local frame = CreateFrame("Frame", nil, UIParent)
+    frame:Hide()
+    -- Deliberately not recorded in ns._optionCategories: it is not a panel
+    -- anyone opens by name, and a key that is a texture escape is a key
+    -- nobody can type.
+    Settings.RegisterCanvasLayoutSubcategory(parentCategory, frame, SEPARATOR_LABEL)
+
+    frame:SetScript("OnShow", function()
+        -- Only when the player is actually looking at the settings panel.
+        -- The list shows and hides its canvases while it works out how big
+        -- they are, and bouncing somebody to another page because Blizzard
+        -- measured something would be worse than the blank page this avoids.
+        if not (SettingsPanel and SettingsPanel:IsShown()) then return end
+        local open = function() Compat.OpenOptionsPanel(target) end
+        -- A frame later: asking the settings panel to open a category from
+        -- inside its own show pass is asking it to lay out while it is
+        -- already laying out.
+        if C_Timer and C_Timer.After then C_Timer.After(0, open) else open() end
+    end)
+end
+
 -- A single, shared, draggable window that hosts ONE options panel at a time
 -- (main panel, learned, trainer, ...). The Language Trainer always uses this, and
 -- it also backs any panel we can't hand to the Settings tree. Navigation model:
