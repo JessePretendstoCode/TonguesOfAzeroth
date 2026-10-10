@@ -1978,10 +1978,16 @@ end
 -- so that accepting a change looks the same everywhere it can be accepted.
 -- 26 rather than 24 by default: the socket spends a quarter of its width on
 -- the frame now, so the icon inside a 24px button came out at 18 and the
--- check and the circle-slash stopped being tellable apart at a glance.
-local function iconButton(parent, tex, tip, r, g, b, size)
+-- check and the cross stopped being tellable apart at a glance.
+--
+-- No tint. The socket used to be coloured to match whatever the button did,
+-- which put a red metal frame beside a green one beside the plain one on
+-- the colour swatch, and read as three different kinds of control rather
+-- than three of the same kind holding different things. The game does not
+-- colour its slots either. What the button does is in the icon.
+local function iconButton(parent, tex, tip, size)
     local btn = CreateFrame("Button", nil, parent)
-    Compat.IconButton(btn, tex, size or 26, (r and { r, g, b }) or nil)
+    Compat.IconButton(btn, tex, size or 26)
     if tip then
         btn:SetScript("OnEnter", function(self)
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
@@ -1993,8 +1999,16 @@ local function iconButton(parent, tex, tip, r, g, b, size)
     return btn
 end
 
+-- A matched pair, from one of the game's own sets, which is the whole
+-- reason for choosing these two. The yes used to be this check and the no
+-- used to be the group-loot pass button: a bold red disc that fills its
+-- file edge to edge, against a check that sits in a third of padding. Drawn
+-- at the same size they came out looking like two different controls, with
+-- the red one swallowing the socket it was supposed to be sitting in. Both
+-- halves of a ready check have the same silhouette and the same margins, so
+-- they match by construction rather than by a pair of fudge factors.
 local ICON_ACCEPT = "Interface\\RAIDFRAME\\ReadyCheck-Ready"
-local ICON_DISCARD = "Interface\\Buttons\\UI-GroupLoot-Pass-Up"
+local ICON_DISCARD = "Interface\\RAIDFRAME\\ReadyCheck-NotReady"
 
 local function BuildLearnedPanel()
     learnedPanel = Compat.CreateOptionsPanel("TonguesOfAzerothLearnedOptions")
@@ -2261,10 +2275,23 @@ local function BuildLearnedPanel()
     end)
 
     -- Single-column list: each row is a language with its fluency bar and two
-    -- icon buttons -- a check (make fully fluent) and a circle-slash (reset to
-    -- 0%), both behind a confirmation.
+    -- icon buttons -- a check (make fully fluent) and a cross (reset to 0%),
+    -- both behind a confirmation.
     local ROW_H = 38
     learnedRowH = ROW_H
+
+    -- Thirty rather than twenty-six. The socket spends a quarter of its
+    -- width on the frame, so at twenty-six the metal came out as a dark
+    -- outline rather than as a slot with something in it, and the icon
+    -- inside was small enough that the check and the cross took a moment to
+    -- tell apart. The row is thirty-eight tall, so the height was never the
+    -- constraint -- the fluency bar beside them is, and it gives up the
+    -- twelve pixels.
+    local ROW_ICON = 30
+    -- Three sockets, the two gaps between them and the margin off the right
+    -- edge. Worked out rather than written down, because the last time
+    -- these were two separate numbers they disagreed.
+    local ROW_TAIL = ROW_ICON * 3 + 8 * 2 + 6
     -- The list used to be 560 wide inside a narrower scroll frame, which
     -- clipped the right-hand end of every row. Nothing clips it now, so it is
     -- the width actually available: the panel's content, less the indent it
@@ -2342,9 +2369,9 @@ local function BuildLearnedPanel()
         local dialects = Language.DialectsOf and Language.DialectsOf(entry.id)
         name:SetText(learnedRowLabel(entry.id))
 
-        -- Reset (circle-slash) + Make Fluent (check) icons, vertically centered.
-        local resetBtn = iconButton(rowF, "Interface\\Buttons\\UI-GroupLoot-Pass-Up",
-            "Reset " .. entry.name .. " to 0% (wipes fluency)", 0.7, 0.4, 0.4)
+        -- Reset (cross) + Make Fluent (check) icons, vertically centered.
+        local resetBtn = iconButton(rowF, ICON_DISCARD,
+            "Reset " .. entry.name .. " to 0% (wipes fluency)", ROW_ICON)
         resetBtn:SetPoint("RIGHT", rowF, "RIGHT", -6, 0)
         resetBtn:SetScript("OnClick", function()
             Compat.ShowConfirm({
@@ -2364,7 +2391,7 @@ local function BuildLearnedPanel()
         -- buttons; before this the swatch was a flat rectangle beside two
         -- boxed icons and read as a readout you could not press.
         local swatch = CreateFrame("Button", nil, rowF)
-        Compat.IconButton(swatch, nil, 26)
+        Compat.IconButton(swatch, nil, ROW_ICON)
         Compat.SolidTexture(swatch.icon, 1, 1, 1, 1)
         swatch.fill = swatch.icon
         swatch:RegisterForClicks("LeftButtonUp", "RightButtonUp")
@@ -2411,8 +2438,8 @@ local function BuildLearnedPanel()
         swatch:SetScript("OnLeave", function() GameTooltip:Hide() end)
         learnedSwatches[entry.id] = swatch
 
-        local fluentBtn = iconButton(rowF, "Interface\\RAIDFRAME\\ReadyCheck-Ready",
-            "Make " .. entry.name .. " fully fluent (100%)", 0.4, 0.6, 0.4)
+        local fluentBtn = iconButton(rowF, ICON_ACCEPT,
+            "Make " .. entry.name .. " fully fluent (100%)", ROW_ICON)
         fluentBtn:SetPoint("RIGHT", resetBtn, "LEFT", -8, 0)
         swatch:SetPoint("RIGHT", fluentBtn, "LEFT", -8, 0)
         fluentBtn:SetScript("OnClick", function()
@@ -2433,9 +2460,9 @@ local function BuildLearnedPanel()
         -- dial but silently overwrote character progress -- so the number lives
         -- here, on the row it belongs to, where dragging it obviously means
         -- "change how well I know THIS language".
-        -- Right margin for the button cluster, plus the star the name is now
-        -- indented past. Three 26px sockets, two 8px gaps and a 6px margin.
-        local barW = CHILD_W - 138
+        -- Room for the button cluster on the right, plus the star the name
+        -- is now indented past on the left.
+        local barW = CHILD_W - ROW_TAIL - 38
         local bar = CreateFrame("Frame", nil, rowF)
         bar:SetSize(barW, 8)
         bar:SetPoint("TOPLEFT", name, "BOTTOMLEFT", 0, -3)
@@ -3342,7 +3369,7 @@ local function castRow(index, parent)
     -- like every other field that saves itself, so clicking away from it read as
     -- committing rather than as abandoning. Now clicking away does commit, and
     -- these two say out loud which of the two things a click will do.
-    row.discard = iconButton(row, ICON_DISCARD, "Discard this rewording (Escape)", 0.7, 0.4, 0.4, 18)
+    row.discard = iconButton(row, ICON_DISCARD, "Discard this rewording (Escape)", 18)
     -- Anchored to the Revert slot even though Revert itself only appears on
     -- reworded rows. A hidden frame still has a position, so this resolves the
     -- same way on every row -- which is the point: these two land in one place
@@ -3350,7 +3377,7 @@ local function castRow(index, parent)
     row.discard:SetPoint("RIGHT", row.action, "LEFT", -6, 0)
     row.discard:Hide()
 
-    row.keep = iconButton(row, ICON_ACCEPT, "Keep this rewording (Enter)", 0.4, 0.6, 0.4, 18)
+    row.keep = iconButton(row, ICON_ACCEPT, "Keep this rewording (Enter)", 18)
     row.keep:SetPoint("RIGHT", row.discard, "LEFT", -4, 0)
     row.keep:Hide()
 

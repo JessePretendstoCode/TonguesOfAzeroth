@@ -349,6 +349,21 @@ Compat.hasProximityAddonMessages =
     (type(WOW_PROJECT_ID) == "number" and type(WOW_PROJECT_MAINLINE) == "number"
         and WOW_PROJECT_ID ~= WOW_PROJECT_MAINLINE) or false
 
+-- Retail, as against Classic, Classic Era and Forever. Asked by project for
+-- the same reason as above, and not simply the inverse of it: an unknown
+-- project has to answer "no" to both, because each is read in the direction
+-- where no is the careful answer.
+--
+-- A function rather than a flag latched at load, because what reads it is a
+-- rule about who may start a challenge -- it has to be answerable both ways
+-- in a test, and a latched flag would only ever exercise whichever client
+-- the harness happened to boot as.
+function Compat.IsMainline()
+    return type(WOW_PROJECT_ID) == "number"
+        and type(WOW_PROJECT_MAINLINE) == "number"
+        and WOW_PROJECT_ID == WOW_PROJECT_MAINLINE
+end
+
 --=========================================================================--
 --  Chat messaging lockdown (Midnight).
 --=========================================================================--

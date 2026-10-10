@@ -71,8 +71,9 @@ in character when you want to be heard in it.
   `/glyphic toast next` steps through them and shows you each one on screen as it
   goes.
 - Challenges, at the foot of the main panel's list of places to go, under a rule of their
-  own. The first is **Stranger**: start on a fresh character -- level 10 or below with no
-  experience earned yet -- lose every language you have learned, and level up
+  own. The first is **Stranger**: start on a genuinely fresh character -- no experience
+  earned, level 10 or below on Retail or level 1 on Classic and Forever, and not a hero
+  class -- lose every language you have learned, and level up
   understanding nobody. The three difficulties change what you can
   read, not how fast you learn -- *Easy* hides the prose but leaves your objectives
   readable, *Medium* takes the tracker, the quest log and the objectives on your map with
@@ -323,14 +324,22 @@ Each panel answers one question, which is how to guess where a setting lives:
 ### Challenges
 
 - **Stranger** is the one that ships. You arrive understanding nobody, and the only way
-  out is to work for the people who speak the tongue. Starting needs a fresh character --
-  level 10 or below *and* no experience earned yet -- with no challenge already running;
-  it wipes every language you have learned, and the run belongs to that character alone.
-  The two requirements refuse different people: the level turns away someone too far
-  along, the experience turns away someone still at the right level who has already
-  played half of it. An allied race or a death knight starting above level one is fresh
-  and allowed. The panel lists every requirement with a tick or a cross beside it, so a
-  refusal tells you which rule refused it.
+  out is to work for the people who speak the tongue. Starting needs a genuinely fresh
+  character with no challenge already running; it wipes every language you have learned,
+  and the run belongs to that character alone. The panel lists every requirement with a
+  tick or a cross beside it, so a refusal tells you which rule refused it.
+- Fresh means no experience earned, and a level that depends on the client. On **Retail**
+  it is level 10 or below, which is where Exile's Reach puts you down. On **Classic,
+  Classic Era and Forever** there is no tutorial, so it is level 1 -- a level four there
+  is somebody who went and did the first few quests in English before coming back to
+  start over, which is exactly who the rule is for. The level and the experience refuse
+  different people: the level turns away someone too far along, the experience turns away
+  someone still at the right level who has already played half of it.
+- **Hero classes cannot start one.** Death knights, demon hunters and evokers are handed
+  the levels the run is about -- a death knight arrives on Retail at level eight with an
+  empty bar, which is fresh by every other test and has still skipped the part of the game
+  the challenge is. An allied race is fine: it starts above level one, but at the
+  beginning.
 - The difficulty is a dropdown, and picking one shows you what it does. *Easy* hides quest
   text, gossip and NPC speech but leaves your objectives readable, so you always know what
   to do and never why. *Medium* takes the objective tracker and quest log with it, and

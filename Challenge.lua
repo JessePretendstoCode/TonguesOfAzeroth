@@ -45,9 +45,36 @@ local _, ns = ...
 local Challenge = {}
 ns.Challenge = Challenge
 
--- Low enough that the hard part cannot be skipped, high enough to admit a
--- retail character who starts at 10 off the back of Exile's Reach.
-Challenge.MAX_START_LEVEL = 10
+-- How far in a character can be and still count as never having played,
+-- which is not the same number on every client.
+--
+-- Retail drops a new character into Exile's Reach and hands out levels for
+-- finishing the tutorial, so ten is the first point at which you are out of
+-- it and choosing where to go; anything lower would refuse people who have
+-- not actually done anything yet. Classic, Classic Era and Forever have no
+-- tutorial. A character who has not played is level one, and a level four
+-- there is somebody who went and did the first few quests in English before
+-- deciding to start over -- which is the thing this requirement exists to
+-- turn away.
+function Challenge.MaxStartLevel()
+    return ns.Compat.IsMainline() and 10 or 1
+end
+
+-- The classes that are handed the levels the run is about. A death knight
+-- arrives on Retail at level eight with nothing on the experience bar,
+-- which is a fresh character by every other test here and has still skipped
+-- the part of the game where you cannot read anybody.
+--
+-- Listed by class token rather than by the level they start at, because
+-- that level has been changed twice already and will be again.
+local HERO_CLASSES = {
+    DEATHKNIGHT = "death knights",
+    DEMONHUNTER = "demon hunters",
+    -- The same case, and refused for the same reason. An evoker starts at
+    -- fifty-eight and so would fail the level test anyway; naming it here
+    -- is so the panel gives the real reason rather than a number.
+    EVOKER      = "evokers",
+}
 
 local function playerLevel()
     if type(UnitLevel) ~= "function" then return nil end
@@ -64,6 +91,15 @@ local function playerXP()
     if type(UnitXP) ~= "function" then return nil end
     local ok, xp = pcall(UnitXP, "player")
     if ok and type(xp) == "number" then return xp end
+    return nil
+end
+
+-- The class token (DEATHKNIGHT, not "Death Knight"), so the check below
+-- reads the same on a German client.
+local function playerClass()
+    if type(UnitClass) ~= "function" then return nil end
+    local ok, _, token = pcall(UnitClass, "player")
+    if ok and type(token) == "string" then return token end
     return nil
 end
 
@@ -307,25 +343,39 @@ end
 function Challenge.Requirements(id)
     local level = playerLevel()
     local xp = playerXP()
+    local cap = Challenge.MaxStartLevel()
+    local class = playerClass()
+    local hero = class and HERO_CLASSES[class]
     return {
         {
             key  = "level",
-            text = "Level " .. Challenge.MAX_START_LEVEL .. " or below",
-            met  = (level ~= nil) and (level <= Challenge.MAX_START_LEVEL),
+            -- "Level 1 or below" is not a sentence anybody says.
+            text = (cap > 1) and ("Level " .. cap .. " or below") or "Level 1",
+            met  = (level ~= nil) and (level <= cap),
             detail = level and ("you are level " .. level) or nil,
         },
         -- Separate from the level, because the two refuse different people.
         -- The level turns away a character who is too far along to start; the
-        -- experience turns away one who is the right level and has already
-        -- played the part of the game this run is about. A fresh allied race
-        -- or death knight arrives above level one with nothing earned, and
-        -- this lets them in while keeping out the level nine who ran Exile's
-        -- Reach in English first.
+        -- experience turns away one who is still at the right level and has
+        -- already played the part of the game this run is about -- the level
+        -- nine who ran Exile's Reach in English first, or, where the cap is
+        -- one, the level one who has been grinding boars without dinging.
+        -- An allied race arrives above level one with nothing earned, and
+        -- this lets them in.
         {
             key  = "fresh",
             text = "No experience earned yet",
             met  = (xp ~= nil) and (xp == 0),
             detail = (xp and xp > 0) and (xp .. " earned already") or nil,
+        },
+        -- Neither of the two above catches a hero class on Retail: a death
+        -- knight is level eight with an empty bar, which is every other
+        -- definition of fresh.
+        {
+            key  = "class",
+            text = "Not a hero class",
+            met  = (class ~= nil) and (hero == nil),
+            detail = hero and (hero .. " start part-way in") or nil,
         },
         {
             key  = "none",

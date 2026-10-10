@@ -191,8 +191,8 @@ Tongues of Azeroth before 0.5.3.
   since a line is not a page and a blank one would be the only alternative.
   The first one is **Stranger**. You arrive understanding nobody -- every
   quest and every NPC is in a tongue you do not speak -- and the only way out
-  is to work for the people who speak it. Starting requires a character at
-  level 10 or below with no other challenge running, wipes every language you
+  is to work for the people who speak it. Starting requires a genuinely fresh
+  character with no other challenge running, wipes every language you
   have learned, and belongs to that character alone.
   The three difficulties change what you can read, not how fast you learn.
   On *Easy* the prose is hidden but your objectives stay readable, so you
@@ -264,7 +264,20 @@ Tongues of Azeroth before 0.5.3.
   as plain, so it was all of them or none.
   The small square ones -- reset, make fluent, the colour chip on every
   language row -- sit in the game's item-slot socket now, with the slot
-  behind the icon and the metal frame around it.
+  behind the icon and the metal frame around it. Thirty pixels rather than
+  twenty-six, because a quarter of that width is the frame and at the
+  smaller size the metal read as a dark outline rather than as a slot with
+  something in it. The fluency bar beside them gives up the difference.
+  The two icons are both halves of a ready check now. The yes was the ready
+  check's tick and the no was the group-loot pass button: a bold red disc
+  that fills its file edge to edge, next to a tick sitting in a third of
+  padding. Drawn at the same size, the red one swallowed the socket it was
+  meant to be sitting in and the pair read as two different kinds of
+  control. Two halves of one set match by construction instead.
+  And the sockets are no longer painted to match what the button does. A red
+  metal frame beside a green one beside the plain one on the colour chip
+  made three of the same control look like three different ones, and the
+  game does not colour its slots either. What the button does is in the icon.
   Drawn at the button's own size rather than at the ratio the action bars
   use. Roughly a third of that texture is transparent padding, so an action
   bar draws it at 1.83x to put the metal where the button's edge is; copied
@@ -307,9 +320,24 @@ Tongues of Azeroth before 0.5.3.
   experience earned rather than only the right level. The two refuse
   different people: the level turns away someone too far along, and the
   experience turns away someone still at the right level who has already
-  played through half of it. An allied race or a death knight starting above
-  level one is still fresh and still allowed. A level nine who ran Exile's
-  Reach is not.
+  played through half of it. A level nine who ran Exile's Reach is not fresh.
+  **How fresh is fresh depends on which game you are playing.** Ten is a
+  Retail number and only a Retail number -- it is where Exile's Reach puts
+  you down, so below it is somebody who has done the tutorial and nothing
+  else. Classic, Classic Era and Forever have no tutorial: a character who
+  has not played is level one, and a level four there is somebody who went
+  and did the first few quests in English before coming back to start
+  properly. That is exactly who this requirement is for, and shipping the
+  Retail number to all four clients was letting them in. The panel says
+  whichever rule applies to the client you are on.
+  **Hero classes cannot start one.** Death knights, demon hunters and evokers
+  are handed the levels the run is about. A death knight arrives on Retail at
+  level eight with an empty experience bar, which is a fresh character by
+  every other test here and has still skipped the stretch of the game where
+  you cannot read anybody -- which is the whole run. Refused by class rather
+  than by the level they start at, since that level has been changed twice
+  already. An allied race is still fine: it starts above level one, but it
+  starts at the beginning.
   Medium and Hard now **take the client's own help away** for the length of a
   run. Medium hides quest objectives and the pins they put on your map; Hard
   hides those and the floating names over players and NPCs as well. These are
