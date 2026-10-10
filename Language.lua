@@ -1581,6 +1581,11 @@ local COMMON_WORDS = {
     "wont", "will", "would", "could", "should", "shall", "may", "might",
 }
 
+-- Shared out so the quest toast can name a word you have actually learned.
+-- One list, because two lists of English words would drift and the toast
+-- would start promising words the decoder cannot read back.
+ns.CommonWords = COMMON_WORDS
+
 local function addReverseEntry(langId, outputLower, sourceLower)
     local map = REVERSE[langId]
     if not map then

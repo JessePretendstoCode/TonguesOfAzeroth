@@ -61,18 +61,19 @@ local function preset(id, label, def)
 end
 
 preset("slate", "Slate -- dark panel, gold edge", {
-    width = 290, height = 46,
+    width = 290, height = 62,
     background = { 0.04, 0.04, 0.07, 0.88 },
     border     = { 0.55, 0.45, 0.20, 0.95 },
     layout = "stack", icon = false, iconSize = 0, tint = true, flair = false, fade = 0,
     wordHex    = "ffffff",
-    titleFont  = "GameFontNormal",      titleColor = { 1, 0.82, 0.2 },   titleY = -8,
+    headerFont = "GameFontNormalSmall",  headerColor = { 1, 0.82, 0.2 },  headerY = -7,
+    titleFont  = "GameFontNormal",      titleColor = { 1, 0.82, 0.2 },   titleY = -24,
     bodyFont   = "GameFontHighlightSmall", bodyColor = { 0.85, 0.85, 0.85 }, bodyGap = -4,
     fadeIn = 0.25, hold = 4.0, fadeOut = 1.0,
 })
 
 preset("parchment", "Parchment -- a note from the quest giver", {
-    width = 300, height = 50,
+    width = 300, height = 66,
     background = { 0.83, 0.74, 0.55, 0.94 },
     border     = { 0.26, 0.18, 0.09, 1 },
     -- The one style that does not take the tongue's colour. Language colours
@@ -80,51 +81,56 @@ preset("parchment", "Parchment -- a note from the quest giver", {
     -- into tan -- Common is near-white and Taur-ahe is a browner tan still.
     layout = "stack", icon = false, iconSize = 0, tint = false, flair = false, fade = 0,
     wordHex    = "2b1a07",
-    titleFont  = "GameFontNormal",      titleColor = { 0.20, 0.12, 0.04 }, titleY = -9,
+    headerFont = "GameFontNormalSmall",  headerColor = { 0.36, 0.22, 0.07 }, headerY = -8,
+    titleFont  = "GameFontNormal",      titleColor = { 0.20, 0.12, 0.04 }, titleY = -25,
     bodyFont   = "GameFontNormalSmall", bodyColor  = { 0.34, 0.24, 0.12 }, bodyGap = -4,
     fadeIn = 0.35, hold = 5.0, fadeOut = 1.2,
 })
 
 preset("banner", "Banner -- wide, no box, like zone text", {
-    width = 460, height = 54,
+    width = 460, height = 70,
     background = { 0, 0, 0, 0 },
     border     = { 0, 0, 0, 0 },
     layout = "stack", icon = false, iconSize = 0, tint = true, flair = false, fade = 0,
     wordHex    = "ffffff",
-    titleFont  = "GameFontNormalLarge", titleColor = { 1, 0.82, 0.2 },    titleY = -4,
+    headerFont = "GameFontNormal",       headerColor = { 1, 0.82, 0.2 },   headerY = -4,
+    titleFont  = "GameFontNormalLarge", titleColor = { 1, 0.82, 0.2 },    titleY = -24,
     bodyFont   = "GameFontNormal",      bodyColor  = { 0.95, 0.95, 0.95 }, bodyGap = -2,
     fadeIn = 0.4, hold = 4.0, fadeOut = 1.5,
 })
 
 preset("minimal", "Minimal -- one quiet line, no furniture", {
-    width = 320, height = 26,
+    width = 320, height = 40,
     background = { 0, 0, 0, 0 },
     border     = { 0, 0, 0, 0 },
     layout = "stack", icon = false, iconSize = 0, tint = true, flair = false, fade = 0,
     wordHex    = "ffe9a8",
-    titleFont  = "GameFontHighlightSmall", titleColor = { 0.95, 0.85, 0.5 }, titleY = -4,
+    headerFont = "GameFontDisableSmall",   headerColor = { 0.72, 0.62, 0.38 }, headerY = -3,
+    titleFont  = "GameFontHighlightSmall", titleColor = { 0.95, 0.85, 0.5 }, titleY = -17,
     bodyFont   = "GameFontDisableSmall",   bodyColor  = { 0.6, 0.6, 0.6 },   bodyGap = -1,
     fadeIn = 0.2, hold = 3.0, fadeOut = 0.8,
 })
 
 preset("achievement", "Achievement -- heavy gold frame", {
-    width = 330, height = 62,
+    width = 330, height = 80,
     background = { 0.02, 0.02, 0.02, 0.95 },
     border     = { 0.85, 0.68, 0.22, 1 },
     layout = "stack", icon = false, iconSize = 0, tint = true, flair = false, fade = 0,
     wordHex    = "ffffff",
-    titleFont  = "GameFontNormalLarge", titleColor = { 1, 0.88, 0.35 },   titleY = -12,
+    headerFont = "GameFontNormalSmall",  headerColor = { 0.95, 0.80, 0.30 }, headerY = -9,
+    titleFont  = "GameFontNormalLarge", titleColor = { 1, 0.88, 0.35 },   titleY = -28,
     bodyFont   = "GameFontHighlight",   bodyColor  = { 0.80, 0.80, 0.80 }, bodyGap = -6,
     fadeIn = 0.3, hold = 5.0, fadeOut = 1.2,
 })
 
 preset("ember", "Ember -- near-black, warm edge", {
-    width = 300, height = 48,
+    width = 300, height = 64,
     background = { 0.07, 0.03, 0.02, 0.92 },
     border     = { 0.72, 0.28, 0.08, 1 },
     layout = "stack", icon = false, iconSize = 0, tint = true, flair = false, fade = 0,
     wordHex    = "ffd2a6",
-    titleFont  = "GameFontNormal",         titleColor = { 1, 0.62, 0.30 },   titleY = -9,
+    headerFont = "GameFontNormalSmall",     headerColor = { 1, 0.62, 0.30 },  headerY = -8,
+    titleFont  = "GameFontNormal",         titleColor = { 1, 0.62, 0.30 },   titleY = -25,
     bodyFont   = "GameFontHighlightSmall", bodyColor  = { 0.78, 0.72, 0.68 }, bodyGap = -4,
     fadeIn = 0.25, hold = 4.0, fadeOut = 1.0,
 })
@@ -147,7 +153,7 @@ local FLAIR = {
 -- underneath where the player's name goes. A gold line above and below sets
 -- it off the way the loot feed is set off, which is what it is imitating.
 preset("loot", "Loot -- icon and two lines, like an item drop", {
-    width = 300, height = 52,
+    width = 300, height = 70,
     background = { 0, 0, 0, 0.55 },
     border     = { 0, 0, 0, 0 },
     layout = "row", icon = "Interface\\Icons\\INV_Misc_Book_11", iconSize = 32,
@@ -157,7 +163,8 @@ preset("loot", "Loot -- icon and two lines, like an item drop", {
     -- just looks like a mistake.
     tint = true, flair = true, fade = 46,
     wordHex    = "ffffff",
-    titleFont  = "GameFontNormal",         titleColor = { 1, 1, 1 },         titleY = -11,
+    headerFont = "GameFontNormalSmall",     headerColor = { 1, 0.82, 0.2 },   headerY = -9,
+    titleFont  = "GameFontNormal",         titleColor = { 1, 1, 1 },         titleY = -26,
     bodyFont   = "GameFontHighlightSmall", bodyColor  = { 0.65, 0.65, 0.65 }, bodyGap = -3,
     fadeIn = 0.2, hold = 4.5, fadeOut = 1.0,
 })
@@ -263,16 +270,25 @@ local function dress(f)
             STYLE.border[3], STYLE.border[4])
     end
 
+    f.header:SetFontObject(STYLE.headerFont)
+    f.header:SetTextColor(STYLE.headerColor[1], STYLE.headerColor[2], STYLE.headerColor[3])
     f.title:SetFontObject(STYLE.titleFont)
     f.title:SetTextColor(STYLE.titleColor[1], STYLE.titleColor[2], STYLE.titleColor[3])
     f.body:SetFontObject(STYLE.bodyFont)
     f.body:SetTextColor(STYLE.bodyColor[1], STYLE.bodyColor[2], STYLE.bodyColor[3])
+    f.header:ClearAllPoints()
     f.title:ClearAllPoints()
     f.body:ClearAllPoints()
 
     for i = 1, #f.flair do
         if STYLE.flair then f.flair[i]:Show() else f.flair[i]:Hide() end
     end
+
+    -- The announcement sits above everything in both layouts, the way a loot
+    -- feed's "You receive loot:" does. Centred even in the row layout,
+    -- because it is about the toast rather than about the entry.
+    f.header:SetPoint("TOP", 0, STYLE.headerY)
+    f.header:SetJustifyH("CENTER")
 
     if STYLE.layout == "row" then
         -- A loot row: square on the left, two lines of text beside it, both
@@ -282,7 +298,9 @@ local function dress(f)
         local pad = 5
         f.iconFrame:SetSize(STYLE.iconSize, STYLE.iconSize)
         f.iconFrame:ClearAllPoints()
-        f.iconFrame:SetPoint("LEFT", pad, 0)
+        -- Hung off the text rather than the frame, so the icon stays level
+        -- with the two lines it belongs to instead of with the header.
+        f.iconFrame:SetPoint("TOPLEFT", pad, STYLE.titleY - 1)
         f.icon:SetTexture(STYLE.icon)
         f.iconFrame:Show()
 
@@ -365,6 +383,9 @@ local function build()
         f.flair[i] = line
     end
 
+    local header = f:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    f.header = header
+
     local title = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     f.title = title
 
@@ -400,6 +421,7 @@ local function present(entry)
     local f = build()
     if not f then return end
     place(f)
+    f.header:SetText(entry.header or "")
     f.title:SetText(entry.title or "")
     f.body:SetText(entry.body or "")
     if entry.titleColor then
@@ -506,26 +528,45 @@ function Toast.Word(got)
         and string.format("%d of %d words", got.learned, got.total)
         or ((got.percent or 0) .. "%")
 
+    -- The headline fact: the tongue's token and what it is the tongue's token
+    -- for. Said in that direction deliberately. The substitution is
+    -- many-to-one, so "Mog" is how "tree" looks rather than a word that means
+    -- tree, and "Mog = tree" reads as the former where "tree = Mog" would
+    -- claim the latter.
+    --
+    -- Either half can be missing: a tongue with no word list has no token,
+    -- and fluency below the first word has nothing to name yet. Both fall
+    -- back to saying only what is true.
+    -- The token is left uncoloured so it takes the line's own colour, which
+    -- is the tongue's where the style allows tinting. Only the English half
+    -- is painted, and in the style's own ink -- white beside a tinted token
+    -- on the dark panels, dark brown on the parchment one.
+    local lesson
+    if got.word and got.plain then
+        lesson = string.format("%s|cff%s  =  %s|r", got.word,
+            STYLE.wordHex or "ffffff", got.plain)
+    elseif got.word then
+        lesson = got.word
+    end
+
     local title, body
     if STYLE.layout == "row" then
         -- Loot's own arrangement: the thing you got on the first line, where
         -- it came from on the second. An item wears its quality's colour
         -- there; a word wears its tongue's.
-        title = got.word or name
+        title = lesson or name
         body = name .. "   |cff909090" .. count .. "|r"
     else
-        -- The word is picked out from the count beside it, which on a dark
-        -- panel means white -- and on the parchment one meant white on tan,
-        -- which is how that style shipped the first time it was looked at. So
-        -- the highlight belongs to the style rather than to this line.
-        title = "You pick up a word of " .. name
-        body = got.word
-            and string.format("|cff%s%s|r      %s",
-                STYLE.wordHex or "ffffff", got.word, count)
-            or count
+        title = lesson or name
+        body = name .. "   " .. count
     end
 
-    return Toast.Show({ title = title, titleColor = color, body = body })
+    return Toast.Show({
+        header = "Word Learned!",
+        title = title,
+        titleColor = color,
+        body = body,
+    })
 end
 
 -- Seeing it without earning it. Choosing between six looks by finishing six
@@ -538,14 +579,23 @@ function Toast.Preview(styleId)
     Toast.Clear()
 
     local blizzId = 3                       -- Taur-ahe, a middling-length name
-    local word, index, total
-    if ns.QuestLearn and type(ns.QuestLearn.WordFor) == "function" then
-        word, index, total = ns.QuestLearn.WordFor(blizzId, 0.41)
+    local frac = 0.41
+    local word, plain, total
+    if ns.QuestLearn then
+        if type(ns.QuestLearn.WordFor) == "function" then
+            plain, word = ns.QuestLearn.WordFor(blizzId, frac)
+        end
+        if type(ns.QuestLearn.Vocabulary) == "function" then
+            total = ns.QuestLearn.Vocabulary(blizzId)
+        end
     end
     return Toast.Word({
         blizzId = blizzId,
         glyphId = (ns.NATIVE_LANG_IDS and ns.NATIVE_LANG_IDS[blizzId]) or "taurahe",
-        word = word, learned = index, total = total, percent = 41,
+        word = word, plain = plain,
+        learned = total and math.floor(frac * total + 0.5) or nil,
+        total = total,
+        percent = math.floor(frac * 100 + 0.5),
     })
 end
 

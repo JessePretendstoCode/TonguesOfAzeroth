@@ -140,16 +140,108 @@ function QuestLearn.WordOrder(blizzId)
     return flat
 end
 
--- The word that goes with a given amount of fluency. Derived from the
--- fluency rather than stored alongside it, so there is one number to be
--- wrong rather than two that can disagree -- and so a tongue you raised in
--- the trainer carries on from where that left it.
+--=========================================================================--
+--  What the word means
+--=========================================================================--
+-- Blizzard's word lists have no meanings. "Mog" is not the Orcish for
+-- anything -- the tables are a bag of tokens the client swaps in, and
+-- nothing in the game data says what any of them stands for. So a toast
+-- that simply announced "Mog" was naming a token, and one that claimed
+-- "Mog = tree" out of nowhere would be inventing a dictionary.
+--
+-- There is a true answer, though, because the substitution runs the other
+-- way and is deterministic. Immersion.Garble hashes the ENGLISH word, and
+-- feeds that same hash back to pick the replacement, so "tree" renders as
+-- exactly one Taur-ahe token every time. Start from the English side and
+-- the pair is a fact rather than a guess.
+--
+-- Better still, the same hash decides legibility: a word comes through
+-- clear once Hash(word) % 300 is under your skill, and skill is fluency x 3.
+-- So the English words have a fixed unlock order, and "the word you just
+-- learned" is a thing the system can actually answer -- the next one over
+-- that line. The toast is not describing the mechanic, it is reading it.
+--
+-- Note the pair is many-to-one: other English words hash into the same
+-- token, so "Mog" is how "tree" looks, not a word that uniquely means tree.
+-- The toast says it in that direction for exactly this reason.
+local lexicons = {}
+
+-- Short words make a poor trophy -- "Mog = at" is technically a lesson and
+-- reads like a glitch. This only decides which of the legible words gets
+-- named, never which ones are legible, so filtering here cannot make the
+-- toast untrue.
+local MIN_WORD = 4
+
+function QuestLearn.Lexicon(blizzId)
+    if lexicons[blizzId] then return lexicons[blizzId] end
+
+    local Immersion = ns.Immersion
+    local words = ns.CommonWords
+    if type(words) ~= "table" or not Immersion
+        or type(Immersion.Hash) ~= "function"
+        or type(Immersion.Garble) ~= "function" then
+        return nil
+    end
+    if type(Immersion.HasWords) == "function" and not Immersion.HasWords(blizzId) then
+        return nil
+    end
+
+    local full = Immersion.FULL_SKILL or 300
+    local seen, list = {}, {}
+    for i = 1, #words do
+        local plain = words[i]
+        if type(plain) == "string" and #plain >= MIN_WORD and not seen[plain] then
+            seen[plain] = true
+            -- Skill 0 forces the substitution, which is how the word looks to
+            -- someone who knows none of the tongue.
+            local ok, garbled = pcall(Immersion.Garble, plain, blizzId, 0)
+            -- A word the tongue has no bucket for comes back unchanged. That
+            -- is not a translation and must not be shown as one.
+            if ok and type(garbled) == "string" and garbled ~= plain then
+                list[#list + 1] = {
+                    plain = plain,
+                    garbled = garbled,
+                    gate = Immersion.Hash(plain) % full,
+                }
+            end
+        end
+    end
+    if #list == 0 then return nil end
+
+    -- Unlock order. Ties broken by the word, because table.sort is not
+    -- stable and two words sharing a gate would otherwise swap places
+    -- between clients.
+    table.sort(list, function(a, b)
+        if a.gate ~= b.gate then return a.gate < b.gate end
+        return a.plain < b.plain
+    end)
+    lexicons[blizzId] = list
+    return list
+end
+
+-- The word that goes with a given amount of fluency: the last one your skill
+-- has carried over the line. Derived from the fluency rather than stored
+-- alongside it, so there is one number to be wrong rather than two that can
+-- disagree -- and so a tongue you raised in the trainer carries on from
+-- where that left it.
+--
+-- Returns the English word and the token it appears as. Nil when the tongue
+-- has no lexicon, and nil when your skill has not reached the first word
+-- yet, which is honest: at that point you have not learned one.
 function QuestLearn.WordFor(blizzId, frac)
-    local flat = QuestLearn.WordOrder(blizzId)
-    if not flat then return nil end
-    local n = math.floor((tonumber(frac) or 0) * #flat + 0.5)
-    if n < 1 then n = 1 elseif n > #flat then n = #flat end
-    return flat[n], n, #flat
+    local list = QuestLearn.Lexicon(blizzId)
+    if not list then return nil end
+
+    local full = (ns.Immersion and ns.Immersion.FULL_SKILL) or 300
+    local skill = (tonumber(frac) or 0) * full
+
+    -- Walk rather than binary-search: a few hundred entries once per quest.
+    local found
+    for i = 1, #list do
+        if list[i].gate < skill then found = list[i] else break end
+    end
+    if not found then return nil end
+    return found.plain, found.garbled
 end
 
 --=========================================================================--
@@ -277,12 +369,21 @@ function QuestLearn.Learn(questID, questLevel)
     local _, _, after = ns.Trainer.GetProgress(glyphId)
     after = tonumber(after) or before
 
-    local word, index, total = QuestLearn.WordFor(blizzId, after)
+    -- The count is the tongue's own size, not the lexicon's: it answers "how
+    -- many quests until this is fluent", which is what the bar underneath is
+    -- measuring. The word named above it comes from the English lexicon and
+    -- is a separate question.
+    local total = QuestLearn.Vocabulary(blizzId) or 0
+    local learned = math.floor(after * total + 0.5)
+    if learned < 1 then learned = 1 elseif learned > total then learned = total end
+
+    local plain, garbled = QuestLearn.WordFor(blizzId, after)
     return {
         blizzId = blizzId,
         glyphId = glyphId,
-        word = word,
-        learned = index,
+        word = garbled,
+        plain = plain,
+        learned = learned,
         total = total,
         percent = math.floor(after * 100 + 0.5),
     }

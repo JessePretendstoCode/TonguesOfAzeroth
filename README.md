@@ -57,11 +57,17 @@ in character when you want to be heard in it.
   is 77 words and Gnomish is 128, so those take 77 and 128 quests. While levelling only
   green-or-better quests count, so you can't farm a starting zone; at the level cap,
   where nothing pays experience any more, everything counts. A small draggable toast
-  names the word you picked up, in one of seven looks -- slate, parchment, banner,
-  minimal, achievement, ember, or loot. *Loot* is the default and borrows the shape
-  of an item drop: an icon, the word where the item name goes in the tongue's own
-  colour, the tongue underneath where the looter's name goes, a gold hairline above
-  and below, and edges that fade away instead of stopping at a rectangle.
+  says *Word Learned!* and shows you the word with what it is the word for --
+  *Pikialo = learned* -- over the tongue and your count. The pair is real: Blizzard's
+  word lists carry no meanings, but the client picks a tongue's word by hashing the
+  English one, so "learned" renders as exactly one Taur-ahe token every time. That
+  same hash decides what you can read, so the words have a fixed unlock order and the
+  toast names the one this hand-in actually bought you. It comes in one of seven
+  looks -- slate, parchment, banner, minimal, achievement, ember, or loot. *Loot* is
+  the default and borrows the shape of an item drop: an icon, the word where the item
+  name goes in the tongue's own colour, the tongue underneath where the looter's name
+  goes, a gold hairline above and below, and edges that fade away instead of stopping
+  at a rectangle.
   `/glyphic toast next` steps through them and shows you each one on screen as it
   goes.
 - A strength slider, 0 to 100, for how much of your text is translated. `0` leaves your

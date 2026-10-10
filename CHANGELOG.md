@@ -86,9 +86,30 @@ Tongues of Azeroth before 0.5.3.
   journal already refuses to guess at: one taken before any of this was on has
   no giver left to ask, and one off an item or a bulletin board had no speaker
   to learn from.
-  A small toast names the word and counts it -- *Lok'tar, 41 of 100* -- and can
-  be dragged anywhere you like. Three hand-ins at a quest hub queue up rather
-  than overwriting each other.
+  A small toast says *Word Learned!*, shows you the word and what it is the
+  word for -- *Pikialo = learned* -- and counts it underneath: *Taur-ahe,
+  43 of 105 words*. It can be dragged anywhere you like, and three hand-ins at
+  a quest hub queue up rather than overwriting each other.
+  The translation is real, which took some finding. Blizzard's word lists have
+  no meanings in them -- they are a bag of tokens the client swaps in, and
+  nothing in the game data says what any of them stands for, so a toast that
+  claimed *Pikialo = tree* out of nowhere would be inventing a dictionary.
+  But the substitution runs the other way and is deterministic: the client
+  hashes the *English* word and uses that hash to pick the replacement, so
+  "learned" comes out as exactly one Taur-ahe token every time. Start from the
+  English side and the pair is a fact rather than a guess.
+  The same hash decides legibility, which is what makes "the word you just
+  learned" answerable at all. A word comes through clear once its hash clears
+  your skill, so the English words have a fixed unlock order and the toast
+  names the next one over that line -- the word this hand-in actually bought
+  you, not an arbitrary one off the list. It is reading the mechanic rather
+  than describing it.
+  It is said in that direction on purpose. Several English words hash into the
+  same token, so *Pikialo = learned* -- how "learned" looks in Taur-ahe -- is
+  true where *learned = Pikialo* would claim the token uniquely means it.
+  Words shorter than four letters are never named: *Mog = at* is technically a
+  lesson and reads like a glitch. That only decides which of the legible words
+  gets named, never which ones are legible.
   It comes in seven looks: *slate* (dark panel, gold edge), *parchment* (a note
   from the quest giver), *banner* (wide, no box, like zone text), *minimal*
   (one quiet line and no furniture), *achievement* (heavy gold frame), *ember*
