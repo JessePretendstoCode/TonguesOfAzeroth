@@ -194,14 +194,16 @@ Tongues of Azeroth before 0.5.3.
   is to work for the people who speak it. Starting requires a genuinely fresh
   character with no other challenge running, wipes every language you
   have learned, and belongs to that character alone.
-  The three difficulties change what you can read, not how fast you learn.
-  On *Easy* the prose is hidden but your objectives stay readable, so you
-  always know what to do and never why. *Medium* takes the objective tracker
-  and the quest log with it, so working out the job is part of the job. *Hard*
-  takes the replies you click to answer an NPC as well, so finding the class
-  trainer's menu is on you.
-  The learn rate is untouched at one word per quest, and the words land in
-  whatever tongue each quest was given in. That spread is the point: a run
+  The three difficulties each take away one more thing, and each one asks
+  more of you for a word. On *Easy* everybody around you speaks a tongue you
+  do not, and a quest finished teaches you a word of it. *Medium* writes your
+  journal and your objectives in it too, so working out the job is part of
+  the job, and a word takes a couple of hand-ins. *Hard* hides the quest
+  tracking entirely and every name over every head with it -- you are
+  somewhere, being asked for something, by someone -- and a word takes a
+  handful.
+  The words land in whatever tongue each quest was given in. That spread is
+  the point: a run
   ends as a travel history rather than a single bar -- fluent in Orcish,
   conversational in Taur-ahe, a smattering of Zandali -- which is what
   actually happened to you.
@@ -310,6 +312,11 @@ Tongues of Azeroth before 0.5.3.
   And the Start button greys out when you cannot start, rather than taking
   the click and answering with an error in chat. The crossed-out requirement
   above it has already given the reason.
+  It scrolls now, like every other panel, and the description sizes itself
+  to the tier you picked rather than to a fixed two lines. Hard's runs to
+  six, and on a page that could not grow it was printed over by the
+  requirements below it with the Start button pushed off the bottom of the
+  window -- which looks like the button is missing rather than below.
   There is a **Stop the run** button on it now, behind a confirmation that
   says what it means: the run ends there, it cannot be resumed or restarted,
   and not on that character either, because the character has already spent
@@ -338,16 +345,35 @@ Tongues of Azeroth before 0.5.3.
   than by the level they start at, since that level has been changed twice
   already. An allied race is still fine: it starts above level one, but it
   starts at the beginning.
-  Medium and Hard now **take the client's own help away** for the length of a
-  run. Medium hides quest objectives and the pins they put on your map; Hard
-  hides those and the floating names over players and NPCs as well. These are
-  console settings rather than the addon's own, so they cannot be refused the
-  way a checkbox can -- they are set when the run starts, put back exactly as
-  they were found when it ends, and set again if something changes them while
-  it is going. Nameplates are deliberately left alone: they are how you tell
-  what is hitting you, not a reading aid. The exclamation mark over a quest
-  giver's head is left alone too, because it is a world object with no
-  setting behind it, and there is no way for an addon to reach it.
+  Hard now **takes the client's own help away** for the length of a run:
+  the quest pins on your world map, the pins and the blue areas on your
+  minimap, the floating names over every player and NPC, and the objective
+  tracker on the side of your screen. Medium keeps all of it -- it garbles
+  your objectives rather than hiding them, and an objective you cannot read
+  is still an objective you can find.
+  The tracker is hidden rather than garbled, because garbled it is still a
+  list of counters and a number is a number in every language. It is put
+  back when the run ends, and only if you had it open to begin with.
+  The rest are console settings rather than the addon's own, so they cannot
+  be refused the way a checkbox can -- they are set when the run starts, put
+  back exactly as they were found when it ends, and set again if something
+  changes them while it is going. Nameplates are deliberately left alone:
+  they are how you tell what is hitting you, not a reading aid. The
+  exclamation mark over a quest giver's head is left alone too, because it
+  is a world object with no setting behind it, and there is no way for an
+  addon to reach it.
+  **A word costs more on the harder tiers.** Easy pays a whole word per
+  quest, as it always has; Medium takes two hand-ins for one and Hard takes
+  five. On the tiers where you can read the least, becoming able to read is
+  meant to be the run rather than something that happens on the way through
+  it.
+  A hand-in that only got you part of the way says so. The toast comes up
+  headed *Getting There* instead of *Word Learned!*, names the tongue and
+  your count, and names no word -- because no word was finished, and naming
+  one anyway would name the same word five times over and read as the addon
+  repeating itself. The count is not rounded up either: a part-word shows as
+  the words you actually have, so the hand-in that finishes one is the one
+  where the number moves.
 - **The explanations on Languages & Fluency are behind an information icon.**
   Every switch on that page had a paragraph of grey small print under it, and
   six of them stacked meant reading a wall of text to reach the language list

@@ -115,10 +115,12 @@ end
 -- Every tier of Stranger shares this. Written once rather than three times,
 -- because three copies of the same four lines is three chances for one of
 -- them to drift and for a tier to quietly stop being the thing it says it is.
+-- Every tier hides speech. What is written down -- the journal, the
+-- objective tracker -- is what separates Easy from the other two, so it is
+-- named per tier rather than here.
 local STRANGER_BASE = {
     fullImmersion   = true,
     immersionNPCs   = true,
-    immersionQuests = true,
     -- Not flavour: the only way out of the fog is quests teaching you, so a
     -- run with this off is unwinnable rather than hard.
     questLearning   = true,
@@ -144,12 +146,18 @@ end
 -- Not in `settings`, and audited separately, because the tripwire compares
 -- saved variables and a console variable is not one. Folding them together
 -- would make every "I changed a graphics setting" into a voided run.
-local MAP_HIDDEN = {
-    -- The pins on the world map and the minimap. The point of Medium is that
-    -- working out the job is part of the job, and a map that still draws a
-    -- ring around the answer gives the job away without a word of text.
+-- Hard's "all quest tracking is hidden", in console variables. Working out
+-- the job is part of the job there, and a map that still draws a ring round
+-- the answer gives it away without a word of text.
+--
+-- Three switches rather than one because they are three systems: the POI
+-- machinery, the objectives drawn on the world map, and the blue areas the
+-- minimap shades in. Turning the first two off and leaving the third is
+-- what a minimap still full of quest blobs looks like.
+local TRACKING_HIDDEN = {
     questPOI = "0",
     showQuestObjectivesOnMap = "0",
+    minimapShowQuestBlobs = "0",
 }
 
 -- Floating names over heads. On Hard you cannot read what anyone says, so
@@ -190,38 +198,59 @@ local CHALLENGES = {
             easy = {
                 id    = "easy",
                 label = "Easy",
-                blurb = "Quest text, gossip and NPC speech are hidden. Your "
-                     .. "objectives stay readable, so you always know what to "
-                     .. "do -- just never why.",
+                blurb = "All players and NPCs speak a language you don't "
+                     .. "understand. Complete a quest to learn a word's "
+                     .. "meaning and become more fluent.",
                 settings = tier({
+                    -- Speech only. Everything written down stays readable,
+                    -- so you always know what to do -- just never why.
+                    immersionQuests         = false,
                     immersionTracker        = false,
                     immersionGossipOptions  = false,
                 }),
                 cvars = cvars(),
+                wordCost = 1,
             },
             medium = {
                 id    = "medium",
                 label = "Medium",
-                blurb = "Your objective tracker and quest log go with it, and "
-                     .. "the map stops marking where to go. Working out the "
-                     .. "job is now part of the job.",
+                blurb = "All players and NPCs speak a language you don't "
+                     .. "understand. Complete quests to learn a word's "
+                     .. "meaning and become more fluent. Journal and Quest "
+                     .. "objectives tracker are also in a written language "
+                     .. "you do not understand.",
                 settings = tier({
+                    immersionQuests         = true,
                     immersionTracker        = true,
                     immersionGossipOptions  = false,
                 }),
-                cvars = cvars(MAP_HIDDEN),
+                -- The map still marks where to go. Reading the tracker is
+                -- the problem on this tier, not finding the place.
+                cvars = cvars(),
+                wordCost = 2,
             },
             hard = {
                 id    = "hard",
                 label = "Hard",
-                blurb = "Everything, including what you click to answer an "
-                     .. "NPC and the names over everybody's head. Finding the "
-                     .. "class trainer's menu is on you.",
+                blurb = "All players and NPCs speak a language you don't "
+                     .. "understand. Complete a handful of quests to learn a "
+                     .. "word's meaning and become more fluent. Journal and "
+                     .. "Quest objectives tracker are also in a written "
+                     .. "language you do not understand. All quest tracking "
+                     .. "is hidden. All NPC and player names are hidden. Who "
+                     .. "are these people?",
                 settings = tier({
+                    immersionQuests         = true,
                     immersionTracker        = true,
+                    -- The replies you click to answer an NPC, so the menus
+                    -- are navigated by shape. Not named in the description
+                    -- above because it is part of not understanding what is
+                    -- said to you rather than a fourth thing.
                     immersionGossipOptions  = true,
                 }),
-                cvars = cvars(MAP_HIDDEN, NAMES_HIDDEN),
+                cvars = cvars(TRACKING_HIDDEN, NAMES_HIDDEN),
+                wordCost = 5,
+                hideTracker = true,
             },
         },
     },
@@ -314,6 +343,103 @@ local function restoreCVars(run)
     reentry = true
     for key, value in pairs(before) do writeCVar(key, value) end
     reentry = false
+end
+
+--=========================================================================--
+--  The objective tracker
+--=========================================================================--
+-- Hard hides the tracker outright rather than garbling it. Garbled, it is
+-- still a list of how many of what you have killed -- the numbers are
+-- numbers in every language -- so you can play the whole run off the
+-- counters without reading a word. Hidden, the quest is the thing you were
+-- told and have to remember.
+--
+-- There is no console variable for this, and no setting. It is a frame, and
+-- which frame depends on the client: Retail has rebuilt the thing twice and
+-- the Classic flavours never left the original. So: whichever of these the
+-- client has.
+local TRACKER_FRAMES = {
+    "ObjectiveTrackerFrame",
+    "QuestWatchFrame",
+    "WatchFrame",
+}
+
+local trackerHooked = false
+
+local function trackerFrames()
+    local out = {}
+    for i = 1, #TRACKER_FRAMES do
+        local f = _G[TRACKER_FRAMES[i]]
+        if type(f) == "table" and type(f.Hide) == "function" then
+            out[#out + 1] = f
+        end
+    end
+    return out
+end
+
+-- Whether the run wants it gone. Read live rather than latched, so the hook
+-- below needs no undoing when the run ends: it simply stops saying yes.
+function Challenge.HidesTracker()
+    local run = Challenge.Current()
+    return (run and run.hideTracker) and true or false
+end
+
+-- Hiding it once is not enough. The tracker shows itself again whenever the
+-- quest log changes, which during a levelling run is constantly, so the
+-- hide has to be attached to the showing rather than performed at a moment.
+--
+-- Both Show and SetShown: SetShown is not written in terms of Show, so a
+-- hook on one is walked straight past by the other.
+local function hookTracker()
+    if trackerHooked then return end
+    local frames = trackerFrames()
+    if #frames == 0 then return end
+    for i = 1, #frames do
+        local f = frames[i]
+        local function reHide(self)
+            if Challenge.HidesTracker() then pcall(self.Hide, self) end
+        end
+        pcall(hooksecurefunc, f, "Show", reHide)
+        pcall(hooksecurefunc, f, "SetShown", function(self, shown)
+            if shown then reHide(self) end
+        end)
+    end
+    trackerHooked = true
+end
+
+-- Called on login and after starting. The hook above covers everything
+-- between; this is for the frames that were already up when we arrived.
+function Challenge.EnforceTracker()
+    hookTracker()
+    if not Challenge.HidesTracker() then return end
+    local frames = trackerFrames()
+    for i = 1, #frames do pcall(frames[i].Hide, frames[i]) end
+end
+
+-- What the tracker looked like before the run took it, by frame name, so
+-- abandoning puts back what was there. Somebody who plays with the tracker
+-- off should not be handed one at the end of a challenge for their trouble.
+local function trackerSnapshot()
+    local out = {}
+    for i = 1, #TRACKER_FRAMES do
+        local f = _G[TRACKER_FRAMES[i]]
+        if type(f) == "table" and type(f.IsShown) == "function" then
+            local ok, shown = pcall(f.IsShown, f)
+            out[TRACKER_FRAMES[i]] = (ok and shown) and true or false
+        end
+    end
+    return out
+end
+
+local function restoreTracker(run)
+    local before = run and run.trackerBefore
+    if type(before) ~= "table" then return end
+    for name, shown in pairs(before) do
+        local f = _G[name]
+        if shown and type(f) == "table" and type(f.Show) == "function" then
+            pcall(f.Show, f)
+        end
+    end
 end
 
 --=========================================================================--
@@ -444,6 +570,7 @@ function Challenge.Start(id, difficultyId)
     local cvarsBefore = {}
     for key in pairs(wanted) do cvarsBefore[key] = readCVar(key) end
 
+    local diff = Challenge.Difficulty(id, difficultyId)
     local level = playerLevel()
     GlyphicDB.challenge = {
         id          = id,
@@ -456,9 +583,17 @@ function Challenge.Start(id, difficultyId)
         locks       = settings,
         cvars       = wanted,
         cvarsBefore = cvarsBefore,
+        -- How many hand-ins one word costs on this tier, and whether the
+        -- tracker goes entirely. Copied onto the run rather than looked up
+        -- from the tier each time, so a run keeps the rules it was started
+        -- under if the tiers are ever retuned underneath it.
+        wordCost    = diff and diff.wordCost or 1,
+        hideTracker = (diff and diff.hideTracker) and true or false,
+        trackerBefore = (diff and diff.hideTracker) and trackerSnapshot() or nil,
         broken      = false,
     }
     Challenge.EnforceCVars()
+    Challenge.EnforceTracker()
 
     if ns.QuestText and ns.QuestText.Refresh then ns.QuestText.Refresh() end
     if ns.OnSettingsChanged then ns.OnSettingsChanged() end
@@ -483,9 +618,13 @@ function Challenge.Abandon()
     for key in pairs(run.locks or {}) do
         GlyphicDB[key] = before[key]
     end
-    -- Before the run is cleared, because the restore reads off the run.
-    restoreCVars(run)
+    -- Cleared before the restores, not after. Both read off the local
+    -- reference, which outlives the field, and the tracker's hook asks
+    -- whether a run wants it hidden every time something shows it -- so
+    -- showing it again while the run is still there hides it again.
     GlyphicDB.challenge = nil
+    restoreCVars(run)
+    restoreTracker(run)
 
     if ns.QuestText and ns.QuestText.Refresh then ns.QuestText.Refresh() end
     if ns.OnSettingsChanged then ns.OnSettingsChanged() end
@@ -596,6 +735,21 @@ end
 -- quests finished rather than quests accepted, because the first is the thing
 -- the run is made of and the second is a number you can inflate by walking
 -- around a quest hub.
+-- How many hand-ins one word costs on the run in progress. One outside a
+-- run, which is the whole of how this reaches anybody who is not in one.
+--
+-- The tiers differ here because their descriptions say they do: a quest on
+-- Easy, quests on Medium, a handful of quests on Hard. It is the only dial
+-- that changes how long a run takes rather than how much of it you can
+-- read, and it is deliberately the last thing in the list -- a tier that
+-- merely took longer would not be a harder tier, it would be a slower one.
+function Challenge.WordCost()
+    local run = Challenge.Current()
+    local cost = run and run.wordCost
+    if type(cost) ~= "number" or cost < 1 then return 1 end
+    return cost
+end
+
 function Challenge.NoteQuest()
     local run = Challenge.Current()
     if not run then return end
@@ -685,6 +839,10 @@ frame:SetScript("OnEvent", function(_, event)
     end
     Challenge.Audit()
     Challenge.EnforceCVars()
+    -- Hooked here rather than at load: the tracker belongs to Blizzard's
+    -- own addon, which on some flavours has not loaded yet when this file
+    -- runs, and a frame that does not exist cannot be hooked.
+    Challenge.EnforceTracker()
 end)
 
 function Challenge._Frame() return frame end

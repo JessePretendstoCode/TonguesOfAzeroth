@@ -550,7 +550,14 @@ function Toast.Word(got)
     end
 
     local title, body
-    if STYLE.layout == "row" then
+    if got.partial then
+        -- A hand-in on a tier where a word costs several of them finishes
+        -- no word, so there is no token for the first line. The tongue and
+        -- how far along it you are is the whole of what is true; filling
+        -- the second line with the name again would read as a bug.
+        title = name
+        body = (STYLE.layout == "row") and ("|cff909090" .. count .. "|r") or count
+    elseif STYLE.layout == "row" then
         -- Loot's own arrangement: the thing you got on the first line, where
         -- it came from on the second. An item wears its quality's colour
         -- there; a word wears its tongue's.
@@ -562,7 +569,10 @@ function Toast.Word(got)
     end
 
     return Toast.Show({
-        header = "Word Learned!",
+        -- Only claim a word when one was finished. Four hand-ins out of
+        -- five announcing "Word Learned!" and naming nothing is the addon
+        -- telling you something that did not happen.
+        header = got.partial and "Getting There" or "Word Learned!",
         title = title,
         titleColor = color,
         body = body,

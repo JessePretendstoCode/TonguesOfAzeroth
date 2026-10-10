@@ -74,11 +74,12 @@ in character when you want to be heard in it.
   own. The first is **Stranger**: start on a genuinely fresh character -- no experience
   earned, level 10 or below on Retail or level 1 on Classic and Forever, and not a hero
   class -- lose every language you have learned, and level up
-  understanding nobody. The three difficulties change what you can
-  read, not how fast you learn -- *Easy* hides the prose but leaves your objectives
-  readable, *Medium* takes the tracker, the quest log and the objectives on your map with
-  it, *Hard* takes the replies you click to answer an NPC and the floating names over
-  everyone's heads too. Words land in whatever tongue each quest was given in,
+  understanding nobody. Each difficulty takes away one more thing and asks more of you
+  for a word: *Easy* is everybody speaking a tongue you do not, a quest a word.
+  *Medium* writes your journal and your objectives in it too, a couple of hand-ins a
+  word. *Hard* hides the quest tracking entirely -- tracker, map pins, minimap -- and
+  every name over every head with it, a handful of hand-ins a word.
+  Words land in whatever tongue each quest was given in,
   so a run ends as a travel history rather than one bar: fluent in Orcish,
   conversational in Taur-ahe, a smattering of Zandali. The settings a challenge publishes
   go grey for the length of it, and Glyphic checks them on every login -- a run that
@@ -340,18 +341,32 @@ Each panel answers one question, which is how to guess where a setting lives:
   empty bar, which is fresh by every other test and has still skipped the part of the game
   the challenge is. An allied race is fine: it starts above level one, but at the
   beginning.
-- The difficulty is a dropdown, and picking one shows you what it does. *Easy* hides quest
-  text, gossip and NPC speech but leaves your objectives readable, so you always know what
-  to do and never why. *Medium* takes the objective tracker and quest log with it, and
-  hides quest objectives and their pins on your map. *Hard* takes the replies you click to
-  answer an NPC as well, and the floating names over players and NPCs with them. None of
-  them changes how fast you learn. Start is greyed out until you can actually start.
-- The map and name settings are the client's own rather than the addon's, so they cannot
-  be greyed out the way a checkbox can. They are set when the run starts, put back exactly
-  as they were found when it ends, and set again if anything moves them meanwhile.
-  Nameplates are left alone on purpose -- they are how you tell what is hitting you, not a
-  reading aid -- and so is the exclamation mark over a quest giver's head, which is a
-  world object with no setting behind it for an addon to reach.
+- The difficulty is a dropdown, and picking one shows you what it does. The panel scrolls
+  and the description sizes itself to the tier, since Hard's runs to six lines where
+  Easy's is two. Start is greyed out until you can actually start.
+  - *Easy*: everyone around you speaks a tongue you do not. Finish a quest, learn a word
+    of it. Your journal and your objectives stay readable, so you always know what to do
+    and never why.
+  - *Medium*: the journal and the objectives are in that tongue too, so working out the
+    job is part of the job. A word takes two hand-ins. The map and minimap keep their
+    pins -- an objective you cannot read is still an objective you can find.
+  - *Hard*: all of the above, plus the quest tracking is gone -- the objective tracker,
+    the pins on your world map, the pins and blue areas on your minimap -- and so is
+    every floating name over every player and NPC. The replies you click to answer an
+    NPC are in the tongue as well. A word takes five hand-ins.
+- The tracker is hidden rather than garbled, because garbled it is still a list of
+  counters and a number is a number in every language. It comes back when the run ends,
+  and only if you had it open to begin with.
+- The map, minimap and name settings are the client's own rather than the addon's, so
+  they cannot be greyed out the way a checkbox can. They are set when the run starts, put
+  back exactly as they were found when it ends, and set again if anything moves them
+  meanwhile. Nameplates are left alone on purpose -- they are how you tell what is hitting
+  you, not a reading aid -- and so is the exclamation mark over a quest giver's head,
+  which is a world object with no setting behind it for an addon to reach.
+- A hand-in that does not finish a word says so: the toast is headed *Getting There*
+  rather than *Word Learned!*, gives the tongue and your count, and names no word. The
+  count is not rounded up, so the hand-in that finishes a word is the one where the
+  number moves.
 - While a run is live, the settings it published go grey, along with the fluency slider
   and the two learning toggles on the trainer. Cosmetics stay live -- nobody ever made a
   run easier by picking a different toast -- and importing a profile is refused, since it

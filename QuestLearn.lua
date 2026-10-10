@@ -86,6 +86,21 @@ function QuestLearn.WordValue(blizzId)
     return 1 / n
 end
 
+-- ...and what one hand-in is worth, which is the same thing outside a
+-- challenge and a fraction of it inside a hard one. Kept apart from
+-- WordValue because that answers "how big is a word" and is read by the
+-- counting below, where this answers "how much of one did that quest buy".
+function QuestLearn.QuestValue(blizzId)
+    local value = QuestLearn.WordValue(blizzId)
+    if value <= 0 then return 0 end
+    local cost = 1
+    if ns.Challenge and type(ns.Challenge.WordCost) == "function" then
+        local ok, n = pcall(ns.Challenge.WordCost)
+        if ok and type(n) == "number" and n >= 1 then cost = n end
+    end
+    return value / cost
+end
+
 -- A stable arbitrary order over a tongue's words, so the toast can name the
 -- one you just picked up. Sorted by a hash rather than by length, or you
 -- would spend your first twenty quests learning single letters. Sorted at all
@@ -356,7 +371,7 @@ function QuestLearn.Learn(questID, questLevel)
     local glyphId = ns.NATIVE_LANG_IDS and ns.NATIVE_LANG_IDS[blizzId]
     if not glyphId then return nil end
 
-    local value = QuestLearn.WordValue(blizzId)
+    local value = QuestLearn.QuestValue(blizzId)
     if value <= 0 then return nil end
 
     if not QuestLearn.Teaches(questLevel) then return nil end
@@ -375,9 +390,27 @@ function QuestLearn.Learn(questID, questLevel)
     -- is a separate question.
     local total = QuestLearn.Vocabulary(blizzId) or 0
     local learned = math.floor(after * total + 0.5)
-    if learned < 1 then learned = 1 elseif learned > total then learned = total end
 
-    local plain, garbled = QuestLearn.WordFor(blizzId, after)
+    -- On a tier where a word costs several hand-ins, most hand-ins buy part
+    -- of one. Naming a word anyway would name the same word four times over
+    -- and then name the next one, which reads as the addon repeating itself
+    -- rather than as progress. So the toast gets the count and no lesson,
+    -- which is the true thing to say: you are closer.
+    --
+    -- Compared before the clamp below, which exists so the toast never says
+    -- "0 of 100" and would otherwise report the first hand-in of five as a
+    -- whole word earned.
+    local partial = learned == math.floor(before * total + 0.5)
+
+    -- The floor is for a whole word only. Rounding a part-word up would
+    -- show "1 of 100" on each of the first four hand-ins and then show it
+    -- again on the fifth, so the one that actually earned the word is the
+    -- one that looks like nothing happened.
+    if learned < 1 and not partial then learned = 1
+    elseif learned > total then learned = total end
+
+    local plain, garbled
+    if not partial then plain, garbled = QuestLearn.WordFor(blizzId, after) end
 
     -- Counted here rather than on the event, so the run's tally is quests
     -- that actually taught something. Everything above this line is a reason
@@ -392,6 +425,7 @@ function QuestLearn.Learn(questID, questLevel)
         glyphId = glyphId,
         word = garbled,
         plain = plain,
+        partial = partial,
         learned = learned,
         total = total,
         percent = math.floor(after * 100 + 0.5),

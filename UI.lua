@@ -4164,6 +4164,14 @@ local function RefreshChallenge()
     end
     if CH.tierBlurb then
         CH.tierBlurb:SetText((tierDef and tierDef.blurb) or "")
+        -- Sized to what it says rather than to a number. The three
+        -- descriptions are two, four and six lines, so a fixed height is
+        -- either too tall for Easy or too short for Hard, and too short
+        -- means the requirements below are printed over the end of it.
+        if CH.tierBlurb.GetStringHeight then
+            local h = CH.tierBlurb:GetStringHeight() or 0
+            CH.tierBlurb:SetHeight(math.max(32, math.ceil(h) + 2))
+        end
     end
 
     -- Requirements, each with its own tick or cross, so somebody refused
@@ -4224,6 +4232,17 @@ local function RefreshChallenge()
         CH.recordHeader:Hide()
         CH.recordText:SetText("")
     end
+
+    -- Size the scroll child to the last element so the panel fits its
+    -- window. Last, because everything above here can change how tall the
+    -- page is -- the tier description most of all.
+    if CH.content and CH.content.SetContentHeight and CH.panel._lastChild then
+        local top = CH.content:GetTop()
+        local bot = CH.panel._lastChild:GetBottom()
+        if top and bot and top > bot then
+            CH.content:SetContentHeight(top - bot + 20)
+        end
+    end
 end
 
 local function BuildChallengePanel()
@@ -4235,13 +4254,20 @@ local function BuildChallengePanel()
     local def = C and C.Definition(C.DEFAULT)
     CH.picked = (C and C.DEFAULT_DIFFICULTY) or "medium"
 
-    local title = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
-    title:SetPoint("TOPLEFT", 16, -16)
+    -- Scrolling, like every other panel. It was a flat page while the three
+    -- tier descriptions were two lines each; Hard's is six now, and a fixed
+    -- page answers a description that grew by pushing the Start button off
+    -- the bottom of the window with nothing on screen to say why.
+    local content = Compat.CreateScrollContent(panel, 700)
+    CH.content = content
+
+    local title = content:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+    title:SetPoint("TOPLEFT", content, "TOPLEFT", 16, -16)
     title:SetText("Challenges")
 
-    local subtitle = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    local subtitle = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -8)
-    subtitle:SetPoint("RIGHT", panel, "RIGHT", -32, 0)
+    subtitle:SetPoint("RIGHT", content, "RIGHT", -32, 0)
     subtitle:SetJustifyH("LEFT")
     if subtitle.SetWordWrap then subtitle:SetWordWrap(true) end
     subtitle:SetText("A fixed arrangement of settings, agreed to rather than "
@@ -4251,19 +4277,19 @@ local function BuildChallengePanel()
         .. "ordinary switches are on |cffffd200Languages & Fluency|r and work "
         .. "on their own.")
 
-    CH.panelStatus = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
+    CH.panelStatus = content:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
     CH.panelStatus:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -14)
-    CH.panelStatus:SetPoint("RIGHT", panel, "RIGHT", -32, 0)
+    CH.panelStatus:SetPoint("RIGHT", content, "RIGHT", -32, 0)
     CH.panelStatus:SetJustifyH("LEFT")
 
-    local nameLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    local nameLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     nameLabel:SetPoint("TOPLEFT", CH.panelStatus, "BOTTOMLEFT", 0, -18)
     nameLabel:SetText((def and def.name) or "Stranger")
     nameLabel:SetTextColor(1, 0.82, 0.2)
 
-    local blurb = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    local blurb = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     blurb:SetPoint("TOPLEFT", nameLabel, "BOTTOMLEFT", 0, -6)
-    blurb:SetPoint("RIGHT", panel, "RIGHT", -32, 0)
+    blurb:SetPoint("RIGHT", content, "RIGHT", -32, 0)
     blurb:SetJustifyH("LEFT")
     if blurb.SetWordWrap then blurb:SetWordWrap(true) end
     blurb:SetText((def and def.blurb) or "")
@@ -4272,11 +4298,11 @@ local function BuildChallengePanel()
     -- paragraph per tier. Three stacked blurbs is three paragraphs of small
     -- grey text to read before the single decision they inform, and the two
     -- you did not pick stay on screen afterwards saying nothing.
-    local tierLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    local tierLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     tierLabel:SetPoint("TOPLEFT", blurb, "BOTTOMLEFT", 0, -14)
     tierLabel:SetText("Difficulty")
 
-    CH.tierDrop = Compat.CreateDropdown(panel, 200)
+    CH.tierDrop = Compat.CreateDropdown(content, 200)
     CH.tierDrop:SetPoint("TOPLEFT", tierLabel, "BOTTOMLEFT", 0, -6)
     do
         local items = {}
@@ -4290,15 +4316,15 @@ local function BuildChallengePanel()
         end
     end
 
-    CH.tierBlurb = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    CH.tierBlurb = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     CH.tierBlurb:SetPoint("TOPLEFT", CH.tierDrop, "BOTTOMLEFT", 2, -8)
-    CH.tierBlurb:SetPoint("RIGHT", panel, "RIGHT", -32, 0)
+    CH.tierBlurb:SetPoint("RIGHT", content, "RIGHT", -32, 0)
     CH.tierBlurb:SetJustifyH("LEFT")
     CH.tierBlurb:SetJustifyV("TOP")
     CH.tierBlurb:SetHeight(32)
     if CH.tierBlurb.SetWordWrap then CH.tierBlurb:SetWordWrap(true) end
 
-    CH.reqHeader = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    CH.reqHeader = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     CH.reqHeader:SetPoint("TOPLEFT", CH.tierBlurb, "BOTTOMLEFT", -2, -16)
     CH.reqHeader:SetText("Before you can start")
     CH.reqHeader:SetTextColor(1, 0.82, 0.2)
@@ -4306,15 +4332,15 @@ local function BuildChallengePanel()
     CH.reqs = {}
     local reqAnchor = CH.reqHeader
     for i = 1, #((C and C.Requirements(C.DEFAULT)) or {}) do
-        local line = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+        local line = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
         line:SetPoint("TOPLEFT", reqAnchor, "BOTTOMLEFT", (i == 1) and 6 or 0, -6)
-        line:SetPoint("RIGHT", panel, "RIGHT", -32, 0)
+        line:SetPoint("RIGHT", content, "RIGHT", -32, 0)
         line:SetJustifyH("LEFT")
         CH.reqs[i] = line
         reqAnchor = line
     end
 
-    CH.startBtn = CreateFrame("Button", nil, panel)
+    CH.startBtn = CreateFrame("Button", nil, content)
     styleButton(CH.startBtn, "Start", 130)
     CH.startBtn:SetPoint("TOPLEFT", reqAnchor, "BOTTOMLEFT", -6, -16)
     CH.startBtn:SetScript("OnClick", function()
@@ -4348,23 +4374,25 @@ local function BuildChallengePanel()
     -- "Stop the run" rather than "Abandon": abandoning is what you do to a
     -- quest, and this is the only control on the panel that ends something
     -- permanently. The word should say that before the dialog has to.
-    CH.abandonBtn = CreateFrame("Button", nil, panel)
+    CH.abandonBtn = CreateFrame("Button", nil, content)
     styleButton(CH.abandonBtn, "Stop the run", 130)
     CH.abandonBtn:SetPoint("TOPLEFT", CH.startBtn, "TOPLEFT")
     CH.abandonBtn:SetScript("OnClick", function()
         ns.ConfirmChallengeAbandon()
     end)
 
-    CH.recordHeader = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    CH.recordHeader = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     CH.recordHeader:SetPoint("TOPLEFT", CH.startBtn, "BOTTOMLEFT", 6, -18)
     CH.recordHeader:SetText("Your run")
     CH.recordHeader:SetTextColor(1, 0.82, 0.2)
 
-    CH.recordText = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    CH.recordText = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     CH.recordText:SetPoint("TOPLEFT", CH.recordHeader, "BOTTOMLEFT", 0, -8)
-    CH.recordText:SetPoint("RIGHT", panel, "RIGHT", -32, 0)
+    CH.recordText:SetPoint("RIGHT", content, "RIGHT", -32, 0)
     CH.recordText:SetJustifyH("LEFT")
     CH.recordText:SetJustifyV("TOP")
+    panel._content = content
+    panel._lastChild = CH.recordText
 
     panel.refresh = RefreshChallenge
     panel:SetScript("OnShow", RefreshChallenge)
