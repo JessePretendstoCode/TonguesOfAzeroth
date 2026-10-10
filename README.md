@@ -307,14 +307,16 @@ Each panel answers one question, which is how to guess where a setting lives:
   of what you're speaking and whether you're in character. The IC/OOC control on it is a
   real button wearing the game's own plate, so it looks like the thing it is; right-click
   the bar for the language list, with a radio circle beside every entry and the one
-  you're speaking filled in.
+  you're speaking filled in. Both the bar and the list are framed in the game's tooltip
+  border, and the bar's border stays green in character and red out of it.
 - Everything else is a button through to the panel that owns it, so settings live where the
   thing they configure lives. They are listed in the same order as Blizzard's settings
   tree, because the two are the same list.
 - Challenges is the last of them, under a rule of its own, because a challenge is not a
   preference: everything above that line is somewhere you go to tune the addon, and this
-  is the one entry that changes what the addon is doing. While a run is live, a short
-  line under the button says which tier and what level you have reached.
+  is the one entry that changes what the addon is doing. It is last in Blizzard's settings
+  tree for the same reason. While a run is live, a short line under the button says which
+  tier and what level you have reached.
 
 ### Challenges
 

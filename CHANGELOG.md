@@ -180,9 +180,10 @@ Tongues of Azeroth before 0.5.3.
   in-game languages* under Chat Channels like any other line of real Orcish,
   rather than painting itself.
 - **Challenges.** A new entry at the foot of the main panel's list of places
-  to go, under a rule of its own because a challenge is not a preference:
-  everything above that line is somewhere you go to tune the addon, and this
-  is the one that changes what the addon is doing.
+  to go, and the last thing under Glyphic in Blizzard's settings tree, under
+  a rule of its own because a challenge is not a preference: everything above
+  that line is somewhere you go to tune the addon, and this is the one that
+  changes what the addon is doing.
   The first one is **Stranger**. You arrive understanding nobody -- every
   quest and every NPC is in a tongue you do not speak -- and the only way out
   is to work for the people who speak it. Starting requires a character at
@@ -251,16 +252,27 @@ Tongues of Azeroth before 0.5.3.
   Three pieces rather than one stretched image, because the caps carry the
   rivets and the bevel and stretching an eighty-pixel plate out to a hundred
   and seventy smears both.
+  The small ones were caught too: the nudge and Remove and Browse buttons on
+  every cast phrase row, Add and Restore above them, Learn all and Reset all
+  on the language panel, and Guess, Reveal and New Word on the trainer. Four
+  purple rectangles left on a screen of client art read as broken rather than
+  as plain, so it was all of them or none.
+  The round icon buttons -- favourite, learn, colour, play, and the rest --
+  sit in action-bar slots now, with the slot behind and the ring around, the
+  way every other clickable icon in the game does.
 - **The floating language bar.** The in-character switch on it was two words
   of coloured text with a hover tint, which is not a button and did not look
   like one. It is a button now, on the same plate as everything else, still
   green in character and red out of it. The bar itself sits on the game's
-  tooltip backing instead of a flat fill.
+  tooltip backing inside the game's tooltip border, instead of a flat fill
+  behind a one-pixel line. The border still carries the in-character state in
+  its colour: the bar is read out of the corner of your eye, mid-sentence, so
+  the signal has to survive not being looked at -- which a word does not.
   Right-clicking it opens the language list with a radio circle beside every
   entry and the one you are speaking filled in, under a gold *Select Language*
-  heading -- the way the game asks you to pick one of something. Before, it
-  was a column of names with one of them coloured, which read as a list of
-  commands rather than a choice.
+  heading and inside the same tooltip border -- the way the game asks you to
+  pick one of something. Before, it was a column of names with one of them
+  coloured, which read as a list of commands rather than a choice.
 - **The Challenges panel** no longer stacks all three difficulties with a
   paragraph under each. It is a dropdown and one description, which is the
   shape of the decision: you are choosing between three, and reading three

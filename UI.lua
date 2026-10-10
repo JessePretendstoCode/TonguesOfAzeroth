@@ -1113,7 +1113,10 @@ local function RefreshLanguageWidget()
             math.max(38, math.ceil(langWidget.dot:GetStringWidth()) + 26))
     end
     if langWidget.border then
-        langWidget.border:SetColor(tr * 0.75, tg * 0.75, tb * 0.75, 0.95)
+        -- Full strength, not three-quarters. The old border was a flat colour
+        -- painted straight on; this one tints art that is already mid-toned,
+        -- so dimming it first just makes the edge disappear.
+        langWidget.border:SetColor(tr, tg, tb, 1)
     end
     if langWidget.fav then
         -- Filled only when the toggle is on AND there's a list to walk, so the
@@ -1165,10 +1168,12 @@ openWidgetMenu = function()
         m:SetClampedToScreen(true)
         m:EnableMouse(true)
         m:EnableMouseWheel(true)
-        local bg = m:CreateTexture(nil, "BACKGROUND"); bg:SetAllPoints()
+        local bg = m:CreateTexture(nil, "BACKGROUND")
+        bg:SetPoint("TOPLEFT", 3, -3)
+        bg:SetPoint("BOTTOMRIGHT", -3, 3)
         bg:SetTexture("Interface\\Tooltips\\UI-Tooltip-Background")
-        bg:SetVertexColor(0.04, 0.04, 0.06, 0.97)
-        Compat.AddBorder(m, 0.5, 0.45, 0.7, 0.95)
+        bg:SetVertexColor(0.04, 0.04, 0.06, 0.98)
+        Compat.GameBorder(m, 12)
         m.langRows = {}   -- scrollable language list
         m.footRows = {}   -- pinned footer (auto-translate + settings)
         m.offset = 0
@@ -1190,7 +1195,10 @@ openWidgetMenu = function()
     local d = db()
     -- Wider than it was by the width of the radio column, so a long language
     -- name is not pushed into the right edge by the circle in front of it.
-    local W, RH, PAD, DIV, MAXV = 212, 22, 6, 8, 10
+    -- The padding also grew: the border is the game's now and its line sits
+    -- a few pixels in from the frame edge rather than on it.
+    local W, RH, PAD, DIV, MAXV = 216, 22, 9, 8, 10
+    local INSET = 7
 
     -- `radio` rows carry the game's own radio button art, which is how every
     -- pick-one list in WoW says "pick one". Without it the menu was a column
@@ -1255,7 +1263,7 @@ openWidgetMenu = function()
     -- unrelated commands under it, and nothing said what the column was.
     if not m.title then
         local t = m:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-        t:SetPoint("TOPLEFT", m, "TOPLEFT", 12, -PAD - 3)
+        t:SetPoint("TOPLEFT", m, "TOPLEFT", INSET + 8, -PAD - 3)
         t:SetTextColor(1, 0.82, 0.2)
         t:SetText("Select Language")
         m.title = t
@@ -1269,8 +1277,8 @@ openWidgetMenu = function()
             if item then
                 local r = makeRow(m.langRows, slot, true)
                 r:ClearAllPoints()
-                r:SetPoint("TOPLEFT", m, "TOPLEFT", 4, -listTop - (slot - 1) * RH)
-                r:SetPoint("RIGHT", m, "RIGHT", -4, 0)
+                r:SetPoint("TOPLEFT", m, "TOPLEFT", INSET, -listTop - (slot - 1) * RH)
+                r:SetPoint("RIGHT", m, "RIGHT", -INSET, 0)
                 local isCur = (item.value == d.language)
                 r.text:SetText(item.text)
                 setRadio(r.radio, isCur)
@@ -1307,13 +1315,13 @@ openWidgetMenu = function()
     end
     local divY = -(listTop + visible * RH + DIV / 2)
     m.divider:ClearAllPoints()
-    m.divider:SetPoint("TOPLEFT", m, "TOPLEFT", 6, divY)
-    m.divider:SetPoint("TOPRIGHT", m, "TOPRIGHT", -6, divY)
+    m.divider:SetPoint("TOPLEFT", m, "TOPLEFT", INSET + 2, divY)
+    m.divider:SetPoint("TOPRIGHT", m, "TOPRIGHT", -(INSET + 2), divY)
 
     local rAuto = makeRow(m.footRows, 1)
     rAuto:ClearAllPoints()
-    rAuto:SetPoint("TOPLEFT", m, "TOPLEFT", 4, -footTop)
-    rAuto:SetPoint("RIGHT", m, "RIGHT", -4, 0)
+    rAuto:SetPoint("TOPLEFT", m, "TOPLEFT", INSET, -footTop)
+    rAuto:SetPoint("RIGHT", m, "RIGHT", -INSET, 0)
     rAuto.text:SetText(d.inCharacter and "Speaking: |cff66dd66IN CHARACTER|r" or "Speaking: |cffdd6666OUT OF CHARACTER|r")
     rAuto:SetScript("OnClick", function()
         toggleInCharacter()
@@ -1323,8 +1331,8 @@ openWidgetMenu = function()
 
     local rSet = makeRow(m.footRows, 2)
     rSet:ClearAllPoints()
-    rSet:SetPoint("TOPLEFT", m, "TOPLEFT", 4, -(footTop + RH))
-    rSet:SetPoint("RIGHT", m, "RIGHT", -4, 0)
+    rSet:SetPoint("TOPLEFT", m, "TOPLEFT", INSET, -(footTop + RH))
+    rSet:SetPoint("RIGHT", m, "RIGHT", -INSET, 0)
     rSet.text:SetText("Open settings...")
     rSet:SetScript("OnClick", function()
         closeWidgetMenu()
@@ -1356,13 +1364,16 @@ local function SetupLanguageWidget()
         -- texture every floating readout in WoW sits on, so the bar stops
         -- looking like a coloured rectangle somebody left on the screen.
         local bg = f:CreateTexture(nil, "BACKGROUND")
-        bg:SetAllPoints()
+        bg:SetPoint("TOPLEFT", 3, -3)
+        bg:SetPoint("BOTTOMRIGHT", -3, 3)
         bg:SetTexture("Interface\\Tooltips\\UI-Tooltip-Background")
-        bg:SetVertexColor(0.07, 0.07, 0.1, 0.92)
-        -- Kept so the bar's edge can carry the in/out-of-character state. The
-        -- bar is usually read peripherally, mid-conversation, so the signal has
-        -- to survive not being looked at directly -- which a word cannot.
-        f.border = Compat.AddBorder(f, 0.5, 0.45, 0.7, 0.95)
+        bg:SetVertexColor(0.07, 0.07, 0.1, 0.95)
+        -- The game's tooltip frame, down to the border, rather than a flat
+        -- fill inside a one-pixel line. It still carries the in/out-of-
+        -- character state in its colour: the bar is read peripherally,
+        -- mid-conversation, so the signal has to survive not being looked at
+        -- directly -- which a word cannot.
+        f.border = Compat.GameBorder(f, 12)
 
         local name = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
         name:SetPoint("TOP", 0, -6)
@@ -1923,17 +1934,7 @@ end
 -- so that accepting a change looks the same everywhere it can be accepted.
 local function iconButton(parent, tex, tip, r, g, b, size)
     local btn = CreateFrame("Button", nil, parent)
-    btn:SetSize(size or 24, size or 24)
-    local bg = btn:CreateTexture(nil, "BACKGROUND"); bg:SetAllPoints()
-    Compat.SolidTexture(bg, 0.16, 0.15, 0.20, 1)
-    Compat.AddBorder(btn, r or 0.5, g or 0.45, b or 0.7, 0.9)
-    local icon = btn:CreateTexture(nil, "ARTWORK")
-    icon:SetPoint("CENTER", 0, 0)
-    icon:SetSize((size or 24) - 8, (size or 24) - 8)
-    icon:SetTexture(tex)
-    btn.icon = icon
-    local hl = btn:CreateTexture(nil, "HIGHLIGHT"); hl:SetAllPoints()
-    Compat.SolidTexture(hl, 1, 1, 1, 0.15)
+    Compat.IconButton(btn, tex, size or 24, (r and { r, g, b }) or nil)
     if tip then
         btn:SetScript("OnEnter", function(self)
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
@@ -2195,21 +2196,18 @@ local function BuildLearnedPanel()
 
     -- Bulk "Learn all" / "Reset all" buttons on the list header row, both gated
     -- behind a confirmation.
-    local function textButton(parent, w, label, rr, gg, bb)
+    -- The two coloured edges are gone with the plate they were drawn on. The
+    -- warning these needed was never the border anyway -- both have carried a
+    -- confirmation dialog since they were written, and that is the part that
+    -- actually stops a misclick.
+    local function textButton(parent, w, label)
         local b = CreateFrame("Button", nil, parent)
-        b:SetSize(w, 22)
-        local bbg = b:CreateTexture(nil, "BACKGROUND"); bbg:SetAllPoints()
-        Compat.SolidTexture(bbg, 0.18, 0.16, 0.24, 1)
-        Compat.AddBorder(b, rr or 0.5, gg or 0.45, bb or 0.7, 0.9)
-        local hl = b:CreateTexture(nil, "HIGHLIGHT"); hl:SetAllPoints()
-        Compat.SolidTexture(hl, 1, 1, 1, 0.15)
-        local t = b:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-        t:SetPoint("CENTER"); t:SetText(label)
-        b.label = t
+        Compat.PanelButton(b, label, w, 22, "GameFontNormalSmall")
+        b.label = b.text
         return b
     end
 
-    local learnAllBtn = textButton(content, 84, "Learn all", 0.4, 0.6, 0.4)
+    local learnAllBtn = textButton(content, 84, "Learn all")
     learnAllBtn:SetPoint("LEFT", langLabel, "RIGHT", 20, 0)
     learnAllBtn:SetScript("OnClick", function()
         Compat.ShowConfirm({
@@ -2218,7 +2216,7 @@ local function BuildLearnedPanel()
         })
     end)
 
-    local resetAllBtn = textButton(content, 84, "Reset all", 0.7, 0.4, 0.4)
+    local resetAllBtn = textButton(content, 84, "Reset all")
     resetAllBtn:SetPoint("LEFT", learnAllBtn, "RIGHT", 8, 0)
     resetAllBtn:SetScript("OnClick", function()
         Compat.ShowConfirm({
@@ -2329,15 +2327,15 @@ local function BuildLearnedPanel()
         -- with the palette itself: a sub-dialect inherits its parent's color, so
         -- recoloring Zandali recolors Amani with it. Setting a sub apart is
         -- still possible, just from the slash command.
+        -- Built on the same socket as its two neighbours, with the colour
+        -- painted onto the icon rather than onto a bare square. Three
+        -- controls in a row that are all buttons should look like three
+        -- buttons; before this the swatch was a flat rectangle beside two
+        -- boxed icons and read as a readout you could not press.
         local swatch = CreateFrame("Button", nil, rowF)
-        swatch:SetSize(24, 24)
-        local swatchFill = swatch:CreateTexture(nil, "BACKGROUND")
-        swatchFill:SetAllPoints()
-        Compat.SolidTexture(swatchFill, 1, 1, 1, 1)
-        Compat.AddBorder(swatch, 0.5, 0.45, 0.7, 0.9)
-        local swatchHL = swatch:CreateTexture(nil, "HIGHLIGHT"); swatchHL:SetAllPoints()
-        Compat.SolidTexture(swatchHL, 1, 1, 1, 0.25)
-        swatch.fill = swatchFill
+        Compat.IconButton(swatch, nil, 24)
+        Compat.SolidTexture(swatch.icon, 1, 1, 1, 1)
+        swatch.fill = swatch.icon
         swatch:RegisterForClicks("LeftButtonUp", "RightButtonUp")
         swatch:SetScript("OnClick", function(_, button)
             if not ns.Colors then return end
@@ -3230,18 +3228,8 @@ local function castRow(index, parent)
         -- at once. The bar's in-character and favorite buttons are raised over
         -- their frame for the same reason.
         btn:SetFrameLevel(row:GetFrameLevel() + 2)
-        btn:SetSize(width or 18, 18)
-        local bg = btn:CreateTexture(nil, "BACKGROUND")
-        bg:SetAllPoints()
-        Compat.SolidTexture(bg, 0.18, 0.16, 0.24, 1)
-        Compat.AddBorder(btn, 0.5, 0.45, 0.7, 0.9)
-        local t = btn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-        t:SetPoint("CENTER", 0, 0)
-        t:SetText(label)
-        local hl = btn:CreateTexture(nil, "HIGHLIGHT")
-        hl:SetAllPoints()
-        Compat.SolidTexture(hl, 1, 1, 1, 0.12)
-        btn.label = t
+        Compat.PanelButton(btn, label, width or 18, 18, "GameFontNormalSmall")
+        btn.label = btn.text
         return btn
     end
 
@@ -4573,18 +4561,8 @@ local function BuildCastPanel()
     castHiddenNote.text:SetJustifyH("LEFT")
 
     castHiddenNote.restore = CreateFrame("Button", nil, castHiddenNote)
-    castHiddenNote.restore:SetSize(76, 18)
+    Compat.PanelButton(castHiddenNote.restore, "Restore", 76, 18, "GameFontNormalSmall")
     castHiddenNote.restore:SetPoint("LEFT", castHiddenNote.text, "RIGHT", 10, 0)
-    local rbg = castHiddenNote.restore:CreateTexture(nil, "BACKGROUND")
-    rbg:SetAllPoints()
-    Compat.SolidTexture(rbg, 0.18, 0.16, 0.24, 1)
-    Compat.AddBorder(castHiddenNote.restore, 0.5, 0.45, 0.7, 0.9)
-    local rtx = castHiddenNote.restore:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    rtx:SetPoint("CENTER", 0, 0)
-    rtx:SetText("Restore")
-    local rhl = castHiddenNote.restore:CreateTexture(nil, "HIGHLIGHT")
-    rhl:SetAllPoints()
-    Compat.SolidTexture(rhl, 1, 1, 1, 0.12)
     castHiddenNote.restore:SetScript("OnClick", function()
         local n = Casts.RestoreHidden(castSelectedKey)
         castStatusMsg(n == 1 and "Put that line back."
@@ -4633,20 +4611,8 @@ local function BuildCastPanel()
     castNewInput:SetScript("OnEnterPressed", addTypedPhrase)
 
     local addBtn = CreateFrame("Button", nil, castAddRow)
+    Compat.PanelButton(addBtn, "Add", ADD_BTN_W, 22)
     addBtn:SetPoint("LEFT", castNewInput, "RIGHT", 10, 0)
-    addBtn:SetSize(ADD_BTN_W, 22)
-    do
-        local bg = addBtn:CreateTexture(nil, "BACKGROUND")
-        bg:SetAllPoints()
-        Compat.SolidTexture(bg, 0.18, 0.16, 0.24, 1)
-        Compat.AddBorder(addBtn, 0.5, 0.45, 0.7, 0.9)
-        local t = addBtn:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-        t:SetPoint("CENTER", 0, 0)
-        t:SetText("Add")
-        local hl = addBtn:CreateTexture(nil, "HIGHLIGHT")
-        hl:SetAllPoints()
-        Compat.SolidTexture(hl, 1, 1, 1, 0.12)
-    end
     addBtn:SetScript("OnClick", addTypedPhrase)
 
     local tokenHint = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
@@ -4767,12 +4733,13 @@ local function BuildPanels()
     BuildCastPanel()
     Compat.RegisterOptionsPanel(castPanel, castPanel.name, mainPanel.name)
 
-    -- After the panels that tune things and before Profiles, because it is
-    -- neither: not a dial, and not a once-a-year housekeeping job.
-    if ns.Challenge then
-        BuildChallengePanel()
-        Compat.RegisterOptionsPanel(CH.panel, CH.panel.name, mainPanel.name)
-    end
+    -- Built here with its siblings but registered later, in
+    -- RegisterChallengePanel below. The settings tree lists panels in the
+    -- order they were registered, and the trainer registers at PLAYER_LOGIN
+    -- rather than here, so registering in place would wedge Challenges
+    -- between two panels of dials instead of leaving it at the bottom under
+    -- all of them.
+    if ns.Challenge then BuildChallengePanel() end
 
     -- Last in the list on purpose: it is the panel you reach for once, before
     -- a beta ends or when setting up an alt, not one you live in.
@@ -4813,6 +4780,22 @@ local function RegisterTrainerPanel()
 end
 ns.EnsureTrainerPanel = RegisterTrainerPanel
 
+-- Registered after the trainer so it comes last in the settings tree, under
+-- everything else rather than in among the panels of dials.
+--
+-- It keeps its own flag rather than riding on the trainer's, because the
+-- trainer can fail to build -- it asks the client questions that have no
+-- answer until the player exists -- and Challenges disappearing from the
+-- tree because something unrelated went wrong is a puzzle with no clue in it.
+local challengeRegistered = false
+local function RegisterChallengePanel()
+    if challengeRegistered or not CH.panel then return end
+    BuildPanels()
+    Compat.RegisterOptionsPanel(CH.panel, CH.panel.name, mainPanel.name)
+    challengeRegistered = true
+end
+ns.EnsureChallengePanel = RegisterChallengePanel
+
 local initFrame = CreateFrame("Frame")
 initFrame:RegisterEvent("ADDON_LOADED")
 initFrame:RegisterEvent("PLAYER_LOGIN")
@@ -4825,6 +4808,7 @@ initFrame:SetScript("OnEvent", function(self, event, name)
         SetupMinimapButton()
         SetupLanguageWidget()
         RegisterTrainerPanel()
+        RegisterChallengePanel()
     end
 end)
 
@@ -4898,6 +4882,10 @@ end
 
 function ns.OpenChallengeConfig()
     BuildPanels()
+    -- Registration is deferred to login so the panel lands at the foot of the
+    -- settings tree, which means opening it from the nav button can get here
+    -- first. On retail an unregistered panel has no category to open to.
+    if ns.EnsureChallengePanel then ns.EnsureChallengePanel() end
     if not CH.panel then return end
     Compat.OpenOptionsPanel(CH.panel)
     RefreshChallenge()

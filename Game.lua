@@ -503,18 +503,7 @@ end
 
 local function makeButton(parent, text, w)
     local b = CreateFrame("Button", nil, parent)
-    b:SetSize(w or 90, 24)
-    local bg = b:CreateTexture(nil, "BACKGROUND")
-    bg:SetAllPoints()
-    Compat.SolidTexture(bg, 0.18, 0.16, 0.24, 1)
-    Compat.AddBorder(b, 0.5, 0.45, 0.7, 0.9)
-    local fs = b:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    fs:SetPoint("CENTER", 0, 0)
-    fs:SetText(text)
-    local hl = b:CreateTexture(nil, "HIGHLIGHT")
-    hl:SetAllPoints()
-    Compat.SolidTexture(hl, 1, 1, 1, 0.12)
-    return b
+    return Compat.PanelButton(b, text, w or 90, 24)
 end
 
 local function build()

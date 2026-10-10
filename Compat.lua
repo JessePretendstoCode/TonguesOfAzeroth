@@ -633,20 +633,10 @@ local function ensureStandaloneWindow()
     -- Back button - shown on sub-panels (in addition to the close X); runs the
     -- current panel's _backAction. Sits just left of the close button.
     local back = CreateFrame("Button", nil, win)
-    back:SetSize(64, 22)
     back:SetPoint("TOPRIGHT", close, "TOPLEFT", -4, -1)
     back:SetFrameLevel(win:GetFrameLevel() + 5)
     back:RegisterForClicks("LeftButtonUp")
-    local bbg = back:CreateTexture(nil, "BACKGROUND")
-    bbg:SetAllPoints()
-    Compat.SolidTexture(bbg, 0.18, 0.16, 0.24, 1)
-    Compat.AddBorder(back, 0.5, 0.45, 0.7, 0.9)
-    local btext = back:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    btext:SetPoint("CENTER", 0, 0)
-    btext:SetText("< Back")
-    local bhl = back:CreateTexture(nil, "HIGHLIGHT")
-    bhl:SetAllPoints()
-    Compat.SolidTexture(bhl, 1, 1, 1, 0.15)
+    Compat.PanelButton(back, "< Back", 64, 22)
     back:SetScript("OnClick", function()
         local cur = win._current
         local action = cur and cur._backAction
@@ -931,6 +921,88 @@ local function longestEntries(items, total)
     return n
 end
 
+-- The game's own tooltip border, built by hand out of its eight slices.
+--
+-- SetBackdrop would do this in one call and is not used, for the reason given
+-- on AddBorder above: it needs BackdropTemplate on retail, exists natively on
+-- Classic, and the shape of the thing has already changed once. The texture
+-- has not.
+--
+-- An edge file is one strip cut into eight equal pieces, in this order: left,
+-- right, top, bottom, then the four corners clockwise from top-left. The top
+-- and bottom pieces are stored rotated a quarter turn anticlockwise, which is
+-- why those two are placed with the eight-argument SetTexCoord -- it maps the
+-- four screen corners onto four texture points and so can turn them back.
+-- Each slice is pulled in by a 128th to stop the neighbouring piece bleeding
+-- into it, which is the same inset Blizzard's own nine-slice uses.
+local EDGE = "Interface\\Tooltips\\UI-Tooltip-Border"
+local function edgeSpan(i)
+    return i / 8 + 1 / 128, (i + 1) / 8 - 1 / 128
+end
+
+-- Returns the same { SetColor } handle AddBorder does, so a caller that
+-- recolours its border to signal state keeps working unchanged.
+function Compat.GameBorder(frame, size)
+    size = size or 12
+    local function piece(layer)
+        return frame:CreateTexture(nil, layer or "OVERLAY")
+    end
+    local parts = {}
+    local function add(t) parts[#parts + 1] = t; t:SetTexture(EDGE); return t end
+
+    local corners = {
+        { 4, "TOPLEFT" }, { 5, "TOPRIGHT" }, { 6, "BOTTOMLEFT" }, { 7, "BOTTOMRIGHT" },
+    }
+    local at = {}
+    for _, c in ipairs(corners) do
+        local t = add(piece())
+        t:SetSize(size, size)
+        t:SetPoint(c[2])
+        local l, r = edgeSpan(c[1])
+        t:SetTexCoord(l, r, 0, 1)
+        at[c[2]] = t
+    end
+
+    local left = add(piece())
+    left:SetWidth(size)
+    left:SetPoint("TOP", at.TOPLEFT, "BOTTOM")
+    left:SetPoint("BOTTOM", at.BOTTOMLEFT, "TOP")
+    left:SetTexCoord(select(1, edgeSpan(0)), select(2, edgeSpan(0)), 0, 1)
+
+    local right = add(piece())
+    right:SetWidth(size)
+    right:SetPoint("TOP", at.TOPRIGHT, "BOTTOM")
+    right:SetPoint("BOTTOM", at.BOTTOMRIGHT, "TOP")
+    right:SetTexCoord(select(1, edgeSpan(1)), select(2, edgeSpan(1)), 0, 1)
+
+    local top = add(piece())
+    top:SetHeight(size)
+    top:SetPoint("LEFT", at.TOPLEFT, "RIGHT")
+    top:SetPoint("RIGHT", at.TOPRIGHT, "LEFT")
+    do
+        local l, r = edgeSpan(2)
+        top:SetTexCoord(l, 1, r, 1, l, 0, r, 0)
+    end
+
+    local bottom = add(piece())
+    bottom:SetHeight(size)
+    bottom:SetPoint("LEFT", at.BOTTOMLEFT, "RIGHT")
+    bottom:SetPoint("RIGHT", at.BOTTOMRIGHT, "LEFT")
+    do
+        local l, r = edgeSpan(3)
+        bottom:SetTexCoord(l, 1, r, 1, l, 0, r, 0)
+    end
+
+    return {
+        edges = parts,
+        SetColor = function(self, r, g, b, a)
+            for i = 1, #self.edges do
+                self.edges[i]:SetVertexColor(r, g, b, a or 1)
+            end
+        end,
+    }
+end
+
 --=========================================================================--
 --  Buttons that look like the game's buttons.
 --=========================================================================--
@@ -1063,6 +1135,53 @@ function Compat.PanelButton(btn, label, width, height, font)
     function btn:GetText() return text:GetText() end
 
     dress()
+    return btn
+end
+
+-- The small square sibling of PanelButton: the game's item-slot socket, which
+-- is what WoW uses everywhere a single icon is also a button. Same recipe the
+-- action bars use -- a dark slot behind the icon, the metal ring over it at
+-- 1.83x the button size, the square highlight, and the depress plate on click.
+--
+-- `tint` recolours the ring, which is how the accept and discard pair keep
+-- saying green and red without a hand-drawn border doing it.
+function Compat.IconButton(btn, iconPath, size, tint)
+    size = size or 24
+    btn:SetSize(size, size)
+
+    local slot = btn:CreateTexture(nil, "BACKGROUND")
+    slot:SetAllPoints()
+    slot:SetTexture("Interface\\Buttons\\UI-Slot-Background")
+
+    local icon = btn:CreateTexture(nil, "ARTWORK")
+    icon:SetPoint("CENTER")
+    icon:SetSize(size - 8, size - 8)
+    icon:SetTexture(iconPath)
+    btn.icon = icon
+
+    -- Drawn larger than the button and centred on it, because the ring art
+    -- carries its own padding: sized to the frame it would sit inside the
+    -- icon instead of around it. 66/36 is the ratio the action bars use.
+    local ring = btn:CreateTexture(nil, "OVERLAY")
+    ring:SetPoint("CENTER")
+    ring:SetSize(size * 1.83, size * 1.83)
+    ring:SetTexture("Interface\\Buttons\\UI-Quickslot2")
+    if tint then ring:SetVertexColor(tint[1], tint[2], tint[3]) end
+    btn.ring = ring
+
+    local pushed = btn:CreateTexture(nil, "OVERLAY")
+    pushed:SetAllPoints()
+    pushed:SetTexture("Interface\\Buttons\\UI-Quickslot-Depress")
+    pushed:Hide()
+    btn:SetScript("OnMouseDown", function() pushed:Show() end)
+    btn:SetScript("OnMouseUp", function() pushed:Hide() end)
+    btn:SetScript("OnHide", function() pushed:Hide() end)
+
+    local hl = btn:CreateTexture(nil, "HIGHLIGHT")
+    hl:SetAllPoints()
+    hl:SetTexture("Interface\\Buttons\\ButtonHilight-Square")
+    if hl.SetBlendMode then hl:SetBlendMode("ADD") end
+
     return btn
 end
 
@@ -1600,15 +1719,8 @@ local function buildConfirm()
 
     local function makeButton()
         local b = CreateFrame("Button", nil, f)
-        b:SetSize(130, 26)
-        local bbg = b:CreateTexture(nil, "BACKGROUND"); bbg:SetAllPoints()
-        Compat.SolidTexture(bbg, 0.18, 0.16, 0.24, 1)
-        Compat.AddBorder(b, 0.5, 0.45, 0.7, 0.9)
-        local bhl = b:CreateTexture(nil, "HIGHLIGHT"); bhl:SetAllPoints()
-        Compat.SolidTexture(bhl, 1, 1, 1, 0.15)
-        local bl = b:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-        bl:SetPoint("CENTER")
-        b.label = bl
+        Compat.PanelButton(b, "", 130, 26)
+        b.label = b.text
         return b
     end
 
@@ -2096,15 +2208,8 @@ local function buildBrowser()
 
     local function makeButton(w)
         local b = CreateFrame("Button", nil, f)
-        b:SetSize(w or 120, 26)
-        local bbg = b:CreateTexture(nil, "BACKGROUND"); bbg:SetAllPoints()
-        Compat.SolidTexture(bbg, 0.18, 0.16, 0.24, 1)
-        Compat.AddBorder(b, 0.5, 0.45, 0.7, 0.9)
-        local bhl = b:CreateTexture(nil, "HIGHLIGHT"); bhl:SetAllPoints()
-        Compat.SolidTexture(bhl, 1, 1, 1, 0.15)
-        local bl = b:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-        bl:SetPoint("CENTER")
-        b.label = bl
+        Compat.PanelButton(b, "", w or 120, 26)
+        b.label = b.text
         return b
     end
 
