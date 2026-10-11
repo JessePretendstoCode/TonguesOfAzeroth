@@ -24,8 +24,94 @@ ns.Colors = Colors
 local Language = ns.Language
 
 local strformat, strlower, strmatch = string.format, string.lower, string.match
-local strfind = string.find
+local strfind, strgmatch, strsub = string.find, string.gmatch, string.sub
 local floor = math.floor
+
+--=========================================================================--
+--  Tongues whose colour is not a colour
+--=========================================================================--
+-- A ramp rather than one hex, painted letter by letter, and not yours to
+-- change. Everything else in this file is a preference; this is a name.
+--
+-- Legendspeech is the only one, and it is the only one because of what it is:
+-- a tongue nobody on Azeroth speaks, which a Mythic run wears for sixty levels
+-- and then keeps. A player who has one has finished something, and the point
+-- of the tag is that anyone reading their chat can see that at a glance --
+-- which a colour they picked themselves cannot say, since the next player
+-- along could pick it too.
+--
+-- Stops are {r, g, b} in 0-1 and are interpolated across the letters, so the
+-- ramp reads the same on a short name and a long one. Gold out to ember and
+-- back, rather than a one-way fade: a ramp that ends dark reads as text
+-- trailing off, and a symmetric one reads as something lit from inside.
+local FIXED_TAG = {
+    legendspeech = {
+        { 1.00, 0.91, 0.52 },
+        { 1.00, 0.74, 0.24 },
+        { 1.00, 0.48, 0.12 },
+        { 0.91, 0.24, 0.09 },
+        { 1.00, 0.48, 0.12 },
+        { 1.00, 0.86, 0.40 },
+    },
+}
+
+-- The ramp for `langId`, or nil for the ~70 tongues that have an ordinary
+-- colour. Canonicalised, so a hidden alias of a fixed tongue is fixed too.
+function Colors.FixedTag(langId)
+    if type(langId) ~= "string" or langId == "" then return nil end
+    langId = strlower(langId)
+    if Language and Language.CanonicalId then langId = Language.CanonicalId(langId) end
+    return FIXED_TAG[langId]
+end
+
+function Colors.IsFixed(langId) return Colors.FixedTag(langId) ~= nil end
+
+-- Paint `text` one letter at a time across `stops`.
+--
+-- Whitespace is passed through bare rather than wrapped. It saves twelve
+-- characters an escape on a span nobody can see the colour of, and it keeps
+-- the ramp walking over letters rather than over gaps, so "Partial
+-- Legendspeech" runs the same ramp as "Legendspeech" instead of spending a
+-- sixth of it on the space.
+--
+-- Text already carrying a "|" escape is handed back untouched. There is none
+-- in a language name, and a per-letter pass over a hyperlink would cut it in
+-- half -- so the one case this is wrong for is refused rather than handled.
+function Colors.Gradient(text, stops)
+    if type(text) ~= "string" or text == "" then return text end
+    if type(stops) ~= "table" or #stops < 2 then return text end
+    if strfind(text, "|", 1, true) then return text end
+
+    local paintable = 0
+    for i = 1, #text do
+        if not strfind(strsub(text, i, i), "%s") then paintable = paintable + 1 end
+    end
+    if paintable == 0 then return text end
+
+    local out, seen = {}, 0
+    for i = 1, #text do
+        local ch = strsub(text, i, i)
+        if strfind(ch, "%s") then
+            out[#out + 1] = ch
+        else
+            -- Position along the whole ramp, then which pair of stops that
+            -- lands between. A single paintable letter takes the first stop
+            -- rather than dividing by zero.
+            local t = (paintable > 1) and (seen / (paintable - 1)) or 0
+            local span = t * (#stops - 1)
+            local lo = floor(span) + 1
+            if lo >= #stops then lo = #stops - 1 end
+            local frac = span - (lo - 1)
+            local a, b = stops[lo], stops[lo + 1]
+            out[#out + 1] = "|cff" .. strlower(Colors.ToHex(
+                a[1] + (b[1] - a[1]) * frac,
+                a[2] + (b[2] - a[2]) * frac,
+                a[3] + (b[3] - a[3]) * frac)) .. ch .. "|r"
+            seen = seen + 1
+        end
+    end
+    return table.concat(out)
+end
 
 --=========================================================================--
 --  Storage
@@ -121,6 +207,29 @@ function Colors.ToHex(r, g, b)
     return strformat("%02x%02x%02x", byte(r), byte(g), byte(b))
 end
 
+-- `from` moved `t` of the way towards `to`, both as six-digit hex. Used to fade
+-- a highlight out: at t=0 it is the tongue's own colour, at t=1 it is whatever
+-- the text would have been anyway, which is to say invisible.
+--
+-- Fading towards the surface's own ink rather than towards transparency,
+-- because the alpha pair in a "|c" escape is not honoured for text in every
+-- frame and a highlight that worked in chat and not in the quest window would
+-- be worse than none. Blending to the colour underneath gets there by a road
+-- that is just a colour.
+--
+-- Either side being unreadable gives nil rather than a guess, so a caller that
+-- fumbled a hex gets no highlight instead of a magenta one.
+function Colors.Blend(from, to, t)
+    local r1, g1, b1 = Colors.ParseHex(from)
+    local r2, g2, b2 = Colors.ParseHex(to)
+    if not r1 or not r2 then return nil end
+    t = tonumber(t) or 0
+    if t < 0 then t = 0 elseif t > 1 then t = 1 end
+    return Colors.ToHex(r1 + (r2 - r1) * t,
+                        g1 + (g2 - g1) * t,
+                        b1 + (b2 - b1) * t)
+end
+
 --=========================================================================--
 --  Default palette
 --=========================================================================--
@@ -157,6 +266,12 @@ local DEFAULT_HEX = {
     pandaren    = "6fc8a8",
     tuskarr     = "88b4c8",
     nerglish    = "5fb0d4", -- Murloc
+    -- The tag runs a gold-to-ember ramp (see FIXED_TAG) and cannot be
+    -- recoloured. This is for everything a ramp is wrong for: the brackets
+    -- around the tag, and the sentence under it. A Mythic run speaks this on
+    -- every line for sixty levels, and per-letter escapes on a whole sentence
+    -- would cost twelve characters a letter to say what one gold already says.
+    legendspeech = "ffb648",
 }
 
 -- Every remaining tongue gets a stable color derived from its id, so a beast or
@@ -262,8 +377,14 @@ function Colors.IsCustom(langId)
 end
 
 -- Accepts a hex string or three 0-1 components. Returns true on success.
+--
+-- Refused for a tongue whose colour is a ramp. One guard here rather than one
+-- at each caller: the picker on the Languages row, the colour picker's own
+-- live-drag callback, its cancel path and `/glyphic color` all arrive through
+-- this, and a fixed tongue has to be fixed from every one of them.
 function Colors.Set(langId, hexOrR, g, b)
     if type(langId) ~= "string" or langId == "" then return false end
+    if Colors.IsFixed(langId) then return false end
     local hex
     if type(hexOrR) == "string" then
         if not Colors.ParseHex(hexOrR) then return false end
@@ -374,10 +495,36 @@ end
 -- when a line is painted rather than when this one loads. A tag whose names we
 -- cannot resolve -- another addon's, or a language this client has never heard
 -- of -- simply comes out in one color, as it did before.
+-- Whether a tag names a tongue whose colour is a ramp. Checked before the
+-- comma, because a single-tongue tag normally stays one span -- identical on
+-- screen for a flat colour, two fewer escapes per line -- and a ramp is the one
+-- case where it is not identical and so earns the extra codes.
+local function namesFixed(inner, resolve)
+    for part in strgmatch(inner, "[^,]+") do
+        local name = strmatch(part, "^%s*(.-)%s*$")
+        if name and name ~= "" then
+            local id = resolve(name)
+            if id and Colors.IsFixed(id) then return true end
+        end
+    end
+    return false
+end
+
+-- Whether a whole "[Name] " tag names a ramped tongue. Both roads through
+-- Colors.Apply need the answer and neither owns the brackets, so the stripping
+-- lives here once.
+local function tagNamesFixed(tag)
+    local inner = strmatch(tag or "", "^%[([^%]]*)%]%s*$")
+    local resolve = ns.LangIdFromTagName
+    if not inner or not resolve then return false end
+    return namesFixed(inner, resolve)
+end
+
 local function paintTag(tag, hex)
     local inner, trail = strmatch(tag, "^%[([^%]]*)%](%s*)$")
     local resolve = ns.LangIdFromTagName
-    if not inner or not resolve or not strfind(inner, ",", 1, true) then
+    if not inner or not resolve then return Colors.Wrap(tag, hex) end
+    if not strfind(inner, ",", 1, true) and not namesFixed(inner, resolve) then
         return Colors.Wrap(tag, hex)
     end
     local painted = inner:gsub("[^,]+", function(part)
@@ -385,6 +532,8 @@ local function paintTag(tag, hex)
         if not name or name == "" then return part end
         local id = resolve(name)
         if not id then return part end
+        local stops = Colors.FixedTag(id)
+        if stops then return lead .. Colors.Gradient(name, stops) .. tail end
         return lead .. Colors.Wrap(name, Colors.Hex(id)) .. tail
     end)
     return Colors.Wrap("[" .. painted .. "]" .. trail, hex)
@@ -424,7 +573,13 @@ function Colors.Apply(message, langId, opts)
             -- One tongue stays one span. Splitting it would render the same
             -- but doubles the escape codes on every line in the window for no
             -- gain, and the overwhelming majority of lines name one tongue.
-            if not strfind(tag, ",", 1, true) then
+            --
+            -- Unless the tongue's colour is a ramp, in which case one span is
+            -- not the same thing on screen. paintTag makes the same check, but
+            -- making it only there left this road -- tag colour and speech
+            -- colour both on -- returning early with a flat tag before paintTag
+            -- was ever reached.
+            if not strfind(tag, ",", 1, true) and not tagNamesFixed(tag) then
                 return Colors.Wrap(tag .. rest, hex)
             end
             return paintTag(tag, hex) .. Colors.Wrap(rest, hex)

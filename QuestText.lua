@@ -528,7 +528,10 @@ function QuestText.ClearCache()
     cache, cacheCount = {}, 0
 end
 
-function QuestText.Garble(text, blizzId)
+-- `flat` is passed through to ns.ImmersionGarbleText; see the note there. It
+-- means "this text is going inside something that owns its own colour", which
+-- a quest link's label is.
+function QuestText.Garble(text, blizzId, flat)
     if type(text) ~= "string" or text == "" then return text end
     if not QuestText.Active() then return text end
     -- No tongue means no garbling. Reaching for the player's own faction here
@@ -537,11 +540,20 @@ function QuestText.Garble(text, blizzId)
     blizzId = blizzId or speakerLang()
     if type(blizzId) ~= "number" then return text end
 
-    local key = blizzId .. "\001" .. text
+    -- The highlight on the words you can read is part of the answer, so it is
+    -- part of the key. Every writer of fluency already clears this cache, and
+    -- that covers the input it was written for -- but the highlight has a
+    -- second input those writers know nothing about: a run starting or ending
+    -- changes it with no fluency having moved. Carrying the answer in the key
+    -- cannot be wrong about either, which is worth one string concatenation on
+    -- a line that was about to be hashed anyway.
+    local tint = ns.LearnedTintFor and ns.LearnedTintFor(blizzId, flat)
+    local key = blizzId .. "\001" .. (tint or "-") .. "\001" .. text
     local hit = cache[key]
     if hit ~= nil then return hit end
 
-    local out = ns.ImmersionGarbleText and ns.ImmersionGarbleText(text, blizzId)
+    local out = ns.ImmersionGarbleText
+        and ns.ImmersionGarbleText(text, blizzId, flat)
     out = out or text
     if cacheCount >= CACHE_LIMIT then QuestText.ClearCache() end
     cache[key] = out
@@ -866,8 +878,11 @@ function QuestText.GarbleQuestLinks(text)
         function(id, rest, label)
             local lang = QuestText.JournalLanguage(tonumber(id))
             if not lang or label == "" then return nil end
+            -- Flat: a link's label is one span between "|h[" and "]|h", and a
+            -- colour opened and closed inside it ends the link's own colour
+            -- early, so the back half of the title draws the wrong shade.
             return "|Hquest:" .. id .. rest .. "|h["
-                .. QuestText.Garble(label, lang) .. "]|h"
+                .. QuestText.Garble(label, lang, true) .. "]|h"
         end)
     return out
 end

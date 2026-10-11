@@ -434,8 +434,105 @@ function Compat.GradientTexture(tex, orientation, r, g, b, a1, a2)
     return false
 end
 
+--=========================================================================--
+--  The game's own frame chrome, drawn by the game's own code.
+--=========================================================================--
+-- There were two home-made versions of this before and both were wrong in the
+-- same way. `AddBorder` draws a one-pixel line, which reads as a placeholder
+-- laid over WoW rather than as part of it. `GameBorder` took the right texture
+-- and cut it into eight slices by hand -- correct art, arithmetic of our own --
+-- and the arithmetic is what put the top and bottom edges on a different line
+-- from the sides. A nine-slice has a dozen numbers in it and every one is a
+-- chance to be a pixel out.
+--
+-- So this hands the whole job to `SetBackdrop`, which is the API that draws
+-- these frames for Blizzard's own tooltips and dialogs. No slices, no texture
+-- coordinates, no insets of our invention: a table naming the files and the
+-- client places them.
+--
+-- The reason it was avoided -- that `SetBackdrop` needs `BackdropTemplate` on
+-- retail and is native on Classic -- is real and is handled where it belongs,
+-- in `Compat.CreateBackdropFrame`, rather than by writing a second nine-slice.
+-- `GameBorder` survives below as the fallback for a client that has neither,
+-- which is no client we currently ship to.
+local BACKDROPS = {
+    -- What every floating readout in WoW sits on. Thin gold line, dark fill.
+    tooltip = {
+        bgFile   = "Interface\\Tooltips\\UI-Tooltip-Background",
+        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+        tile = true, tileSize = 16, edgeSize = 16,
+        insets = { left = 5, right = 5, top = 5, bottom = 5 },
+    },
+    -- What "are you sure?" looks like in this game. Heavier, and deliberately
+    -- so: the dialogs it is used for are the ones that wipe a character's
+    -- languages or end a sixty-level run.
+    dialog = {
+        bgFile   = "Interface\\DialogFrame\\UI-DialogBox-Background-Dark",
+        edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+        tile = true, tileSize = 32, edgeSize = 32,
+        insets = { left = 11, right = 12, top = 12, bottom = 11 },
+    },
+}
+Compat.BACKDROPS = BACKDROPS
+
+-- A frame that can wear one of the above.
+--
+-- `BackdropTemplate` has to be asked for at creation: the mixin's SetBackdrop
+-- drives a nine-slice that the template's XML declares, so mixing it into a
+-- frame afterwards gives you the method without the thing it draws on. An
+-- unknown template name throws, hence the pcall -- and a client that has
+-- SetBackdrop natively needs no template at all.
+function Compat.CreateBackdropFrame(frameType, name, parent)
+    frameType = frameType or "Frame"
+    local plain = CreateFrame(frameType, name, parent)
+    if type(plain.SetBackdrop) == "function" then return plain, true end
+    -- Named frames cannot be made twice, so the probe is unnamed and the real
+    -- frame is built once we know which road works.
+    local ok, probe = pcall(CreateFrame, frameType, nil, parent, "BackdropTemplate")
+    if ok and probe and type(probe.SetBackdrop) == "function" then
+        probe:Hide()
+        local okReal, real = pcall(CreateFrame, frameType, name, parent, "BackdropTemplate")
+        if okReal and real then
+            plain:Hide()
+            return real, true
+        end
+    end
+    return plain, false
+end
+
+-- Dress `frame` in one of the named backdrops. Returns the same
+-- `{ SetColor }` handle the two older borders did, so a caller that recolours
+-- its edge to signal state keeps working -- though most should not: tinting
+-- Blizzard's border art a saturated colour is what made the language bar look
+-- like a green rectangle rather than like a tooltip.
+function Compat.Backdrop(frame, kind, bgR, bgG, bgB, bgA)
+    local info = BACKDROPS[kind or "tooltip"] or BACKDROPS.tooltip
+    if type(frame.SetBackdrop) == "function" then
+        frame:SetBackdrop(info)
+        if bgR then frame:SetBackdropColor(bgR, bgG, bgB, bgA or 1) end
+        return {
+            SetColor = function(_, r, g, b, a)
+                if frame.SetBackdropBorderColor then
+                    frame:SetBackdropBorderColor(r, g, b, a or 1)
+                end
+            end,
+        }
+    end
+
+    -- No SetBackdrop on this client. Same art, placed by hand.
+    local bg = frame:CreateTexture(nil, "BACKGROUND")
+    local inset = info.insets.left
+    bg:SetPoint("TOPLEFT", inset, -inset)
+    bg:SetPoint("BOTTOMRIGHT", -inset, inset)
+    bg:SetTexture(info.bgFile)
+    bg:SetVertexColor(bgR or 1, bgG or 1, bgB or 1, bgA or 1)
+    return Compat.GameBorder(frame, info.edgeSize)
+end
+
 -- 1px edge border drawn on a frame's own BORDER layer (never covers content).
--- Avoids SetBackdrop / BackdropTemplate, so it is immune to template churn.
+-- Still here for the places that want a hairline rather than a frame -- the
+-- toast's styles define their own border colour, and an input box is a line.
+-- Anything that is meant to look like part of WoW wants Compat.Backdrop.
 function Compat.AddBorder(frame, r, g, b, a)
     local function edge()
         local t = frame:CreateTexture(nil, "BORDER")
@@ -641,7 +738,7 @@ end
 local function ensureStandaloneWindow()
     if sharedWindow then return sharedWindow end
 
-    local win = CreateFrame("Frame", "TonguesOfAzerothWindow", UIParent)
+    local win = Compat.CreateBackdropFrame("Frame", "TonguesOfAzerothWindow", UIParent)
     win:SetFrameStrata("DIALOG")
     win:SetToplevel(true)
     win:SetSize(600, 600)
@@ -650,10 +747,10 @@ local function ensureStandaloneWindow()
     win:SetMovable(true)
     if win.SetClampedToScreen then win:SetClampedToScreen(true) end
 
-    local bg = win:CreateTexture(nil, "BACKGROUND")
-    bg:SetAllPoints()
-    Compat.SolidTexture(bg, 0, 0, 0, 0.92)
-    Compat.AddBorder(win, 0.5, 0.5, 0.5, 0.9)
+    -- A window the size of a panel, so it takes the dialog frame rather than
+    -- the tooltip one -- the tooltip border is sixteen pixels of art and looks
+    -- like a thread stretched around something this big.
+    Compat.Backdrop(win, "dialog")
 
     local titlebar = CreateFrame("Frame", nil, win)
     titlebar:SetPoint("TOPLEFT", 0, 0)
@@ -1814,23 +1911,34 @@ local function resolveConfirm(f, accepted)
     end
 end
 
+-- Everything the dialog's height is made of. Spelled out because the height is
+-- computed rather than chosen, and a number that is computed from five others
+-- should be able to say which five.
+local CONFIRM = {
+    width  = 440,
+    pad    = 22,    -- clear of the dialog border's own 12px of art
+    gap    = 18,    -- between the last line of text and the buttons
+    button = 26,
+    min    = 130,   -- a one-line question should not look like a mistake
+}
+
 local function buildConfirm()
-    local f = CreateFrame("Frame", "TonguesOfAzerothConfirm", UIParent)
+    -- Created through CreateBackdropFrame so it can wear the game's dialog
+    -- frame. This is still our own frame rather than a StaticPopup, for the
+    -- taint reason above -- what changed is that it now looks like the thing it
+    -- is, instead of a dark rectangle inside a purple line.
+    local f = Compat.CreateBackdropFrame("Frame", "TonguesOfAzerothConfirm", UIParent)
     f:SetFrameStrata("FULLSCREEN_DIALOG")
-    f:SetSize(440, 170)
+    f:SetSize(CONFIRM.width, CONFIRM.min)
     f:SetPoint("CENTER", 0, 120)
     f:EnableMouse(true)
     f:SetToplevel(true)
     f:Hide()
-
-    local bg = f:CreateTexture(nil, "BACKGROUND")
-    bg:SetAllPoints()
-    Compat.SolidTexture(bg, 0.04, 0.04, 0.06, 0.97)
-    Compat.AddBorder(f, 0.5, 0.45, 0.7, 0.95)
+    Compat.Backdrop(f, "dialog")
 
     local text = f:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    text:SetPoint("TOPLEFT", 18, -18)
-    text:SetPoint("TOPRIGHT", -18, -18)
+    text:SetPoint("TOPLEFT", CONFIRM.pad, -CONFIRM.pad)
+    text:SetPoint("TOPRIGHT", -CONFIRM.pad, -CONFIRM.pad)
     text:SetJustifyH("LEFT")
     text:SetJustifyV("TOP")
     if text.SetWordWrap then text:SetWordWrap(true) end
@@ -1844,12 +1952,12 @@ local function buildConfirm()
     end
 
     local accept = makeButton()
-    accept:SetPoint("BOTTOMRIGHT", f, "BOTTOM", -6, 16)
+    accept:SetPoint("BOTTOMRIGHT", f, "BOTTOM", -6, CONFIRM.pad)
     accept:SetScript("OnClick", function() resolveConfirm(f, true) end)
     f.accept = accept
 
     local cancel = makeButton()
-    cancel:SetPoint("BOTTOMLEFT", f, "BOTTOM", 6, 16)
+    cancel:SetPoint("BOTTOMLEFT", f, "BOTTOM", 6, CONFIRM.pad)
     cancel:SetScript("OnClick", function() resolveConfirm(f, false) end)
     f.cancel = cancel
 
@@ -1857,8 +1965,28 @@ local function buildConfirm()
     -- resolved the dialog, _resolved is set and this is a harmless no-op.
     if type(UISpecialFrames) == "table" then tinsert(UISpecialFrames, "TonguesOfAzerothConfirm") end
     f:SetScript("OnHide", function(self) resolveConfirm(self, false) end)
+    -- Measured again on the way up. GetStringHeight is a layout the client
+    -- performs on demand and it can answer for the previous string on a frame
+    -- that has not been drawn yet, so the size set before Show is a guess and
+    -- this is the correction.
+    f:SetScript("OnShow", function(self) Compat._SizeConfirm(self) end)
 
     return f
+end
+
+-- Height from the text rather than a number chosen once.
+--
+-- It was 170 pixels whatever it was asked to say, and the buttons sat at a
+-- fixed distance off the bottom -- so the Mythic warning, which is four
+-- paragraphs because it is four separate things a player is agreeing to, ran
+-- straight through them. A dialog cannot know how tall it is until it knows
+-- what it is for.
+function Compat._SizeConfirm(f)
+    if not f or not f.text then return end
+    local textH = f.text:GetStringHeight() or 0
+    local h = CONFIRM.pad + textH + CONFIRM.gap + CONFIRM.button + CONFIRM.pad
+    if h < CONFIRM.min then h = CONFIRM.min end
+    f:SetHeight(math.ceil(h))
 end
 
 function Compat.ShowConfirm(opts)
@@ -1872,6 +2000,7 @@ function Compat.ShowConfirm(opts)
     f.text:SetText(opts.text or "")
     f.accept.label:SetText(opts.acceptText or (YES or "Yes"))
     f.cancel.label:SetText(opts.cancelText or (NO or "No"))
+    Compat._SizeConfirm(f)
     f:Show()
     f:Raise()
     return f
@@ -2070,7 +2199,7 @@ end
 
 local function buildBrowser()
     local ROWS, ROW_H = 14, 26
-    local f = CreateFrame("Frame", "TonguesOfAzerothLineBrowser", UIParent)
+    local f = Compat.CreateBackdropFrame("Frame", "TonguesOfAzerothLineBrowser", UIParent)
     f:SetFrameStrata("FULLSCREEN_DIALOG")
     f:SetSize(700, 210 + ROWS * ROW_H)
     f:SetPoint("CENTER", 0, 40)
@@ -2081,11 +2210,7 @@ local function buildBrowser()
     f:SetScript("OnDragStart", f.StartMoving)
     f:SetScript("OnDragStop", f.StopMovingOrSizing)
     f:Hide()
-
-    local bg = f:CreateTexture(nil, "BACKGROUND")
-    bg:SetAllPoints()
-    Compat.SolidTexture(bg, 0.04, 0.04, 0.06, 0.97)
-    Compat.AddBorder(f, 0.5, 0.45, 0.7, 0.95)
+    Compat.Backdrop(f, "dialog")
 
     local title = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     title:SetPoint("TOPLEFT", 18, -16)

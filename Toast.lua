@@ -51,6 +51,18 @@ local PLACEMENT = {
 -- Colours are {r, g, b, a} in 0-1. A border alpha of 0 means no border, and
 -- a background alpha of 0 means no panel -- both are real styles here, not
 -- accidents.
+--
+-- Two fields are about arriving rather than about looking a particular way.
+-- `pop` is how far past full size the toast overshoots as it fades in, as a
+-- fraction -- 0.07 starts it at 93% and peaks at 107% before settling -- and
+-- `shine` is how long a band of light takes to cross it, in seconds. Both are
+-- zero on the quiet style, because a style whose description is "no furniture"
+-- should not then jump at you.
+--
+-- `hold` is how long it sits at full opacity, and all of them are between six
+-- and ten seconds. A word learned is the one thing this addon has to say that
+-- the player cannot go and look up afterwards, and four seconds of it landing
+-- next to a closing quest window was not long enough to read.
 local PRESETS = {}
 local ORDER = {}
 
@@ -69,7 +81,7 @@ preset("slate", "Slate -- dark panel, gold edge", {
     headerFont = "GameFontNormalSmall",  headerColor = { 1, 0.82, 0.2 },  headerY = -7,
     titleFont  = "GameFontNormal",      titleColor = { 1, 0.82, 0.2 },   titleY = -24,
     bodyFont   = "GameFontHighlightSmall", bodyColor = { 0.85, 0.85, 0.85 }, bodyGap = -4,
-    fadeIn = 0.25, hold = 4.0, fadeOut = 1.0,
+    fadeIn = 0.25, hold = 7.5, fadeOut = 1.0, pop = 0.06, shine = 0.55,
 })
 
 preset("parchment", "Parchment -- a note from the quest giver", {
@@ -84,7 +96,10 @@ preset("parchment", "Parchment -- a note from the quest giver", {
     headerFont = "GameFontNormalSmall",  headerColor = { 0.36, 0.22, 0.07 }, headerY = -8,
     titleFont  = "GameFontNormal",      titleColor = { 0.20, 0.12, 0.04 }, titleY = -25,
     bodyFont   = "GameFontNormalSmall", bodyColor  = { 0.34, 0.24, 0.12 }, bodyGap = -4,
-    fadeIn = 0.35, hold = 5.0, fadeOut = 1.2,
+    -- No shine. The others are lit panels and a band of light reads as a
+    -- highlight crossing them; this one is paper, and light added to tan just
+    -- bleaches a stripe through it.
+    fadeIn = 0.35, hold = 8.5, fadeOut = 1.2, pop = 0.05, shine = 0,
 })
 
 preset("banner", "Banner -- wide, no box, like zone text", {
@@ -96,7 +111,7 @@ preset("banner", "Banner -- wide, no box, like zone text", {
     headerFont = "GameFontNormal",       headerColor = { 1, 0.82, 0.2 },   headerY = -4,
     titleFont  = "GameFontNormalLarge", titleColor = { 1, 0.82, 0.2 },    titleY = -24,
     bodyFont   = "GameFontNormal",      bodyColor  = { 0.95, 0.95, 0.95 }, bodyGap = -2,
-    fadeIn = 0.4, hold = 4.0, fadeOut = 1.5,
+    fadeIn = 0.4, hold = 7.0, fadeOut = 1.5, pop = 0.08, shine = 0.75,
 })
 
 preset("minimal", "Minimal -- one quiet line, no furniture", {
@@ -108,7 +123,10 @@ preset("minimal", "Minimal -- one quiet line, no furniture", {
     headerFont = "GameFontDisableSmall",   headerColor = { 0.72, 0.62, 0.38 }, headerY = -3,
     titleFont  = "GameFontHighlightSmall", titleColor = { 0.95, 0.85, 0.5 }, titleY = -17,
     bodyFont   = "GameFontDisableSmall",   bodyColor  = { 0.6, 0.6, 0.6 },   bodyGap = -1,
-    fadeIn = 0.2, hold = 3.0, fadeOut = 0.8,
+    -- The one style that does not move. It is here for players who want to be
+    -- told and not interrupted, and a pop would make it the loudest thing on
+    -- the screen for a quarter of a second, which is the opposite of the ask.
+    fadeIn = 0.2, hold = 6.0, fadeOut = 0.8, pop = 0, shine = 0,
 })
 
 preset("achievement", "Achievement -- heavy gold frame", {
@@ -120,7 +138,7 @@ preset("achievement", "Achievement -- heavy gold frame", {
     headerFont = "GameFontNormalSmall",  headerColor = { 0.95, 0.80, 0.30 }, headerY = -9,
     titleFont  = "GameFontNormalLarge", titleColor = { 1, 0.88, 0.35 },   titleY = -28,
     bodyFont   = "GameFontHighlight",   bodyColor  = { 0.80, 0.80, 0.80 }, bodyGap = -6,
-    fadeIn = 0.3, hold = 5.0, fadeOut = 1.2,
+    fadeIn = 0.3, hold = 9.0, fadeOut = 1.2, pop = 0.10, shine = 0.85,
 })
 
 preset("ember", "Ember -- near-black, warm edge", {
@@ -132,7 +150,7 @@ preset("ember", "Ember -- near-black, warm edge", {
     headerFont = "GameFontNormalSmall",     headerColor = { 1, 0.62, 0.30 },  headerY = -8,
     titleFont  = "GameFontNormal",         titleColor = { 1, 0.62, 0.30 },   titleY = -25,
     bodyFont   = "GameFontHighlightSmall", bodyColor  = { 0.78, 0.72, 0.68 }, bodyGap = -4,
-    fadeIn = 0.25, hold = 4.0, fadeOut = 1.0,
+    fadeIn = 0.25, hold = 7.5, fadeOut = 1.0, pop = 0.07, shine = 0.65,
 })
 
 -- The gold divider the level-up text and the boss banner are drawn between:
@@ -145,6 +163,48 @@ local FLAIR = {
     coords  = { 0.02148438, 0.796875, 0.01367188, 0.03515625 },
     height  = 7,
 }
+
+-- The band of light that crosses the toast as it arrives.
+--
+-- Two gradient textures back to back rather than one: a gradient runs from one
+-- edge of a texture to the other, so a single one is bright at one end and
+-- gone at the other, which reads as a wipe. Transparent-to-bright followed by
+-- bright-to-transparent is a band with a lit middle, which reads as light
+-- moving over a surface.
+--
+-- Drawn under the text on purpose. A sweep over the word is the prettier
+-- version of this effect and it washes out the one thing the toast exists to
+-- show, for most of the time the band is on screen.
+--
+-- Travel stops where the band's right edge meets the toast's, so it never
+-- overhangs and nothing has to be clipped -- SetClipsChildren is not on every
+-- client this loads on, and a stripe hanging in the air off the side of the
+-- panel is worse than a sweep that ends an inch early.
+local SHINE = {
+    width = 72,
+    color = { 1, 0.95, 0.80 },
+    peak  = 0.34,              -- at its brightest, mid-crossing
+}
+
+-- How long the overshoot takes to settle back to full size, in seconds. Fixed
+-- rather than per-style: it is short enough to read as one movement with the
+-- fade-in, and a style that wants a gentler arrival turns `pop` down instead.
+local SETTLE = 0.14
+
+-- Frames that live where this one does and have more to say than it does.
+--
+-- The level-up banner lands at the top middle of the screen a moment after a
+-- quest hand-in, which is exactly when a word is learned, and the two were
+-- drawing through each other. Waiting is the fix rather than moving aside: the
+-- toast is draggable, so there is no offset that is out of the way on
+-- everybody's screen, and a word learned reads better after the level than
+-- underneath it.
+--
+-- Capped, because this is a guess about frames that belong to somebody else. A
+-- banner that gets stuck shown would otherwise eat the toast entirely, and a
+-- word learned arriving late is a smaller failure than one that never arrives.
+local YIELD_TO = { "LevelUpDisplay", "BossBanner" }
+local YIELD_MAX = 20
 
 -- The odd one out, and the reason layout is a field rather than an assumption.
 -- A loot row says what dropped and who got it; a learned word is the same two
@@ -166,7 +226,7 @@ preset("loot", "Loot -- icon and two lines, like an item drop", {
     headerFont = "GameFontNormalSmall",     headerColor = { 1, 0.82, 0.2 },   headerY = -9,
     titleFont  = "GameFontNormal",         titleColor = { 1, 1, 1 },         titleY = -26,
     bodyFont   = "GameFontHighlightSmall", bodyColor  = { 0.65, 0.65, 0.65 }, bodyGap = -3,
-    fadeIn = 0.2, hold = 4.5, fadeOut = 1.0,
+    fadeIn = 0.2, hold = 8.0, fadeOut = 1.0, pop = 0.07, shine = 0.7,
 })
 
 local DEFAULT_PRESET = "loot"
@@ -192,9 +252,18 @@ end
 --=========================================================================--
 --  The frame
 --=========================================================================--
-local frame
+local frame, driver
 local queue = {}
 local phase, elapsed = nil, 0
+
+-- Time since this toast appeared, counted across the phase changes. The fade
+-- is a per-phase ramp and `elapsed` restarts with each one, but the pop and the
+-- shine both run from the moment of arrival straight through into the hold, and
+-- splitting either across a boundary would make them stutter at it.
+local age = 0
+
+-- Time spent holding a toast back for somebody else's banner.
+local waiting = 0
 
 local function saved()
     GlyphicDB = GlyphicDB or {}
@@ -282,6 +351,16 @@ local function dress(f)
 
     for i = 1, #f.flair do
         if STYLE.flair then f.flair[i]:Show() else f.flair[i]:Hide() end
+    end
+
+    -- Switching style while a toast is on screen is the whole point of the
+    -- preview, and a style that does not move has to undo whatever the last one
+    -- left mid-movement. animate() skips both of these when the style is zero,
+    -- which is exactly why neither can be left to it.
+    if (STYLE.pop or 0) <= 0 then f:SetScale(1) end
+    if f.shine and (STYLE.shine or 0) <= 0 then
+        f.shine[1]:Hide()
+        f.shine[2]:Hide()
     end
 
     -- The announcement sits above everything in both layouts, the way a loot
@@ -383,6 +462,30 @@ local function build()
         f.flair[i] = line
     end
 
+    -- The two halves of the sweeping band. Added rather than drawn over, so it
+    -- lights whatever is underneath instead of painting a pale rectangle on it.
+    -- The right half hangs off the left half, so moving the band is one
+    -- SetPoint a frame rather than two that could disagree.
+    f.shine = {}
+    for i = 1, 2 do
+        local tex = f:CreateTexture(nil, "ARTWORK")
+        tex:SetBlendMode("ADD")
+        tex:SetWidth(SHINE.width / 2)
+        local c = SHINE.color
+        if i == 1 then
+            Compat.GradientTexture(tex, "HORIZONTAL", c[1], c[2], c[3], 0, 1)
+        else
+            Compat.GradientTexture(tex, "HORIZONTAL", c[1], c[2], c[3], 1, 0)
+        end
+        tex:Hide()
+        f.shine[i] = tex
+    end
+    -- Hung off the left edge, which is what makes the band's x an offset the
+    -- sweep can set rather than something the anchors decide. Width comes from
+    -- SetWidth above; pinning the right edge as well would stretch it.
+    f.shine[2]:SetPoint("TOPLEFT", f.shine[1], "TOPRIGHT")
+    f.shine[2]:SetPoint("BOTTOMLEFT", f.shine[1], "BOTTOMRIGHT")
+
     local header = f:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     f.header = header
 
@@ -407,7 +510,21 @@ local function build()
         pos.point, pos.relPoint, pos.x, pos.y = point, relPoint, x, y
     end)
 
-    f:SetScript("OnUpdate", function(_, delta) Toast._Update(delta) end)
+    -- The clock lives on a frame of its own, not on this one.
+    --
+    -- OnUpdate does not run on a hidden frame, and between toasts this frame is
+    -- hidden. That was fine while the only thing the clock did was move an
+    -- alpha ramp on a toast that was already up, and it is not fine now that it
+    -- also has to notice a level-up banner finishing so the toast waiting
+    -- behind it can go. A one-pixel frame that is always shown costs an early
+    -- return a frame.
+    if not driver then
+        driver = CreateFrame("Frame", nil, UIParent)
+        driver:SetSize(1, 1)
+        driver:SetPoint("TOPLEFT")
+        driver:Show()
+        driver:SetScript("OnUpdate", function(_, delta) Toast._Update(delta) end)
+    end
 
     place(f)
     frame = f
@@ -417,6 +534,60 @@ end
 --=========================================================================--
 --  Showing
 --=========================================================================--
+-- Is one of the frames in YIELD_TO on screen right now? Feature-detected per
+-- name rather than per client: these are Blizzard's frames, three flavours ship
+-- different sets of them, and a name that is not there simply never blocks.
+local function yielding()
+    for i = 1, #YIELD_TO do
+        local f = _G[YIELD_TO[i]]
+        if type(f) == "table" and type(f.IsShown) == "function" then
+            local ok, shown = pcall(f.IsShown, f)
+            if ok and shown then return true end
+        end
+    end
+    return false
+end
+
+-- Size and light, as of `age` seconds after the toast appeared. One function
+-- because they are one movement: the band crosses while the panel is still
+-- growing, and reading them apart is how you end up with two effects that
+-- nearly line up.
+local function animate(f)
+    local pop = STYLE.pop or 0
+    if pop > 0 then
+        local scale = 1
+        if age < STYLE.fadeIn then
+            -- Undersized on the way in, overshooting at the top of the fade.
+            scale = (1 - pop) + (2 * pop) * (age / STYLE.fadeIn)
+        elseif age < STYLE.fadeIn + SETTLE then
+            scale = (1 + pop) - pop * ((age - STYLE.fadeIn) / SETTLE)
+        end
+        f:SetScale(scale)
+    end
+
+    local span = STYLE.shine or 0
+    if span <= 0 or not f.shine then return end
+    -- Starts halfway through the fade, so the light arrives with the panel
+    -- instead of after it has settled and gone quiet again.
+    local from = STYLE.fadeIn / 2
+    local t = (age - from) / span
+    if t < 0 or t > 1 then
+        f.shine[1]:Hide()
+        f.shine[2]:Hide()
+        return
+    end
+    local travel = STYLE.width - SHINE.width
+    if travel < 0 then travel = 0 end
+    f.shine[1]:SetPoint("TOPLEFT", t * travel, 0)
+    f.shine[1]:SetPoint("BOTTOMLEFT", t * travel, 0)
+    -- Up and back down, so the band has no edge to appear or vanish on.
+    local alpha = SHINE.peak * math.sin(math.pi * t)
+    f.shine[1]:SetAlpha(alpha)
+    f.shine[2]:SetAlpha(alpha)
+    f.shine[1]:Show()
+    f.shine[2]:Show()
+end
+
 local function present(entry)
     local f = build()
     if not f then return end
@@ -431,16 +602,32 @@ local function present(entry)
     end
     f:SetAlpha(0)
     f:Show()
-    phase, elapsed = "in", 0
+    phase, elapsed, age, waiting = "in", 0, 0, 0
+    animate(f)
+end
+
+-- Bring the next one up, if there is one and nothing is in its way. Called when
+-- a toast is handed in and again on every tick, because "nothing is in its way"
+-- is a thing that becomes true while nobody is asking.
+local function startNext(delta)
+    if phase or #queue == 0 then return end
+    if yielding() then
+        waiting = waiting + (delta or 0)
+        if waiting < YIELD_MAX then return end
+    end
+    present(table.remove(queue, 1))
 end
 
 -- Driven by OnUpdate in the game and called directly by the tests, which have
 -- no frames running. Split out so the motion is testable without a client.
 function Toast._Update(delta)
-    if not phase then return end
-    elapsed = elapsed + (tonumber(delta) or 0)
+    delta = tonumber(delta) or 0
+    if not phase then return startNext(delta) end
+    elapsed = elapsed + delta
+    age = age + delta
     local f = frame
     if not f then return end
+    animate(f)
 
     if phase == "in" then
         if STYLE.fadeIn <= 0 or elapsed >= STYLE.fadeIn then
@@ -457,10 +644,15 @@ function Toast._Update(delta)
         if STYLE.fadeOut <= 0 or elapsed >= STYLE.fadeOut then
             f:SetAlpha(0)
             f:Hide()
-            phase, elapsed = nil, 0
+            -- No scale or band to put back here. Both ramps land on "finished"
+            -- of their own accord well before the hold is over -- animate()
+            -- runs on every tick and the pop has settled within a fifth of a
+            -- second -- so a toast that runs its course has already tidied up.
+            -- Clear() is the one that has to, because it stops the clock
+            -- mid-movement and nothing is coming along to finish it.
+            phase, elapsed, age = nil, 0, 0
             -- Next in line, if a hand-in came in while this one was up.
-            local nextUp = table.remove(queue, 1)
-            if nextUp then present(nextUp) end
+            startNext(0)
         else
             f:SetAlpha(1 - (elapsed / STYLE.fadeOut))
         end
@@ -469,11 +661,12 @@ end
 
 function Toast.Show(entry)
     if type(entry) ~= "table" then return false end
-    if phase then
-        queue[#queue + 1] = entry
-        return true
-    end
-    present(entry)
+    queue[#queue + 1] = entry
+    -- Built even when nothing is going to be shown this instant, because the
+    -- clock that notices a banner finishing lives on the driver frame and
+    -- build() is what makes the driver exist.
+    build()
+    startNext(0)
     return true
 end
 
@@ -481,15 +674,30 @@ end
 -- second click doesn't sit behind the first one's four seconds.
 function Toast.Clear()
     for i = #queue, 1, -1 do queue[i] = nil end
-    phase, elapsed = nil, 0
+    phase, elapsed, age, waiting = nil, 0, 0, 0
     if frame then
         frame:SetAlpha(0)
         frame:Hide()
+        -- Caught mid-arrival, which is the normal case for this: the preview
+        -- button clears whatever is up so a second click is not watched from
+        -- behind the first. The clock stops here, so the pop's scale and the
+        -- band's position are left wherever they were and nothing is coming to
+        -- finish either one.
+        frame:SetScale(1)
+        if frame.shine then
+            frame.shine[1]:Hide()
+            frame.shine[2]:Hide()
+        end
     end
 end
 
-function Toast._State() return phase, elapsed, #queue end
+function Toast._State() return phase, elapsed, #queue, waiting end
 function Toast._Frame() return frame end
+
+-- Which frame the clock is on. Exposed because that is the whole point of it
+-- being a separate frame, and "the tick is on something that is shown" is not
+-- a thing the tests can see from the outside -- they call _Update directly.
+function Toast._Driver() return driver end
 
 -- Drops the frame so the next toast builds a new one. Only the tests want
 -- this: building and restyling are two routes to the same look, and without

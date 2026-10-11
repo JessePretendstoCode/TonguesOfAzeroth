@@ -61,6 +61,9 @@ local LANGUAGE_ORDER = {}
 -- registry changes (including runtime custom/imported languages).
 local languageListCache = nil
 
+-- The same, for GetAllLanguages(), which keeps the hidden ones.
+local allListCache = nil
+
 -- Bumped alongside the cache so callers that build something *else* from the
 -- registry can tell it moved. The config UI builds a row per language once, and
 -- a language created after that would otherwise never get one -- it would show
@@ -73,6 +76,7 @@ local revision = 0
 -- concerned -- which is most of what reads the registry.
 local function invalidate()
     languageListCache = nil
+    allListCache = nil
     revision = revision + 1
 end
 
@@ -1019,6 +1023,30 @@ function Language.GetLanguages()
         end
     end
     languageListCache = out
+    return out
+end
+
+-- The same list with the hidden ones left in, for callers that are reading
+-- rather than offering. "Hidden" means "not something to pick from a list"; it
+-- does not mean the tongue is not real -- Legendspeech is spoken for the whole
+-- of a Mythic run while hidden, and a hidden alias is a name players still
+-- type. So anything resolving a name that arrived from outside -- a chat tag, a
+-- slash command, another player's addon message -- wants this one.
+--
+-- Getting that wrong is what made a Legendspeech tag come through uncoloured:
+-- the chat filter built its name lookup from the visible list, found nothing,
+-- and reported the line as being in no language at all -- which also took the
+-- speech colour and the name highlighting down with it.
+function Language.GetAllLanguages()
+    if allListCache then return allListCache end
+    local out = {}
+    for i = 1, #LANGUAGE_ORDER do
+        local id = LANGUAGE_ORDER[i]
+        local l = LANGUAGES[id]
+        out[#out + 1] = { id = id, name = l.name, sub = l.sub or false,
+                          parent = l.parent, hidden = l.hidden or false }
+    end
+    allListCache = out
     return out
 end
 

@@ -57,7 +57,7 @@ local mainContent
 local langDropdown, motherDropdown, enableCheck, previewInput, previewOutput
 local voiceText, voiceHint
 local minimapCheck, fluencyCheck, autoDisableCheck
-local immersionCheck, immersionNPCCheck, immersionQuestCheck
+local immersionCheck, immersionNPCCheck, immersionQuestCheck, immersionChannelCheck
 -- Lua 5.1 allows a chunk 200 locals and this file sits on the ceiling, so
 -- everything the challenge work needs -- two checkboxes, a note, the panel
 -- and its widgets, and the two greying helpers -- shares one table instead of
@@ -832,6 +832,7 @@ local function RefreshLearned()
     if immersionCheck then immersionCheck:SetChecked(d.fullImmersion and true or false) end
     if immersionNPCCheck then immersionNPCCheck:SetChecked(d.immersionNPCs and true or false) end
     if immersionQuestCheck then immersionQuestCheck:SetChecked(d.immersionQuests and true or false) end
+    if immersionChannelCheck then immersionChannelCheck:SetChecked(d.immersionChannels and true or false) end
     if CH.trackerCheck then
         CH.trackerCheck:SetChecked(d.immersionTracker and true or false)
     end
@@ -845,6 +846,7 @@ local function RefreshLearned()
     CH.setLocked(immersionCheck,      CH.lockedBy("fullImmersion"))
     CH.setLocked(immersionNPCCheck,   CH.lockedBy("immersionNPCs"))
     CH.setLocked(immersionQuestCheck, CH.lockedBy("immersionQuests"))
+    CH.setLocked(immersionChannelCheck, CH.lockedBy("immersionChannels"))
     CH.setLocked(CH.trackerCheck,     CH.lockedBy("immersionTracker"))
     CH.setLocked(CH.optionsCheck,     CH.lockedBy("immersionGossipOptions"))
     if CH.lockNote then
@@ -899,15 +901,27 @@ local LDB_NAME = "TonguesOfAzeroth"
 local ICON = "Interface\\AddOns\\Glyphic\\Media\\Glyphic-Mark-On"
 local ICON_MUTED = "Interface\\AddOns\\Glyphic\\Media\\Glyphic-Mark-Off"
 
--- In character / out of character at a glance, in one place so the minimap
--- button and the floating bar can't disagree about which colors mean what.
-local IC_TINT  = { 0.45, 1.00, 0.45 }
-local OOC_TINT = { 1.00, 0.42, 0.42 }
+-- On or off at a glance, in one place so the minimap button and the floating
+-- bar cannot disagree about which colours mean what.
+--
+-- This reads the off switch, not `inCharacter`, and the difference is the
+-- whole of a bug worth remembering. The two were the same answer while the
+-- bar's button was an in-character toggle. Once the bar and the icon became
+-- two faces of one off switch, reading `inCharacter` meant the bar could sit
+-- on OOC while the switch said on -- so pressing the icon moved the switch and
+-- nothing the player was looking at changed, and the icon read as dead.
+--
+-- Your voice is still reported separately, in the tooltip and on the bar's own
+-- menu, because it is still a separate setting: the panel can take you out of
+-- character without switching the addon off, and saying otherwise would be the
+-- same lie in the other direction.
+local ON_TINT  = { 0.45, 1.00, 0.45 }
+local OFF_TINT = { 1.00, 0.42, 0.42 }
 
 local function stateTint()
-    local d = db()
-    local c = d.inCharacter and IC_TINT or OOC_TINT
-    return c[1], c[2], c[3], d.inCharacter and true or false
+    local on = not (ns.IsMuted and ns.IsMuted())
+    local c = on and ON_TINT or OFF_TINT
+    return c[1], c[2], c[3], on
 end
 
 -- Swap the minimap icon by state. Hovering to read a tooltip is a poor way to
@@ -917,7 +931,7 @@ end
 -- undone rather than merely stopped: a button that was greyed out before the
 -- upgrade stays greyed out until something sets it back.
 local function ApplyMinimapState()
-    local muted = not db().inCharacter
+    local muted = (ns.IsMuted and ns.IsMuted()) and true or false
     -- LibDBIcon rebuilds the button's texture from the data object, so the
     -- object is where the choice has to live or the next refresh undoes it.
     if ldbObject then ldbObject.icon = muted and ICON_MUTED or ICON end
@@ -995,18 +1009,58 @@ local function toggleInCharacter()
     end
 end
 
+-- The off switch, and there is one of it. Everything off, and everything back
+-- the way it was on the next click -- which is the half that makes it usable:
+-- the answer to "I need to read this quest for thirty seconds" cannot be a
+-- trip through the options panel and a second one to undo it.
+--
+-- Reached from the minimap icon's right-click and from the bar's own button,
+-- and that is the point. They were two switches of different sizes for a
+-- while: the bar flipped `inCharacter` and the icon flipped everything, so
+-- flipping the bar to OOC left the icon looking dead -- press it and the
+-- thing you were watching did not move, because the one key it had in common
+-- was already off. Two controls that look like one switch have to be one
+-- switch, or the smaller one reads as having broken the bigger one.
+local function toggleMute()
+    if ns.ToggleMute then
+        ns.ToggleMute(true)
+    elseif ns.ToggleInCharacter then
+        -- Core absent. The narrower switch is a better fallback than none:
+        -- `inCharacter` is in the muted set, so the bar still moves and still
+        -- means something, it just reaches less far.
+        ns.ToggleInCharacter(true)
+    end
+    if ns.OnSettingsChanged then ns.OnSettingsChanged() end
+end
+
 local function tooltipLines(tt)
     tt:AddLine("Glyphic")
+    local muted = ns.IsMuted and ns.IsMuted()
+    if muted then
+        -- First line and in red, because every readout under it is reporting a
+        -- setting that is not in force. A tooltip that says "Language: Orcish"
+        -- over a switched-off addon is lying about the next thing you type.
+        tt:AddLine("|cffff0000Switched off|r -- nothing below is in force.", 1, 0.3, 0.3)
+    end
     tt:AddLine("Language: |cffffffff" .. Language.GetLanguageName(db().language) .. "|r", 0.8, 0.8, 0.8)
     tt:AddLine("In character: " .. (db().inCharacter and "|cff00ff00YES|r" or "|cffff0000NO|r"), 0.8, 0.8, 0.8)
-    if not db().inCharacter then
+    if not db().inCharacter and not muted then
         -- Said here because this is where it gets switched off, and a button
         -- that silences four features ought to admit to all four of them.
-        tt:AddLine("Muted: no tongue, no accent, no cast phrases.", 0.8, 0.5, 0.5)
+        tt:AddLine("Out of character: no tongue, no accent, no cast phrases.", 0.8, 0.5, 0.5)
     end
     tt:AddLine(" ")
     tt:AddLine("|cffffffffLeft-click|r  Open settings", 1, 1, 1)
-    tt:AddLine("|cffffffffRight-click|r  Mute / unmute everything it says for you", 1, 1, 1)
+    local refusal = ns.MuteRefusal and ns.MuteRefusal()
+    if refusal then
+        -- Greyed rather than hidden. A control that silently does nothing
+        -- reads as broken; one that says why reads as a rule.
+        tt:AddLine("|cff808080Right-click|r  " .. refusal, 0.5, 0.5, 0.5, true)
+    elseif muted then
+        tt:AddLine("|cffffffffRight-click|r  Switch it back on, as you left it", 1, 1, 1)
+    else
+        tt:AddLine("|cffffffffRight-click|r  Switch the whole addon off for a minute", 1, 1, 1)
+    end
     local favCount = (ns.GetFavorites and #ns.GetFavorites()) or 0
     tt:AddLine("|cffffffffScroll|r  Cycle " ..
         ((db().favOnly and favCount > 0) and "your favorites" or "learned languages"), 1, 1, 1)
@@ -1027,7 +1081,7 @@ local function setupLDBButton()
                 icon = ICON,
                 OnClick = function(_, mouseButton)
                     if mouseButton == "RightButton" then
-                        toggleInCharacter()
+                        toggleMute()
                     elseif ns.OpenConfig then
                         ns.OpenConfig()
                     end
@@ -1077,7 +1131,7 @@ local function SetupMinimapButton()
         icon = ICON,
         onClick = function(mouseButton)
             if mouseButton == "RightButton" then
-                toggleInCharacter()
+                toggleMute()
             else
                 ns.OpenConfig()
             end
@@ -1141,20 +1195,23 @@ local function RefreshLanguageWidget()
     local adj, ar, ag, ab = fluencyAdjective(fluencyPct(d.language))
     langWidget.sub:SetText(adj)
     langWidget.sub:SetTextColor(ar, ag, ab)
-    local tr, tg, tb, inChar = stateTint()
+    local tr, tg, tb, on = stateTint()
     if langWidget.icBtn then
-        langWidget.icBtn:SetText(inChar and "IC" or "OOC")
+        -- ON/OFF rather than IC/OOC, because the button is the off switch now
+        -- and not an in-character toggle. Labelling the whole addon's switch
+        -- with the name of one of the settings it turns off is how it came to
+        -- look like it disagreed with the minimap icon. Your voice on its own
+        -- is a row on the right-click menu, one click further in, which is the
+        -- right depth for the narrower of two controls.
+        langWidget.icBtn:SetText(on and "ON" or "OFF")
         langWidget.icBtn:SetTextColor(tr, tg, tb)
         -- Room for the plate's two 12px end caps either side of the word.
         langWidget.icBtn:SetWidth(
             math.max(46, math.ceil(langWidget.dot:GetStringWidth()) + 28))
     end
-    if langWidget.border then
-        -- Full strength, not three-quarters. The old border was a flat colour
-        -- painted straight on; this one tints art that is already mid-toned,
-        -- so dimming it first just makes the edge disappear.
-        langWidget.border:SetColor(tr, tg, tb, 1)
-    end
+    -- The border used to be tinted here. It is not any more: the frame wears
+    -- the game's tooltip art and a saturated tint over that is what made the
+    -- bar read as a green rectangle. The state is on the button above.
     if langWidget.fav then
         -- Filled only when the toggle is on AND there's a list to walk, so the
         -- star never claims a filter is active when it can't be.
@@ -1199,18 +1256,13 @@ end
 openWidgetMenu = function()
     if not langWidget then return end
     if not widgetMenu then
-        local m = CreateFrame("Frame", "TonguesOfAzerothLangMenu", UIParent)
+        local m = Compat.CreateBackdropFrame("Frame", "TonguesOfAzerothLangMenu", UIParent)
         m:SetFrameStrata("FULLSCREEN_DIALOG")
         m:SetFrameLevel(60)
         m:SetClampedToScreen(true)
         m:EnableMouse(true)
         m:EnableMouseWheel(true)
-        local bg = m:CreateTexture(nil, "BACKGROUND")
-        bg:SetPoint("TOPLEFT", 5, -5)
-        bg:SetPoint("BOTTOMRIGHT", -5, 5)
-        bg:SetTexture("Interface\\Tooltips\\UI-Tooltip-Background")
-        bg:SetVertexColor(0.04, 0.04, 0.06, 0.98)
-        Compat.GameBorder(m, WG.EDGE)
+        Compat.Backdrop(m, "tooltip", 0.04, 0.04, 0.06, 0.98)
         m.langRows = {}   -- scrollable language list
         m.footRows = {}   -- pinned footer (auto-translate + settings)
         m.offset = 0
@@ -1387,7 +1439,7 @@ end
 local function SetupLanguageWidget()
     local d = db()
     if not langWidget then
-        local f = CreateFrame("Frame", "TonguesOfAzerothLangWidget", UIParent)
+        local f = Compat.CreateBackdropFrame("Frame", "TonguesOfAzerothLangWidget", UIParent)
         -- Starting width only; RefreshLanguageWidget sizes it to its contents.
         f:SetSize(WG.MIN_W, WG.H)
         f:SetFrameStrata("MEDIUM")
@@ -1397,23 +1449,20 @@ local function SetupLanguageWidget()
         f:EnableMouseWheel(true)
         f:RegisterForDrag("LeftButton")
 
-        -- The game's own tooltip backing rather than a flat fill. It is the
-        -- texture every floating readout in WoW sits on, so the bar stops
-        -- looking like a coloured rectangle somebody left on the screen.
-        -- Inset by five, which is the inset Blizzard's own tooltips use with
-        -- this border: the fill stops where the drawn line starts instead of
-        -- running out under the fade and making the edge look muddy.
-        local bg = f:CreateTexture(nil, "BACKGROUND")
-        bg:SetPoint("TOPLEFT", 5, -5)
-        bg:SetPoint("BOTTOMRIGHT", -5, 5)
-        bg:SetTexture("Interface\\Tooltips\\UI-Tooltip-Background")
-        bg:SetVertexColor(0.06, 0.06, 0.09, 0.95)
-        -- The game's tooltip frame, down to the border, rather than a flat
-        -- fill inside a one-pixel line. It still carries the in/out-of-
-        -- character state in its colour: the bar is read peripherally,
-        -- mid-conversation, so the signal has to survive not being looked at
-        -- directly -- which a word cannot.
-        f.border = Compat.GameBorder(f, WG.EDGE)
+        -- The game's own tooltip frame, placed by the game's own code. Fill,
+        -- border and the insets between them all come out of one table, which
+        -- is how the top and bottom edges ended up on the same line as the
+        -- sides: nothing here measures anything.
+        --
+        -- The border is deliberately left its own colour. It used to be tinted
+        -- green or red to carry the in/out-of-character state, on the grounds
+        -- that the bar is read peripherally and a word cannot be -- and the
+        -- result was a bright green rectangle, because vertex-colouring gold
+        -- tooltip art with a saturated hue throws away the art and keeps the
+        -- outline. The state lives on the IC button now, which is a real
+        -- button with the word on it, and the frame is allowed to look like a
+        -- frame.
+        Compat.Backdrop(f, "tooltip", 0.06, 0.06, 0.09, 0.95)
 
         local name = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
         name:SetPoint("TOP", 0, -10)
@@ -1455,21 +1504,38 @@ local function SetupLanguageWidget()
         -- Its tooltip reports the very thing the button changes, and the cursor
         -- is still on it afterwards, so it has to rebuild in place.
         icBtn._toaTooltip = true
-        icBtn:SetScript("OnClick", function() toggleInCharacter() end)
+        icBtn:SetScript("OnClick", function() toggleMute() end)
         icBtn:SetScript("OnEnter", function(self)
             GameTooltip:SetOwner(self, "ANCHOR_TOP")
-            local inChar = db().inCharacter
-            GameTooltip:SetText(inChar and "Speaking in character" or "Speaking out of character", 1, 1, 1)
-            if inChar then
-                GameTooltip:AddLine("Your chat is translated and accented on the channels you picked.", 0.8, 0.8, 0.8, true)
+            local on = not (ns.IsMuted and ns.IsMuted())
+            GameTooltip:SetText(on and "Glyphic is on" or "Glyphic is off", 1, 1, 1)
+            if on then
+                GameTooltip:AddLine("Click to switch it off for a minute. Everything "
+                    .. "comes back the way you left it.", 0.8, 0.8, 0.8, true)
+                -- Said here because this button no longer changes it, and a
+                -- player who used to flip their voice from this plate needs
+                -- telling where it went.
+                if not db().inCharacter then
+                    GameTooltip:AddLine("Your voice is out of character -- chat goes "
+                        .. "out as typed. Right-click the bar to change that on "
+                        .. "its own.", 0.8, 0.5, 0.5, true)
+                end
             else
-                GameTooltip:AddLine("Your chat goes out exactly as you type it.", 0.8, 0.8, 0.8, true)
+                GameTooltip:AddLine("Nothing is in force: no tongue, no accent, no "
+                    .. "hidden quest text, no learning. Click to put it all back.",
+                    0.8, 0.5, 0.5, true)
             end
-            GameTooltip:AddLine("You read and decode everyone else either way.", 0.6, 0.6, 0.6, true)
+            local refusal = ns.MuteRefusal and ns.MuteRefusal()
+            if refusal then
+                GameTooltip:AddLine(" ")
+                GameTooltip:AddLine("|cff808080" .. refusal .. "|r", 0.5, 0.5, 0.5, true)
+                GameTooltip:Show()
+                return
+            end
             GameTooltip:AddLine(" ")
             GameTooltip:AddLine("|cffffffffClick|r  Switch", 1, 1, 1)
             local key = GetBindingKey and GetBindingKey("TONGUESOFAZEROTH_TOGGLE_IC")
-            if key then GameTooltip:AddLine("|cffffffffKeybind|r  " .. key, 1, 1, 1) end
+            if key then GameTooltip:AddLine("|cffffffffKeybind|r  " .. key .. "  (your voice only)", 1, 1, 1) end
             GameTooltip:Show()
         end)
         icBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -1549,7 +1615,8 @@ local function SetupLanguageWidget()
             GameTooltip:AddLine("|cffffffffLeft-click|r  Next language", 1, 1, 1)
             GameTooltip:AddLine("|cffffffffScroll|r  Cycle languages", 1, 1, 1)
             GameTooltip:AddLine("|cffffffffStar|r  Scroll only favorites", 1, 1, 1)
-            GameTooltip:AddLine("|cffffffffShift-click|r  Toggle in character", 1, 1, 1)
+            GameTooltip:AddLine("|cffffffffON/OFF|r  Switch the whole addon off for a minute", 1, 1, 1)
+            GameTooltip:AddLine("|cffffffffShift-click|r  Your voice, in or out of character", 1, 1, 1)
             GameTooltip:AddLine("|cffffffffRight-click|r  Language menu", 1, 1, 1)
             GameTooltip:AddLine("|cffffffffDrag|r  Move (unlock in options)", 0.7, 0.7, 0.7)
             GameTooltip:Show()
@@ -1969,13 +2036,19 @@ local function BuildChatPanel()
     end
 
     colorTagCheck = colorCheck("Color tags",
-        "Paint the [Language] tag in that tongue's color, so you can tell Demonic from Old God at a glance -- including on lines you can't read yet.\n\nIndependent of \"Tint speech\": turn this off with that on and the words are tinted while the tag stays in its usual color.",
+        "Paint the [Language] tag in that tongue's color, so you can tell Demonic from Old God at a glance -- including on lines you can't read yet.\n\nOn its own this colors the tag and nothing else: the words underneath stay the channel's own color, the same as every other language in the window. \"Tint all speech\" is what extends it to the sentence.",
         function() return ns.Colors and ns.Colors.TagsEnabled() end,
         function(v) ns.Colors.SetTagsEnabled(v) end)
     colorTagCheck:SetPoint("TOPLEFT", decodeStyleDropdown, "BOTTOMLEFT", 0, -16)
 
-    colorSpeechCheck = colorCheck("Tint speech",
-        "Color the spoken words themselves. Off by default -- the tag alone marks the language without repainting whole conversations.\n\nIndependent of \"Color tags\": either can be on without the other.",
+    -- "Tint all speech" rather than "Tint speech". The old label read as "tint
+    -- the speech part of the line", which is exactly what it does not do: with
+    -- it on, a tagged line is painted end to end, tag and sentence together.
+    -- That got reported as a bug twice by somebody who had ticked it while
+    -- testing and then read it as a colour fault rather than as the setting
+    -- doing its job. "All" is the word that was missing.
+    colorSpeechCheck = colorCheck("Tint all speech",
+        "Color the spoken words as well as the tag, so a line in a tongue arrives painted end to end.\n\nOff by default -- the tag alone marks the language without repainting whole conversations, and leaving the words in the channel's own color is what makes Glyphic's languages look like the game's.\n\nIndependent of \"Color tags\": either can be on without the other.",
         function() return ns.Colors and ns.Colors.SpeechEnabled() end,
         function(v) ns.Colors.SetSpeechEnabled(v) end)
     colorSpeechCheck:SetPoint("LEFT", colorTagCheck.labelText, "RIGHT", 24, 0)
@@ -2141,15 +2214,51 @@ local function BuildLearnedPanel()
         db().fullImmersion = self:GetChecked() and true or false
         if ns.QuestText then ns.QuestText.Refresh() end
     end)
-    infoFor(content, immersionCheck, "This removes your ability to immediately "
-        .. "understand default game languages and uses Glyphic's fluency instead "
-        .. "-- you read Common and your racial tongues only as well as the list "
-        .. "below says you do. Languages you speak still reach players without "
-        .. "Glyphic exactly as they do now. Applies to the channels picked "
-        .. "under |cffffd200Chat Channels|r.")
+    -- Says what you will see rather than what the switch does internally.
+    -- The first version led with "removes your ability to immediately
+    -- understand default game languages", which over-promised in one
+    -- direction and said nothing about the carve-out a player meets first:
+    -- your own speech. Anyone who ticks this and tests it by typing in /say
+    -- reads their own words back in plain English and concludes the switch is
+    -- broken, which is exactly what happened. Naming that here costs a
+    -- sentence and saves the conclusion.
+    infoFor(content, immersionCheck, "Other players' speech in the game's own "
+        .. "tongues stops arriving pre-translated: you read Common and your "
+        .. "racial tongues only as well as the fluency list below says you do. "
+        .. "Your own messages always come back to you as you typed them, so "
+        .. "test this on somebody else. General, Trade and custom channels "
+        .. "carry no language of their own, so they need the switch below. "
+        .. "What you say still reaches players without Glyphic exactly as it "
+        .. "does now. Applies to the channels picked under "
+        .. "|cffffd200Chat Channels|r.")
+
+    -- The hole in everything above: /say and /yell carry a language, so the
+    -- client translated them and this addon can take that back. General and
+    -- Trade carry none at all, so there is nothing to take and the result is a
+    -- world where the stranger next to you is unintelligible and the same
+    -- stranger one channel over is not.
+    --
+    -- Closing it means lending those lines a tongue they never had, which is
+    -- why it is asked for by name and off by default. Trade is how a player
+    -- finds a group, a summon or a portal, and somebody who ticked the switch
+    -- above to make questing strange did not ask to be unable to do that.
+    immersionChannelCheck = Compat.CreateCheckbox(content,
+        "Also apply to General, Trade and custom channels")
+    immersionChannelCheck:SetPoint("TOPLEFT", immersionCheck, "BOTTOMLEFT", 16, -6)
+    immersionChannelCheck:SetScript("OnClick", function(self)
+        db().immersionChannels = self:GetChecked() and true or false
+    end)
+    infoFor(content, immersionChannelCheck, "The game attaches no language to "
+        .. "these channels, so everyone reads everyone there whatever their "
+        .. "race. Tick this and they are read as your own faction's tongue "
+        .. "instead -- the same one the people around you are speaking. "
+        .. "Emotes are left alone either way, since an emote is narration "
+        .. "rather than speech. Off by default, because Trade chat is how you "
+        .. "find a group. The |cffffd200Mythic|r challenge turns it on and "
+        .. "holds it there.")
 
     immersionNPCCheck = Compat.CreateCheckbox(content, "Include all NPC text and speech")
-    immersionNPCCheck:SetPoint("TOPLEFT", immersionCheck, "BOTTOMLEFT", 0, -6)
+    immersionNPCCheck:SetPoint("TOPLEFT", immersionChannelCheck, "BOTTOMLEFT", -16, -6)
     immersionNPCCheck:SetScript("OnClick", function(self)
         db().immersionNPCs = self:GetChecked() and true or false
         if ns.QuestText then ns.QuestText.Refresh() end
@@ -2438,6 +2547,11 @@ local function BuildLearnedPanel()
         swatch:RegisterForClicks("LeftButtonUp", "RightButtonUp")
         swatch:SetScript("OnClick", function(_, button)
             if not ns.Colors then return end
+            -- A tongue whose colour is a ramp has nothing to pick. Checked on
+            -- the click rather than when the row is built, because Legendspeech
+            -- arrives in this list partway through a session -- the Mythic
+            -- reward reveals it -- and a row is built once.
+            if ns.Colors.IsFixed and ns.Colors.IsFixed(entry.id) then return end
             if button == "RightButton" then
                 ns.Colors.Reset(entry.id)
                 if ns.OnSettingsChanged then ns.OnSettingsChanged() end
@@ -2472,8 +2586,13 @@ local function BuildLearnedPanel()
                 GameTooltip:AddLine("|cff" .. hex .. hex .. "|r"
                     .. (ns.Colors.IsCustom(entry.id) and "  (custom)" or "  (default)"), 1, 1, 1)
             end
-            GameTooltip:AddLine("|cffffffffClick|r  Pick a color", 1, 1, 1)
-            GameTooltip:AddLine("|cffffffffRight-click|r  Back to the default", 1, 1, 1)
+            if ns.Colors and ns.Colors.IsFixed and ns.Colors.IsFixed(entry.id) then
+                GameTooltip:AddLine("This one's colour is part of it. Earned, so it"
+                    .. " reads the same on everyone's screen.", 0.7, 0.7, 0.7, true)
+            else
+                GameTooltip:AddLine("|cffffffffClick|r  Pick a color", 1, 1, 1)
+                GameTooltip:AddLine("|cffffffffRight-click|r  Back to the default", 1, 1, 1)
+            end
             GameTooltip:Show()
         end)
         swatch:SetScript("OnLeave", function() GameTooltip:Hide() end)

@@ -140,15 +140,29 @@ end
 -- `skill` is Blizzard's 0-300 scale. Returns nil when the language has no
 -- usable word data, so the caller can fall back rather than hand back a line
 -- that silently did nothing.
-function Immersion.Garble(text, langId, skill)
+--
+-- `tint` is an optional six-digit hex. Given one, the words that come through
+-- in the clear are wrapped in it, so a paragraph shows you what you can read
+-- rather than only what you cannot. Handed in rather than worked out here:
+-- which colour, how strong and whether at all are display decisions, and this
+-- module's job is deciding what is legible. It also means the quest window and
+-- the chat frame can fade towards their own ink without this knowing either
+-- exists.
+function Immersion.Garble(text, langId, skill, tint)
     if type(text) ~= "string" or text == "" then return text end
     if not Immersion.HasWords(langId) then return nil end
     skill = tonumber(skill) or 0
+    if type(tint) ~= "string" or not tint:match("^%x%x%x%x%x%x$") then tint = nil end
     -- A fast path, not a rule: at full skill every word passes the test below
     -- anyway (hash % 300 is always under 300), so the line comes back intact
     -- either way. It is here to skip the markup pass and the per-word hashing
     -- for the common case, and deleting it would change nothing you could
     -- observe -- which is why no test covers it, and why this says so.
+    --
+    -- Still a fast path with a tint asked for. At full skill every word is
+    -- legible, so highlighting would paint the whole line one colour, which
+    -- says nothing -- the highlight is a comparison and there is nothing left
+    -- to compare it against.
     if skill >= FULL_SKILL then return text end
 
     -- Links, textures and color codes are bytes the client parses, not words.
@@ -168,7 +182,14 @@ function Immersion.Garble(text, langId, skill)
         -- hash falls under your skill comes through in the clear. Deterministic
         -- per word, so the same sentence always breaks the same way and a
         -- speaker does not flicker in and out of legibility as you reread.
-        if hash % FULL_SKILL < skill then return word end
+        if hash % FULL_SKILL < skill then
+            -- Wrapped per word and closed immediately, so nothing nests: the
+            -- markup pass above has already lifted every link and texture out
+            -- of the way, and a caller that wraps the whole line in a colour of
+            -- its own re-opens after each "|r" rather than being cut short.
+            if tint then return "|cff" .. tint .. word .. "|r" end
+            return word
+        end
         local bucket = bucketFor(langId, word)
         if not bucket then return word end
         return copyCase(word, bucket[hash % #bucket + 1])

@@ -115,12 +115,23 @@ end
 -- Every tier of Stranger shares this. Written once rather than three times,
 -- because three copies of the same four lines is three chances for one of
 -- them to drift and for a tier to quietly stop being the thing it says it is.
--- Every tier hides speech. What is written down -- the journal, the
--- objective tracker -- is what separates Easy from the other two, so it is
--- named per tier rather than here.
+-- Every tier hides what is said to you *and* what a quest or an NPC has
+-- written down for you to read. What separates the tiers is the furniture you
+-- play the game with -- the journal, the objective tracker, the map, the
+-- replies you click -- so that is what gets named per tier.
+--
+-- `immersionQuests` belongs here and not in a tier, and getting that wrong is
+-- worth a line of its own. It is not "the quest window" among several
+-- surfaces: `QuestText.Active()` gates every piece of prose this addon
+-- garbles outside chat on it, and the tracker and gossip-list switches narrow
+-- that rather than standing beside it. So a tier that sets it false does not
+-- leave the quest window readable -- it switches the whole feature off and
+-- leaves gossip, objectives and tooltips readable too. Easy was written that
+-- way for a day and read, correctly, as the challenge having failed to start.
 local STRANGER_BASE = {
     fullImmersion   = true,
     immersionNPCs   = true,
+    immersionQuests = true,
     -- Not flavour: the only way out of the fog is quests teaching you, so a
     -- run with this off is unwinnable rather than hard.
     questLearning   = true,
@@ -297,13 +308,14 @@ local CHALLENGES = {
             easy = {
                 id    = "easy",
                 label = "Easy",
-                blurb = "All players and NPCs speak a language you don't "
-                     .. "understand. Complete a quest to learn a word's "
-                     .. "meaning and become more fluent.",
+                blurb = "Quest text, gossip and NPC speech are hidden. Your "
+                     .. "objectives stay readable, so you always know what to "
+                     .. "do -- just never why.",
                 settings = tier({
-                    -- Speech only. Everything written down stays readable,
-                    -- so you always know what to do -- just never why.
-                    immersionQuests         = false,
+                    -- The furniture is left alone. Quest text and gossip are
+                    -- hidden like everywhere else, but the objectives and the
+                    -- map still tell you where to go, so you always know what
+                    -- to do -- just never why.
                     immersionTracker        = false,
                     immersionGossipOptions  = false,
                 }),
@@ -319,7 +331,6 @@ local CHALLENGES = {
                      .. "objectives tracker are also in a written language "
                      .. "you do not understand.",
                 settings = tier({
-                    immersionQuests         = true,
                     immersionTracker        = true,
                     immersionGossipOptions  = false,
                 }),
@@ -339,7 +350,6 @@ local CHALLENGES = {
                      .. "is hidden. All NPC and player names are hidden. Who "
                      .. "are these people?",
                 settings = tier({
-                    immersionQuests         = true,
                     immersionTracker        = true,
                     -- The replies you click to answer an NPC, so the menus
                     -- are navigated by shape. Not named in the description
@@ -360,19 +370,21 @@ local CHALLENGES = {
             mythic = {
                 id    = "mythic",
                 label = "Mythic",
-                blurb = "Everything Hard hides, and you are a foreigner on top "
-                     .. "of it. You speak Legendspeech -- a tongue nobody here "
-                     .. "knows -- so nobody can read a word you say, with or "
-                     .. "without this addon. Learning the languages you were "
-                     .. "born speaking is what slowly turns your speech back "
-                     .. "into plain English. You are in character on every "
-                     .. "channel for the whole run, and you cannot switch it "
-                     .. "off. Reach max level and Legendspeech is yours for "
-                     .. "good, on every character.",
+                blurb = "Everything Hard hides, and you speak only your native "
+                     .. "tongue -- Legendspeech -- plus whatever you learn "
+                     .. "along the way. Reach max level and Legendspeech and "
+                     .. "its accent are yours to keep.",
                 settings = tier(merge({
-                    immersionQuests         = true,
                     immersionTracker        = true,
                     immersionGossipOptions  = true,
+                    -- General, Trade and custom channels, which no other tier
+                    -- touches. The game attaches no language to them, so every
+                    -- other tier leaves a hole you can see through: everyone
+                    -- around you is unintelligible in /say and perfectly
+                    -- intelligible one channel over. Closing it is only fair
+                    -- on the tier where being unable to ask for a group is the
+                    -- point rather than an obstacle.
+                    immersionChannels       = true,
                     -- The switch that mutes the addon, held down. Every other
                     -- tier leaves it alone, because with nothing learned their
                     -- speaker is speaking English anyway and the switch
@@ -1087,6 +1099,7 @@ local BROKEN_WHY = {
     immersionQuests        = "quest text was switched off",
     immersionTracker       = "the objective tracker was changed",
     immersionGossipOptions = "the gossip list was changed",
+    immersionChannels      = "the chat channels were made readable again",
     questLearning          = "learning from quests was switched off",
     passiveLearning        = "passive learning was changed",
     inCharacter            = "speaking in character was switched off",
@@ -1106,18 +1119,77 @@ local function brokenWhy(key)
     return tostring(key) .. " was changed"
 end
 
--- Keeps the record's level honest without needing an event for it. Called
--- from the audit, which runs often enough.
-function Challenge.Touch()
+-- Keeps the record's level honest without needing an event for it.
+--
+-- `level` overrides what the client would say, for the same reason Complete
+-- takes one: PLAYER_LEVEL_UP carries the new level while UnitLevel can still
+-- be answering with the old one. It matters more here than it looks, because
+-- the absence check below reads the gap between this number and the client's
+-- -- so a level-up that failed to land here is a level the run looks like it
+-- was not present for.
+function Challenge.Touch(level)
     local run = Challenge.Current()
     if not run then return end
-    local level = playerLevel()
-    if level then run.level = level end
+    local now = tonumber(level) or playerLevel()
+    if type(now) ~= "number" then return end
+    if type(run.level) ~= "number" or now > run.level then
+        run.level = now
+    end
+end
+
+--=========================================================================--
+--  Levels gained while the addon was not here
+--=========================================================================--
+-- The hole a player found: start a run at level twenty, uninstall the addon,
+-- level to the cap in plain English with the quest log readable, put it back,
+-- and collect Legendspeech. Nothing in the run would have noticed -- the locks
+-- are only checked while the file that checks them is loaded, and reaching the
+-- cap was being treated as a thing to pay out rather than a thing to question.
+--
+-- Caught because the run writes down what level it last saw. The addon being
+-- absent is not observable, but the arithmetic afterwards is: if the character
+-- has gained levels the run never saw a ding for, they were gained without the
+-- handicap, whether the addon was uninstalled, disabled in the list, or
+-- erroring out on load.
+--
+-- The allowance is one. The only legitimate gap is a single ding that did not
+-- reach Touch -- a level gained in the instant of a disconnect -- and a real
+-- absence is never one level, because levelling with the addon gone is the
+-- entire point of doing it. Erring towards one free level is deliberate: a run
+-- wrongly voided costs somebody days, and a run voided one level late costs
+-- nothing.
+--
+-- There is no defence against deleting the saved variables file, and none is
+-- wanted. That throws the run away along with its record, so there is nothing
+-- left to claim a reward with -- the player is not at level fifty-nine of a
+-- Mythic run, they are not on one at all.
+local ABSENT_ALLOWANCE = 1
+
+local function auditAbsence(run)
+    local now = playerLevel()
+    local seen = run.level
+    if type(now) ~= "number" or type(seen) ~= "number" then return false end
+    local gained = now - seen
+    if gained <= ABSENT_ALLOWANCE then return false end
+    run.broken      = true
+    run.brokenKey   = "absent"
+    run.brokenWhy   = "the addon was not loaded for " .. gained .. " level"
+        .. (gained == 1 and "" or "s")
+    -- The level it was last seen at, not the one it was caught at. That is
+    -- where the run actually stopped being a run.
+    run.brokenLevel = seen
+    return true
 end
 
 function Challenge.Audit()
     local run = Challenge.Current()
     if not run then return true end
+    -- Before Touch, which is the whole of why this works: Touch writes the
+    -- client's level into the run, so a line after it is comparing the number
+    -- with itself and the gap is gone.
+    if not run.broken and auditAbsence(run) then
+        return false, run.brokenKey
+    end
     Challenge.Touch()
     if run.broken then return false, run.brokenKey end
 
@@ -1337,6 +1409,13 @@ frame:SetScript("OnEvent", function(_, event, arg1)
     end
     if event == "PLAYER_LEVEL_UP" then
         -- arg1 is the new level, which UnitLevel may not be reporting yet.
+        --
+        -- Written down before anything else looks at it. The absence check
+        -- reads the gap between the run's level and the client's, so a ding
+        -- the run did not record is indistinguishable from a level gained
+        -- with the addon uninstalled -- and levelling two zones without a
+        -- loading screen is ordinary play, which would then void the run.
+        Challenge.Touch(tonumber(arg1))
         Challenge.CheckCompletion(tonumber(arg1))
         return
     end

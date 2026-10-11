@@ -492,6 +492,14 @@ local function migrateDB()
     -- train", which is not a hard game, it is a broken one. Garbling it is a
     -- fine thing to want and a terrible thing to be handed.
     if db.immersionGossipOptions == nil then db.immersionGossipOptions = false end
+    -- General, Trade and custom channels, which the game attaches no language
+    -- to at all -- so unlike everything else under full immersion, there is
+    -- nothing here the client took away and this lends the line a tongue it
+    -- never had. Off, and off for a stronger reason than the rest: those
+    -- channels are how a player asks for a group, a summon or directions, and
+    -- a stranger who cannot read Trade cannot play. Mythic locks it on because
+    -- a Mythic run is the one place being unable to ask is the point.
+    if db.immersionChannels == nil then db.immersionChannels = false end
     -- Automatically switch Glyphic off while inside an instance (and back on when you
     -- leave). Blizzard's "secret" chat protection blocks addons from reading chat
     -- during boss fights, so translations can't be decoded there. On by default;
@@ -1752,11 +1760,27 @@ end
 -- counts, and only up to full fluency.
 local PASSIVE_PER_WORD = 0.0025
 local FLUENCY_ADJECTIVES = { broken = true, partial = true, fluent = true, perfect = true }
+-- Built from GetAllLanguages rather than GetLanguages, which is the difference
+-- between the two the hard way. A hidden tongue is one you cannot pick off a
+-- list, not one nobody speaks: Legendspeech is hidden for the whole of a Mythic
+-- run, and every line of it arrived here, failed to resolve, and was reported
+-- as being in no language at all -- so the tag came through white, and the
+-- speech colour and the name highlighting went with it.
+--
+-- Keyed to the registry's revision rather than built once. A lookup table built
+-- on the first chat line of the session and never rebuilt misses a custom
+-- language created afterwards, and misses Legendspeech being handed over at the
+-- end of a run, until a reload -- and "it works after /reload" is the hardest
+-- kind of bug to be told about.
 local passiveNameToId
+local passiveNameRev
 local function passiveLangIdFromTag(tag)
-    if not passiveNameToId then
+    local rev = Language.GetRevision and Language.GetRevision() or 0
+    if not passiveNameToId or passiveNameRev ~= rev then
         passiveNameToId = {}
-        local langs = Language.GetLanguages()
+        passiveNameRev = rev
+        local langs = Language.GetAllLanguages and Language.GetAllLanguages()
+            or Language.GetLanguages()
         for i = 1, #langs do
             passiveNameToId[string.lower(langs[i].name)] = langs[i].id
         end
@@ -1853,15 +1877,103 @@ function ns.FullImmersionOn()
     return (db and db.fullImmersion) and true or false
 end
 
+--=========================================================================--
+--  Marking the words you can read
+--=========================================================================--
+-- A challenge run spends its first hours looking like a wall of nonsense with
+-- no way to tell whether any of it is working. The words you *can* read are in
+-- there -- a word comes through clear once its hash falls under your fluency --
+-- but they are the same colour as everything else, so the one piece of
+-- feedback the run has to offer is invisible. Tinting them turns the paragraph
+-- into the progress bar, in the place you are already looking.
+--
+-- The tongue's own colour rather than a signal green, because the palette
+-- already means something: a word you can read in Orcish comes up in the
+-- colour Orcish wears on every tag in the window. One fewer thing to learn,
+-- and it stays right when somebody recolours their palette.
+--
+-- Faded out as fluency climbs, to nothing by the time half the paragraph is
+-- legible. The highlight is a comparison -- these words, not those -- and a
+-- comparison stops saying anything once most of the line is on one side of it.
+-- Early on almost nothing is lit and every word is worth having; later it
+-- would be a page of coloured text, which is a page of plain text with extra
+-- steps.
+local LEARNED_FADE_AT = 50
+
+-- Faded towards mid-grey, which wants explaining because the obvious target is
+-- the colour of the text underneath and that is not available.
+--
+-- These strings are collected from the client's data functions, not from the
+-- frames that draw them -- deliberately, so the feature works for somebody
+-- running Immersion or Storyline instead of Blizzard's quest window. The cost
+-- is that the same call answers for two surfaces with opposite ink:
+-- GetQuestLogLeaderBoard feeds both the journal, which is near-black on
+-- parchment, and the objective tracker, which is near-white on nothing. There
+-- is no argument on it that says which.
+--
+-- Mid-grey is the one target that fades against both, and for a reason rather
+-- than by luck: both surfaces print at high contrast, from opposite ends, so
+-- the midpoint is the lowest-contrast colour either of them has. Fading to
+-- white would have made a legible word *harder* to read than a garbled one on
+-- parchment, at exactly the fluency where the highlight is meant to be
+-- bowing out.
+local LEARNED_INK = "808080"
+
+-- Only on a run, which is the answer to "when is this worth the noise". Off a
+-- run, immersion is a setting somebody chose and they are reading at whatever
+-- fluency they have; on one it is a handicap with an end state, and how close
+-- that end is is the thing they cannot otherwise see.
+function ns.LearnedTint(glyphId, fluency)
+    if not glyphId then return nil end
+    local C = ns.Challenge
+    if not (C and C.Current and C.Current()) then return nil end
+    if not (Colors and Colors.Blend) then return nil end
+
+    fluency = tonumber(fluency) or 0
+    -- A short circuit, not a rule: at zero no word is legible, so the garbler
+    -- would light nothing whatever colour it was handed. This saves working
+    -- one out on every line of the first hour of a run, which is where most of
+    -- the lines are. Nothing observable changes if it goes, and no test covers
+    -- it -- which is why this says so rather than leaving somebody to find out
+    -- by deleting it and seeing the suite stay green.
+    if fluency <= 0 then return nil end
+    if fluency >= LEARNED_FADE_AT then return nil end
+
+    local hex = Colors.Hex(glyphId)
+    if type(hex) ~= "string" then return nil end
+    return Colors.Blend(hex, LEARNED_INK, fluency / LEARNED_FADE_AT)
+end
+
+ns.LEARNED_FADE_AT = LEARNED_FADE_AT
+
+-- The same answer addressed by Blizzard's numeric language, which is what the
+-- callers have. Exposed because the quest text caches its garbled lines and
+-- has to put the tint in the cache key: the tint moves with fluency, and a key
+-- that ignored it would hand back the colour from an hour ago -- so on a run,
+-- the one number the player is watching would stop moving until something else
+-- happened to clear the cache.
+function ns.LearnedTintFor(blizzId, flat)
+    if flat then return nil end
+    local glyphId = NATIVE_LANG_IDS[blizzId]
+    if not glyphId then return nil end
+    return ns.LearnedTint(glyphId, fluencyPercent(glyphId))
+end
+
 -- Garble `text` as Blizzard's language `blizzId`, at whatever fluency Glyphic
 -- says you have in it. Returns the rewritten text and the Glyphic tongue it is
 -- in, or nil when nothing changed.
+--
+-- `flat` forbids adding any markup of our own, for callers whose text is going
+-- inside something that owns its colour: a quest link's label is one span
+-- between "|h[" and "]|h", and a colour opened and closed inside it ends the
+-- link's own colour early, so the back half of the title comes out the wrong
+-- shade. The words are still garbled, which is the part that was asked for.
 --
 -- Shared with the quest and gossip text, which asks the same question in a
 -- different place. One implementation means an orc quest giver and an orc in
 -- /say are illegible to the same degree and in the same words -- two copies of
 -- this would agree right up until one of them was tuned.
-function ns.ImmersionGarbleText(text, blizzId)
+function ns.ImmersionGarbleText(text, blizzId, flat)
     local glyphId = NATIVE_LANG_IDS[blizzId]
     -- No Glyphic equivalent means no way to have studied it, which is a
     -- fluency of zero rather than a reason to skip the line.
@@ -1873,7 +1985,9 @@ function ns.ImmersionGarbleText(text, blizzId)
     if fluency >= 100 then return nil end
 
     local out = ns.Immersion
-        and ns.Immersion.Garble(text, blizzId, ns.Immersion.SkillFromFluency(fluency))
+        and ns.Immersion.Garble(text, blizzId,
+            ns.Immersion.SkillFromFluency(fluency),
+            ns.LearnedTintFor(blizzId, flat))
     -- Blizzard ships one word for Gilnean and two for Pandaren, which cannot
     -- garble a sentence so much as stutter it. Glyphic has real tongues for
     -- both, so those fall back to our own generator rather than to nothing.
@@ -1885,6 +1999,49 @@ function ns.ImmersionGarbleText(text, blizzId)
 end
 
 -- Returns the rewritten line and the tongue to paint it as, or nil to leave
+-- The tongue a line should be read as, which is not always the one the client
+-- attached to it.
+--
+-- General, Trade and custom channels arrive with no language at all: the game
+-- does not model those channels as being spoken in anything, so everyone reads
+-- everyone whatever their race. That is a hole in the fiction rather than a
+-- feature of it, and Mythic asks for it closed.
+--
+-- It closes with your own faction's tongue, for two reasons. Those channels
+-- only ever carry your own faction, so there is no guessing about who is on the
+-- other end; and the faction tongue is what the game already has everyone
+-- speaking in /say, so a line of Trade chat reads as the same language as the
+-- person standing next to you rather than as a fifth thing.
+--
+-- Emotes are excluded, and that exclusion is not a detail. An emote is
+-- narration, not speech: running "Thrall waves." through a tongue has the
+-- narrator speaking a foreign language about somebody in the third person.
+-- They are also the one chat type that genuinely has no language and should
+-- not be given one.
+local function factionTongue()
+    if type(GetDefaultLanguage) == "function" then
+        local ok, _, id = pcall(GetDefaultLanguage)
+        if ok and type(id) == "number" and id ~= 0 then return id end
+    end
+    -- Older clients answer GetDefaultLanguage with the name alone. The
+    -- client's own language list is the next best thing: its first entry is
+    -- the tongue the character speaks by default.
+    if type(GetLanguageByIndex) == "function"
+        and type(GetNumLanguages) == "function" and (GetNumLanguages() or 0) > 0 then
+        local _, id = GetLanguageByIndex(1)
+        if type(id) == "number" and id ~= 0 then return id end
+    end
+    return nil
+end
+
+local function effectiveLangId(chatType, blizzId)
+    if type(blizzId) == "number" and blizzId ~= 0 then return blizzId end
+    if chatType == "EMOTE" then return blizzId end
+    if not (GlyphicDB and GlyphicDB.immersionChannels) then return blizzId end
+    return factionTongue() or blizzId
+end
+ns.EffectiveLangId = effectiveLangId
+
 -- the line alone. `blizzId` is Blizzard's numeric language for the message.
 local function immersionRewrite(msg, tag, sender, blizzId, fromNPC)
     if not ns.FullImmersionOn() then return nil end
@@ -1899,6 +2056,9 @@ local function immersionRewrite(msg, tag, sender, blizzId, fromNPC)
 
     return ns.ImmersionGarbleText(msg, blizzId)
 end
+-- Still here, and still called, even though the revision check above now
+-- catches the cases it was added for. It costs a line and it is the explicit
+-- version of a thing that is otherwise implicit.
 ns.InvalidatePassiveNames = function() passiveNameToId = nil end
 
 -- Cast phrases name their tongue in prose after the speech -- `snarls "Aman!"
@@ -2065,6 +2225,55 @@ end)
 -- `languageName` is the client's own language for the line ("Orcish"); it is
 -- pulled out of the varargs by name because the optional real-language tinting
 -- reads it, and because every rewritten return has to put it back in place.
+-- The last few incoming lines, with the two facts that decide whether full
+-- immersion could have done anything to them: the numeric language the client
+-- attached, and whether the client understands that language.
+--
+-- Written down as the lines arrive because neither fact can be recovered
+-- afterwards, and because every way the feature can fail looks identical from
+-- the chat window -- it looks like the setting is off. A line with no language
+-- (every General and Trade message), a language the client never translated
+-- for you (already gibberish, nothing to take), a channel you did not tick, a
+-- client whose language list came back without numbers: four different
+-- answers, one symptom. Guessing between them from a player's description is
+-- how an afternoon gets spent.
+local LANG_LOG_MAX = 8
+local langLog = {}
+local langLogAt = 0
+
+-- Slots are reused rather than allocated, because this runs on every line of
+-- chat including Trade.
+local function noteIncoming(chatType, sender, languageName, blizzId, effectiveId)
+    langLogAt = langLogAt % LANG_LOG_MAX + 1
+    local e = langLog[langLogAt]
+    if not e then e = {}; langLog[langLogAt] = e end
+    e.chatType  = chatType
+    e.sender    = sender and sender:gsub("%-.*", "") or "?"
+    e.langName  = languageName
+    e.blizzId   = blizzId
+    -- Only interesting when it differs: a channel line lent the faction tongue.
+    e.lentId    = (effectiveId ~= blizzId) and effectiveId or nil
+    e.known     = (type(effectiveId) == "number" and effectiveId ~= 0)
+        and ns.ClientKnowsLanguage(effectiveId) or false
+    e.enabled   = ns.IsChannelEnabled(chatType) and true or false
+    e.rewritten = false
+    e.seq       = (langLog.seq or 0) + 1
+    langLog.seq = e.seq
+    return e
+end
+
+-- Oldest first, so reading the diagnostic top to bottom reads the chat window
+-- top to bottom.
+function ns.RecentIncoming()
+    local out = {}
+    for i = 1, LANG_LOG_MAX do
+        local e = langLog[(langLogAt + i - 1) % LANG_LOG_MAX + 1]
+        if e and e.seq then out[#out + 1] = e end
+    end
+    table.sort(out, function(a, b) return a.seq < b.seq end)
+    return out
+end
+
 local function inlineChatFilter(_, event, msg, sender, languageName, ...)
     -- Never touch a secret message: we can't read/rewrite it, so let the client
     -- display it untouched (return false = don't filter).
@@ -2075,6 +2284,20 @@ local function inlineChatFilter(_, event, msg, sender, languageName, ...)
 
     local chatType = CHAT_EVENTS[event]
     if not chatType then return false end
+
+    -- The numeric language is the tenth chat argument, which is the seventh
+    -- left in the varargs -- read positionally because that is the only way it
+    -- is offered. Read here rather than at the immersion call below so the
+    -- diagnostic above sees lines that never reach it: "the channel is not
+    -- ticked" is one of the answers it has to be able to give.
+    local blizzLangId = select("#", ...) >= 7 and select(7, ...) or nil
+    -- Channel chat has no tongue of its own; this is where it is lent one, and
+    -- only when asked. Done here rather than inside the rewrite so the
+    -- diagnostic records the substitution -- a line logged as "id=0" that came
+    -- out garbled anyway is the kind of thing that reads as a bug.
+    local effectiveLang = effectiveLangId(chatType, blizzLangId)
+    local logEntry = noteIncoming(chatType, sender, languageName, blizzLangId,
+        effectiveLang)
 
     -- Harvest the speaker before the channel check, not after: this is the best
     -- proximity list the client can give us (the server already filtered SAY and
@@ -2116,15 +2339,14 @@ local function inlineChatFilter(_, event, msg, sender, languageName, ...)
 
     -- Full immersion, before anything tries to read the line: a tongue you
     -- have not studied should be no more legible to the decoder than it is to
-    -- you. The numeric language is the tenth chat argument, which is the
-    -- seventh left in the varargs -- read positionally for the same reason the
-    -- GUID above is, and costing no more than the feature itself if it moves.
+    -- you. `blizzLangId` was read at the top of the filter, where the
+    -- diagnostic could see it too.
     --
     -- Marked `isReal` so the rest of the filter treats it as genuine in-game
     -- speech, which it is: that skips the decoder, which has nothing to offer
     -- a line nobody encoded.
-    local blizzLangId = select("#", ...) >= 7 and select(7, ...) or nil
-    local garbled, garbledId = immersionRewrite(msg, tag, sender, blizzLangId, false)
+    local garbled, garbledId = immersionRewrite(msg, tag, sender, effectiveLang, false)
+    if logEntry then logEntry.rewritten = garbled ~= nil end
     if garbled then
         msg = garbled
         stripped = garbled
@@ -2345,6 +2567,129 @@ end
 function ns.ToggleInCharacter(silent)
     migrateDB()
     ns.SetInCharacter(not GlyphicDB.inCharacter, silent)
+end
+
+--=========================================================================--
+--  The whole addon, off and back on again
+--=========================================================================--
+-- Everything the addon does to a session, in one switch, reversible.
+--
+-- `inCharacter` already answers "is it speaking for me", and for a while the
+-- minimap button's right-click toggled that and called itself mute. It is only
+-- half of what the addon does: with immersion on, the other half is that you
+-- cannot read quest text, the tracker, or anything an NPC says. Somebody who
+-- needs to follow a dungeon's mechanics or help a guildmate through a quest
+-- needs all of it off for two minutes, and a trip to the options panel every
+-- time is the kind of friction that gets an addon uninstalled.
+--
+-- Reversible is the whole point, so what was on is written down rather than
+-- assumed. Turning immersion back on by hand would be wrong for a player who
+-- never had it: this hands back exactly the session that was interrupted.
+-- Presence of the snapshot IS the muted state -- a separate boolean plus a
+-- table is two places to disagree about one fact.
+local MUTE_KEYS = {
+    "inCharacter",
+    "fullImmersion",
+    "immersionNPCs",
+    "immersionQuests",
+    "immersionTracker",
+    "immersionGossipOptions",
+    "immersionChannels",
+    "questLearning",
+    "passiveLearning",
+}
+ns.MUTE_KEYS = MUTE_KEYS
+
+function ns.IsMuted()
+    return (GlyphicDB and type(GlyphicDB.muted) == "table") and true or false
+end
+
+-- Which of the keys above the switch may actually touch right now.
+--
+-- Off a run that is all of them. On one it is whatever the run has not pinned,
+-- and the distinction is load-bearing twice over. Writing a locked setting
+-- would trip the audit and void the run -- a switch that can end sixty levels
+-- by accident is not a convenience -- and refusing the whole switch instead,
+-- which is what this did at first, takes an Easy runner's in-character toggle
+-- away for the length of the run to protect locks that have nothing to do
+-- with it. Easy pins the written word and leaves your voice alone, so on Easy
+-- this switch is your voice, and that is exactly right.
+local function muteable()
+    local C = ns.Challenge
+    local locked = (C and C.IsLocked) and C.IsLocked or nil
+    local out = {}
+    for i = 1, #MUTE_KEYS do
+        local key = MUTE_KEYS[i]
+        if not (locked and locked(key)) then out[#out + 1] = key end
+    end
+    return out
+end
+ns._Muteable = muteable
+
+-- Why the switch is refused, or nil when it is not. Only when there is nothing
+-- left for it to do: Mythic pins every one of these, so on Mythic the switch
+-- says so rather than appearing to work and changing nothing.
+function ns.MuteRefusal()
+    local C = ns.Challenge
+    if not (C and C.Current and C.Current()) then return nil end
+    if #muteable() > 0 then return nil end
+    local reason = (C.LockReason and C.LockReason()) or "A challenge is running."
+    return reason .. " Stop the run first, or finish it."
+end
+
+function ns.SetMuted(state, silent)
+    migrateDB()
+    state = state and true or false
+    if state == ns.IsMuted() then return true end
+
+    local refusal = ns.MuteRefusal()
+    if refusal then
+        if not silent then Print("|cffff0000Can't mute:|r " .. refusal) end
+        return false, refusal
+    end
+
+    if state then
+        local keys = muteable()
+        local snapshot = {}
+        for i = 1, #keys do
+            local key = keys[i]
+            -- Written down as a boolean rather than copied, so a key that was
+            -- nil comes back nil-shaped as false rather than as "absent",
+            -- which migrateDB would then fill in with the shipped default.
+            snapshot[key] = GlyphicDB[key] and true or false
+            GlyphicDB[key] = false
+        end
+        GlyphicDB.muted = snapshot
+        if ns.QuestText and ns.QuestText.Refresh then ns.QuestText.Refresh() end
+        if ns.OnSettingsChanged then ns.OnSettingsChanged() end
+        if not silent then
+            Print("Glyphic is |cffff0000off|r. Right-click the minimap icon "
+                .. "again to put everything back the way it was.")
+        end
+        return true
+    end
+
+    -- Restored from the snapshot's own keys, not from MUTE_KEYS. Those are the
+    -- keys that were actually switched off; walking the full list would write
+    -- `false` over a setting the run has locked at true and void it on the way
+    -- back on, which is the same accident this is meant to avoid.
+    local snapshot = GlyphicDB.muted
+    GlyphicDB.muted = nil
+    if type(snapshot) == "table" then
+        for key, was in pairs(snapshot) do
+            GlyphicDB[key] = was and true or false
+        end
+    end
+    if ns.QuestText and ns.QuestText.Refresh then ns.QuestText.Refresh() end
+    if ns.OnSettingsChanged then ns.OnSettingsChanged() end
+    if not silent then
+        Print("Glyphic is |cff00ff00back on|r, exactly as you left it.")
+    end
+    return true
+end
+
+function ns.ToggleMute(silent)
+    return ns.SetMuted(not ns.IsMuted(), silent)
 end
 
 -- One answer to "is the addon speaking for me right now", for every feature
@@ -3343,6 +3688,55 @@ local function debugReport()
         :format(tostring(a.id), a.strength or 0))
     Print("SAY channel enabled=" .. (ns.IsChannelEnabled("SAY") and "|cff00ff00YES|r" or "|cffff0000NO|r"))
 
+    -- The incoming half. Everything above this is about what leaves your
+    -- keyboard, which is the half that was easy to diagnose because you can
+    -- read the result yourself. Full immersion is the other direction and it
+    -- depends on two things the client decides and neither of which is
+    -- visible: whether it hands over a numeric language at all, and whether
+    -- it understands that language well enough to have translated the line
+    -- first. When the answer to either is no, the feature does nothing and
+    -- the chat window looks exactly as it does when the setting is off.
+    Print("|cff8000ff--- incoming (full immersion) ---|r")
+    Print("full immersion=" .. (db.fullImmersion and "|cff00ff00ON|r" or "|cffff0000OFF|r"))
+    do
+        local n = (type(GetNumLanguages) == "function") and GetNumLanguages() or nil
+        Print(("client language list: GetNumLanguages()=|cffffff00%s|r")
+            :format(tostring(n)))
+        local numbered = 0
+        for i = 1, (tonumber(n) or 0) do
+            local lname, lid = GetLanguageByIndex(i)
+            if type(lid) == "number" then numbered = numbered + 1 end
+            Print(("  [%d] %s  id=%s%s"):format(i, tostring(lname),
+                (type(lid) == "number") and ("|cff00ff00" .. lid .. "|r")
+                    or ("|cffff0000" .. tostring(lid) .. " (not a number)|r"),
+                (type(lid) == "number") and "" or " -- cannot be matched"))
+        end
+        -- The failure the code comments warn about, stated out loud: a list
+        -- with no numbers in it leaves the set empty, the set reads as
+        -- "understands nothing", and nothing is ever re-garbled.
+        if numbered == 0 then
+            Print("|cffff0000the client gave no language numbers -- full immersion "
+                .. "cannot work, and this is why|r")
+        end
+    end
+    do
+        local lines = ns.RecentIncoming and ns.RecentIncoming() or {}
+        Print(("last %d incoming line(s):"):format(#lines))
+        if #lines == 0 then
+            Print("  |cff888888nothing yet -- stand near someone and have them /say something|r")
+        end
+        for i = 1, #lines do
+            local e = lines[i]
+            Print(("  %-8s %-12s lang=%q id=%s%s known=%s channel=%s -> %s")
+                :format(e.chatType, e.sender, tostring(e.langName),
+                    tostring(e.blizzId),
+                    e.lentId and ("|cffffff00 (read as " .. e.lentId .. ")|r") or "",
+                    e.known and "|cff00ff00yes|r" or "|cffff0000no|r",
+                    e.enabled and "|cff00ff00on|r" or "|cffff0000OFF|r",
+                    e.rewritten and "|cff00ff00GARBLED|r" or "|cffff8800left alone|r"))
+        end
+    end
+
     -- Live engine test (bypasses the send hook so we can tell whether the
     -- problem is the hook not firing vs. the translation/accent engine itself).
     local sample = "hello my friend we attack at dawn"
@@ -3848,6 +4242,14 @@ local function handleSlash(input)
                 Print(string.format("|cff%s%s|r is |cffffff00%s|r%s", hex,
                     Language.GetLanguageName(arg), hex,
                     Colors.IsCustom(arg) and " |cff888888(custom)|r" or " |cff888888(default)|r"))
+            -- Before the two mutating branches rather than after them, so the
+            -- refusal explains itself. Colors.Set returns false for a fixed
+            -- tongue exactly as it does for "mauve", and the fall-through below
+            -- would answer a six-digit hex with "that isn't a color".
+            elseif Colors.IsFixed and Colors.IsFixed(arg) then
+                Print(string.format("|cff%s%s|r paints itself -- its colour is part of"
+                    .. " the tongue, not a setting.", Colors.Hex(arg),
+                    Language.GetLanguageName(arg)))
             elseif value == "reset" or value == "default" then
                 Colors.Reset(arg)
                 Print(string.format("|cff%s%s|r reset to |cffffff00%s|r.",

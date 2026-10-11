@@ -3,7 +3,7 @@
 All notable changes to Glyphic are documented here. The addon was called
 Tongues of Azeroth before 0.5.3.
 
-## [0.5.7]
+## [0.6.0]
 - **Full immersion.** A new option under Languages & Fluency: *Remove in-game
   learned languages*. With it on, Common and your racial tongues stop being
   automatic -- you read them exactly as well as your fluency in this addon
@@ -18,6 +18,22 @@ Tongues of Azeroth before 0.5.3.
   update. NPCs have their own separate switch, since a boss callout is a
   mechanic as much as it is flavour. Which channels it applies to follows your
   existing Chat Channel settings.
+- **General, Trade and custom channels**, under a switch of their own. Full
+  immersion works by taking back a translation the client already performed, and
+  those channels never got one: the game attaches no language to them at all,
+  which left a hole you could see through. The stranger beside you was
+  unintelligible in `/say` and perfectly intelligible one channel over.
+  Closing it means lending those lines a tongue they never had, so it is asked
+  for by name and off by default. The tongue is your own faction's -- the same
+  one the people around you are speaking, so a line of Trade chat reads as the
+  language of the person standing next to you rather than as a fifth thing.
+  Emotes are left alone either way. An emote is narration, not speech, and
+  running "Thrall waves." through a tongue has the narrator speaking a foreign
+  language about somebody in the third person.
+  The *Mythic* challenge turns it on and holds it there. Trade chat is how a
+  player finds a group, a summon or a portal, which is why no other tier takes
+  it -- on the three tiers you level through, losing that is a cost nobody
+  signed up for. On Mythic, being unable to ask is the run.
 - **Quest text, gossip and the objective tracker**, under a third switch of
   their own, nested under the NPC one and off even when everything above it is
   on. Everything else immersion touches is text the client would have garbled
@@ -99,6 +115,16 @@ Tongues of Azeroth before 0.5.3.
   word for -- *Pikialo = learned* -- and counts it underneath: *Taur-ahe,
   43 of 105 words*. It can be dragged anywhere you like, and three hand-ins at
   a quest hub queue up rather than overwriting each other.
+  It arrives rather than appearing: a small overshoot past full size that
+  settles back, and a band of light that crosses it once. Both are per-style,
+  and both are off on *minimal*, because a style whose description is "no
+  furniture" should not then jump at you.
+  And it stays long enough to read. A word learned is the one thing this
+  addon says that you cannot go and look up afterwards, and four seconds of
+  it landing next to a closing quest window was not enough -- the holds are
+  between six and ten seconds now. It also waits its turn behind the level-up
+  text and the boss banner instead of being drawn under them, for up to
+  twenty seconds, after which it goes ahead anyway rather than being lost.
   The translation is real, which took some finding. Blizzard's word lists have
   no meanings in them -- they are a bag of tokens the client swaps in, and
   nothing in the game data says what any of them stands for, so a toast that
@@ -236,10 +262,12 @@ Tongues of Azeroth before 0.5.3.
   character with no other challenge running, wipes every language you
   have learned, and belongs to that character alone.
   The three difficulties each take away one more thing, and each one asks
-  more of you for a word. On *Easy* everybody around you speaks a tongue you
-  do not, and a quest finished teaches you a word of it. *Medium* writes your
-  journal and your objectives in it too, so working out the job is part of
-  the job, and a word takes a couple of hand-ins. *Hard* hides the quest
+  more of you for a word. On *Easy* quest text, gossip and NPC speech are all
+  in a tongue you do not have, and a quest finished teaches you a word of it;
+  your objectives stay readable, so you always know what to do -- just never
+  why. *Medium* writes your journal and your objectives in it too, so working
+  out the job is part of the job, and a word takes a couple of hand-ins.
+  *Hard* hides the quest
   tracking entirely and every name over every head with it -- you are
   somewhere, being asked for something, by someone -- and a word takes a
   handful.
@@ -304,6 +332,81 @@ Tongues of Azeroth before 0.5.3.
   Reach the level cap and Legendspeech is yours for good, on every character.
   The lock lifting is the point -- it turns the thing that was the run into an
   ordinary accent and an ordinary tongue you can switch off.
+  All of which is in here because this is where you read about a thing before
+  deciding. On the panel it is two sentences: everything Hard hides, plus you
+  speak only Legendspeech and whatever you learn, and reaching max level means
+  you keep it. Everything above is on the box that asks you to confirm, which
+  is the point at which the detail is worth having.
+- **Fixed: a Mythic run's chat came through in plain white.** Not a colour
+  bug, in the end. Legendspeech is deliberately hidden until you have earned
+  it, and the chat filter was looking tag names up against the list you pick
+  a language from -- so for the whole of a run, every line of Legendspeech
+  resolved to no language at all, and that took the tag colour, the speech
+  colour and the player-name highlighting down with it. A hidden tongue is one
+  you cannot choose, not one nobody speaks. Names are resolved against the
+  whole registry now.
+  Which also fixes two things nobody had reported yet. The lookup was built
+  on the first chat line of the session and never rebuilt, so a language you
+  created mid-session, or Legendspeech being handed over at the end of a run,
+  went unrecognised until the next reload. And the gradient below was being
+  skipped if you had speech colour switched on as well as tag colour -- there
+  are two routes through the painter and only one of them was checking.
+- **"Tint speech" is now "Tint all speech".** Same setting, same default of
+  off; only the label and the tooltips changed. The old name read as "tint the
+  speech part of the line", which is the one thing it does not do -- with it on,
+  a line in a tongue is painted end to end, tag and sentence together. Twice now
+  that has been read as a colour fault by someone who had ticked it earlier and
+  forgotten, so the word that was missing is *all*. The tooltips say which box
+  does what: *Color tags* on its own paints the tag and nothing else, and this
+  is what extends it to the words.
+- **On a challenge run, the words you can read are lit up.** The first hours of
+  a run are a wall of nonsense with no way to tell whether any of it is
+  working. The words you *can* read are in there already -- a word comes
+  through in the clear once your fluency covers it, same rule the game itself
+  uses -- but they look like everything else, so the only feedback the run has
+  to offer is invisible. They are now tinted, which turns the paragraph into
+  the progress bar, in the place you are already looking. Quest text, gossip,
+  the objective tracker, tooltips and NPC speech, all from the one place that
+  decides a word is legible -- so the highlight can never disagree with it.
+  In the tongue's own colour rather than a signal green. The palette already
+  means something: a word you can read in Orcish comes up in the colour Orcish
+  wears on every tag in the window, and it stays right when you recolour your
+  palette.
+  It fades as you learn, and is gone by the time half the page is legible. The
+  highlight is a comparison -- these words, not those -- and a comparison stops
+  saying anything once most of the line is on one side of it. Early on almost
+  nothing is lit and every word of it is worth having; later it would be a page
+  of coloured text, which is a page of plain text with extra steps.
+  Only during a run. Off one, immersion is a setting you chose and you are
+  reading at whatever fluency you have; on one it is a handicap with an end,
+  and how close that end is is the thing you cannot otherwise see.
+  A quest link's title is the one thing left alone. The label is a single span
+  the client colours by quality, and a colour opened and closed inside it ends
+  the link's own colour early, so the back half of the title would draw the
+  wrong shade. It is still garbled, it is just not painted.
+- **Legendspeech is written in its own colour, and it is a gradient.** Every
+  other tongue gets one colour you can change; this one is gold running into
+  ember across the letters of the tag, and it cannot be recoloured. It is the
+  only language in the addon you have to earn, and a language nobody else can
+  read ought to look like one rather than like another entry in the list.
+- **Uninstalling the addon part-way through a run forfeits it.** Start a run
+  at twenty, remove the addon, level to the cap in plain English with the
+  quest log readable, put it back and collect Legendspeech -- that worked, and
+  reaching the cap was being treated as a thing to pay out rather than a thing
+  to ask about. A run writes down what level it last saw you at, so coming
+  back several levels higher than that is levels gained without the handicap,
+  whether the addon was uninstalled, switched off in the list, or erroring on
+  load. The run is marked void, says so, and names the level it stopped being
+  a run.
+  One level is forgiven. The only honest gap is a ding that arrived in the
+  instant of a disconnect, and a real absence is never one level -- getting
+  the levels for free is the entire reason for doing it. Erring that way is
+  deliberate: a run wrongly voided costs somebody days, and a run voided one
+  level late costs nothing.
+  Deleting the addon's saved variables does defeat it, and nothing is going to
+  be done about that. It throws the run away along with the record of it, so
+  there is nothing left to claim a reward with -- you are not at level
+  fifty-nine of a Mythic run, you are not on one.
 - **Settings moved to the panels they belong on.** The Languages tab is now
   *Languages & Fluency*, and it keeps the things that are about languages:
   which tongue you speak, how fluent you are in each one, and its color.
@@ -368,9 +471,13 @@ Tongues of Azeroth before 0.5.3.
   like one. It is a button now, on the same plate as everything else, still
   green in character and red out of it. The bar itself sits on the game's
   tooltip backing inside the game's tooltip border, instead of a flat fill
-  behind a one-pixel line. The border still carries the in-character state in
-  its colour: the bar is read out of the corner of your eye, mid-sentence, so
-  the signal has to survive not being looked at -- which a word does not.
+  behind a one-pixel line.
+  The border is left the colour the game drew it. It carried the in-character
+  state for a while, and tinting gold art a saturated green throws the art
+  away and keeps the outline -- so a bar wearing the game's tooltip read as a
+  green rectangle anyway, which was the whole thing it was supposed to stop
+  looking like. The state is on the button, which says the word and is what
+  you click to change it.
   The bar is larger than it was. That border is sixteen pixels of art on
   every side where the old one was a single line, and the spacing that used
   to leave a comfortable margin was putting the language name and the IC
@@ -381,6 +488,54 @@ Tongues of Azeroth before 0.5.3.
   heading and inside the same tooltip border -- the way the game asks you to
   pick one of something. Before, it was a column of names with one of them
   coloured, which read as a list of commands rather than a choice.
+- **The minimap icon and the floating bar are one switch.** They were two
+  switches of different sizes for a release, and that was a mistake you could
+  feel: the bar's button flipped speaking in character, the icon flipped
+  everything, and the one setting they had in common was the one the bar had
+  already turned off. So with the bar sitting on OOC you could right-click the
+  icon and watch nothing move -- which reads as the icon not being clickable at
+  all, and was reported as exactly that. Now either control flips the same
+  thing and both faces change together, along with the icon's picture. The
+  bar's button says ON and OFF rather than IC and OOC, because labelling the
+  whole addon's switch with the name of one of the settings it turns off is how
+  the confusion started. Your voice on its own is still a row on the bar's
+  right-click menu, and still shift-click, which is the right depth for the
+  narrower of two controls.
+- **Right-clicking the minimap icon switches the whole addon off, and back on
+  exactly as it was.** It used to toggle speaking in character, which is half
+  of what the addon does to a session: with immersion on, the other half is
+  that you cannot read quest text, the tracker, or anything an NPC says.
+  Somebody following a dungeon's mechanics or walking a guildmate through a
+  quest needs all of it off for two minutes, and a trip to the options panel
+  every single time is the kind of friction that gets an addon uninstalled.
+  So one click and the addon goes quiet -- speaking in character, full
+  immersion, NPC speech, quest text, the tracker, the gossip list and quest
+  learning. Click again and every one of them comes back the way you left it.
+  What was on is written down rather than assumed: turning immersion *on* for
+  somebody who never had it would be its own kind of wrong.
+  On a challenge run it switches off what the run has not pinned and leaves
+  the rest alone, because writing a setting the run holds down is what would
+  void it -- a switch that can end sixty levels by accident is not a
+  convenience. It refused outright for any run at first, which was too broad:
+  Easy pins the written word and leaves your voice alone, so refusing there
+  took away a working control for sixty levels to protect locks that had
+  nothing to do with it. Only Mythic pins all of it, and on Mythic the switch
+  says so rather than appearing to work and changing nothing.
+- **Frames are the game's frames now, and the game draws them.** The bar, the
+  language list, the standalone window and the confirmation box were all
+  wearing a border this addon cut out of Blizzard's texture by hand. Correct
+  art, arithmetic of our own -- and the arithmetic is what put the top and
+  bottom edges on a line of their own, a pixel or two off the sides, which is
+  exactly the sort of thing you notice without being able to say what is
+  wrong with it. They hand the client a named backdrop now and let it place
+  the pieces, so there are no numbers of ours left in it to get wrong.
+- **Fixed: the question in a confirmation box ran through its own buttons.**
+  It was four hundred and forty by a hundred and seventy whatever it was
+  asked to say, with Start and Cancel a fixed distance off the bottom. The
+  Mythic warning is four paragraphs, because it is four separate things you
+  are agreeing to, so the two words you needed to read to answer were
+  underneath the sentence telling you what you were answering. It is as tall
+  as its text now, and no shorter than a dialog ought to look.
 - **The Challenges panel** no longer stacks all three difficulties with a
   paragraph under each. It is a dropdown and one description, which is the
   shape of the decision: you are choosing between three, and reading three
