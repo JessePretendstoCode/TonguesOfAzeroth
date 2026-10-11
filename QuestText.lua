@@ -537,6 +537,40 @@ end
 -- break the addon that wrapped it after you.
 local installed = false
 
+-- Whether this client has Edit Mode.
+--
+-- Asked of the client's addon list rather than of the frame, because the
+-- frame does not exist until that module loads and these wrappers go on the
+-- first time immersion is switched on, which can be earlier. The frame is
+-- the fallback for a client that will not answer the first question.
+local function hasEditMode()
+    local info = (C_AddOns and C_AddOns.GetAddOnInfo) or GetAddOnInfo
+    if type(info) == "function" then
+        local ok, name = pcall(info, "Blizzard_EditMode")
+        if ok and type(name) == "string" and name ~= "" then return true end
+    end
+    return type(_G.EditModeManagerFrame) == "table"
+end
+
+-- Whether C_QuestLog.GetInfo is safe to wrap here.
+--
+-- Replacing anything in a Blizzard table makes every caller of it run
+-- tainted, and GetInfo is the function the objective tracker and Edit Mode
+-- lean on hardest. On a client with Edit Mode that is how the tracker ends
+-- up being refused the auras it asks for in the middle of its own update --
+-- the same failure the frame hook caused, reached by a different road.
+--
+-- Keyed on Edit Mode rather than on which game you are playing, because
+-- that guess was wrong: Forever has Edit Mode too. The question is what the
+-- client does, so the client is asked.
+--
+-- Clients without it keep the wrapper, and lose nothing by it. Those are
+-- also the clients that still have GetQuestLogTitle, which covers the same
+-- list from the other side.
+function QuestText.WrapsQuestLogInfo()
+    return not hasEditMode()
+end
+
 local function wrapText(name)
     local original = _G[name]
     if type(original) ~= "function" then return end
@@ -696,7 +730,8 @@ function QuestText.Install()
             return lang and QuestText.Garble(title, lang) or title
         end
     end
-    if C_QuestLog and type(C_QuestLog.GetInfo) == "function" then
+    if C_QuestLog and type(C_QuestLog.GetInfo) == "function"
+        and QuestText.WrapsQuestLogInfo() then
         local original = C_QuestLog.GetInfo
         C_QuestLog.GetInfo = function(index, ...)
             local info = original(index, ...)

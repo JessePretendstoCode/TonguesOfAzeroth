@@ -178,6 +178,15 @@ Tongues of Azeroth before 0.5.3.
   separate call rather than a wrapper over the other two, so a journal could
   show one quest's objectives in a tongue you do not read and the next
   quest's in plain English, in the same list, with no visible reason.
+  One of the title wrappers is held back on clients that have Edit Mode.
+  Replacing anything in a Blizzard table makes every caller of it run
+  tainted, and `C_QuestLog.GetInfo` is the call the objective tracker and
+  Edit Mode lean on hardest -- which is how the tracker ends up refused the
+  auras it asks for in the middle of its own update. Keyed on whether the
+  client has Edit Mode rather than on which game it is, because the obvious
+  guess was wrong: Forever has Edit Mode as well as Retail. The clients
+  that keep it lose nothing, since those are also the ones that still have
+  `GetQuestLogTitle`, which covers the same list from the other side.
   **The replies you click to answer an NPC are now readable by default**,
   which is a change. They were garbled along with everything else, and the
   result was a character with full immersion on who could not find *I wish to

@@ -449,7 +449,11 @@ Each panel answers one question, which is how to guess where a setting lives:
   menu. Both are available to anyone who wants them, and the Hard tier of a challenge
   turns the second on for you.
 - The quest log switch covers the whole page: the titles down the side, the checklist
-  under each one, and the tracker on your screen. It is also the switch that says the
+  under each one, and the tracker on your screen. On clients with Edit Mode -- Retail
+  and Forever -- the titles in the map's quest list are the exception and stay readable.
+  Garbling those means replacing a call the objective tracker makes constantly, which
+  taints it, and a tainted tracker gets refused the auras it asks for mid-update. The
+  titles everywhere else still garble. It is also the switch that says the
   written word itself is foreign, so with it on a quest off a notice board stops being
   readable too -- a board in Darnassus is not written in English for your benefit. Zone
   headers stay in plain words either way, since a header is the client sorting your log
