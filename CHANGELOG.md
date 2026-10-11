@@ -377,6 +377,16 @@ Tongues of Azeroth before 0.5.3.
   The tracker is hidden rather than garbled, because garbled it is still a
   list of counters and a number is a number in every language. It is put
   back when the run ends, and only if you had it open to begin with.
+  Hiding it once is not enough -- the tracker puts itself back on screen
+  every time your quests change -- so Glyphic listens for the events that
+  change them and takes it away again. The first version of this hooked the
+  tracker frame's own Show instead, which was tidier and wrong: hooking a
+  method means writing to the frame's table, an insecure write to a
+  Blizzard frame taints it, and the objective tracker is an Edit Mode
+  system. Edit Mode walked its list of systems, touched the frame we had
+  written on, and the tracker's next update died asking for an aura it was
+  no longer trusted to read. Nothing of Glyphic's goes on Blizzard's frames
+  now, and the tests check that rather than trusting it.
   The rest are console settings rather than the addon's own, so they cannot
   be refused the way a checkbox can -- they are set when the run starts, put
   back exactly as they were found when it ends, and set again if something

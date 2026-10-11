@@ -313,9 +313,12 @@ end
 -- is an error rather than a nil. A tier that names a variable this client
 -- does not have simply does not take that one away.
 --
--- `reentry` is not paranoia: SetCVar fires CVAR_UPDATE, which is the event
--- that calls back into here, so without it the first enforced variable would
--- enforce the rest of them once each per variable, forever.
+-- `reentry` is because SetCVar fires CVAR_UPDATE, which is the event that
+-- calls back into here. It does not run away without the flag -- the write
+-- below is conditional, so each nested pass finds one more variable already
+-- where it wants it and the whole thing bottoms out -- but it does mean
+-- enforcing three variables costs six passes instead of one, every time any
+-- of them moves. The flag is the difference between a loop and a cascade.
 local reentry = false
 
 local function readCVar(key)
@@ -370,8 +373,6 @@ local TRACKER_FRAMES = {
     "WatchFrame",
 }
 
-local trackerHooked = false
-
 local function trackerFrames()
     local out = {}
     for i = 1, #TRACKER_FRAMES do
@@ -383,40 +384,31 @@ local function trackerFrames()
     return out
 end
 
--- Whether the run wants it gone. Read live rather than latched, so the hook
--- below needs no undoing when the run ends: it simply stops saying yes.
+-- Whether the run wants it gone. Read live rather than latched, so nothing
+-- needs undoing when the run ends: it simply stops saying yes.
 function Challenge.HidesTracker()
     local run = Challenge.Current()
     return (run and run.hideTracker) and true or false
 end
 
--- Hiding it once is not enough. The tracker shows itself again whenever the
--- quest log changes, which during a levelling run is constantly, so the
--- hide has to be attached to the showing rather than performed at a moment.
+-- Hiding it once is not enough, because the tracker shows itself again
+-- whenever the quest log changes -- which during a levelling run is
+-- constantly. The first version of this attached the hide to the showing,
+-- with hooksecurefunc on the frame's own Show and SetShown. That worked and
+-- it was wrong, for a reason worth writing down so it is not done again.
 --
--- Both Show and SetShown: SetShown is not written in terms of Show, so a
--- hook on one is walked straight past by the other.
-local function hookTracker()
-    if trackerHooked then return end
-    local frames = trackerFrames()
-    if #frames == 0 then return end
-    for i = 1, #frames do
-        local f = frames[i]
-        local function reHide(self)
-            if Challenge.HidesTracker() then pcall(self.Hide, self) end
-        end
-        pcall(hooksecurefunc, f, "Show", reHide)
-        pcall(hooksecurefunc, f, "SetShown", function(self, shown)
-            if shown then reHide(self) end
-        end)
-    end
-    trackerHooked = true
-end
-
--- Called on login and after starting. The hook above covers everything
--- between; this is for the frames that were already up when we arrived.
+-- Hooking a *method* means writing to the frame's table: `frame.Show = ours`.
+-- An insecure write to a Blizzard frame taints that frame, and the objective
+-- tracker is an Edit Mode system -- so Edit Mode walked its list of systems,
+-- touched the frame we had written on, and everything downstream of that ran
+-- tainted. Retail then refuses to hand tainted code an aura, and the tracker
+-- update that asks for one dies with "Auras cannot be accessed when secret
+-- while tainted by 'Glyphic'".
+--
+-- So: nothing is ever written onto Blizzard's frames. Hide is a C method and
+-- writes no Lua value, which leaves no taint behind; the showing is caught by
+-- listening for the events that cause it instead. More calls, no footprint.
 function Challenge.EnforceTracker()
-    hookTracker()
     if not Challenge.HidesTracker() then return end
     local frames = trackerFrames()
     for i = 1, #frames do pcall(frames[i].Hide, frames[i]) end
@@ -624,10 +616,12 @@ function Challenge.Abandon()
     for key in pairs(run.locks or {}) do
         GlyphicDB[key] = before[key]
     end
-    -- Cleared before the restores, not after. Both read off the local
-    -- reference, which outlives the field, and the tracker's hook asks
-    -- whether a run wants it hidden every time something shows it -- so
-    -- showing it again while the run is still there hides it again.
+    -- Cleared before the restores, which both read off the local reference
+    -- rather than the field. Nothing depends on the order any more -- the
+    -- CVar restore holds its own re-entry guard, and the tracker is no
+    -- longer held down by a hook that would ask whether a run still wanted
+    -- it hidden -- but a run that is over should stop existing before
+    -- anything starts undoing it, not halfway through.
     GlyphicDB.challenge = nil
     restoreCVars(run)
     restoreTracker(run)
@@ -835,19 +829,42 @@ end
 -- lock: those live in Blizzard's options where nothing here can grey out a
 -- checkbox, so the only way to hold one is to notice it moved and move it
 -- back. Cheap enough -- it fires on a settings change, not on a timer.
+-- The quest events are the third, and they are the whole of the tracker
+-- lock. The tracker puts itself back on screen whenever your quests change,
+-- and the alternative to listening for that is writing a hook onto the
+-- frame -- which is what tainted it. These fire often and cost nothing when
+-- no run wants the tracker gone, since the first thing the handler does is
+-- ask.
+local TRACKER_EVENTS = {
+    "QUEST_LOG_UPDATE", "QUEST_WATCH_UPDATE", "QUEST_ACCEPTED",
+    "QUEST_REMOVED", "QUEST_TURNED_IN", "ZONE_CHANGED_NEW_AREA",
+}
+
 local frame = CreateFrame("Frame")
 frame:RegisterEvent("PLAYER_ENTERING_WORLD")
 pcall(frame.RegisterEvent, frame, "CVAR_UPDATE")
+for i = 1, #TRACKER_EVENTS do
+    pcall(frame.RegisterEvent, frame, TRACKER_EVENTS[i])
+end
+
+local TRACKER_ONLY = {}
+for i = 1, #TRACKER_EVENTS do TRACKER_ONLY[TRACKER_EVENTS[i]] = true end
+
 frame:SetScript("OnEvent", function(_, event)
     if event == "CVAR_UPDATE" then
         Challenge.EnforceCVars()
         return
     end
+    if TRACKER_ONLY[event] then
+        -- Quests changing is not a settings change. Auditing here would run
+        -- the whole lock check several times a quest for nothing.
+        Challenge.EnforceTracker()
+        return
+    end
     Challenge.Audit()
     Challenge.EnforceCVars()
-    -- Hooked here rather than at load: the tracker belongs to Blizzard's
-    -- own addon, which on some flavours has not loaded yet when this file
-    -- runs, and a frame that does not exist cannot be hooked.
+    -- Done here rather than at load: the tracker belongs to Blizzard's own
+    -- addon, which on some flavours has not loaded yet when this file runs.
     Challenge.EnforceTracker()
 end)
 
