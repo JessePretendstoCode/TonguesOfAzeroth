@@ -431,6 +431,25 @@ function Language.IsPlain(langId)
     return l.plain == true or l.id == "common" or l.parent == "common"
 end
 
+-- The narrower question, and the two are not interchangeable: is this the
+-- absence of a tongue, rather than a tongue that happens to read as English?
+--
+-- Both answer IsPlain, and a native dialect has to treat them as opposites.
+-- Common is the shared tongue and you are speaking it successfully, so no word
+-- falls through it and there is nothing for a fallback to catch -- a Common
+-- speaker with a Darnassian native dialect should sound like English, which is
+-- what Common is. "None" is a player who has selected no tongue at all, so
+-- every word falls through and the native dialect takes the whole line. It is
+-- also the default selection, so on Mythic it is the usual case rather than an
+-- edge of one.
+--
+-- `plain == true` is set on exactly one entry and is already the discriminator;
+-- Common reaches IsPlain through the id test instead.
+function Language.IsNoTongue(langId)
+    local l = LANGUAGES[langId]
+    return (l and l.plain == true) and true or false
+end
+
 G("common", "Common", 0.03,
     { "", "b", "d", "f", "g", "h", "k", "l", "m", "n", "p", "r", "s", "t", "v", "w", "br", "st", "th", "gr", "tr", "cl", "dr" },
     { "a", "e", "i", "o", "u", "ae", "ou", "ea", "ai" },
@@ -616,6 +635,74 @@ G("skyborne", "Eldre'Thalassian (Skyborne)", 0.2,
 -- Newest race in the game, and the reason most people will open the dropdown
 -- right now, so it leads the list rather than sitting seventy entries down.
 pinFirst("skyborne")
+
+--=========================================================================--
+--  LEGENDSPEECH -- the Mythic challenge's tongue, and its reward.
+--=========================================================================--
+-- The one language nobody on Azeroth speaks, which is the entire point of it.
+-- A Mythic run sets it as your native dialect, so every word the tongue you
+-- are attempting does not cover comes out in this instead of in English, and
+-- a stranger reading your chat gets nothing. It drains as you learn the local
+-- tongues (see ns.FactionProgress), which is how a run ends with you
+-- intelligible.
+--
+-- Hidden rather than absent, and the difference matters. A hidden language is
+-- fully resolvable -- Language.IsValid says yes, motherTongue() accepts it,
+-- the engine translates into it -- it simply never appears in a list. So a run
+-- can speak it for sixty levels without it ever being something a player who
+-- has not earned it could select, and finishing the run is one call to
+-- Language.Reveal rather than a registration that has to happen at the right
+-- moment on the right character.
+--
+-- Generated rather than given a word list because there is no word list to
+-- give it: Blizzard never wrote one for a place that does not exist. The pools
+-- are built to sound old and declamatory rather than alien -- long vowels,
+-- liquid and dental consonants, heavy "-oth" and "-aur" codas -- so it reads
+-- as a tongue with a history instead of as Shath'yar's eldritch consonant
+-- clusters. Apostrophes are sparing for the same reason.
+G("legendspeech", "Legendspeech", 0.1,
+    { "", "dh", "rh", "th", "v", "m", "n", "k", "t", "br", "dr", "gr",
+      "hal", "mor", "ost", "val", "wyr", "aen", "eor", "hru", "sel", "tor" },
+    { "a", "e", "i", "o", "u", "ae", "ea", "oa", "au", "ei", "ou" },
+    { "", "r", "n", "l", "th", "dh", "rn", "st", "ld", "mir", "oth", "aur" })
+LANGUAGES["legendspeech"].hidden = true
+invalidate()
+
+-- Hand a hidden language over for good. The Mythic reward calls this at login
+-- for anyone who has earned it, so the tongue they spent a run escaping
+-- becomes one they can choose on any character.
+--
+-- Goes through invalidate() like every other mutation of the registry: the
+-- visible list is memoised, and a tongue revealed without bumping the revision
+-- exists as far as the engine is concerned and nowhere as far as the UI is.
+function Language.Reveal(id)
+    local l = LANGUAGES[id or ""]
+    if not l or not l.hidden then return false end
+    l.hidden = nil
+    invalidate()
+    return true
+end
+
+function Language.IsHidden(id)
+    local l = LANGUAGES[id or ""]
+    return (l and l.hidden) and true or false
+end
+
+-- Put a revealed language back out of sight. Exists for the challenge's debug
+-- commands, which need to test the locked state and the unlocked one in one
+-- sitting: without this, checking that Legendspeech is properly hidden costs a
+-- reload every time.
+--
+-- Refuses a language with a parent, which is the one case where hiding has a
+-- second meaning -- CanonicalId migrates a hidden alias onto its parent, so
+-- hiding one here would quietly rewrite saved settings that name it.
+function Language.Hide(id)
+    local l = LANGUAGES[id or ""]
+    if not l or l.hidden or l.parent then return false end
+    l.hidden = true
+    invalidate()
+    return true
+end
 
 --  Sub-languages, sharing their parent's word set and bending its sound. Note
 --  there is no generic "Troll" alias: Zandali *is* the trolls' racial tongue,
@@ -1184,11 +1271,28 @@ end
 
 -- Word token pattern: letters plus in-word apostrophes/hyphens (Dun-fel, Ok-Hoga).
 local WORD_PATTERN = "[%a][%a'-]*"
-function Language.WordTranslates(word, strength)
+-- `salt` makes a second, independent gate over the same words, and the native
+-- dialect needs one or it gets nothing.
+--
+-- Both gates ask "is this word's hash under my strength", and a word only
+-- reaches the native dialect by failing the attempted tongue first -- so with
+-- one hash the native dialect sees exactly the band between the two strengths
+-- and is empty whenever its strength is the lower of the two. Salting it means
+-- the two gates pick different words, which is what makes "70% of whatever
+-- Orcish missed" mean that rather than "whatever falls between 40 and 70".
+--
+-- Omitted, it concatenates the empty string and hashes exactly what it always
+-- did, so every existing caller keeps its answers.
+function Language.WordTranslates(word, strength, salt)
     if strength >= 100 then return true end
     if strength <= 0 then return false end
-    return (hashString(strlower(word)) % 100) < strength
+    return (hashString(strlower(word) .. (salt or "")) % 100) < strength
 end
+
+-- The salt above, named once. Shared with nothing else: change it and every
+-- Mythic speaker's sentence re-shuffles which words are foreign, which is
+-- harmless but makes a diff look like a bug.
+local MOTHER_SALT = "\1mother"
 
 -- Backward-compatible alias.
 Language.WordCorrupts = Language.WordTranslates
@@ -1413,21 +1517,46 @@ local FOREIGN_PLACEHOLDER = "\003"
 -- they reach for their own language, and the room either follows them there or
 -- does not. Without one the remainder stays English exactly as before.
 --
--- The mother tongue is spoken perfectly, because that is what a mother tongue is. It
--- is not a language you are learning, so it does not take a fluency.
-function Language.TranslateMarked(text, strength, langId, motherId)
+-- The mother tongue is spoken perfectly unless the caller says otherwise: it is not a
+-- language you are learning, so ordinarily it takes no fluency and `motherStrength`
+-- is left nil.
+--
+-- The Mythic challenge is the exception, and the reason the argument exists. There the
+-- native dialect is a tongue nobody on the continent speaks, and the run is won by
+-- becoming intelligible -- so its strength falls as the local tongues are learned, and
+-- the words it stops covering come out as plain English. Passing a number here is
+-- saying "I speak my own language this well *any more*", which is a sentence only a
+-- challenge has any use for.
+function Language.TranslateMarked(text, strength, langId, motherId, motherStrength)
     if not text or text == "" then return text, nil end
     strength = strength or 100
+    motherStrength = tonumber(motherStrength) or 100
     local lang = resolveLang(langId)
 
     -- A mother tongue only makes sense as somewhere *else* to fall back to.
     -- Naming the language you are already speaking, or a plain one (whose whole
     -- character is that it reads as ordinary speech), leaves nothing to fall to.
+    --
+    -- A drained one is the same case. At zero it covers no word, so treating it
+    -- as absent here is what lets every passthrough below stay one test.
     local mother
-    if motherId and motherId ~= lang.id and Language.IsValid(motherId) then
+    if motherId and motherId ~= lang.id and Language.IsValid(motherId)
+        and motherStrength > 0 then
         local n = resolveLang(motherId)
         if n and n.id ~= lang.id and not Language.IsPlain(n.id) then mother = n end
     end
+
+    -- Whether the mother tongue has anything to catch. Attempting Common
+    -- leaves it nothing -- see Language.IsNoTongue -- so it is dropped here
+    -- rather than tested for again further down.
+    if mother and Language.IsPlain(lang.id) and not Language.IsNoTongue(lang.id) then
+        mother = nil
+    end
+
+    -- Selecting no tongue is not a fluency of any amount, so the attempted
+    -- gate must never fire and every word has to reach the mother. Said as a
+    -- strength rather than as a branch so the marking loop stays one path.
+    if Language.IsNoTongue(lang.id) then strength = 0 end
 
     -- Same passthroughs as TranslateText: nothing to mark, so the caller's
     -- accent gets the whole line as plain English -- slurred first if this is
@@ -1436,7 +1565,12 @@ function Language.TranslateMarked(text, strength, langId, motherId)
     -- Zero fluency is no longer one of them when a mother tongue is set. Not
     -- knowing a word of Orcish is the strongest case for speaking your own
     -- language, not the case for lapsing into flawless Common.
-    if Language.IsPlain(lang.id) or (strength <= 0 and not mother) then
+    --
+    -- Nor is selecting no tongue at all. "None" with a native dialect set used
+    -- to take this early return and go out as English, which read as the
+    -- native dialect doing nothing whatsoever -- and since "none" is what a
+    -- fresh character has selected, that was the first thing a Mythic run did.
+    if not mother and (Language.IsPlain(lang.id) or strength <= 0) then
         return applySlur(text, lang), nil
     end
 
@@ -1468,7 +1602,7 @@ function Language.TranslateMarked(text, strength, langId, motherId)
             local hit = mark(word, lang)
             if hit then return hit end
         end
-        if mother then
+        if mother and Language.WordTranslates(word, motherStrength, MOTHER_SALT) then
             local hit = mark(word, mother)
             if hit then return hit end
         end

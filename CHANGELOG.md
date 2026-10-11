@@ -59,6 +59,15 @@ Tongues of Azeroth before 0.5.3.
   Only when both come up empty does it fall back to the NPC's side, Orcish for
   Horde and Common for Alliance. If your records were written before this --
   a troll or goblin reading Orcish -- `/glyphic quest reset` clears them.
+  A quest's tooltip and the link you paste in chat are in its tongue too.
+  Those are the two places the text does not come from anything an addon can
+  read: shift-click a quest in your log and the client builds that tooltip
+  itself, out of its own copy, without asking Lua a thing. So the title and
+  every objective arrived in plain English no matter how thoroughly the
+  journal beside them was hidden -- which was a hole in the fiction for
+  anybody using this, and a way around the whole feature for anybody on a
+  challenge run. The counters are left alone, the same as in the journal: a
+  number reads the same in every language.
 - **Quests teach you the tongue they were given in.** A third way to earn
   fluency, on the Language Trainer panel beside passive learning, and the only
   one that works for somebody playing alone: the trainer is a minigame you have
@@ -259,6 +268,42 @@ Tongues of Azeroth before 0.5.3.
   `/glyphic challenge` prints it: the tier, the level you started at and where
   you are now, the quests handed in, and the spread across tongues.
   `/glyphic challenge abandon` ends one.
+- **A fourth difficulty: Mythic.** Everything Hard hides, and you are a
+  foreigner on top of it. The other three tiers are about what you cannot
+  read; this one is about what nobody can read of you.
+  All three share a hole that is only obvious once you have seen it. A fresh
+  run has nothing learned, so your own fluency is zero, so your speech goes
+  out as plain English -- everybody around you is unintelligible and you are
+  perfectly intelligible to everybody, which is the opposite of arriving
+  somewhere nobody speaks your language. Mythic closes it by giving your
+  character a native dialect nobody on the continent speaks: *Legendspeech*.
+  Nobody can read a word you say, with this addon or without it.
+  Learning the languages you were born speaking is what turns your speech
+  back into English. The better you know the locals, the less of Legendspeech
+  is left, and the words it stops covering leave your mouth in plain words --
+  so the run is won by becoming legible, and a stranger reading your /say can
+  watch it happen. It opens slowly: a quarter of the way to fluent still
+  leaves almost all of a sentence foreign, and then it comes apart over the
+  back half, which is where "they could not understand me until I had nearly
+  finished" actually lives. The panel shows both halves, because they answer
+  different questions -- how well you know the locals, and how much of that
+  has reached your mouth. A run showing only the second looks like nothing is
+  happening for the first few hours.
+  You are in character on every channel for the length of the run and cannot
+  switch it off. That switch is the run here rather than a preference, which
+  is why this is the only tier that holds it down. Emotes are the exception
+  and are pinned off: an emote is narration rather than speech, so running
+  "/e straightens her cloak" through a tongue has the narrator speaking
+  Legendspeech about you in the third person.
+  Legendspeech arrives with an accent of its own, *Living Legend*, locked for
+  the run alongside it -- which is the one piece of this that is a joke. It
+  adds nothing but a flourish on the end of a line, in plain English, on a
+  sentence nobody can read: *Based.* *No cap.* *Massive W.* You are the only
+  person in the room who knows what you just said, and you are very pleased
+  with it.
+  Reach the level cap and Legendspeech is yours for good, on every character.
+  The lock lifting is the point -- it turns the thing that was the run into an
+  ordinary accent and an ordinary tongue you can switch off.
 - **Settings moved to the panels they belong on.** The Languages tab is now
   *Languages & Fluency*, and it keeps the things that are about languages:
   which tongue you speak, how fluent you are in each one, and its color.

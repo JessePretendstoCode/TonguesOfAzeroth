@@ -819,6 +819,25 @@ function ns.GetMotherTongue()
     return motherTongue()
 end
 
+-- How well the character still speaks their own language, 0-100.
+--
+-- A hundred for everybody, which is what a mother tongue means, and the
+-- challenge is asked rather than consulted directly so the rule for draining
+-- it lives beside the tier that drains it. Four paths translate -- chat,
+-- /glyphic say, cast phrases and the preview -- and this is read by all four
+-- for the same reason motherTongue() is: a drain that applied to three of them
+-- would read as the number moving at random.
+local function motherStrength()
+    local C = ns.Challenge
+    if C and C.MotherStrength then
+        local ok, value = pcall(C.MotherStrength)
+        if ok and type(value) == "number" then return value end
+    end
+    return 100
+end
+
+ns.GetMotherStrength = motherStrength
+
 --=========================================================================--
 --  Native languages (which tongues the client itself understands)
 --
@@ -888,6 +907,74 @@ end
 ns.RefreshNativeLanguages = function()
     computeNativeLanguages()
     if ns.OnSettingsChanged then ns.OnSettingsChanged() end
+end
+
+-- The tongues this character speaks in game, in Glyphic's vocabulary rather
+-- than Blizzard's numbers: { { id = "orcish", blizzId = 1 }, ... }.
+--
+-- Deliberately derived from the client's own list and not from the player's
+-- faction, because that is the question worth asking. "The languages of the
+-- Horde" is seven tongues most orcs will never hear; "the languages this
+-- character was born speaking" is one or two, it is what the quest givers
+-- around them use, and it is already the set full immersion garbles.
+--
+-- Deduplicated by our id and keyed to the lowest Blizzard number that maps to
+-- it, because three of theirs collapse into our "pandaren" and a vocabulary
+-- read off whichever one pairs() happened to yield first would differ between
+-- sessions.
+function ns.NativeLanguageIds()
+    if not nativeBlizzSet then computeNativeLanguages() end
+    if not nativeBlizzSet then return {} end
+    local lowest = {}
+    for blizzId in pairs(nativeBlizzSet) do
+        local id = NATIVE_LANG_IDS[blizzId]
+        if id and (lowest[id] == nil or blizzId < lowest[id]) then
+            lowest[id] = blizzId
+        end
+    end
+    local out = {}
+    for id, blizzId in pairs(lowest) do
+        out[#out + 1] = { id = id, blizzId = blizzId }
+    end
+    table.sort(out, function(a, b) return a.id < b.id end)
+    return out
+end
+
+-- How much of their own language's worth of local speech this character has
+-- actually learned, 0-1. The Mythic challenge drains the native dialect by
+-- this, so it is the number that decides when a stranger can read them.
+--
+-- Weighted by words, not averaged over tongues, and that is the whole of why
+-- it is written out rather than being one line. Gilnean's vocabulary is a
+-- single word and Pandaren's is two, so under a flat average per tongue three
+-- Gilnean hand-ins would take that tongue to 100% and hand a Gilnean worth a
+-- seventh of the total -- more than a hundred Orcish quests buy. Counting
+-- words known against words available makes a one-word tongue worth one word,
+-- which is what it is.
+--
+-- Nil, not zero, when the client has not said which tongues it speaks yet.
+-- Zero would read as "has learned nothing" and drain nothing, which is the
+-- same answer by luck and the wrong one the moment the curve is not linear.
+function ns.FactionProgress()
+    local natives = ns.NativeLanguageIds()
+    if #natives == 0 then return nil end
+    local QL, trainer = ns.QuestLearn, ns.Trainer
+    if not (QL and QL.Vocabulary and trainer and trainer.GetProgress) then return nil end
+
+    local known, total = 0, 0
+    for i = 1, #natives do
+        local ok, vocab = pcall(QL.Vocabulary, natives[i].blizzId)
+        vocab = (ok and tonumber(vocab)) or 0
+        if vocab > 0 then
+            local gotProgress, _, _, frac = pcall(trainer.GetProgress, natives[i].id)
+            frac = (gotProgress and tonumber(frac)) or 0
+            if frac < 0 then frac = 0 elseif frac > 1 then frac = 1 end
+            known = known + frac * vocab
+            total = total + vocab
+        end
+    end
+    if total <= 0 then return nil end
+    return known / total
 end
 
 --=========================================================================--
@@ -1067,7 +1154,8 @@ local function transformOutgoing(msg, sendType, channel)
 
     if translating then
         local langId, strength = db.language, getStrength()
-        local marked, marks, meta = Language.TranslateMarked(msg, strength, langId, motherTongue())
+        local marked, marks, meta = Language.TranslateMarked(msg, strength, langId,
+            motherTongue(), motherStrength())
         if marks then
             local body = marked
             if accentOn then body = applyAccent(body, true) end
@@ -1242,7 +1330,8 @@ local function speak(msg, chatType, channel)
     local strength = getStrength()
 
     local out = msg
-    local marked, marks, meta = Language.TranslateMarked(msg, strength, langId, motherTongue())
+    local marked, marks, meta = Language.TranslateMarked(msg, strength, langId,
+        motherTongue(), motherStrength())
     if marks then
         local body = marked
         if accentAppliesTo(normalizeChatType(sendType)) then body = applyAccent(body, true) end
@@ -1286,8 +1375,14 @@ function ns.EncodeSpeech(text, live)
     local accentOn = ns.Accent and db.inCharacter and db.accent
         and db.accent.id ~= ns.Accent.NONE
 
-    if db.inCharacter and (strength > 0 or motherTongue() ~= nil) then
-        local marked, marks, meta = Language.TranslateMarked(text, strength, langId, motherTongue())
+    -- A native dialect that has drained to nothing is not a reason to translate.
+    -- It counts here only while it still covers a word, or a Mythic run that had
+    -- reached full local fluency would keep taking this branch to be told there
+    -- was nothing in it.
+    if db.inCharacter and (strength > 0
+        or (motherTongue() ~= nil and motherStrength() > 0)) then
+        local marked, marks, meta = Language.TranslateMarked(text, strength, langId,
+            motherTongue(), motherStrength())
         if marks then
             local out = marked
             if accentOn then
@@ -2059,7 +2154,24 @@ local function inlineChatFilter(_, event, msg, sender, languageName, ...)
     -- Names are painted before the language tint rather than after, so the
     -- tint wraps them: Colors.Wrap re-opens itself after every "|r" it finds
     -- inside a span, which is exactly what a nested name color leaves behind.
+    -- A quest link's label is the quest's title, and it reaches the window
+    -- without passing through any of the functions QuestText wraps -- so a
+    -- journal full of garbled titles still has the English one sitting in chat
+    -- next to it, on a link whose tooltip spells out the objectives too.
+    --
+    -- Done here on the finished display string rather than on `msg` at the top
+    -- of the filter, and that placement is the whole of the care this needs.
+    -- The decode cache is keyed on the exact text that was encoded; rewriting
+    -- a label before the lookup would miss every cached line that happens to
+    -- contain a link. Afterwards there is nothing left to match against.
+    local function relabel(text)
+        if not (ns.QuestText and ns.QuestText.GarbleQuestLinks) then return text end
+        local ok, out = pcall(ns.QuestText.GarbleQuestLinks, text)
+        return (ok and type(out) == "string") and out or text
+    end
+
     local function paint(text, decoded)
+        text = relabel(text)
         -- Only lines that are actually in a tongue get names painted. A plain
         -- Common sentence had nothing translated out of it, so a highlight
         -- there would be the addon coloring chat it had no hand in -- `langId`
@@ -2119,12 +2231,17 @@ local function inlineChatFilter(_, event, msg, sender, languageName, ...)
             -- same painter as any other tagged line and picks up that tongue's
             -- color. The hardcoded purple remains the answer when the palette
             -- is switched off.
+            -- These two build their own tag and colour instead of going through
+            -- paint, so each needs the link pass of its own. Applying it to
+            -- `decoded` above instead would run it twice on the prose path,
+            -- and garbling garbled text reads identically while meaning
+            -- something else entirely.
             if Colors and Colors.AnyEnabled() and langId then
-                local line = "[" .. (langName or "?") .. "] " .. decoded
+                local line = "[" .. (langName or "?") .. "] " .. relabel(decoded)
                 return false, Colors.Apply(line, langId), sender, languageName, ...
             end
             local marker = "|cff9a7cff[" .. (langName or "?") .. "]|r "
-            return false, marker .. decoded, sender, languageName, ...
+            return false, marker .. relabel(decoded), sender, languageName, ...
         end
     end
 
@@ -2194,6 +2311,19 @@ end
 -- are the ones you flip often enough for a line each to read as spam.
 function ns.SetInCharacter(state, silent)
     migrateDB()
+
+    -- A tier that forces you in character locks this, and the refusal speaks
+    -- even when the caller asked for silence. `silent` is there to stop the
+    -- button, the bar and the keybind from narrating a switch you can watch
+    -- change colour -- but a keybind that refuses and says nothing is a broken
+    -- keybind, and this is the one control a player will press hardest when
+    -- they want out.
+    if ns.Challenge and ns.Challenge.IsLocked("inCharacter") then
+        Print(ns.Challenge.LockReason() .. " You speak in character for the "
+            .. "whole run.")
+        return
+    end
+
     GlyphicDB.inCharacter = state and true or false
     if ns.OnSettingsChanged then ns.OnSettingsChanged() end
 
@@ -2457,6 +2587,76 @@ function TonguesOfAzeroth_RegisterLanguage(def)
 end
 
 --=========================================================================--
+--  Earned unlocks
+--=========================================================================--
+-- Things a challenge handed over by being finished, rather than settings. Kept
+-- in the account table and not the character one, which is the only reason this
+-- is a separate store at all: a run belongs to one character and is recorded on
+-- it, but what the run *earned* would be a strange thing to take away from the
+-- player for logging into somebody else.
+--
+-- Revealing rather than registering. Legendspeech and the Living Legend accent
+-- are in the registries from load on every client, hidden; an unlock takes the
+-- flag off. So nothing here can fail to find what it is unlocking, there is no
+-- order to get wrong between this and the files that define them, and a profile
+-- or a macro naming either one has always resolved.
+local function accountDB()
+    if type(_G.GlyphicAccountDB) ~= "table" then _G.GlyphicAccountDB = {} end
+    local acct = _G.GlyphicAccountDB
+    if type(acct.unlocked) ~= "table" then acct.unlocked = {} end
+    if type(acct.unlocked.languages) ~= "table" then acct.unlocked.languages = {} end
+    if type(acct.unlocked.accents) ~= "table" then acct.unlocked.accents = {} end
+    return acct
+end
+
+-- Reads without creating. The account table is built lazily by whichever
+-- feature writes to it first, and a question asked on every fluency reset is
+-- not a reason to bring it into existence.
+function ns.IsUnlocked(kind, id)
+    if not id then return false end
+    local acct = _G.GlyphicAccountDB
+    local set = acct and acct.unlocked and acct.unlocked[kind or ""]
+    return (type(set) == "table" and set[id]) and true or false
+end
+
+function ns.GrantUnlock(kind, id)
+    if not id or not kind then return false end
+    local acct = accountDB()
+    if type(acct.unlocked[kind]) ~= "table" then return false end
+    acct.unlocked[kind][id] = true
+    ns.ApplyUnlocks()
+    return true
+end
+
+-- Takes an unlock back and re-hides what it revealed. For the challenge's
+-- debug commands only -- nothing in normal play ever removes a reward, and
+-- there is deliberately no UI for this.
+function ns.RevokeUnlock(kind, id)
+    if not id or not kind then return false end
+    local acct = _G.GlyphicAccountDB
+    local set = acct and acct.unlocked and acct.unlocked[kind]
+    if type(set) ~= "table" then return false end
+    set[id] = nil
+    if kind == "languages" and Language.Hide then Language.Hide(id) end
+    if kind == "accents" and ns.Accent and ns.Accent.Hide then ns.Accent.Hide(id) end
+    return true
+end
+
+-- Called at login and after a grant. Idempotent, because the second half of
+-- "unlocked for good" is that it survives being applied again.
+function ns.ApplyUnlocks()
+    local acct = _G.GlyphicAccountDB
+    local unlocked = acct and acct.unlocked
+    if type(unlocked) ~= "table" then return end
+    if type(unlocked.languages) == "table" and Language.Reveal then
+        for id in pairs(unlocked.languages) do Language.Reveal(id) end
+    end
+    if type(unlocked.accents) == "table" and ns.Accent and ns.Accent.Reveal then
+        for id in pairs(unlocked.accents) do ns.Accent.Reveal(id) end
+    end
+end
+
+--=========================================================================--
 --  Fluency control (shared by the Fluency slider, Make Fluent, Reset)
 --  Fluency == speaking strength, so these change how you SOUND in a tongue.
 --=========================================================================--
@@ -2528,8 +2728,17 @@ function ns.ResetAllFluency()
     local langs = (Language.GetPrimaryLanguages and Language.GetPrimaryLanguages()) or {}
     for i = 1, #langs do
         local id = langs[i].id
-        if ns.Trainer and ns.Trainer.ResetFluency then ns.Trainer.ResetFluency(id) end
-        if GlyphicDB.learned then GlyphicDB.learned[id] = nil end
+        -- An earned tongue is not a learned one and this must not touch it.
+        -- Legendspeech cannot be re-learned -- no quest teaches it and the
+        -- trainer has no words for it -- so wiping it here would destroy a
+        -- reward permanently, and the button that did it says "reset all
+        -- fluency", which nobody reads as "give back the thing you won".
+        -- It was invisible before the reward existed, too: the list is the
+        -- visible primaries, so a hidden tongue was never in it.
+        if not ns.IsUnlocked("languages", id) then
+            if ns.Trainer and ns.Trainer.ResetFluency then ns.Trainer.ResetFluency(id) end
+            if GlyphicDB.learned then GlyphicDB.learned[id] = nil end
+        end
     end
     if ns.RefreshFluencyIfShown then ns.RefreshFluencyIfShown() end
 end
@@ -2917,6 +3126,68 @@ local function challengeCommand(rest)
         return
     end
 
+    -- Undocumented debug verbs. See the debug section at the foot of
+    -- Challenge.lua for why they exist; the short version is that observing
+    -- this feature honestly costs a fresh character and sixty levels per data
+    -- point. Matched before the usage check so they never reach it.
+    local verb, param = arg:match("^(%S+)%s*(.*)$")
+    if verb == "debug" then
+        local sub, value = (param or ""):match("^(%S*)%s*(.*)$")
+
+        if sub == "" or sub == "status" then
+            local lines = C.DebugReport()
+            for i = 1, #lines do Print(lines[i]) end
+
+        elseif sub == "start" then
+            local tier = (value ~= "" and value) or "mythic"
+            if not C.Difficulty(C.DEFAULT, tier) then
+                Print("no such tier: " .. tier .. ". Try easy, medium, hard or mythic.")
+                return
+            end
+            local ok, why = C.DebugStart(tier)
+            if ok then
+                Print("|cffff8080debug|r: started " .. tier
+                    .. ", requirements bypassed. The run is marked as a debug run.")
+            else
+                Print("|cffff0000could not start:|r " .. tostring(why))
+            end
+
+        elseif sub == "progress" then
+            local n = tonumber(value)
+            if not n then
+                Print("Usage: /glyphic challenge debug progress <0-100>")
+                return
+            end
+            local got, why = C.DebugSetProgress(math.max(0, math.min(100, n)) / 100)
+            if got then
+                Print("|cffff8080debug|r: faction progress now |cffffff00"
+                    .. math.floor(got * 100 + 0.5) .. "%|r, native dialect at |cffffff00"
+                    .. math.floor((C.MotherStrength() or 100) + 0.5) .. "%|r.")
+            else
+                Print("|cffff0000could not set progress:|r " .. tostring(why))
+            end
+
+        elseif sub == "finish" then
+            local ok = C.DebugFinish()
+            if not ok then
+                Print("|cffff0000could not finish:|r no run, or it is voided. "
+                    .. "A voided run does not pay out -- abandon and start again.")
+            end
+
+        elseif sub == "relock" then
+            local given = C.DebugRelock()
+            Print("|cffff8080debug|r: took back "
+                .. ((#given > 0) and table.concat(given, ", ") or "nothing")
+                .. ". Both are hidden again.")
+
+        else
+            Print("|cffff8080debug|r verbs: |cffffff00status|r, "
+                .. "|cffffff00start <tier>|r, |cffffff00progress <0-100>|r, "
+                .. "|cffffff00finish|r, |cffffff00relock|r.")
+        end
+        return
+    end
+
     if arg ~= "" and arg ~= "status" then
         Print("Usage: |cffffff00/glyphic challenge|r or "
             .. "|cffffff00/glyphic challenge abandon|r.")
@@ -3100,7 +3371,7 @@ local function debugReport()
         local composed = sample
         if translating then
             local marked, marks = Language.TranslateMarked(sample, getStrength(), db.language,
-                motherTongue())
+                motherTongue(), motherStrength())
             if marks then
                 local body = marked
                 -- `false` = not a real utterance, so debugging never consumes
@@ -3672,7 +3943,9 @@ SLASH_TONGUESOFAZEROTH4 = "/tongues"
 SLASH_TONGUESOFAZEROTH5 = "/oldgod"
 SlashCmdList["TONGUESOFAZEROTH"] = handleSlash
 
--- Export channel list for the UI.
+-- Export channel list for the UI, and for a challenge that locks every channel
+-- -- which builds its lock table from this rather than keeping a second copy,
+-- so a channel added above is covered by a tier written before it existed.
 ns.CHANNEL_TYPES = CHANNEL_TYPES
 ns.DEFAULT_CHANNELS = DEFAULT_CHANNELS
 
@@ -3726,6 +3999,10 @@ f:SetScript("OnEvent", function(self, event, name)
     if event == "ADDON_LOADED" and name == ADDON then
         migrateDB()
         loadCustomLanguages()
+        -- Before anything reads a language or accent list. A reward that
+        -- appeared one panel-build later would be missing from whichever
+        -- dropdown happened to be built first.
+        ns.ApplyUnlocks()
         installSendHook()
         registerPreSendHook()
         Compat.RegisterAddonMessagePrefix(ADDON_PREFIX)

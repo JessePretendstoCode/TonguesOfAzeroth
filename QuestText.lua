@@ -333,6 +333,34 @@ end
 -- open only while you are interacting, so this covers everything they show.
 local currentLang = nil
 
+-- The same question, asked when the text is wanted rather than when the event
+-- arrived.
+--
+-- `currentLang` on its own is always one beat late. Blizzard's gossip and quest
+-- frames register their handlers as the default UI loads and ours registers as
+-- the addon loads, and a frame hears an event in the order it registered -- so
+-- the window was filled with English before we had found out who was talking,
+-- and GOSSIP_CLOSED put the answer back to nil in time for the next NPC to be
+-- just as plain. Every live surface read as though the feature were switched
+-- off. The journal and the tracker never showed it, because a journal entry
+-- carries the tongue it was offered in and never has to ask the room.
+--
+-- Resolved from the unit instead, which does not care who heard the event
+-- first. Memoised because finding out who a unit answers to reads its tooltip
+-- and one quest offer asks for six separate pieces of text. Only a real answer
+-- is kept: with nobody in front of you this costs one UnitExists, and a "there
+-- is nobody there" worth remembering is also one that would go stale the
+-- moment somebody arrived.
+local speakerMemo = nil
+
+local function speakerLang()
+    if currentLang then return currentLang end
+    if not speakerMemo then
+        speakerMemo = QuestText.LanguageForUnit("npc")
+    end
+    return speakerMemo
+end
+
 -- { [questID] = blizzardLanguageID } for quests already accepted. The giver
 -- is gone by the time the journal is read, and a quest that changes tongue
 -- between the offer and the log reads as the feature misfiring rather than as
@@ -506,7 +534,7 @@ function QuestText.Garble(text, blizzId)
     -- No tongue means no garbling. Reaching for the player's own faction here
     -- would make every unattributable line read as Orcish or Common, which is
     -- a confident wrong answer where silence was available.
-    blizzId = blizzId or currentLang
+    blizzId = blizzId or speakerLang()
     if type(blizzId) ~= "number" then return text end
 
     local key = blizzId .. "\001" .. text
@@ -536,6 +564,10 @@ end
 -- function some other addon may have wrapped in the meantime, which is how you
 -- break the addon that wrapped it after you.
 local installed = false
+-- Which road the tooltip hook took, or nil if the client offered neither.
+-- Reported by QuestText.Report(), because "the tooltip is still in English" has
+-- the same several indistinguishable causes the journal does.
+local tooltipHook = nil
 
 -- Whether this client has Edit Mode.
 --
@@ -743,7 +775,155 @@ function QuestText.Install()
             return info
         end
     end
+
+    -- Last, and on its own, because this one does not wrap a text function.
+    -- There is none to wrap -- see "The two places the text does not come from
+    -- a function we can wrap", below.
+    tooltipHook = QuestText.InstallTooltips()
 end
+
+--=========================================================================--
+--  The two places the text does not come from a function we can wrap
+--=========================================================================--
+-- Everything above works because the quest UI asks Lua for its words. Two
+-- surfaces do not, and between them they hand back in full what the rest of
+-- this file took away:
+--
+--   * A quest hyperlink's tooltip. `|Hquest:53370:...|h[Hour of Reckoning]|h`
+--     is built by the client from its own copy of the quest, so clicking one
+--     prints the title and every objective in plain English however thoroughly
+--     the journal is garbled. Anyone can make one: shift-click a quest in the
+--     log and it goes in the chat box.
+--   * That link's own label, which is the quest's title.
+--
+-- Neither is reachable by wrapping a text function, because there is no text
+-- function -- so these are the one part of the module that edits what is
+-- already on screen rather than what the screen is about to ask for.
+--
+-- Both sit behind the journal switch, the same one that garbles titles and
+-- objectives in the log. A tooltip is those two things and nothing else, so
+-- putting it anywhere else would make the log and the tooltip disagree.
+
+-- A tooltip's lines are FontStrings named after the frame --
+-- ItemRefTooltipTextLeft3, GameTooltipTextLeft1 -- and there is no API that
+-- returns them. Hence the lookup by name, and hence taking the tooltip rather
+-- than reaching for a global: the same callback is handed GameTooltip for a
+-- hover and ItemRefTooltip for a click.
+local function tooltipLine(tooltip, i)
+    local name = type(tooltip.GetName) == "function" and tooltip:GetName()
+    if type(name) ~= "string" or name == "" then return nil end
+    local fs = _G[name .. "TextLeft" .. i]
+    if type(fs) == "table" and type(fs.GetText) == "function"
+        and type(fs.SetText) == "function" then
+        return fs
+    end
+    return nil
+end
+
+-- Every left-hand line, because on a quest tooltip every left-hand line is
+-- either the title or an objective. Garbling one line too many would cost a
+-- label nobody reads; missing one costs the whole feature, and those are not
+-- the same mistake.
+--
+-- Returns whether anything changed, which is what the tests asserted on and
+-- what makes "the tooltip was reached but had no tongue" distinguishable from
+-- "the tooltip was never reached at all".
+function QuestText.GarbleTooltip(tooltip, questID)
+    if type(tooltip) ~= "table" then return false end
+    if not QuestText.TrackerActive() then return false end
+    local lang = QuestText.JournalLanguage(questID)
+    if not lang then return false end
+    local ok, lines = pcall(tooltip.NumLines, tooltip)
+    if not ok or type(lines) ~= "number" then return false end
+    local changed = false
+    for i = 1, lines do
+        local fs = tooltipLine(tooltip, i)
+        local text = fs and fs:GetText()
+        if type(text) == "string" and text ~= "" then
+            local out = QuestText.Garble(text, lang)
+            if out ~= text then
+                pcall(fs.SetText, fs, out)
+                changed = true
+            end
+        end
+    end
+    return changed
+end
+
+-- The label inside a quest link, leaving the payload alone. `|Hquest:53370:-1|h`
+-- is what makes the link work and what says which quest it is, so the tongue
+-- comes out of the link itself -- which is also why this is right about a
+-- quest somebody else linked and we never saw offered.
+--
+-- Only the text between "|h[" and "]|h" is touched. Garbling the payload would
+-- produce a link that looks coloured and is broken, which is the same trap
+-- Names.Highlight has to step around.
+function QuestText.GarbleQuestLinks(text)
+    if type(text) ~= "string" or text == "" then return text end
+    if not text:find("Hquest:", 1, true) then return text end
+    if not QuestText.TrackerActive() then return text end
+    local out = text:gsub("|Hquest:(%d+)([^|]*)|h%[([^%]]*)%]|h",
+        function(id, rest, label)
+            local lang = QuestText.JournalLanguage(tonumber(id))
+            if not lang or label == "" then return nil end
+            return "|Hquest:" .. id .. rest .. "|h["
+                .. QuestText.Garble(label, lang) .. "]|h"
+        end)
+    return out
+end
+
+-- Where the tooltip is caught, which is the one thing here that has to differ
+-- by client.
+--
+-- Modern clients (Retail, Forever) build every tooltip from C and report the
+-- finished thing through one global callback, which re-fires on
+-- TOOLTIP_DATA_UPDATE. That re-firing is the reason this is the right hook and
+-- not merely an available one: the client redraws a quest tooltip while it is
+-- still on screen, so text written once would be painted back to English
+-- underneath the cursor.
+--
+-- Classic has no such pipeline, and there the only quest tooltip that matters
+-- is the one a clicked link opens. SetItemRef is a global function, so hooking
+-- it writes nothing onto any frame -- which is the whole difference between
+-- this and the tracker hook that tainted Edit Mode. hooksecurefunc runs after
+-- the original, so the tooltip is already populated by the time we see it.
+--
+-- One or the other, never both: Garble is not idempotent, and garbling garble
+-- would still read as gibberish but for the wrong reason, which is the kind of
+-- bug that is impossible to see and impossible to reproduce.
+function QuestText.InstallTooltips()
+    local proc = _G.TooltipDataProcessor
+    local questType = _G.Enum and _G.Enum.TooltipDataType
+        and _G.Enum.TooltipDataType.Quest
+    if type(proc) == "table" and type(proc.AddTooltipPostCall) == "function"
+        and questType then
+        pcall(proc.AddTooltipPostCall, questType, function(tooltip, data)
+            -- `id` is what the quest payload calls it; questID is accepted too
+            -- rather than trusted to stay, since being wrong here is silent.
+            local questID = type(data) == "table" and (data.id or data.questID)
+            QuestText.GarbleTooltip(tooltip, questID)
+        end)
+        return "postcall"
+    end
+
+    if type(_G.hooksecurefunc) == "function" and type(_G.SetItemRef) == "function" then
+        _G.hooksecurefunc("SetItemRef", function(link)
+            if type(link) ~= "string" then return end
+            local id = link:match("^quest:(%d+)")
+            if not id then return end
+            QuestText.GarbleTooltip(_G.ItemRefTooltip, tonumber(id))
+        end)
+        return "setitemref"
+    end
+    -- "none" rather than nil, so the field below distinguishes a client that
+    -- offered no road from an Install that never asked for one. Those are the
+    -- same symptom and completely different bugs.
+    return "none"
+end
+
+-- Which road was taken, or nil if Install has not run. Read by Report(), and
+-- by the test that would otherwise not notice the call above being deleted.
+function QuestText.TooltipHook() return tooltipHook end
 
 -- Called when the settings change. Putting the wrappers on is a one-way door,
 -- so this only ever opens it -- switching the feature off is handled by
@@ -767,6 +947,10 @@ local frame = CreateFrame("Frame")
 -- last NPC you spoke to would put a dwarf's accent on a letter you found in a
 -- drawer ten minutes later.
 local function noteSpeaker()
+    -- Dropped first. A memo left over from the previous conversation would
+    -- otherwise answer for this one every time the line below comes back nil,
+    -- which is exactly the case it is nil for.
+    speakerMemo = nil
     currentLang = QuestText.LanguageForUnit("npc")
 end
 
@@ -818,6 +1002,7 @@ frame:SetScript("OnEvent", function(_, event, ...)
         -- set meant the last NPC you greeted lent their tongue to every quest
         -- in your log, which is how a tauren quest came out in Orcish.
         currentLang = nil
+        speakerMemo = nil
     elseif event == "QUEST_REMOVED" then
         QuestText.ForgetQuest(...)
     elseif event == "PLAYER_LOGIN" then
@@ -837,7 +1022,10 @@ for _, event in ipairs({
 end
 
 -- Test seam. The harness has no events and no NPC to look at.
-function QuestText._SetSpeaker(blizzId) currentLang = blizzId end
+function QuestText._SetSpeaker(blizzId)
+    currentLang = blizzId
+    speakerMemo = nil
+end
 function QuestText._Speaker() return currentLang end
 
 --=========================================================================--
@@ -863,6 +1051,7 @@ function QuestText.Report()
     add("NPC text: " .. (db.immersionNPCs and "on" or "off"))
     add("quest text: " .. (db.immersionQuests and "on" or "off"))
     add("wrappers installed: " .. (installed and "yes" or "no"))
+    add("quest tooltips: " .. (tooltipHook or "not hooked"))
 
     -- Whoever is in front of you, and what the client was willing to say about
     -- them. This is the block that answers "why is this troll speaking

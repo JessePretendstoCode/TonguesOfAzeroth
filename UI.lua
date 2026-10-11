@@ -501,6 +501,14 @@ function CH.statusText()
     local record = C.Record()
     if not record then
         local last = C.LastRecord()
+        if last and last.completed then
+            -- Finishing and giving up both end a run and leave a record, and
+            -- a line that described them identically would be the only place
+            -- in the addon that could not tell them apart.
+            return "|cff00ff00Completed|r |cffffd200" .. last.name .. "|r on "
+                .. tostring(last.difficulty) .. " at level "
+                .. tostring(last.level or "?") .. "."
+        end
         if last then
             return "|cff808080Last run: " .. last.name .. " on "
                 .. tostring(last.difficulty) .. ", reached level "
@@ -512,6 +520,9 @@ function CH.statusText()
         .. tostring(record.difficulty) .. "|r -- level "
         .. tostring(record.level or "?") .. ", " .. record.quests .. " quest"
         .. (record.quests == 1 and "" or "s") .. "."
+    if record.debug then
+        line = line .. "  |cffff8080Debug run.|r"
+    end
     if record.broken then
         line = line .. "  |cffff4040" .. (C.BrokenText() or "Voided.") .. "|r"
     end
@@ -557,6 +568,8 @@ local function RefreshMain()
     end
     layoutMainWidgetLock()
     enableCheck:SetChecked(d.inCharacter)
+    -- Refused in Core either way; this is so nobody clicks it twice.
+    CH.setLocked(enableCheck, CH.lockedBy("inCharacter"))
 
     local short = CH.shortStatus and CH.shortStatus()
     if CH.status then
@@ -591,6 +604,10 @@ local function RefreshChat()
     local d = db()
     for ch, check in pairs(channelChecks) do
         check:SetChecked(d.channels[ch] and true or false)
+        -- Locked per channel, not as a block: a tier pins each one, and
+        -- Mythic deliberately pins EMOTE *off*, so asking about the group
+        -- would grey a box whose state the run did not choose.
+        CH.setLocked(check, CH.lockedBy("channels." .. ch))
     end
     if fluencyCheck then fluencyCheck:SetChecked(d.tagFluency ~= false) end
     if namesCheck then namesCheck:SetChecked(d.protectNames ~= false) end
@@ -968,6 +985,11 @@ local function toggleInCharacter()
     if ns.ToggleInCharacter then
         ns.ToggleInCharacter(true)
     else
+        -- The fallback has to know about the lock too. Core's version refuses
+        -- and says why; this one is only reached when Core is absent, and a
+        -- fallback that quietly wrote the setting anyway would make a tier
+        -- that forces you in character depend on which file loaded.
+        if CH.lockedBy and CH.lockedBy("inCharacter") then return end
         local d = db(); d.inCharacter = not d.inCharacter
         if ns.OnSettingsChanged then ns.OnSettingsChanged() end
     end
@@ -1658,7 +1680,15 @@ local function BuildMainPanel()
     enableCheck = Compat.CreateCheckbox(content, "Speak in character")
     enableCheck:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -16)
     enableCheck:SetScript("OnClick", function(self)
-        db().inCharacter = self:GetChecked() and true or false
+        -- Through Core rather than straight at the saved variable, which is
+        -- what every other door into this switch already does. This one wrote
+        -- the key directly, so a tier that locked the switch locked the bar
+        -- button, the minimap and the keybind and left the checkbox working.
+        if ns.SetInCharacter then
+            ns.SetInCharacter(self:GetChecked(), true)
+        else
+            db().inCharacter = self:GetChecked() and true or false
+        end
         if ns.OnSettingsChanged then ns.OnSettingsChanged() else RefreshMain() end
     end)
 
@@ -1773,6 +1803,12 @@ local function BuildChatPanel()
         end
         check:SetPoint("TOPLEFT", channelHint, "BOTTOMLEFT", col, -6 - row * ROW_H)
         check:SetScript("OnClick", function(self)
+            if CH.lockedBy("channels." .. ch) then
+                -- Put back what the run says, rather than leaving the box
+                -- showing a state the saved variables do not have.
+                self:SetChecked(db().channels[ch] and true or false)
+                return
+            end
             db().channels[ch] = self:GetChecked() and true or false
         end)
         channelChecks[ch] = check
@@ -2609,10 +2645,28 @@ local function accentItems()
     return items
 end
 
+-- How many accents were in the list when it was last built. The dropdown is
+-- built once, and the Living Legend accent is hidden until a Mythic run is
+-- finished -- so without this the reward is unlocked, granted, announced in
+-- chat, and absent from the only list that can select it until the next
+-- reload. Compared as a count rather than tracked with a revision because
+-- accents are only ever revealed, never added or removed.
+local accentItemCount = nil
+
 local function RefreshAccent()
     if not accentPanel then return end
     local d = db()
-    if accentDropdown then accentDropdown:SetSelected(d.accent.id, Accent.GetAccentName(d.accent.id)) end
+    if accentDropdown then
+        local items = accentItems()
+        if accentItemCount ~= #items then
+            accentItemCount = #items
+            accentDropdown:SetItems(items)
+        end
+        accentDropdown:SetSelected(d.accent.id, Accent.GetAccentName(d.accent.id))
+        -- Locked for the length of a run that forced it, which is also what
+        -- makes finishing the run the thing that hands over the choice.
+        CH.setLocked(accentDropdown, CH.lockedBy("accent.id"))
+    end
     if accentSlider then accentSlider:SetValue(d.accent.strength) end
     if accentValueText then accentValueText:SetText(d.accent.strength .. "%") end
     local tails = d.accent.tails or Accent.TAIL_DIAL_DEFAULT
@@ -2668,6 +2722,11 @@ local function BuildAccentPanel()
     accentDropdown:SetPoint("TOPLEFT", accentLabel, "BOTTOMLEFT", 0, -6)
     accentDropdown:SetItems(accentItems())
     accentDropdown.onSelect = function(value)
+        if CH.lockedBy("accent.id") then
+            local current = db().accent.id
+            accentDropdown:SetSelected(current, Accent.GetAccentName(current))
+            return
+        end
         db().accent.id = value
         accentDropdown:SetSelected(value, Accent.GetAccentName(value))
         -- Goes through the shared refresh so the copy of this dropdown on the
@@ -2706,9 +2765,14 @@ local function BuildAccentPanel()
     tailHint:SetPoint("TOPLEFT", accentTailSlider, "BOTTOMLEFT", 0, -34)
     tailHint:SetPoint("RIGHT", content, "RIGHT", -24, 0)
     tailHint:SetJustifyH("LEFT")
-    tailHint:SetText("How often a line ends with a flourish like \", aye.\" They are also "
-        .. "spaced out, skipped on short lines and kept off questions, so they turn up "
-        .. "less often in chat than in this preview.")
+    -- "Most accents", not "they", because one accent sets its own rate and
+    -- waives the spacing and length rules -- it is nothing but flourishes, so
+    -- the dial has nothing else to govern there. Saying so without naming it
+    -- keeps the sentence true for someone who has earned it and gives nothing
+    -- away to someone who has not.
+    tailHint:SetText("How often a line ends with a flourish like \", aye.\" Most accents "
+        .. "also space them out, skip them on short lines and keep them off questions, "
+        .. "so they turn up less often in chat than in this preview.")
 
     accentEmotesCheck = Compat.CreateCheckbox(content, "Also apply accent to emotes (/e and inline *actions*)")
     accentEmotesCheck:SetPoint("TOPLEFT", tailHint, "BOTTOMLEFT", 0, -20)
@@ -4218,6 +4282,19 @@ local function RefreshChallenge()
             "Now level |cffffff00" .. tostring(record.level or "?") .. "|r after |cffffff00"
                 .. record.quests .. "|r quest" .. (record.quests == 1 and "" or "s"),
         }
+        -- Mythic's own progress bar, in words rather than a bar. Both numbers,
+        -- because they answer different questions and the first moves long
+        -- before the second does anything visible: squaring means a quarter of
+        -- the way to fluent leaves 94% of a sentence foreign, and a panel
+        -- reporting only "6% understood" after thirty quests reads as a
+        -- feature that is not working rather than one that is working slowly.
+        local progress, english = C.Intelligibility()
+        if progress then
+            lines[#lines + 1] = "Local tongues |cffffff00"
+                .. math.floor(progress * 100 + 0.5) .. "%|r -- |cffffff00"
+                .. math.floor(english * 100 + 0.5)
+                .. "%|r of what you say now leaves as plain English"
+        end
         if #record.tongues == 0 then
             lines[#lines + 1] = "|cff808080No tongue has taught you anything yet.|r"
         else
@@ -4355,13 +4432,25 @@ local function BuildChallengePanel()
             return
         end
         local tierDef = C.Difficulty(C.DEFAULT, CH.picked)
+        -- Spelled out only for the tier that does it. The voice lock is the
+        -- thing a player is most likely to regret agreeing to without having
+        -- read it -- it is sixty levels of never sending a readable sentence
+        -- -- so it gets its own paragraph rather than a clause.
+        local extra = ""
+        if tierDef.settings and tierDef.settings.inCharacter then
+            extra = "\n\n|cffff8080You speak in character on every channel for "
+                .. "the whole run and cannot switch it off|r, in a tongue "
+                .. "nobody else knows. Learning the languages you were born "
+                .. "speaking is what makes you readable again."
+        end
         Compat.ShowConfirm({
             text = "Start |cffffd200" .. def.name .. "|r on |cffffff00"
                 .. tierDef.label .. "|r?\n\n"
                 .. "|cffff8080Every language this character has learned is "
                 .. "wiped|r, back to nothing.\n\n"
                 .. "Full immersion, NPC speech and quest text are switched on "
-                .. "and locked until you abandon the run.",
+                .. "and locked until you reach max level or abandon the run."
+                .. extra,
             acceptText = "Start",
             cancelText = "Cancel",
             onAccept = function()

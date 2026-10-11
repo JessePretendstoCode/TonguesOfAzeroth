@@ -14,6 +14,10 @@
                    (lowercased), e.g. { "ing$", "in'", 20 }. `at` is the strength
                    threshold, same idea.
       * tails    : occasional sentence-end interjections (", aye!", ", mon.").
+                   How often they fire is the player's "Interjections" dial,
+                   unless the accent overrides it with tailRate/tailMinWords/
+                   tailGap -- which only an accent that is nothing but tails
+                   should do. See reg("legend") for the one that does.
 
     Strength (0-100) controls HOW GARBLED the whole sentence is, not merely which
     words change: at strength S, every swap/pattern whose threshold <= S fires, so
@@ -397,6 +401,68 @@ reg("pirate", {
     tails = { ", arr.", ", matey.", ", ye scurvy dog!", " Yarr harr!" },
 })
 
+-- The Mythic challenge's reward, and the only accent that is all tails and no
+-- swaps. Hidden until it is earned (see Accent.Reveal).
+--
+-- A Mythic run speaks Legendspeech, so nearly every word in the line is behind
+-- a sentinel and there is no English left for a swap table to work on. A tail
+-- is appended to the finished sentence instead, which is why this is the one
+-- accent that still does something to a line containing no English at all --
+-- and the joke rests on exactly that. The gibberish is impenetrable and then
+-- one perfectly clear "Based." arrives on the end of it, because these are the
+-- only words your character picked up and they learned them from the wrong
+-- people.
+--
+-- No swaps and no patterns on purpose. Once the run is over this is an accent
+-- somebody may keep on for months, and one that also respelled their English
+-- would wear out long before the joke did.
+reg("legend", {
+    name = "Living Legend",
+    hidden = true,
+    swaps = {},
+    patterns = {},
+    -- Every other accent respells words on every line, so its tail is a
+    -- flourish on top of work already done and the Interjections dial decides
+    -- how much of that you want. This accent has no swaps and no patterns: if
+    -- the tail does not fire, it did nothing at all. "How much flourish on
+    -- top?" has no answer for an accent that is only flourish, so it names its
+    -- own rate and the dial is left as its off switch.
+    --
+    -- The same reasoning relaxes the other two gates below. The length floor
+    -- exists so a flourish does not crowd a short English sentence, and a short
+    -- line of Legendspeech is impenetrable either way -- there is nothing there
+    -- to crowd. The spacing rule exists so tails do not cluster against the
+    -- accented text around them, and here they ARE the text; spacing them out
+    -- just hides the accent. Repeating the same tail twice running is still
+    -- refused, which was the part that actually read badly.
+    tailRate = 75,
+    tailMinWords = 2,
+    tailGap = 0,
+    tails = {
+        "Based.",
+        "Absolute Chad.",
+        "I'm pretty cool, right?",
+        "No cap.",
+        "Big brain moment.",
+        "Let him cook.",
+        "First try.",
+        "Easy clap.",
+        "Massive W.",
+        "Certified banger.",
+        "Still got it.",
+        "Nailed it.",
+        "You're welcome.",
+        "I meant to do that.",
+        "Trust me, I'm a legend.",
+        "Chat, was that cool?",
+        "Sheesh.",
+        ", obviously.",
+        ", no cap.",
+        "*flexes*",
+        "*nods sagely*",
+    },
+})
+
 --=========================================================================--
 --  Public API
 --=========================================================================--
@@ -411,6 +477,7 @@ local WORD = "[%a][%a']*"
 -- At full strength, the share of eligible messages that earn a tail. The actual
 -- chance scales with accent strength (strength% * this / 100). Driven by the
 -- "Interjections" dial in the options -- see Accent.SetTailFrequency below.
+-- An accent may override all of this with its own tailRate; see chooseTail.
 local TAIL_MAX_RATE = 12
 -- Below this many words there is no room for a flourish; it just crowds the line.
 local TAIL_MIN_WORDS = 5
@@ -546,11 +613,20 @@ end
 --     stops "mon" from arriving twice in one breath.
 local function chooseTail(acc, text, out, strength, live)
     local words = wordCount(text)
-    if words < TAIL_MIN_WORDS then return nil end
-    if live and sinceTail < TAIL_GAP then return nil end
+    if words < (acc.tailMinWords or TAIL_MIN_WORDS) then return nil end
+    if live and sinceTail < (acc.tailGap or TAIL_GAP) then return nil end
 
-    local rate = TAIL_MAX_RATE
-    if words < TAIL_ROOMY_WORDS then rate = math.floor(rate / 2) end
+    local rate
+    if acc.tailRate then
+        -- An accent that is nothing but tails sets its own rate (see "legend").
+        -- The dial still turns it off, because "Interjections: Off" has to mean
+        -- off everywhere or it is not an off switch.
+        if TAIL_MAX_RATE <= 0 then return nil end
+        rate = acc.tailRate
+    else
+        rate = TAIL_MAX_RATE
+        if words < TAIL_ROOMY_WORDS then rate = math.floor(rate / 2) end
+    end
     local chance = math.floor(strength * rate / 100)
     if (hashString("toa-tail:" .. text) % 100) >= chance then return nil end
 
@@ -642,9 +718,39 @@ function Accent.GetAccents()
     local list = {}
     for i = 1, #ORDER do
         local id = ORDER[i]
-        list[i] = { id = id, name = ACCENTS[id].name }
+        -- Appended with #list rather than indexed by i, or skipping a hidden
+        -- accent would leave a hole and every list in the UI would stop at it.
+        if not ACCENTS[id].hidden then
+            list[#list + 1] = { id = id, name = ACCENTS[id].name }
+        end
     end
     return list
+end
+
+-- Put a hidden accent into the dropdowns for good. Used by the Mythic reward,
+-- which hands over the accent its run forced on you so you can now choose it
+-- -- or choose None, which is the half of the reward that is the option to
+-- stop. An accent stays valid and selectable while hidden, so this only ever
+-- affects what the lists show.
+function Accent.Reveal(id)
+    local acc = ACCENTS[id or ""]
+    if not acc then return false end
+    acc.hidden = nil
+    return true
+end
+
+function Accent.IsHidden(id)
+    local acc = ACCENTS[id or ""]
+    return (acc and acc.hidden) and true or false
+end
+
+-- The other direction, for the challenge debug commands: testing that a
+-- reward is properly hidden should not cost a reload each time.
+function Accent.Hide(id)
+    local acc = ACCENTS[id or ""]
+    if not acc or acc.hidden then return false end
+    acc.hidden = true
+    return true
 end
 
 function Accent.GetAccentName(id)
