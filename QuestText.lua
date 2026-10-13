@@ -194,6 +194,18 @@ end
 -- nothing to say about a wisp or a talking crate. Faction answers for those,
 -- and the player's own tongue answers for the rest -- a guess, but the only
 -- honest one available, and stated as a guess rather than dressed up.
+-- Everything below reads text off a unit, and on Midnight any of it can come
+-- back a secret value: a string as far as type() is concerned, and a hard
+-- error on the first read of it. So no unit text reaches the tables above
+-- without passing through here. The secrecy check comes first and the `== ""`
+-- second, because comparing a secret throws exactly as hard as indexing one --
+-- a cheap-looking guard in front of the check is still a crash.
+local function plainText(v)
+    if ns.IsSecret(v) then return nil end
+    if type(v) ~= "string" or v == "" then return nil end
+    return v
+end
+
 -- The race file the client reports for a unit, lowercased, or nil. Separate
 -- from the lookup so the diagnostic can show what the client said even when
 -- nothing was made of it.
@@ -201,32 +213,54 @@ function QuestText.RaceFile(unit)
     if type(UnitRace) ~= "function" then return nil end
     local ok, display, file = pcall(UnitRace, unit)
     if not ok then return nil end
-    if type(file) ~= "string" or file == "" then
+    file = plainText(file)
+    if not file then
         -- Some NPCs answer with a display name and nothing else. It is
         -- localized, so it only helps on an English client -- but on one it
         -- is the difference between Zandali and a shrug.
-        file = type(display) == "string" and display or nil
+        file = plainText(display)
     end
-    if type(file) ~= "string" or file == "" then return nil end
+    if not file then return nil end
     return (file:lower():gsub("[^%a]", ""))
 end
 
 -- The unit tooltip's text, which is the only place the reputation faction is
 -- written down. Modern clients hand it over as data; the older ones have to be
 -- asked for a tooltip and read back off it.
+--
+-- A line of it is the likeliest secret value in the whole file -- the name on
+-- a hostile unit's tooltip is secret on instanced maps -- which is why every
+-- line goes through plainText rather than through a type() check. A secret
+-- reads as a string to type(), so the check that was here passed it straight
+-- into `line:lower()` and crashed on whoever was standing in front of you.
+--
+-- The scanning tooltip is Classic's alone, and that is the second half of the
+-- same lesson. Setting a unit on a tooltip runs Blizzard's own tooltip
+-- pipeline, and running that pipeline from our execution is what turns a
+-- secret unit into "bad argument #1 to 'UnitPlayerControlled'" inside
+-- GameTooltip_UnitColor -- an error raised from a stack with none of our files
+-- in it, which is the kind nobody traces back here. A client that has secrets
+-- at all is a client that answered above, so there is nothing to fall back
+-- for; issecretvalue is the probe rather than an interface number, for the
+-- same reason Core's send path uses it (Forever has secrets and a 1.60.x
+-- interface).
 local scanner
 function QuestText.TooltipLines(unit)
     local out = {}
     if C_TooltipInfo and type(C_TooltipInfo.GetUnit) == "function" then
         local ok, data = pcall(C_TooltipInfo.GetUnit, unit)
-        if ok and type(data) == "table" and type(data.lines) == "table" then
+        if ok and not ns.IsSecret(data) and type(data) == "table"
+            and type(data.lines) == "table" then
             for i = 1, #data.lines do
-                local left = data.lines[i] and data.lines[i].leftText
-                if type(left) == "string" then out[#out + 1] = left end
+                local row = data.lines[i]
+                local left = not ns.IsSecret(row) and type(row) == "table"
+                    and plainText(row.leftText)
+                if left then out[#out + 1] = left end
             end
             if #out > 0 then return out end
         end
     end
+    if _G.issecretvalue ~= nil then return out end
     if not scanner and type(CreateFrame) == "function" then
         local ok, frame = pcall(CreateFrame, "GameTooltip",
             "GlyphicUnitScanner", nil, "GameTooltipTemplate")
@@ -239,8 +273,8 @@ function QuestText.TooltipLines(unit)
             local n = (scanner.NumLines and scanner:NumLines()) or 0
             for i = 1, n do
                 local fs = _G["GlyphicUnitScannerTextLeft" .. i]
-                local text = fs and fs.GetText and fs:GetText()
-                if type(text) == "string" then out[#out + 1] = text end
+                local text = plainText(fs and fs.GetText and fs:GetText())
+                if text then out[#out + 1] = text end
             end
         end
         pcall(scanner.Hide, scanner)
@@ -264,7 +298,8 @@ local function factionTongueByName()
             local ok, n = pcall(GetFactionInfoByID, id)
             if ok then name = n end
         end
-        if type(name) == "string" and name ~= "" then
+        name = plainText(name)
+        if name then
             factionTongues[name:lower()] = tongue
         end
     end
@@ -320,8 +355,13 @@ function QuestText.LanguageForUnit(unit)
     if tongue then return tongue end
 
     if type(UnitFactionGroup) == "function" then
-        local faction = UnitFactionGroup(unit)
-        if FACTION_LANGUAGE[faction] then return FACTION_LANGUAGE[faction] end
+        -- plainText before the lookup: a secret side would be used as a table
+        -- key here, which throws in the same breath as reading one.
+        local ok, faction = pcall(UnitFactionGroup, unit)
+        faction = ok and plainText(faction)
+        if faction and FACTION_LANGUAGE[faction] then
+            return FACTION_LANGUAGE[faction]
+        end
     end
     return QuestText.PlayerLanguage()
 end
@@ -1073,9 +1113,14 @@ function QuestText.Report()
     -- Orcish": either the race came back empty, or it came back as something
     -- the table has never heard of.
     if type(UnitExists) == "function" and UnitExists("npc") then
-        local name = type(UnitName) == "function" and UnitName("npc") or "?"
+        -- Both reads here go through plainText for the usual reason, and the
+        -- fallback says "the client would not say" rather than "nobody": a
+        -- diagnostic that crashes on the unit it is diagnosing is worse than
+        -- useless, and "it is secret" is itself part of the answer.
+        local name = type(UnitName) == "function" and plainText(UnitName("npc"))
         local file = QuestText.RaceFile("npc")
-        add("talking to: " .. tostring(name))
+        add("talking to: " .. (name or "|cff808080somebody the client will not "
+            .. "name to addons|r"))
         add("  its race, per the client: " .. (file
             or "|cff808080nothing, and there never will be -- the game does not "
             .. "tell addons an NPC's race|r"))
@@ -1086,7 +1131,8 @@ function QuestText.Report()
         add("  this zone's homeland tongue: " .. (zoneLang and langName(zoneLang)
             or "|cff808080not a racial homeland|r"))
         if type(UnitFactionGroup) == "function" then
-            add("  its side: " .. tostring(UnitFactionGroup("npc")))
+            local okSide, side = pcall(UnitFactionGroup, "npc")
+            add("  its side: " .. ((okSide and plainText(side)) or "unknown"))
         end
         local lang = QuestText.LanguageForUnit("npc")
         add("  so Glyphic reads it as: " .. (lang and langName(lang) or "nothing"))

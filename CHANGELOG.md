@@ -3,6 +3,25 @@
 All notable changes to Glyphic are documented here. The addon was called
 Tongues of Azeroth before 0.5.3.
 
+## [0.6.1]
+- **Fixed: a Lua error when quest text worked out who was talking to you.** On
+  Midnight the client hands an addon some unit text as a "secret" value, which
+  looks like ordinary text right up until it is read, and the tooltip of
+  whoever was standing in front of you is the likeliest place for one. Reading
+  the NPC's reputation faction threw `attempt to index field '?' (a secret
+  string value)` on those units -- so the quest you were being offered stayed
+  in plain English, and you got an error window for it. Their race and their
+  side are screened the same way now, as is `/glyphic quests`, which was
+  reading all three to tell you why a troll was speaking Orcish.
+- **Fixed: Glyphic no longer builds a hidden tooltip on modern clients.** It
+  was the fallback for reading a unit's faction on clients with no tooltip
+  data API, which is the Classic flavours and nothing else. Setting a unit on
+  a tooltip runs Blizzard's own tooltip code, and running that from an addon's
+  own execution is what produces `bad argument #1 to 'UnitPlayerControlled'`
+  inside `GameTooltip_UnitColor` -- an error with no Glyphic file anywhere in
+  it, which is the kind nobody can trace. Retail and Forever answer the same
+  question as data, so there was nothing to fall back for.
+
 ## [0.6.0]
 - **Full immersion.** A new option under Languages & Fluency: *Remove in-game
   learned languages*. With it on, Common and your racial tongues stop being
