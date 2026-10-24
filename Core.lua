@@ -1973,7 +1973,9 @@ end
 -- different place. One implementation means an orc quest giver and an orc in
 -- /say are illegible to the same degree and in the same words -- two copies of
 -- this would agree right up until one of them was tuned.
-function ns.ImmersionGarbleText(text, blizzId, flat)
+--
+-- `keepAsides` is chat's: see Immersion.Garble.
+function ns.ImmersionGarbleText(text, blizzId, flat, keepAsides)
     local glyphId = NATIVE_LANG_IDS[blizzId]
     -- No Glyphic equivalent means no way to have studied it, which is a
     -- fluency of zero rather than a reason to skip the line.
@@ -1987,7 +1989,7 @@ function ns.ImmersionGarbleText(text, blizzId, flat)
     local out = ns.Immersion
         and ns.Immersion.Garble(text, blizzId,
             ns.Immersion.SkillFromFluency(fluency),
-            ns.LearnedTintFor(blizzId, flat))
+            ns.LearnedTintFor(blizzId, flat), keepAsides)
     -- Blizzard ships one word for Gilnean and two for Pandaren, which cannot
     -- garble a sentence so much as stutter it. Glyphic has real tongues for
     -- both, so those fall back to our own generator rather than to nothing.
@@ -2054,7 +2056,7 @@ local function immersionRewrite(msg, tag, sender, blizzId, fromNPC)
     if fromNPC and not (GlyphicDB and GlyphicDB.immersionNPCs) then return nil end
     if not ns.ClientKnowsLanguage(blizzId) then return nil end
 
-    return ns.ImmersionGarbleText(msg, blizzId)
+    return ns.ImmersionGarbleText(msg, blizzId, false, true)
 end
 -- Still here, and still called, even though the revision check above now
 -- catches the cases it was added for. It costs a line and it is the explicit

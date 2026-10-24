@@ -225,8 +225,12 @@ reg("troll", {
             speak = "reason", is = "be", are = "be",
         },
         [70] = {
+            -- "I an' I" stands for "we" only. It used to replace every "I"
+            -- as well, which turns "I think I will" into "I an' I tink I an' I
+            -- will" -- one ordinary sentence repeating a phrase that only
+            -- works when it is rare.
             more = "nuff", many = "nuff", very = "nuff", first = "fus",
-            i = "I an' I", we = "I an' I", my = "me",
+            we = "I an' I", my = "me",
         },
     },
     patterns = { { "ing$", "in'", 25 }, { "er$", "a", 60 } },
@@ -611,9 +615,13 @@ end
 --     follow one;
 --   * a tail whose wording the message already uses is dropped, which is what
 --     stops "mon" from arriving twice in one breath.
-local function chooseTail(acc, text, out, strength, live)
-    local words = wordCount(text)
+--   * only words the accent could reach count towards the length, so a line
+--     that is all (OOC aside) earns nothing, and a line ending in one is left
+--     alone rather than given ", mon." after the closing parenthesis.
+local function chooseTail(acc, text, out, strength, live, spoken)
+    local words = wordCount(spoken)
     if words < (acc.tailMinWords or TAIL_MIN_WORDS) then return nil end
+    if out:match("%)%s*$") then return nil end
     if live and sinceTail < (acc.tailGap or TAIL_GAP) then return nil end
 
     local rate
@@ -703,7 +711,8 @@ function Accent.Apply(text, id, strength, emotesOn, live)
 
     -- Tails are occasional flourishes, not a stamp on every message.
     if acc.tails and #acc.tails > 0 then
-        local tail = chooseTail(acc, text, out, strength, live)
+        local spoken = protected:gsub(ACCENT_PLACEHOLDER .. "%d+" .. ACCENT_PLACEHOLDER, " ")
+        local tail = chooseTail(acc, text, out, strength, live, spoken)
         if tail then
             out = appendTail(out, tail)
             if live then sinceTail, lastTail = 0, tail end

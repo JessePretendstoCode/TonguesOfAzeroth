@@ -3,6 +3,23 @@
 All notable changes to Glyphic are documented here. The addon was called
 Tongues of Azeroth before 0.5.3.
 
+## [Unreleased]
+- **Fixed: out-of-character (asides) were garbled by Full immersion.**
+  Glyphic has always left text in parentheses alone when you speak, but a
+  listener with *Remove in-game learned languages* on garbled the whole line
+  anyway -- so a quick "(brb, door)" in a tongue they had not studied reached
+  them as gibberish, as though it had never been sent. Parentheses in chat now
+  stay legible on their end too. Quest text is unchanged.
+- **Fixed: accents no longer add an interjection to OOC text.** A long line in
+  parentheses could still come out as "(back in five, sorry all), mon.",
+  because the length check counted the words inside the aside. Only words the
+  accent actually speaks count now, and a line that ends in an aside is left
+  without a flourish.
+- **Changed: the Troll accent no longer turns every "I" into "I an' I".** At
+  heavy strength "I think I will" read "I an' I tink I an' I will". "I an' I"
+  now stands in for "we" only, where it belongs and where it stays rare enough
+  to land.
+
 ## [0.6.1]
 - **Fixed: a Lua error when quest text worked out who was talking to you.** On
   Midnight the client hands an addon some unit text as a "secret" value, which

@@ -148,7 +148,12 @@ end
 -- module's job is deciding what is legible. It also means the quest window and
 -- the chat frame can fade towards their own ink without this knowing either
 -- exists.
-function Immersion.Garble(text, langId, skill, tint)
+--
+-- `keepAsides` leaves (parenthetical) text legible, which is the out-of-
+-- character convention Language.lua and Accent.lua already honour on the way
+-- out. Chat asks for it; quest text does not, because a parenthesis in a quest
+-- is the quest giver talking, not a player stepping out of character.
+function Immersion.Garble(text, langId, skill, tint, keepAsides)
     if type(text) ~= "string" or text == "" then return text end
     if not Immersion.HasWords(langId) then return nil end
     skill = tonumber(skill) or 0
@@ -175,6 +180,7 @@ function Immersion.Garble(text, langId, skill, tint)
         return "\002" .. count .. "\002"
     end
     local body = ns.StashMarkup and ns.StashMarkup(text, stash) or text
+    if keepAsides then body = body:gsub("%b()", stash) end
 
     body = body:gsub(WORD_PATTERN, function(word)
         local hash = Immersion.Hash(word)
