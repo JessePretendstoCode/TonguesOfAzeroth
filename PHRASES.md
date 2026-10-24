@@ -1,6 +1,6 @@
 # Cast phrases — reference copy
 
-Generated from `CastLibrary.lua` by `tools/dump_phrases.lua`: **16 packs, 177 spells, 433 phrases**.
+Generated from `CastLibrary.lua` by `tools/dump_phrases.lua`: **16 packs, 177 spells, 431 phrases**.
 
 This is a read-only view. To change a line, edit `CastLibrary.lua` and re-run the dump.
 
@@ -37,15 +37,15 @@ worth it — one that is wry.
 
 ## Health
 
-- **262 of 433 lines (61%) speak aloud.** The quoted half is the only part the language
+- **269 of 431 lines (62%) speak aloud.** The quoted half is the only part the language
   engine gets to transform, so this is the number that decides whether the feature shows
   itself off. The target is roughly half.
-- **232 distinct spoken spans.** Reusing a short span across two spells is a saving, not
+- **239 distinct spoken spans.** Reusing a short span across two spells is a saving, not
   a failure of imagination: the same two words in two spells read as a character with a
   habit rather than as a library running short.
-- **79 of 177 spells carry the full three lines**; the rest make do with two, which is
+- **77 of 177 spells carry the full three lines**; the rest make do with two, which is
   the right answer for a spell with only two things worth saying about it.
-- 172 of 433 lines use a `%` token.
+- 168 of 431 lines use a `%` token.
 - Longest line is 87 characters, Warlock / Hellfire: *spreads both arms and lets the fire spill outward until the stone underfoot goes black.*
 
 ---
@@ -935,177 +935,175 @@ worth it — one that is wry.
 
 *A line to go with the social emotes.*
 
-<!-- 34 spells, 71 phrases -->
+<!-- 34 spells, 69 phrases -->
 
 ### /hello
 
-- raises a hand in greeting. "Well met!"
-- calls out "Hello there!"
-- nods to %t. "Good to see you."
+- calls out "Well met!"
+- says "Hello there!"
+- says to %t, "Good to see you."
 
 ### /wave
 
-- waves an arm overhead. "Over here!"
-- waves at %t, a little too enthusiastically.
+- calls out "Over here!"
+- shouts "Hey! Yes, you!"
 
 ### /greet
 
-- offers a polite nod. "Greetings, friend."
-- greets %t warmly. "Well met, and welcome."
+- says "Greetings, friend."
+- says to %t, "Well met, and welcome."
 
 ### /bye
 
-- lifts a hand in farewell. "Safe travels."
-- calls "Until next time!" over one shoulder.
-- leaves the way good guests do: slowly, with three more goodbyes.
+- says "Safe travels."
+- calls out "Until next time!"
 
 ### /thank
 
 - says "Thank you. Truly."
-- thanks %t with a small bow. "Much obliged."
+- says to %t, "Much obliged."
 
 ### /welcome
 
-- spreads both hands. "Welcome, welcome!"
-- makes room for %t. "Glad to have you."
+- says "Welcome, welcome!"
+- says to %t, "Glad to have you."
 
 ### /bow
 
-- bows low. "At your service."
-- bows to %t, a touch theatrically.
+- says "At your service."
+- murmurs "An honour."
 
 ### /cheer
 
-- punches the air. "Yes! That's the way!"
-- cheers loud enough to turn heads. "Well done!"
+- shouts "Yes! That's the way!"
+- calls out "Well done!"
 
 ### /laugh
 
-- laughs until it hurts. "Oh, that's good."
+- says "Oh, that's good."
 - wheezes "Stop, stop, I can't breathe."
-- laughs a beat too late, then harder to make up for it.
 
 ### /apologize
 
-- winces. "Sorry. My fault."
+- says "Sorry. My fault."
 - says to %t, "I owe you an apology."
 
 ### /congratulate
 
-- claps %t on the shoulder. "Well earned!"
+- says "Well earned!"
 - says "Congratulations! Never doubted it for a moment."
 
 ### /salute
 
-- snaps a crisp salute. "Ready when you are."
-- salutes %t. "An honour to fight beside you."
+- says "Ready when you are."
+- says to %t, "An honour to fight beside you."
 
 ### /roar
 
-- roars, "Who's next?"
-- lets out a roar that sends birds scattering from the trees.
+- bellows "Who's next?"
+- shouts "Come on, then!"
 
 ### /charge
 
-- raises a weapon high. "Charge!"
-- yells "With me! Now!" and breaks into a run.
+- yells "Charge!"
+- shouts "With me! Now!"
 
 ### /flee
 
 - yells "Run! Run for it!"
-- decides valour can wait, and says so: "Back! Get back!"
+- shouts "Back! Get back!"
 
 ### /healme
 
-- clutches a bleeding arm. "Healer! Over here!"
+- shouts "Healer! Over here!"
 - gasps "A heal, please. Any time now."
 
 ### /oom
 
-- sags, spent. "Nothing left. Give me a moment."
-- shakes an empty flask, hopefully.
+- pants "Nothing left. Give me a moment."
+- mutters "Empty. Completely empty."
 
 ### /incoming
 
-- points. "Incoming!"
-- yells "Heads up! Here they come!"
+- yells "Incoming!"
+- shouts "Heads up! Here they come!"
 
 ### /helpme
 
 - shouts "Help! Over here!"
-- waves both arms. "A little help, please!"
+- calls out "A little help, please!"
 
 ### /wait
 
-- holds up a hand. "Wait. Hold a moment."
+- says "Wait. Hold a moment."
 - says "Hold on, hold on."
 
 ### /ready
 
-- checks every strap and buckle. "Ready."
+- says "Ready."
 - says "Ready when you are."
 
 ### /victory
 
-- raises both fists. "Victory!"
-- surveys the field. "And that's how it's done."
+- shouts "Victory!"
+- says "And that's how it's done."
 
 ### /agree
 
-- nods firmly. "Agreed."
+- says "Agreed."
 - says "Couldn't have put it better."
 
 ### /no
 
 - says flatly, "No."
-- says "Absolutely not." and folds both arms.
+- says "Absolutely not."
 
 ### /yes
 
-- nods. "Yes. Yes, of course."
+- says "Yes. Yes, of course."
 - says "Without question."
 
 ### /shrug
 
-- shrugs. "Who knows?"
-- says "Not my problem," and means it.
+- says "Who knows?"
+- says "Not my problem."
 
 ### /sigh
 
-- sighs. "Of course it is."
-- lets out the sigh of someone who has done this before.
+- mutters "Of course it is."
+- says "Every single time."
 
 ### /cry
 
-- wipes away a tear. "I'm fine. Really."
-- sniffs. "Just something in my eye."
+- sniffs. "I'm fine. Really."
+- mumbles "Just something in my eye."
 
 ### /dance
 
 - says "Come on, dance with me!"
-- dances like nobody is watching. Somebody is.
+- calls out "Somebody play something!"
 
 ### /flirt
 
-- leans in with a crooked smile. "Come here often?"
+- says "Come here often?"
 - says to %t, "Is it warm in here, or is that you?"
 
 ### /joke
 
-- grins. "Stop me if you've heard this one."
+- says "Stop me if you've heard this one."
 - says "So a gnome, a tauren and a murloc walk into an inn..."
 
 ### /insult
 
-- looks %t up and down. "Did you dress in the dark?"
+- says to %t, "Did you dress in the dark?"
 - says "I've met smarter murlocs."
 
 ### /threaten
 
-- cracks knuckles, one at a time. "Keep walking."
+- says "Keep walking."
 - says to %t, very quietly, "Try it."
 
 ### /kneel
 
-- kneels. "I am at your command."
-- drops to one knee before %t.
+- says "I am at your command."
+- murmurs "Command me."
