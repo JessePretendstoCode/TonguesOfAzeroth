@@ -7,13 +7,18 @@ Tongues of Azeroth before 0.5.3.
 - **Emote phrases.** Cast phrases now have a sibling: wave, bow, cheer or
   /hello, and every so often your character says something to go with it --
   Corvin waves. Corvin calls out "Hello there!" -- in whatever tongue you are
-  speaking, accent and all. Switch it on under Cast Phrases with *Also speak a
-  phrase when I emote*; it has its own chance (30% to start with), separate
-  from the one for spells. Thirty-four emotes ship with lines, and they sit in
-  the same list as your spells, under *Emotes*, where you can reword, weight,
-  remove or add to them exactly as you would a spell's. To write lines for an
-  emote that isn't listed, type it with its slash -- `/dance` -- in the box
-  beside the list. `/glyphic cast emotes` turns it on and off from chat.
+  speaking, accent and all. Switch it on in the new *Emotes* section of Cast
+  Phrases, below Spells; it has its own chance (30% to start with), separate
+  from the one for spells. Thirty-four emotes ship with lines, in a list of
+  their own, where you can reword, weight, remove or add to them exactly as
+  you would a spell's. To write lines for an emote that isn't listed, type it
+  -- `/dance` -- in the box beside that list. `/glyphic cast emotes` turns it
+  on and off from chat.
+- **Settings pages are split into sections.** Every page now has titled
+  sections with a divider above each -- Spells, Emotes and Hearing other
+  players on Cast Phrases; What you speak, Full immersion, Your voice and Your
+  languages on Languages & Fluency; and so on -- instead of reading as one
+  long page.
 - **Fixed: out-of-character (asides) were garbled by Full immersion.**
   Glyphic has always left text in parentheses alone when you speak, but a
   listener with *Remove in-game learned languages* on garbled the whole line

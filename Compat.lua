@@ -409,6 +409,45 @@ function Compat.SolidTexture(tex, r, g, b, a)
     end
 end
 
+--=========================================================================--
+--  Section dividers.
+--=========================================================================--
+-- A rule that starts strong under the title's edge and fades out across the
+-- panel, which reads as "a new part starts here" where a flat hairline reads
+-- as an underline -- and the 12% one these panels used to carry was invisible
+-- on most monitors. Drawn rather than borrowed: a texture path the client
+-- doesn't carry renders as a green bar instead of failing, and the Classic
+-- flavours don't all ship the same Interface\Common art. Defined below, so
+-- looked up at call time.
+function Compat.Divider(parent)
+    local line = parent:CreateTexture(nil, "ARTWORK")
+    line:SetHeight(1)
+    Compat.GradientTexture(line, "HORIZONTAL", 0.85, 0.75, 0.45, 0.7, 0)
+    return line
+end
+
+-- A section title with a divider across the panel above it. Returns the
+-- label, so callers anchor to it exactly as they would to a plain one; the
+-- divider sits in the gap above, which therefore wants to be 20px or more.
+function Compat.SectionHeader(parent, text, rightInset)
+    local label = parent:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    label:SetText(text)
+    label:SetTextColor(1, 0.82, 0.2)
+    local rule = Compat.Divider(parent)
+    rule:SetPoint("BOTTOMLEFT", label, "TOPLEFT", 0, 6)
+    rule:SetPoint("RIGHT", parent, "RIGHT", -(rightInset or 24), 0)
+    label.rule = rule
+    -- A texture can't hang off a FontString, so the divider is the parent's
+    -- and has to be told when its section comes and goes.
+    local show, hide = label.Show, label.Hide
+    label.Show = function(self) show(self); rule:Show() end
+    label.Hide = function(self) hide(self); rule:Hide() end
+    label.SetShown = function(self, shown)
+        if shown then self:Show() else self:Hide() end
+    end
+    return label
+end
+
 -- A one-colour texture that fades along its length. The shape of this call
 -- changed in 10.0: it used to be eight loose numbers, and became two colour
 -- objects. Both spellings are still out there across the flavours we ship to,

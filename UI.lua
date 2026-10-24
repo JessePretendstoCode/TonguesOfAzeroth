@@ -441,27 +441,21 @@ end
 -- (default off). When it's hidden, re-anchor the checkboxes below it straight
 -- under "Show floating language bar" so we don't leave a dead ~28px gap -- that
 -- reclaimed space keeps the whole panel inside the options safe zone.
--- A label with a hairline rule running out to the right edge, marking off a
--- group of related controls.
+-- A section title with a divider above it, marking off a group of related
+-- controls.
 --
 -- These panels are long vertical stacks, and an unbroken stack reads as one
 -- undifferentiated list: every setting looks equally important and equally
 -- related to the one above it. That is how the main panel came to hold seven
 -- unrelated checkboxes in a row with nothing to say where one concern ended and
 -- the next began.
+--
+-- A rule beside the label was not enough: at 12% it vanished, and a page of
+-- headers that only differ from field labels by a faint line reads as one
+-- long flow. The divider now runs across the panel above each section, and
+-- every panel uses it -- see Compat.SectionHeader.
 local function sectionHeader(parent, text, rightInset)
-    local label = parent:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    label:SetText(text)
-    label:SetTextColor(1, 0.82, 0.2)
-
-    local rule = parent:CreateTexture(nil, "ARTWORK")
-    rule:SetHeight(1)
-    rule:SetPoint("LEFT", label, "RIGHT", 8, 0)
-    rule:SetPoint("RIGHT", parent, "RIGHT", -(rightInset or 24), 0)
-    Compat.SolidTexture(rule, 1, 1, 1, 0.12)
-
-    label.rule = rule
-    return label
+    return Compat.SectionHeader(parent, text, rightInset)
 end
 
 --=========================================================================--
@@ -1744,8 +1738,11 @@ local function BuildMainPanel()
     -- players, get the colors and go on training exactly as before. It mutes
     -- what you send. It's the thing you hit to answer your raid leader in
     -- plain English and hit again after.
+    local switchHeader = sectionHeader(content, "In character", NAV.TEXT_INSET)
+    switchHeader:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -24)
+
     enableCheck = Compat.CreateCheckbox(content, "Speak in character")
-    enableCheck:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -16)
+    enableCheck:SetPoint("TOPLEFT", switchHeader, "BOTTOMLEFT", 0, -8)
     enableCheck:SetScript("OnClick", function(self)
         -- Through Core rather than straight at the saved variable, which is
         -- what every other door into this switch already does. This one wrote
@@ -1779,7 +1776,7 @@ local function BuildMainPanel()
     -- Inset past the nav button column on the right: with the voice block gone
     -- this header sits high enough to collide with it.
     local ifaceHeader = sectionHeader(content, "Interface", NAV.TEXT_INSET)
-    ifaceHeader:SetPoint("TOPLEFT", enableHint, "BOTTOMLEFT", -24, -20)
+    ifaceHeader:SetPoint("TOPLEFT", enableHint, "BOTTOMLEFT", -24, -26)
 
     minimapCheck = Compat.CreateCheckbox(content, "Show minimap button")
     minimapCheck:SetPoint("TOPLEFT", ifaceHeader, "BOTTOMLEFT", 0, -8)
@@ -1844,7 +1841,7 @@ local function BuildChatPanel()
     -- When you speak
     --------------------------------------------------------------------
     local speakHeader = sectionHeader(content, "When you speak")
-    speakHeader:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -16)
+    speakHeader:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -24)
 
     local channelHint = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     channelHint:SetPoint("TOPLEFT", speakHeader, "BOTTOMLEFT", 0, -6)
@@ -1976,7 +1973,7 @@ local function BuildChatPanel()
     -- When you listen
     --------------------------------------------------------------------
     local listenHeader = sectionHeader(content, "When you listen")
-    listenHeader:SetPoint("TOPLEFT", instanceNote, "BOTTOMLEFT", -24, -20)
+    listenHeader:SetPoint("TOPLEFT", instanceNote, "BOTTOMLEFT", -24, -26)
 
     local listenHint = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     listenHint:SetPoint("TOPLEFT", listenHeader, "BOTTOMLEFT", 0, -6)
@@ -2039,7 +2036,9 @@ local function BuildChatPanel()
         "Paint the [Language] tag in that tongue's color, so you can tell Demonic from Old God at a glance -- including on lines you can't read yet.\n\nOn its own this colors the tag and nothing else: the words underneath stay the channel's own color, the same as every other language in the window. \"Tint all speech\" is what extends it to the sentence.",
         function() return ns.Colors and ns.Colors.TagsEnabled() end,
         function(v) ns.Colors.SetTagsEnabled(v) end)
-    colorTagCheck:SetPoint("TOPLEFT", decodeStyleDropdown, "BOTTOMLEFT", 0, -16)
+    local colorHeader = sectionHeader(content, "Colors")
+    colorHeader:SetPoint("TOPLEFT", decodeStyleDropdown, "BOTTOMLEFT", 0, -26)
+    colorTagCheck:SetPoint("TOPLEFT", colorHeader, "BOTTOMLEFT", 0, -8)
 
     -- "Tint all speech" rather than "Tint speech". The old label read as "tint
     -- the speech part of the line", which is exactly what it does not do: with
@@ -2163,8 +2162,11 @@ local function BuildLearnedPanel()
     -- change: it is who your character is, set once and left alone, where the
     -- tongue you are speaking changes with whoever you are standing next to.
     -- Reading downward the panel now asks the questions in that order.
+    local speakHeader = sectionHeader(content, "What you speak", 32)
+    speakHeader:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -24)
+
     local nativeLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    nativeLabel:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -14)
+    nativeLabel:SetPoint("TOPLEFT", speakHeader, "BOTTOMLEFT", 0, -10)
     nativeLabel:SetText("Native dialect")
 
     infoFor(content, nativeLabel, "The tongue your character grew up speaking. "
@@ -2209,7 +2211,9 @@ local function BuildLearnedPanel()
     -- is, not what my race says it is".
     immersionCheck = Compat.CreateCheckbox(content,
         "Remove in-game learned languages -- only use Glyphic for languages")
-    immersionCheck:SetPoint("TOPLEFT", langDropdown, "BOTTOMLEFT", -2, -14)
+    local immersionHeader = sectionHeader(content, "Full immersion", 32)
+    immersionHeader:SetPoint("TOPLEFT", langDropdown, "BOTTOMLEFT", 0, -26)
+    immersionCheck:SetPoint("TOPLEFT", immersionHeader, "BOTTOMLEFT", -2, -8)
     immersionCheck:SetScript("OnClick", function(self)
         db().fullImmersion = self:GetChecked() and true or false
         if ns.QuestText then ns.QuestText.Refresh() end
@@ -2336,24 +2340,18 @@ local function BuildLearnedPanel()
     --
     -- The summary shares the header's line rather than taking another, so the
     -- block costs the language list as little height as possible.
-    local voiceLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    voiceLabel:SetPoint("TOPLEFT", CH.optionsCheck, "BOTTOMLEFT", -16, -16)
-    voiceLabel:SetText("Your voice")
-    voiceLabel:SetTextColor(1, 0.82, 0.2)
+    -- -30 undoes the nesting of the switches above, so the section starts
+    -- back at the panel's left margin with the others.
+    local voiceLabel = sectionHeader(content, "Your voice", 32)
+    voiceLabel:SetPoint("TOPLEFT", CH.optionsCheck, "BOTTOMLEFT", -30, -26)
 
     voiceText = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     voiceText:SetPoint("LEFT", voiceLabel, "RIGHT", 10, 0)
     voiceText:SetJustifyH("LEFT")
 
-    local voiceInfo = infoFor(content, voiceText, "Drag a handle below to change "
+    infoFor(content, voiceText, "Drag a handle below to change "
         .. "how much of a tongue comes through. Your accent is under "
         .. "|cffffd200Accents|r.")
-
-    local voiceRule = content:CreateTexture(nil, "ARTWORK")
-    voiceRule:SetHeight(1)
-    voiceRule:SetPoint("LEFT", voiceInfo, "RIGHT", 8, 0)
-    voiceRule:SetPoint("RIGHT", content, "RIGHT", -32, 0)
-    Compat.SolidTexture(voiceRule, 1, 1, 1, 0.12)
 
     -- What is left on this line is the warning, not the instruction: being
     -- out of character means none of the dials below are reaching your chat,
@@ -2385,9 +2383,8 @@ local function BuildLearnedPanel()
     previewOutput:SetHeight(32)
     previewOutput:SetSpacing(2)
 
-    local langLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    langLabel:SetPoint("TOPLEFT", previewOutput, "BOTTOMLEFT", 0, -14)
-    langLabel:SetText("Your languages")
+    local langLabel = sectionHeader(content, "Your languages", 32)
+    langLabel:SetPoint("TOPLEFT", previewOutput, "BOTTOMLEFT", 0, -24)
 
     local langInfo = infoFor(content, langLabel, "Fluency is how fully you speak "
         .. "a tongue -- build it by hearing it, in the Language Trainer, or with "
@@ -2833,12 +2830,11 @@ local function BuildAccentPanel()
     if hint.SetWordWrap then hint:SetWordWrap(true) end
     hint:SetText("Your accent layers onto whatever your fluency leaves in English, so the two stack instead of competing -- speak Orcish at 50% and the English half still sounds like you. Text in (parentheses) is always left as plain speech. Needs |cffffd200Speak in character|r on, and applies to the channels picked under |cffffd200Chat Channels|r.")
 
-    local accentLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    accentLabel:SetPoint("TOPLEFT", hint, "BOTTOMLEFT", 0, -16)
-    accentLabel:SetText("Accent")
+    local accentLabel = sectionHeader(content, "Accent")
+    accentLabel:SetPoint("TOPLEFT", hint, "BOTTOMLEFT", 0, -24)
 
     accentDropdown = Compat.CreateDropdown(content, 260)
-    accentDropdown:SetPoint("TOPLEFT", accentLabel, "BOTTOMLEFT", 0, -6)
+    accentDropdown:SetPoint("TOPLEFT", accentLabel, "BOTTOMLEFT", 0, -8)
     accentDropdown:SetItems(accentItems())
     accentDropdown.onSelect = function(value)
         if CH.lockedBy("accent.id") then
@@ -2894,7 +2890,9 @@ local function BuildAccentPanel()
         .. "so they turn up less often in chat than in this preview.")
 
     accentEmotesCheck = Compat.CreateCheckbox(content, "Also apply accent to emotes (/e and inline *actions*)")
-    accentEmotesCheck:SetPoint("TOPLEFT", tailHint, "BOTTOMLEFT", 0, -20)
+    local whereHeader = sectionHeader(content, "Where it applies")
+    whereHeader:SetPoint("TOPLEFT", tailHint, "BOTTOMLEFT", 0, -26)
+    accentEmotesCheck:SetPoint("TOPLEFT", whereHeader, "BOTTOMLEFT", 0, -8)
     accentEmotesCheck:SetScript("OnClick", function(self)
         db().accent.emotes = self:GetChecked() and true or false
         refreshAccentPreview()
@@ -2910,12 +2908,11 @@ local function BuildAccentPanel()
     if channelHint.SetWordWrap then channelHint:SetWordWrap(true) end
     channelHint:SetText("Your accent follows the same channels as your tongue -- pick them under |cffffd200Chat Channels|r.")
 
-    local previewLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    previewLabel:SetPoint("TOPLEFT", channelHint, "BOTTOMLEFT", 0, -16)
-    previewLabel:SetText("Preview (type to test):")
+    local previewLabel = sectionHeader(content, "Preview (type to test)")
+    previewLabel:SetPoint("TOPLEFT", channelHint, "BOTTOMLEFT", 0, -24)
 
     accentPreviewInput = CreateFrame("EditBox", "TonguesOfAzerothAccentPreviewInput", content, "InputBoxTemplate")
-    accentPreviewInput:SetPoint("TOPLEFT", previewLabel, "BOTTOMLEFT", 6, -8)
+    accentPreviewInput:SetPoint("TOPLEFT", previewLabel, "BOTTOMLEFT", 6, -10)
     accentPreviewInput:SetSize(320, 20)
     accentPreviewInput:SetAutoFocus(false)
     accentPreviewInput:SetText(ACCENT_SAMPLE)
@@ -3113,9 +3110,8 @@ local function BuildCustomPanel()
         refreshCustomPreview()
     end)
 
-    local previewLabel = customPanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    previewLabel:SetPoint("TOPLEFT", customApostSlider, "BOTTOMLEFT", 6, -26)
-    previewLabel:SetText("Preview (type to test):")
+    local previewLabel = sectionHeader(customPanel, "Preview (type to test)", 32)
+    previewLabel:SetPoint("TOPLEFT", customApostSlider, "BOTTOMLEFT", 6, -28)
     customPreviewInput = CreateFrame("EditBox", "TonguesOfAzerothCustomPreviewInput", customPanel, "InputBoxTemplate")
     customPreviewInput:SetPoint("TOPLEFT", previewLabel, "BOTTOMLEFT", 6, -8)
     customPreviewInput:SetSize(470, 20)
@@ -3177,9 +3173,8 @@ local function BuildCustomPanel()
     customStatus:SetText("")
 
     -- Share section: copy/paste code + direct in-game send.
-    local shareLabel = customPanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    shareLabel:SetPoint("TOPLEFT", saveBtn, "BOTTOMLEFT", -6, -18)
-    shareLabel:SetText("Share")
+    local shareLabel = sectionHeader(customPanel, "Share", 32)
+    shareLabel:SetPoint("TOPLEFT", saveBtn, "BOTTOMLEFT", -6, -24)
 
     local shareHint = customPanel:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     shareHint:SetPoint("TOPLEFT", shareLabel, "BOTTOMLEFT", 0, -4)
@@ -3402,21 +3397,25 @@ local function castSpellItems()
         end
     end
 
-    if #emotes > 0 then
-        items[#items + 1] = { text = "Emotes", header = true }
-        for _, key in ipairs(emotes) do
-            local label = Casts.DisplayName(key)
-            if Casts.IsMuted(key) then
-                label = label .. " |cff808080(muted)|r"
-            end
-            items[#items + 1] = { text = label, value = key }
+    -- Emotes are a list of their own, for the Emotes section's dropdown.
+    -- Returned from here rather than a function beside this one because the
+    -- file is at Lua's ceiling of 200 locals in one chunk.
+    local emoteItems = {}
+    for _, key in ipairs(emotes) do
+        local label = Casts.DisplayName(key)
+        if Casts.IsMuted(key) then
+            label = label .. " |cff808080(muted)|r"
         end
+        emoteItems[#emoteItems + 1] = { text = label, value = key }
     end
 
     if #items == 0 then
         items[1] = { text = "|cff808080No spells yet|r", value = nil, header = true }
     end
-    return items
+    if #emoteItems == 0 then
+        emoteItems[1] = { text = "|cff808080No emotes yet|r", value = nil, header = true }
+    end
+    return items, emoteItems
 end
 
 local function noteSpellKey(key)
@@ -3747,7 +3746,7 @@ local function RefreshCasts()
     -- at the alphabetically first spell in the game, so a priest opened this
     -- panel already looking at Aimed Shot -- a spell they cannot cast and which
     -- the dropdown below was correctly refusing to list.
-    local items = castSpellItems()
+    local items, emoteItems = castSpellItems()
     if not castSelectedKey then
         for _, item in ipairs(items) do
             if item.value and not item.header then
@@ -3757,16 +3756,35 @@ local function RefreshCasts()
         end
     end
 
+    -- One phrase editor, shared: it opens under whichever section owns the
+    -- selection, and the other section's picker shows a prompt instead of a
+    -- choice, so there is never a spell and an emote both looking selected.
+    local emoteActive = castSelectedKey and Casts.IsEmoteKey(castSelectedKey) or false
+    local emoteDrop, emoteMute = castPanel.emoteDropdown, castPanel.emoteMute
     if castSpellDropdown then
         castSpellDropdown:SetItems(items)
-        if castSelectedKey then
+        if castSelectedKey and not emoteActive then
             castSpellDropdown:SetSelected(castSelectedKey, Casts.DisplayName(castSelectedKey))
         else
             castSpellDropdown:SetSelected(nil, "Pick a spell")
         end
     end
+    if emoteDrop then
+        emoteDrop:SetItems(emoteItems)
+        if emoteActive then
+            emoteDrop:SetSelected(castSelectedKey, Casts.DisplayName(castSelectedKey))
+        else
+            emoteDrop:SetSelected(nil, "Pick an emote")
+        end
+    end
+    local muted = castSelectedKey and Casts.IsMuted(castSelectedKey) or false
     if castMuteCheck then
-        castMuteCheck:SetChecked(castSelectedKey and Casts.IsMuted(castSelectedKey) or false)
+        castMuteCheck:SetChecked(muted)
+        castMuteCheck:SetShown(not emoteActive)
+    end
+    if emoteMute then
+        emoteMute:SetChecked(muted)
+        emoteMute:SetShown(emoteActive)
     end
     if castNewLabel then
         castNewLabel:SetText(castSelectedKey
@@ -3774,9 +3792,25 @@ local function RefreshCasts()
             or "New phrase")
     end
 
-    -- Lay the phrase rows out under the spell selector.
+    local editorTop = (emoteActive and emoteMute) or castMuteCheck
+    local emoteHeader, hearHeader = castPanel.emoteHeader, castPanel.hearHeader
+    if emoteHeader and hearHeader and castSpellDropdown and emoteDrop then
+        emoteHeader:ClearAllPoints()
+        hearHeader:ClearAllPoints()
+        if emoteActive then
+            emoteHeader:SetPoint("TOPLEFT", castSpellDropdown, "BOTTOMLEFT", 0, -30)
+            hearHeader:SetPoint("TOPLEFT", castStatus, "BOTTOMLEFT", -6, -28)
+        else
+            emoteHeader:SetPoint("TOPLEFT", castStatus, "BOTTOMLEFT", -6, -28)
+            hearHeader:SetPoint("TOPLEFT", emoteDrop, "BOTTOMLEFT", 0, -30)
+        end
+    end
+
+    -- Lay the phrase rows out under the selector. `indent` tracks how far the
+    -- list has stepped in from it, so the add row can step back out.
     local phrases = castSelectedKey and Casts.GetPhrases(castSelectedKey) or {}
-    local anchor = castMuteCheck
+    local anchor = editorTop
+    local indent = 0
 
     -- The legend only makes sense above a list, so it comes and goes with one.
     if castWeightHeader then
@@ -3786,6 +3820,7 @@ local function RefreshCasts()
             castWeightHeader:SetPoint("RIGHT", castContent, "RIGHT", -24, 0)
             castWeightHeader:Show()
             anchor = castWeightHeader
+            indent = indent + 4
         else
             castWeightHeader:Hide()
         end
@@ -3803,6 +3838,7 @@ local function RefreshCasts()
         -- Eight rather than two between rows: the hairline under each one needs
         -- air on both sides to read as a divider instead of an underline.
         row:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", i == 1 and 4 or 0, i == 1 and -10 or -8)
+        if i == 1 then indent = indent + 4 end
         row:SetPoint("RIGHT", castContent, "RIGHT", -24, 0)
 
         local step = phrase.step or 0
@@ -4182,13 +4218,16 @@ local function RefreshCasts()
         castRows[i]:Hide()
     end
 
+    local kind = emoteActive and "emote" or "spell"
     if castEmptyNote then
         if #phrases == 0 then
+            castEmptyNote:SetText("No phrases for this " .. kind .. " yet. Write one below.")
             castEmptyNote:ClearAllPoints()
             castEmptyNote:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 4, -10)
             castEmptyNote:SetPoint("RIGHT", castContent, "RIGHT", -24, 0)
             castEmptyNote:Show()
             anchor = castEmptyNote
+            indent = indent + 4
         else
             castEmptyNote:Hide()
         end
@@ -4200,13 +4239,14 @@ local function RefreshCasts()
         local gone = castSelectedKey and Casts.HiddenCount(castSelectedKey) or 0
         if gone > 0 then
             castHiddenNote.text:SetText(gone == 1
-                and "One of this spell's pack lines has been removed."
-                or (gone .. " of this spell's pack lines have been removed."))
+                and ("One of this " .. kind .. "'s pack lines has been removed.")
+                or (gone .. " of this " .. kind .. "'s pack lines have been removed."))
             castHiddenNote:ClearAllPoints()
             castHiddenNote:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 4, -10)
             castHiddenNote:SetPoint("RIGHT", castContent, "RIGHT", -24, 0)
             castHiddenNote:Show()
             anchor = castHiddenNote
+            indent = indent + 4
         else
             castHiddenNote:Hide()
         end
@@ -4214,7 +4254,7 @@ local function RefreshCasts()
 
     if castAddRow then
         castAddRow:ClearAllPoints()
-        castAddRow:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", #phrases > 0 and 0 or 0, -14)
+        castAddRow:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", -indent, -14)
         castAddRow:SetPoint("RIGHT", castContent, "RIGHT", -24, 0)
     end
 
@@ -4507,10 +4547,8 @@ local function BuildChallengePanel()
     CH.panelStatus:SetPoint("RIGHT", content, "RIGHT", -32, 0)
     CH.panelStatus:SetJustifyH("LEFT")
 
-    local nameLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    nameLabel:SetPoint("TOPLEFT", CH.panelStatus, "BOTTOMLEFT", 0, -18)
-    nameLabel:SetText((def and def.name) or "Stranger")
-    nameLabel:SetTextColor(1, 0.82, 0.2)
+    local nameLabel = sectionHeader(content, (def and def.name) or "Stranger", 32)
+    nameLabel:SetPoint("TOPLEFT", CH.panelStatus, "BOTTOMLEFT", 0, -24)
 
     local blurb = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     blurb:SetPoint("TOPLEFT", nameLabel, "BOTTOMLEFT", 0, -6)
@@ -4523,12 +4561,11 @@ local function BuildChallengePanel()
     -- paragraph per tier. Three stacked blurbs is three paragraphs of small
     -- grey text to read before the single decision they inform, and the two
     -- you did not pick stay on screen afterwards saying nothing.
-    local tierLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    tierLabel:SetPoint("TOPLEFT", blurb, "BOTTOMLEFT", 0, -14)
-    tierLabel:SetText("Difficulty")
+    local tierLabel = sectionHeader(content, "Difficulty", 32)
+    tierLabel:SetPoint("TOPLEFT", blurb, "BOTTOMLEFT", 0, -24)
 
     CH.tierDrop = Compat.CreateDropdown(content, 200)
-    CH.tierDrop:SetPoint("TOPLEFT", tierLabel, "BOTTOMLEFT", 0, -6)
+    CH.tierDrop:SetPoint("TOPLEFT", tierLabel, "BOTTOMLEFT", 0, -8)
     do
         local items = {}
         for _, id in ipairs((def and def.order) or {}) do
@@ -4549,10 +4586,8 @@ local function BuildChallengePanel()
     CH.tierBlurb:SetHeight(32)
     if CH.tierBlurb.SetWordWrap then CH.tierBlurb:SetWordWrap(true) end
 
-    CH.reqHeader = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    CH.reqHeader:SetPoint("TOPLEFT", CH.tierBlurb, "BOTTOMLEFT", -2, -16)
-    CH.reqHeader:SetText("Before you can start")
-    CH.reqHeader:SetTextColor(1, 0.82, 0.2)
+    CH.reqHeader = sectionHeader(content, "Before you can start", 32)
+    CH.reqHeader:SetPoint("TOPLEFT", CH.tierBlurb, "BOTTOMLEFT", -2, -22)
 
     CH.reqs = {}
     local reqAnchor = CH.reqHeader
@@ -4618,10 +4653,8 @@ local function BuildChallengePanel()
         ns.ConfirmChallengeAbandon()
     end)
 
-    CH.recordHeader = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    CH.recordHeader:SetPoint("TOPLEFT", CH.startBtn, "BOTTOMLEFT", 6, -18)
-    CH.recordHeader:SetText("Your run")
-    CH.recordHeader:SetTextColor(1, 0.82, 0.2)
+    CH.recordHeader = sectionHeader(content, "Your run", 32)
+    CH.recordHeader:SetPoint("TOPLEFT", CH.startBtn, "BOTTOMLEFT", 6, -24)
 
     CH.recordText = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     CH.recordText:SetPoint("TOPLEFT", CH.recordHeader, "BOTTOMLEFT", 0, -8)
@@ -4652,9 +4685,8 @@ local function BuildProfilePanel()
     subtitle:SetText("Copy this character's whole setup into a code you can paste onto another character, another realm, or another install. Useful before a beta ends, or to set up an alt in one step.")
 
     -- Export
-    local outLabel = profilePanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    outLabel:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -18)
-    outLabel:SetText("Save a copy")
+    local outLabel = sectionHeader(profilePanel, "Save a copy", 32)
+    outLabel:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -24)
 
     local outHint = profilePanel:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     outHint:SetPoint("TOPLEFT", outLabel, "BOTTOMLEFT", 0, -4)
@@ -4682,9 +4714,8 @@ local function BuildProfilePanel()
     makeBtn:SetScript("OnClick", ns.ShowProfileCode)
 
     -- Import
-    local inLabel = profilePanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    inLabel:SetPoint("TOPLEFT", makeBtn, "BOTTOMLEFT", 6, -24)
-    inLabel:SetText("Restore a copy")
+    local inLabel = sectionHeader(profilePanel, "Restore a copy", 32)
+    inLabel:SetPoint("TOPLEFT", makeBtn, "BOTTOMLEFT", 6, -26)
 
     local inHint = profilePanel:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     inHint:SetPoint("TOPLEFT", inLabel, "BOTTOMLEFT", 0, -4)
@@ -4745,7 +4776,7 @@ local function BuildCastPanel()
     subtitle:SetPoint("RIGHT", content, "RIGHT", -24, 0)
     subtitle:SetJustifyH("LEFT")
     if subtitle.SetWordWrap then subtitle:SetWordWrap(true) end
-    subtitle:SetText("Speak a line of your own when a spell lands -- Corvin roars \"Nuk'luk!\" -- in whatever tongue you're currently speaking. Words in \"quotes\" are spoken aloud and get translated; the rest is narration and stays in English.")
+    subtitle:SetText("Speak a line of your own when a spell lands or you emote -- Corvin roars \"Nuk'luk!\" -- in whatever tongue you're currently speaking. Words in \"quotes\" are spoken aloud and get translated; the rest is narration and stays in English.")
 
     local limits = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     limits:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -10)
@@ -4754,8 +4785,15 @@ local function BuildCastPanel()
     if limits.SetWordWrap then limits:SetWordWrap(true) end
     limits:SetText("|cffffd200Heads-up:|r lines go out as emotes. /say and /yell need a real keypress, so no addon can send them from a cast -- and during raid encounters, Mythic+ and rated PvP Blizzard blocks addon chat entirely, where the line is shown to you alone instead.")
 
+    --  Spells --------------------------------------------------------------
+    -- Three sections -- Spells, Emotes, Hearing other players -- each under a
+    -- divider. The phrase editor is shared and opens beneath whichever of the
+    -- first two owns the selection; RefreshCasts moves the sections around it.
+    local spellsHeader = sectionHeader(content, "Spells")
+    spellsHeader:SetPoint("TOPLEFT", limits, "BOTTOMLEFT", 0, -24)
+
     castEnableCheck = Compat.CreateCheckbox(content, "Speak a phrase when I cast something")
-    castEnableCheck:SetPoint("TOPLEFT", limits, "BOTTOMLEFT", 0, -16)
+    castEnableCheck:SetPoint("TOPLEFT", spellsHeader, "BOTTOMLEFT", 0, -8)
     castEnableCheck:SetScript("OnClick", function(self)
         castDB().enabled = self:GetChecked() and true or false
         RefreshCasts()
@@ -4801,45 +4839,9 @@ local function BuildCastPanel()
     if throttleHint.SetWordWrap then throttleHint:SetWordWrap(true) end
     throttleHint:SetText("The two pauses are what keep a spammable spell from turning your emotes into a wall of text. A cast that rolls a phrase while either pause is running simply stays quiet.")
 
-    --  Emotes -------------------------------------------------------------
-    -- Same engine and same list as spells, keyed by the slash command, so the
-    -- only settings of their own are the switch and the chance. Emotes are
-    -- deliberate, which is why they get a far higher chance than a cast and
-    -- no pause sliders: nobody types /wave forty times a fight.
-    --
-    -- Kept on the panel rather than in file locals: UI.lua's main chunk is at
-    -- Lua's 200-local ceiling.
-    local emoteCheck = Compat.CreateCheckbox(content, "Also speak a phrase when I emote (/hello, /bow, ...)")
-    emoteCheck:SetPoint("TOPLEFT", throttleHint, "BOTTOMLEFT", 0, -16)
-    emoteCheck:SetScript("OnClick", function(self)
-        castDB().emotes = self:GetChecked() and true or false
-    end)
-    castPanel.emoteCheck = emoteCheck
-
-    local emoteChance = Compat.CreateSlider(content, 0, 100, 5, "How often for emotes", "0 - Never", "100 - Every emote")
-    emoteChance:SetPoint("TOPLEFT", emoteCheck, "BOTTOMLEFT", 4, -34)
-    emoteChance:SetWidth(320)
-    emoteChance:SetScript("OnValueChanged", function(self, value)
-        value = math.floor(value / 5 + 0.5) * 5
-        castDB().emoteChance = value
-        self.valueText:SetText(value .. "%")
-    end)
-    castPanel.emoteChance = emoteChance
-
-    local emoteHint = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-    emoteHint:SetPoint("TOPLEFT", emoteChance, "BOTTOMLEFT", -4, -34)
-    emoteHint:SetPoint("RIGHT", content, "RIGHT", -24, 0)
-    emoteHint:SetJustifyH("LEFT")
-    if emoteHint.SetWordWrap then emoteHint:SetWordWrap(true) end
-    emoteHint:SetText("Emotes are listed under |cffffd200Emotes|r at the end of the list below. To write lines for one that isn't there, type it with its slash -- |cffffd200/dance|r -- in the box beside the list.")
-
     --  The spell being edited --------------------------------------------
-    local spellLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    spellLabel:SetPoint("TOPLEFT", emoteHint, "BOTTOMLEFT", 0, -20)
-    spellLabel:SetText("Spell or emote")
-
     castFilterSpellbookCheck = Compat.CreateCheckbox(content, "Only show spells I can cast")
-    castFilterSpellbookCheck:SetPoint("TOPLEFT", spellLabel, "BOTTOMLEFT", 0, -4)
+    castFilterSpellbookCheck:SetPoint("TOPLEFT", throttleHint, "BOTTOMLEFT", 0, -14)
     castFilterSpellbookCheck:SetScript("OnClick", function(self)
         castDB().filterSpellbook = self:GetChecked() and true or false
         RefreshCasts()
@@ -4912,7 +4914,7 @@ local function BuildCastPanel()
     castEmptyNote = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     castEmptyNote:SetJustifyH("LEFT")
     if castEmptyNote.SetWordWrap then castEmptyNote:SetWordWrap(true) end
-    castEmptyNote:SetText("No phrases for this spell yet. Tick a pack above, or write one below.")
+    castEmptyNote:SetText("No phrases for this spell yet. Write one below.")
     castEmptyNote:Hide()
 
     -- Shown under the list once something has been removed from this spell.
@@ -4959,7 +4961,7 @@ local function BuildCastPanel()
 
     local function addTypedPhrase()
         if not castSelectedKey then
-            castStatusMsg("Pick a spell first.", true)
+            castStatusMsg("Pick a spell or an emote first.", true)
             return
         end
         local text = castNewInput:GetText() or ""
@@ -5016,9 +5018,91 @@ local function BuildCastPanel()
     -- line you are writing; this is about lines you are not, and putting it in
     -- between meant scrolling past a question about other people to reach the
     -- spell you came here to edit.
-    local hearLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    hearLabel:SetPoint("TOPLEFT", castStatus, "BOTTOMLEFT", 0, -24)
-    hearLabel:SetText("Hearing other players")
+    --  Emotes -------------------------------------------------------------
+    -- Same engine and same phrase tables as spells, keyed by the slash
+    -- command, so the only settings of their own are the switch and the
+    -- chance. Emotes are deliberate, which is why they get a far higher chance
+    -- than a cast and no pause sliders: nobody types /wave forty times a fight.
+    --
+    -- Everything here is kept on castPanel rather than in file locals: UI.lua's
+    -- main chunk is at Lua's 200-local ceiling. Positioned by RefreshCasts.
+    local emoteHeader = sectionHeader(content, "Emotes")
+    emoteHeader:SetPoint("TOPLEFT", castStatus, "BOTTOMLEFT", -6, -28)
+    castPanel.emoteHeader = emoteHeader
+
+    local emoteCheck = Compat.CreateCheckbox(content, "Speak a phrase when I emote (/hello, /bow, ...)")
+    emoteCheck:SetPoint("TOPLEFT", emoteHeader, "BOTTOMLEFT", 0, -8)
+    emoteCheck:SetScript("OnClick", function(self)
+        castDB().emotes = self:GetChecked() and true or false
+    end)
+    castPanel.emoteCheck = emoteCheck
+
+    local emoteChance = Compat.CreateSlider(content, 0, 100, 5, "How often for emotes", "0 - Never", "100 - Every emote")
+    emoteChance:SetPoint("TOPLEFT", emoteCheck, "BOTTOMLEFT", 4, -34)
+    emoteChance:SetWidth(320)
+    emoteChance:SetScript("OnValueChanged", function(self, value)
+        value = math.floor(value / 5 + 0.5) * 5
+        castDB().emoteChance = value
+        self.valueText:SetText(value .. "%")
+    end)
+    castPanel.emoteChance = emoteChance
+
+    local emoteHint = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+    emoteHint:SetPoint("TOPLEFT", emoteChance, "BOTTOMLEFT", -4, -34)
+    emoteHint:SetPoint("RIGHT", content, "RIGHT", -24, 0)
+    emoteHint:SetJustifyH("LEFT")
+    if emoteHint.SetWordWrap then emoteHint:SetWordWrap(true) end
+    emoteHint:SetText("After a line, emotes stay quiet for 20 seconds. Pick an emote to see or change what it says -- or type one that isn't listed, slash and all.")
+
+    local emoteDrop = Compat.CreateDropdown(content, 240)
+    emoteDrop:SetPoint("TOPLEFT", emoteHint, "BOTTOMLEFT", 0, -10)
+    emoteDrop.onSelect = function(value)
+        castLeaveEdit()
+        castSelectedKey = value
+        castStatusMsg("", false)
+        RefreshCasts()
+    end
+    castPanel.emoteDropdown = emoteDrop
+
+    local emoteInput = CreateFrame("EditBox", "TonguesOfAzerothCastEmote", content, "InputBoxTemplate")
+    emoteInput:SetPoint("LEFT", emoteDrop, "RIGHT", 16, 0)
+    emoteInput:SetPoint("RIGHT", content, "RIGHT", -24, 0)
+    emoteInput:SetHeight(20)
+    emoteInput:SetAutoFocus(false)
+    emoteInput:SetScript("OnEscapePressed", emoteInput.ClearFocus)
+    emoteInput:SetScript("OnEnterPressed", function(self)
+        local typed = (self:GetText() or ""):gsub("^%s+", "")
+        if typed ~= "" and typed:sub(1, 1) ~= "/" then typed = "/" .. typed end
+        local key = Casts.EmoteKey(typed)
+        if not key then
+            castStatusMsg("Type an emote, like /dance.", true)
+            return
+        end
+        castLeaveEdit()
+        castSelectedKey = key
+        self:SetText("")
+        self:ClearFocus()
+        castStatusMsg("Editing " .. Casts.DisplayName(key) .. " -- add a phrase below.", false)
+        RefreshCasts()
+    end)
+
+    local emoteInputHint = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+    emoteInputHint:SetPoint("TOPLEFT", emoteInput, "BOTTOMLEFT", 0, -3)
+    emoteInputHint:SetText("or type an emote and press Enter")
+
+    local emoteMute = Compat.CreateCheckbox(content, "Never speak for this emote")
+    emoteMute:SetPoint("TOPLEFT", emoteDrop, "BOTTOMLEFT", 0, -10)
+    emoteMute:SetScript("OnClick", function(self)
+        if not castSelectedKey then return end
+        Casts.SetMuted(castSelectedKey, self:GetChecked() and true or false)
+        RefreshCasts()
+    end)
+    emoteMute:Hide()
+    castPanel.emoteMute = emoteMute
+
+    local hearLabel = sectionHeader(content, "Hearing other players")
+    hearLabel:SetPoint("TOPLEFT", emoteDrop, "BOTTOMLEFT", 0, -30)
+    castPanel.hearHeader = hearLabel
 
     local hearIntro = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     hearIntro:SetPoint("TOPLEFT", hearLabel, "BOTTOMLEFT", 0, -6)

@@ -568,6 +568,13 @@ local function build()
         setDifficulty(value)
     end
 
+    -- Dividers without titles, laid into gaps the page already had: this
+    -- panel doesn't scroll and is close to the bottom of the window, so a
+    -- titled section header's extra height would push the last line off it.
+    local topRule = Compat.Divider(f)
+    topRule:SetPoint("TOPLEFT", f, "TOPLEFT", 16, -47)
+    topRule:SetPoint("RIGHT", f, "RIGHT", -16, 0)
+
     clueLabel = f:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     clueLabel:SetPoint("TOP", f, "TOP", 0, -56)
 
@@ -663,6 +670,10 @@ local function build()
     if passiveCheck.labelText and passiveCheck.labelText.GetStringWidth then
         passiveShift = -((passiveCheck.labelText:GetStringWidth() or 0) / 2) - 1
     end
+    local learnRule = Compat.Divider(f)
+    learnRule:SetPoint("TOPLEFT", hint, "BOTTOMLEFT", 0, -8)
+    learnRule:SetPoint("RIGHT", f, "RIGHT", -20, 0)
+
     passiveCheck:SetPoint("TOP", hint, "BOTTOM", passiveShift, -16)
     passiveCheck:SetScript("OnClick", function(self)
         GlyphicDB = GlyphicDB or {}
