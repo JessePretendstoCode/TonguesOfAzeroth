@@ -43,10 +43,9 @@ Tongues of Azeroth before 0.5.3.
   the habitual "be" -- "I'm not really sure I be wantin' to go dat way." --
   once per line, and every time from 70%. It also picks up "don'", "ain't"
   and "cyan'" for don't, isn't/aren't and can't.
-- **Changed: the Troll accent no longer turns every "I" into "I an' I".** At
-  heavy strength "I think I will" read "I an' I tink I an' I will". "I an' I"
-  now stands in for "we" only, where it belongs and where it stays rare enough
-  to land.
+- **Changed: the Troll accent no longer says "I an' I".** At heavy strength
+  "I think I will" read "I an' I tink I an' I will" -- and it is not something
+  WoW's trolls say in the first place. It is gone entirely.
 
 ## [0.6.1]
 - **Fixed: a Lua error when quest text worked out who was talking to you.** On

@@ -101,7 +101,7 @@ end
 -- pair "that I" and step straight past "I want".
 -- Below `allAt` only the first pair in a line changes: three in one sentence
 -- ("I be tinkin' we be needin'... dey be wantin'") is the phrase-repeating
--- problem "I an' I" had, and is kept for the heaviest settings.
+-- problem that got "I an' I" removed, and is kept for the heaviest settings.
 local function applyHabitual(text, h, all)
     local spans = {}
     for s, word, e in text:gmatch("()([%a']+)()") do
@@ -259,12 +259,12 @@ reg("troll", {
             ["aren't"] = "ain't", ["can't"] = "cyan'",
         },
         [70] = {
-            -- "I an' I" stands for "we" only. It used to replace every "I"
-            -- as well, which turns "I think I will" into "I an' I tink I an' I
-            -- will" -- one ordinary sentence repeating a phrase that only
-            -- works when it is rare.
+            -- No "I an' I". It is Rastafarian, not anything a WoW troll says,
+            -- and read as nonsense in chat -- first for every "I", then even
+            -- when kept to "we". The accent is Zandalari-flavoured patois as
+            -- the game voices it, not real-world Rasta.
             more = "nuff", many = "nuff", very = "nuff", first = "fus",
-            we = "I an' I", my = "me",
+            my = "me",
         },
     },
     patterns = { { "ing$", "in'", 25 }, { "er$", "a", 60 } },
