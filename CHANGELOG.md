@@ -39,6 +39,10 @@ Tongues of Azeroth before 0.5.3.
   because the length check counted the words inside the aside. Only words the
   accent actually speaks count now, and a line that ends in an aside is left
   without a flourish.
+- **The Troll accent is thicker at the top of the slider.** From 45% it uses
+  the habitual "be" -- "I'm not really sure I be wantin' to go dat way." --
+  once per line, and every time from 70%. It also picks up "don'", "ain't"
+  and "cyan'" for don't, isn't/aren't and can't.
 - **Changed: the Troll accent no longer turns every "I" into "I an' I".** At
   heavy strength "I think I will" read "I an' I tink I an' I will". "I an' I"
   now stands in for "we" only, where it belongs and where it stays rare enough

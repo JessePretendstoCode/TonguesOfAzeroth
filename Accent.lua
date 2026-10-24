@@ -93,6 +93,38 @@ local function applyCase(original, out)
     return out
 end
 
+-- Grammar a word swap can't reach: "I want" -> "I be wantin'". An accent
+-- opts in with `habitual = { at = threshold, subjects = {...}, verbs = {
+-- verb = "verbin'" } }`; a subject followed directly by one of those verbs
+-- gains "be" and the verb's -in' form. Walked word by word rather than with a
+-- two-word pattern, because gsub consumes its matches: "that I want" would
+-- pair "that I" and step straight past "I want".
+-- Below `allAt` only the first pair in a line changes: three in one sentence
+-- ("I be tinkin' we be needin'... dey be wantin'") is the phrase-repeating
+-- problem "I an' I" had, and is kept for the heaviest settings.
+local function applyHabitual(text, h, all)
+    local spans = {}
+    for s, word, e in text:gmatch("()([%a']+)()") do
+        spans[#spans + 1] = { s = s, e = e, word = word }
+    end
+    local hits = {}
+    for i = 1, #spans - 1 do
+        local subj, verb = spans[i], spans[i + 1]
+        if h.verbs[strlower(verb.word)] and h.subjects[strlower(subj.word)]
+            and strsub(text, subj.e, verb.s - 1):match("^ +$") then
+            hits[#hits + 1] = verb
+            if not all then break end
+        end
+    end
+    -- Spliced from the end so earlier positions stay valid.
+    for i = #hits, 1, -1 do
+        local verb = hits[i]
+        text = strsub(text, 1, verb.s - 1) .. "be "
+            .. applyCase(verb.word, h.verbs[strlower(verb.word)]) .. strsub(text, verb.e)
+    end
+    return text
+end
+
 Accent.DEFAULT = "dwarf"
 
 local ACCENTS = {}
@@ -222,7 +254,9 @@ reg("troll", {
             understand = "overstand", small = "likkle", good = "irie",
             happy = "irie", cool = "irie", ["okay"] = "irie", child = "pickney",
             children = "pickney", woman = "empress", talk = "reason",
-            speak = "reason", is = "be", are = "be",
+            speak = "reason", is = "be", are = "be", am = "be",
+            ["don't"] = "don'", ["doesn't"] = "don'", ["isn't"] = "ain't",
+            ["aren't"] = "ain't", ["can't"] = "cyan'",
         },
         [70] = {
             -- "I an' I" stands for "we" only. It used to replace every "I"
@@ -234,6 +268,24 @@ reg("troll", {
         },
     },
     patterns = { { "ing$", "in'", 25 }, { "er$", "a", 60 } },
+    -- The habitual "be": "I want to go" -> "I be wantin' to go". The single
+    -- loudest marker of the dialect and the one a word list could never make,
+    -- so the accent read thin at 100% without it. A short list of verbs on
+    -- purpose: "know", "mean" and "see" are left out because "you know?",
+    -- "I mean," and "I see." are set phrases that come out wrong as
+    -- "ya be knowin'?".
+    habitual = {
+        at = 45, allAt = 70,
+        subjects = { i = true, you = true, we = true, they = true },
+        verbs = {
+            want = "wantin'", need = "needin'", think = "tinkin'",
+            like = "likin'", love = "lovin'", hate = "hatin'",
+            go = "goin'", come = "comin'", feel = "feelin'", hear = "hearin'",
+            try = "tryin'", wonder = "wonderin'", wish = "wishin'",
+            hope = "hopin'", believe = "believin'", get = "gettin'",
+            say = "sayin'", remember = "rememberin'", look = "lookin'",
+        },
+    },
     tails = { ", mon.", ", ya know?", ", I tell ya.", ", respect." },
 })
 
@@ -674,6 +726,10 @@ function Accent.Apply(text, id, strength, emotesOn, live)
     -- Keep links, [brackets] and (OOC asides) out of the accent entirely; also
     -- keep *emote* actions out unless emote accents are enabled.
     local protected, saved, spanCount = protectSpans(text, not emotesOn)
+    if acc.habitual and strength >= acc.habitual.at then
+        protected = applyHabitual(protected, acc.habitual,
+            strength >= (acc.habitual.allAt or 0))
+    end
 
     -- Strength is the "garble level": every swap/pattern whose threshold is at or
     -- below the current strength fires, on EVERY eligible word. Raising strength
