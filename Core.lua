@@ -258,6 +258,10 @@ local CAST_DEFAULTS = {
     -- Emotes are deliberate, so they roll far more often than a cast does --
     -- you typed /wave once, not forty times a fight.
     emoteChance = 30,
+    -- And the pauses are short for the same reason: the spell ones exist to
+    -- stop a spammable spell, which nobody does with /wave.
+    emoteGap     = 20,   -- quiet period after an emote line, seconds
+    emoteSameGap = 60,   -- ...and before the same emote speaks again
 }
 ns.CAST_DEFAULTS = CAST_DEFAULTS
 
@@ -627,6 +631,8 @@ local function migrateDB()
     -- without the other; off until asked for, for the same reason as casts.
     if casts.emotes == nil then casts.emotes = false end
     if casts.emoteChance == nil then casts.emoteChance = CAST_DEFAULTS.emoteChance end
+    if casts.emoteGap == nil then casts.emoteGap = CAST_DEFAULTS.emoteGap end
+    if casts.emoteSameGap == nil then casts.emoteSameGap = CAST_DEFAULTS.emoteSameGap end
 
     -- Whose pinned recordings you are willing to hear. Pinning a line of your
     -- own is the whole of the consent to hear yourself; it says nothing about

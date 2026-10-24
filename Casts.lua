@@ -929,11 +929,12 @@ end)
 -- keeps our send out of the middle of the client's emote handling.
 --
 -- Its own gate rather than shouldSpeak's: emotes are deliberate and rare, so
--- they roll at their own (much higher) chance and wait on a short pause of
--- their own instead of on a cast cooldown measured in minutes.
-local EMOTE_GAP = 20
+-- they roll at their own (much higher) chance and wait on pauses of their
+-- own -- the same two a spell has, any line and the same one again -- instead
+-- of on a cast cooldown measured in minutes.
 local EMOTE_DELAY = 0.6
 local lastEmoteAt = 0
+local lastEmoteByKey = {}
 local lastEmoteKey
 local hookToken, hookAt
 
@@ -949,7 +950,12 @@ local function shouldSpeakEmote(key)
     if #Casts.GetPhrases(key) == 0 then return false end
 
     local now = GetTime and GetTime() or 0
-    if lastEmoteAt > 0 and (now - lastEmoteAt) < EMOTE_GAP then return false end
+    local d = ns.CAST_DEFAULTS
+    local gap = tonumber(c.emoteGap) or d.emoteGap
+    local sameGap = tonumber(c.emoteSameGap) or d.emoteSameGap
+    if lastEmoteAt > 0 and (now - lastEmoteAt) < gap then return false end
+    local last = lastEmoteByKey[key]
+    if last and (now - last) < sameGap then return false end
 
     local chance = tonumber(c.emoteChance) or ns.CAST_DEFAULTS.emoteChance
     if chance <= 0 then return false end
@@ -968,6 +974,7 @@ local function onEmote(token)
     lastEmoteKey = key
     if not shouldSpeakEmote(key) then return end
     lastEmoteAt = now
+    lastEmoteByKey[key] = now
 
     local function speak() Casts.Speak(key) end
     if C_Timer and type(C_Timer.After) == "function" then

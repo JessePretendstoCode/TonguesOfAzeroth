@@ -3735,6 +3735,9 @@ local function RefreshCasts()
     if castPanel.emoteCheck then castPanel.emoteCheck:SetChecked(c.emotes) end
     setSlider(castPanel.emoteChance, c.emoteChance or cd.emoteChance,
         (c.emoteChance or cd.emoteChance) .. "%")
+    setSlider(castPanel.emoteGap, c.emoteGap or cd.emoteGap, seconds(c.emoteGap or cd.emoteGap))
+    setSlider(castPanel.emoteSameGap, c.emoteSameGap or cd.emoteSameGap,
+        seconds(c.emoteSameGap or cd.emoteSameGap))
 
     -- A selection is never taken away: a spell picked by name, or by the
     -- keybind, has no phrases yet by definition, and dropping it would undo the
@@ -5047,12 +5050,32 @@ local function BuildCastPanel()
     end)
     castPanel.emoteChance = emoteChance
 
+    local emoteGap = Compat.CreateSlider(content, 0, 120, 5, "Quiet time after an emote line", "0s", "2 min")
+    emoteGap:SetPoint("TOPLEFT", emoteChance, "BOTTOMLEFT", 0, -40)
+    emoteGap:SetWidth(320)
+    emoteGap:SetScript("OnValueChanged", function(self, value)
+        value = math.floor(value / 5 + 0.5) * 5
+        castDB().emoteGap = value
+        self.valueText:SetText(value == 0 and "No pause" or (value .. " seconds"))
+    end)
+    castPanel.emoteGap = emoteGap
+
+    local emoteSameGap = Compat.CreateSlider(content, 0, 300, 15, "...and for the same emote", "0s", "5 min")
+    emoteSameGap:SetPoint("TOPLEFT", emoteGap, "BOTTOMLEFT", 0, -40)
+    emoteSameGap:SetWidth(320)
+    emoteSameGap:SetScript("OnValueChanged", function(self, value)
+        value = math.floor(value / 15 + 0.5) * 15
+        castDB().emoteSameGap = value
+        self.valueText:SetText(value == 0 and "No pause" or (value .. " seconds"))
+    end)
+    castPanel.emoteSameGap = emoteSameGap
+
     local emoteHint = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-    emoteHint:SetPoint("TOPLEFT", emoteChance, "BOTTOMLEFT", -4, -34)
+    emoteHint:SetPoint("TOPLEFT", emoteSameGap, "BOTTOMLEFT", -4, -34)
     emoteHint:SetPoint("RIGHT", content, "RIGHT", -24, 0)
     emoteHint:SetJustifyH("LEFT")
     if emoteHint.SetWordWrap then emoteHint:SetWordWrap(true) end
-    emoteHint:SetText("After a line, emotes stay quiet for 20 seconds. Pick an emote to see or change what it says -- or type one that isn't listed, slash and all.")
+    emoteHint:SetText("Separate from the spell pauses, so a cast line never silences an emote. Pick an emote to see or change what it says -- or type one that isn't listed.")
 
     local emoteDrop = Compat.CreateDropdown(content, 240)
     emoteDrop:SetPoint("TOPLEFT", emoteHint, "BOTTOMLEFT", 0, -10)

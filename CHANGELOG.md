@@ -8,8 +8,9 @@ Tongues of Azeroth before 0.5.3.
   /hello, and every so often your character says something to go with it --
   Corvin waves. Corvin calls out "Hello there!" -- in whatever tongue you are
   speaking, accent and all. Switch it on in the new *Emotes* section of Cast
-  Phrases, below Spells; it has its own chance (30% to start with), separate
-  from the one for spells. Thirty-four emotes ship with lines, in a list of
+  Phrases, below Spells. It has its own chance (30% to start with) and its own
+  two pauses -- after any emote line, and before the same emote speaks again
+  -- set apart from the spell ones, so a cast line never silences an emote. Thirty-four emotes ship with lines, in a list of
   their own, where you can reword, weight, remove or add to them exactly as
   you would a spell's. To write lines for an emote that isn't listed, type it
   -- `/dance` -- in the box beside that list. `/glyphic cast emotes` turns it
