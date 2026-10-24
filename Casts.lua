@@ -84,6 +84,8 @@ function Casts.DisplayName(key)
         local name = lib(key)
         if name then return name end
     end
+    -- An emote is shown the way it is typed.
+    if Casts.IsEmoteKey(key) then return key end
     -- Last resort: title-case the key so it at least reads like a spell.
     return (key:gsub("(%a)([%w']*)", function(a, b) return a:upper() .. b end))
 end
@@ -92,6 +94,65 @@ function Casts.NoteSpellName(name)
     local key = Casts.Key(name)
     if key then seenNames[key] = name end
     return key
+end
+
+--=========================================================================--
+--  Emote keys
+--=========================================================================--
+-- Emotes share everything above with spells -- weights, rewording, removal,
+-- pinned voices -- by living in the same tables under a key of their own: the
+-- slash command, "/hello". No spell name starts with a slash, so the two can
+-- never collide, and the key reads as itself in the panel.
+--
+-- The key comes from the emote's TOKEN ("HELLO"), which is what the game
+-- passes when an emote is performed, so /hi, /hello and the emote menu all land
+-- on one list. A slash typed in the panel is mapped back through the client's
+-- own emote commands, which also makes localized commands work.
+function Casts.IsEmoteKey(key)
+    return type(key) == "string" and key:sub(1, 1) == "/"
+end
+
+function Casts.EmoteKeyForToken(token)
+    if type(token) ~= "string" or token == "" then return nil end
+    return "/" .. token:lower()
+end
+
+-- English spellings the fallback understands when the client's tables are not
+-- there to ask -- the offline tests, and any flavor that renames the globals.
+local EMOTE_ALIASES = {
+    hi = "hello", ty = "thank", thanks = "thank", thankyou = "thank",
+    goodbye = "bye", farewell = "bye", lol = "laugh", sorry = "apologize",
+    congrats = "congratulate", greetings = "greet", followme = "follow",
+}
+
+local slashToToken
+local function emoteCommands()
+    if slashToToken then return slashToToken end
+    slashToToken = {}
+    -- Blizzard's numbering has gaps, so this runs to a fixed ceiling instead of
+    -- stopping at the first missing index.
+    for i = 1, 1000 do
+        local token = _G["EMOTE" .. i .. "_TOKEN"]
+        if type(token) == "string" then
+            for j = 1, 9 do
+                local cmd = _G["EMOTE" .. i .. "_CMD" .. j]
+                if type(cmd) == "string" then slashToToken[cmd:lower()] = token end
+            end
+        end
+    end
+    return slashToToken
+end
+
+-- "/hi" -> "/hello". Nil for anything that doesn't start with a slash.
+function Casts.EmoteKey(text)
+    if type(text) ~= "string" then return nil end
+    local slash = text:match("^%s*(/%S+)")
+    if not slash then return nil end
+    slash = slash:lower()
+    local token = emoteCommands()[slash]
+    if token then return Casts.EmoteKeyForToken(token) end
+    local word = slash:sub(2)
+    return "/" .. (EMOTE_ALIASES[word] or word)
 end
 
 --=========================================================================--
@@ -853,6 +914,75 @@ frame:SetScript("OnEvent", function(_, event, unit, _, spellID)
     if event ~= "UNIT_SPELLCAST_SUCCEEDED" then return end
     onCast(unit, spellID)
 end)
+
+--=========================================================================--
+--  Emotes
+--=========================================================================--
+-- /hello, /bow and the rest go through DoEmote, or C_ChatInfo.PerformEmote on
+-- clients that moved it, with the emote's token as the first argument. A
+-- secure post-hook sees the call without being in its path, so it cannot taint
+-- the emote, and both are hooked because one may forward to the other -- the
+-- same token twice within one frame is the second hook seeing the same emote.
+--
+-- The line is sent a moment later rather than from inside the hook. That puts
+-- it after the game's own "Corvin waves." where it reads as a follow-on, and
+-- keeps our send out of the middle of the client's emote handling.
+--
+-- Its own gate rather than shouldSpeak's: emotes are deliberate and rare, so
+-- they roll at their own (much higher) chance and wait on a short pause of
+-- their own instead of on a cast cooldown measured in minutes.
+local EMOTE_GAP = 20
+local EMOTE_DELAY = 0.6
+local lastEmoteAt = 0
+local lastEmoteKey
+local hookToken, hookAt
+
+function Casts.LastEmote() return lastEmoteKey end
+
+local function shouldSpeakEmote(key)
+    local c = castDB()
+    if not (c and c.emotes) then return false end
+    if ns.IsInCharacter and not ns.IsInCharacter() then return false end
+    if not key or Casts.IsMuted(key) then return false end
+    -- Before the dice, so an emote with nothing to say neither rolls nor
+    -- starts the pause that would silence the next one that does.
+    if #Casts.GetPhrases(key) == 0 then return false end
+
+    local now = GetTime and GetTime() or 0
+    if lastEmoteAt > 0 and (now - lastEmoteAt) < EMOTE_GAP then return false end
+
+    local chance = tonumber(c.emoteChance) or ns.CAST_DEFAULTS.emoteChance
+    if chance <= 0 then return false end
+    if chance < 100 and math.random(100) > chance then return false end
+    return true
+end
+
+local function onEmote(token)
+    if ns.IsSecret(token) then return end
+    if type(token) ~= "string" or token == "" then return end
+    local now = GetTime and GetTime() or 0
+    if token == hookToken and now == hookAt then return end
+    hookToken, hookAt = token, now
+
+    local key = Casts.EmoteKeyForToken(token)
+    lastEmoteKey = key
+    if not shouldSpeakEmote(key) then return end
+    lastEmoteAt = now
+
+    local function speak() Casts.Speak(key) end
+    if C_Timer and type(C_Timer.After) == "function" then
+        C_Timer.After(EMOTE_DELAY, speak)
+    else
+        speak()
+    end
+end
+
+if type(hooksecurefunc) == "function" then
+    if type(DoEmote) == "function" then hooksecurefunc("DoEmote", onEmote) end
+    if type(C_ChatInfo) == "table" and type(C_ChatInfo.PerformEmote) == "function" then
+        hooksecurefunc(C_ChatInfo, "PerformEmote", onEmote)
+    end
+end
 
 --=========================================================================--
 --  Preview (options panel)

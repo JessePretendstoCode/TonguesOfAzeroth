@@ -255,6 +255,9 @@ local CAST_DEFAULTS = {
     chance   = 5,     -- percent of casts that even roll a line
     gap      = 120,   -- quiet period after any line, seconds (slider maximum)
     spellGap = 300,   -- ...and before the same spell speaks again (slider maximum)
+    -- Emotes are deliberate, so they roll far more often than a cast does --
+    -- you typed /wave once, not forty times a fight.
+    emoteChance = 30,
 }
 ns.CAST_DEFAULTS = CAST_DEFAULTS
 
@@ -619,6 +622,11 @@ local function migrateDB()
     if casts.gap == nil then casts.gap = CAST_DEFAULTS.gap end
     if casts.spellGap == nil then casts.spellGap = CAST_DEFAULTS.spellGap end
     if casts.pets == nil then casts.pets = true end
+    -- Emote phrases: a line after /hello, /bow and the rest. Their own switch
+    -- rather than riding on `enabled`, because a player can want either one
+    -- without the other; off until asked for, for the same reason as casts.
+    if casts.emotes == nil then casts.emotes = false end
+    if casts.emoteChance == nil then casts.emoteChance = CAST_DEFAULTS.emoteChance end
 
     -- Whose pinned recordings you are willing to hear. Pinning a line of your
     -- own is the whole of the consent to hear yourself; it says nothing about
@@ -3245,6 +3253,15 @@ local function castCommand(rest)
     elseif sub == "pets" then
         c.pets = not c.pets
         Print("pet phrases: " .. (c.pets and "|cff00ff00on|r" or "|cffff0000off|r"))
+    elseif sub == "emotes" then
+        local a = string.lower(arg or "")
+        if a == "on" then c.emotes = true
+        elseif a == "off" then c.emotes = false
+        elseif tonumber(a) then
+            c.emoteChance = math.max(0, math.min(100, math.floor(tonumber(a) + 0.5)))
+        else c.emotes = not c.emotes end
+        Print("emote phrases: " .. (c.emotes and "|cff00ff00on|r" or "|cffff0000off|r")
+            .. ", chance |cffffff00" .. (c.emoteChance or CAST_DEFAULTS.emoteChance) .. "%|r")
     elseif sub == "chance" then
         local n = tonumber(arg)
         if n then
@@ -3277,7 +3294,7 @@ local function castCommand(rest)
                 return
             end
         end
-        local key = Casts.Key(name)
+        local key = Casts.EmoteKey(name) or Casts.Key(name)
         local phrases = key and Casts.GetPhrases(key) or {}
         if #phrases == 0 then
             Print("no phrases for |cffffff00" .. tostring(name) .. "|r.")
@@ -3294,6 +3311,9 @@ local function castCommand(rest)
             .. ", chance " .. (c.chance or CAST_DEFAULTS.chance) .. "%"
             .. ", pauses " .. (c.gap or CAST_DEFAULTS.gap) .. "s / "
             .. (c.spellGap or CAST_DEFAULTS.spellGap) .. "s")
+        Print("emote phrases: " .. (c.emotes and "|cff00ff00on|r" or "|cffff0000off|r")
+            .. ", chance " .. (c.emoteChance or CAST_DEFAULTS.emoteChance) .. "%"
+            .. (Casts.LastEmote() and (", last emote seen " .. Casts.LastEmote()) or ", no emote seen yet"))
         local blocked = Casts.BlockedReason()
         if blocked then
             Print("right now lines stay with you: " .. blocked .. ".")
@@ -3302,7 +3322,7 @@ local function castCommand(rest)
         end
         Print(string.format("%d spell(s) have phrases.", #Casts.GetKeys()))
     else
-        Print("usage: /glyphic cast [on|off|pets|chance <0-100>|list|test [spell]|status]")
+        Print("usage: /glyphic cast [on|off|pets|chance <0-100>|emotes [on|off|0-100]|list|test [spell]|status]")
     end
 end
 

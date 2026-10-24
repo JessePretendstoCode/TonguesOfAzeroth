@@ -3353,16 +3353,26 @@ local function castSpellItems()
 
     local configuredSet = {}
     local configured = {}
+    local emotes, emoteSet = {}, {}
     for _, key in ipairs(Casts.GetKeys()) do
-        local keep = true
-        if canFilter and not c.spells[key] and not spellbookSet[key] then
-            keep = false
-        end
-        if keep then
-            configured[#configured + 1] = key
-            configuredSet[key] = true
+        if Casts.IsEmoteKey(key) then
+            emotes[#emotes + 1] = key
+            emoteSet[key] = true
+        else
+            local keep = true
+            if canFilter and not c.spells[key] and not spellbookSet[key] then
+                keep = false
+            end
+            if keep then
+                configured[#configured + 1] = key
+                configuredSet[key] = true
+            end
         end
     end
+    -- The emote you just did, even with nothing written for it yet: doing it
+    -- and then opening this panel is the natural way to give one a line.
+    local recent = Casts.LastEmote and Casts.LastEmote()
+    if recent and not emoteSet[recent] then emotes[#emotes + 1] = recent end
 
     if #configured > 0 then
         items[#items + 1] = { text = "Configured", header = true }
@@ -3389,6 +3399,17 @@ local function castSpellItems()
             for _, entry in ipairs(yours) do
                 items[#items + 1] = { text = entry.name, value = entry.key }
             end
+        end
+    end
+
+    if #emotes > 0 then
+        items[#items + 1] = { text = "Emotes", header = true }
+        for _, key in ipairs(emotes) do
+            local label = Casts.DisplayName(key)
+            if Casts.IsMuted(key) then
+                label = label .. " |cff808080(muted)|r"
+            end
+            items[#items + 1] = { text = label, value = key }
         end
     end
 
@@ -3712,6 +3733,9 @@ local function RefreshCasts()
     setSlider(castChanceSlider, c.chance or cd.chance, (c.chance or cd.chance) .. "%")
     setSlider(castGapSlider, c.gap or cd.gap, seconds(c.gap or cd.gap))
     setSlider(castSpellGapSlider, c.spellGap or cd.spellGap, seconds(c.spellGap or cd.spellGap))
+    if castPanel.emoteCheck then castPanel.emoteCheck:SetChecked(c.emotes) end
+    setSlider(castPanel.emoteChance, c.emoteChance or cd.emoteChance,
+        (c.emoteChance or cd.emoteChance) .. "%")
 
     -- A selection is never taken away: a spell picked by name, or by the
     -- keybind, has no phrases yet by definition, and dropping it would undo the
@@ -4777,10 +4801,42 @@ local function BuildCastPanel()
     if throttleHint.SetWordWrap then throttleHint:SetWordWrap(true) end
     throttleHint:SetText("The two pauses are what keep a spammable spell from turning your emotes into a wall of text. A cast that rolls a phrase while either pause is running simply stays quiet.")
 
+    --  Emotes -------------------------------------------------------------
+    -- Same engine and same list as spells, keyed by the slash command, so the
+    -- only settings of their own are the switch and the chance. Emotes are
+    -- deliberate, which is why they get a far higher chance than a cast and
+    -- no pause sliders: nobody types /wave forty times a fight.
+    --
+    -- Kept on the panel rather than in file locals: UI.lua's main chunk is at
+    -- Lua's 200-local ceiling.
+    local emoteCheck = Compat.CreateCheckbox(content, "Also speak a phrase when I emote (/hello, /bow, ...)")
+    emoteCheck:SetPoint("TOPLEFT", throttleHint, "BOTTOMLEFT", 0, -16)
+    emoteCheck:SetScript("OnClick", function(self)
+        castDB().emotes = self:GetChecked() and true or false
+    end)
+    castPanel.emoteCheck = emoteCheck
+
+    local emoteChance = Compat.CreateSlider(content, 0, 100, 5, "How often for emotes", "0 - Never", "100 - Every emote")
+    emoteChance:SetPoint("TOPLEFT", emoteCheck, "BOTTOMLEFT", 4, -34)
+    emoteChance:SetWidth(320)
+    emoteChance:SetScript("OnValueChanged", function(self, value)
+        value = math.floor(value / 5 + 0.5) * 5
+        castDB().emoteChance = value
+        self.valueText:SetText(value .. "%")
+    end)
+    castPanel.emoteChance = emoteChance
+
+    local emoteHint = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+    emoteHint:SetPoint("TOPLEFT", emoteChance, "BOTTOMLEFT", -4, -34)
+    emoteHint:SetPoint("RIGHT", content, "RIGHT", -24, 0)
+    emoteHint:SetJustifyH("LEFT")
+    if emoteHint.SetWordWrap then emoteHint:SetWordWrap(true) end
+    emoteHint:SetText("Emotes are listed under |cffffd200Emotes|r at the end of the list below. To write lines for one that isn't there, type it with its slash -- |cffffd200/dance|r -- in the box beside the list.")
+
     --  The spell being edited --------------------------------------------
     local spellLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    spellLabel:SetPoint("TOPLEFT", throttleHint, "BOTTOMLEFT", 0, -20)
-    spellLabel:SetText("Spell")
+    spellLabel:SetPoint("TOPLEFT", emoteHint, "BOTTOMLEFT", 0, -20)
+    spellLabel:SetText("Spell or emote")
 
     castFilterSpellbookCheck = Compat.CreateCheckbox(content, "Only show spells I can cast")
     castFilterSpellbookCheck:SetPoint("TOPLEFT", spellLabel, "BOTTOMLEFT", 0, -4)
@@ -4814,12 +4870,15 @@ local function BuildCastPanel()
 
     local function pickTypedSpell()
         local typed = addSpellInput:GetText() or ""
-        local key = Casts.Key(typed)
+        local key = Casts.EmoteKey(typed)
         if not key then
-            castStatusMsg("Type a spell's name first.", true)
-            return
+            key = Casts.Key(typed)
+            if not key then
+                castStatusMsg("Type a spell's name first.", true)
+                return
+            end
+            Casts.NoteSpellName((typed:gsub("^%s+", ""):gsub("%s+$", "")))
         end
-        Casts.NoteSpellName((typed:gsub("^%s+", ""):gsub("%s+$", "")))
         castLeaveEdit()
         castSelectedKey = key
         addSpellInput:SetText("")
