@@ -4779,7 +4779,7 @@ local function BuildCastPanel()
     subtitle:SetPoint("RIGHT", content, "RIGHT", -24, 0)
     subtitle:SetJustifyH("LEFT")
     if subtitle.SetWordWrap then subtitle:SetWordWrap(true) end
-    subtitle:SetText("Speak a line of your own when a spell lands or you emote -- Corvin roars \"Nuk'luk!\" -- in whatever tongue you're currently speaking. Words in \"quotes\" are spoken aloud and get translated; the rest is narration and stays in English.")
+    subtitle:SetText("Speak a line of your own when a spell lands or you emote -- Corvin roars \"Nuk'luk!\" -- in whatever tongue you're currently speaking. Words in \"quotes\" are spoken aloud and get translated; the rest is narration and stays in English. A phrase goes out as an emote, so it is only translated while |cffffd200Emote|r is ticked under |cffffd200Chat Channels|r.")
 
     local limits = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     limits:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -10)

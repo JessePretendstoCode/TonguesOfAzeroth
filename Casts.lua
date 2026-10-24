@@ -691,6 +691,12 @@ function Casts.Render(template, ctx, live)
     local spoken, langId = {}, nil
     local spokenMeta = nil
     local named = false
+    -- The line goes out as an emote, so it answers to the Emote channel like
+    -- any emote you type: with that unticked it is still said, in plain
+    -- English -- no tongue and no accent, which share the one channel list.
+    if ns.IsChannelEnabled and not ns.IsChannelEnabled("EMOTE") then
+        return ns.FitMessage(body), nil, spoken
+    end
     body = body:gsub('"([^"]*)"', function(speech)
         if speech:gsub("%s", "") == "" then return '"' .. speech .. '"' end
         local out, lid, wasEncoded, meta = ns.EncodeSpeech(speech, live)

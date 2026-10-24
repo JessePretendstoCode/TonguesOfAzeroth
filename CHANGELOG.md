@@ -13,7 +13,12 @@ Tongues of Azeroth before 0.5.3.
   -- set apart from the spell ones, so a cast line never silences an emote.
   The shipped lines are speech that follows the game's own emote ("Corvin
   bows before you." then "Corvin says "At your service.""), never the action
-  a second time. Thirty-four emotes ship with lines, in a list of
+  a second time.
+- **Changed: cast and emote phrases follow the Emote channel.** A phrase goes
+  out as an emote, so its quoted speech is now translated (and accented) only
+  while *Emote* is ticked under Chat Channels -- the same switch as a typed
+  `/e`. With it off, the line is still said, in plain English. Emote is off
+  by default, so tick it if you want your phrases in your tongue. Thirty-four emotes ship with lines, in a list of
   their own, where you can reword, weight, remove or add to them exactly as
   you would a spell's. To write lines for an emote that isn't listed, type it
   -- `/dance` -- in the box beside that list. `/glyphic cast emotes` turns it
