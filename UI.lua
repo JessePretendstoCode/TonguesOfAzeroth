@@ -235,6 +235,11 @@ local function refreshPreview()
     previewOutput:SetText(out)
 end
 
+local function speakingName(id)
+    if ns.SpeakingName then return ns.SpeakingName(id) end
+    return Language.GetLanguageName(id)
+end
+
 -- One sentence naming the voice, then where each half of it is changed. Shared
 -- so the Languages panel and anything else that wants the summary agree.
 local function RefreshVoice()
@@ -243,9 +248,16 @@ local function RefreshVoice()
         local plain = Language.IsPlain and Language.IsPlain(d.language)
         local accentOn = Accent and d.accent and d.accent.id ~= Accent.NONE
         local accentName = accentOn and Accent.GetAccentName(d.accent.id) or nil
+        local native = Language.IsNoTongue(d.language)
+            and ns.GetMotherTongue and ns.GetMotherTongue()
 
         local voice
-        if plain and accentOn then
+        if native then
+            voice = Language.GetLanguageName(native) .. "  |cff909090(native dialect)|r"
+            if accentOn then
+                voice = voice .. string.format(", %s accent", accentName)
+            end
+        elseif plain and accentOn then
             voice = string.format("Plain speech, %s accent", accentName)
         elseif plain then
             voice = "Plain speech"
@@ -350,7 +362,7 @@ local function langItems()
     -- list the stars were deliberately moved out of, and it would be earning
     -- its keep only to lift None to a position it already holds: being the
     -- first row is exactly what a player favorites something to get.
-    items[#items + 1] = { text = Language.GetLanguageName("none"), value = "none" }
+    items[#items + 1] = { text = speakingName("none"), value = "none" }
     local favs = (ns.GetFavorites and ns.GetFavorites()) or {}
     local favRows = {}
     for i = 1, #favs do
@@ -850,7 +862,7 @@ local function RefreshLearned()
     end
 
     if langDropdown then
-        langDropdown:SetSelected(d.language, Language.GetLanguageName(d.language))
+        langDropdown:SetSelected(d.language, speakingName(d.language))
     end
     if motherDropdown then
         local m = d.motherTongue
@@ -1036,7 +1048,7 @@ local function tooltipLines(tt)
         -- over a switched-off addon is lying about the next thing you type.
         tt:AddLine("|cffff0000Switched off|r -- nothing below is in force.", 1, 0.3, 0.3)
     end
-    tt:AddLine("Language: |cffffffff" .. Language.GetLanguageName(db().language) .. "|r", 0.8, 0.8, 0.8)
+    tt:AddLine("Language: |cffffffff" .. speakingName(db().language) .. "|r", 0.8, 0.8, 0.8)
     tt:AddLine("In character: " .. (db().inCharacter and "|cff00ff00YES|r" or "|cffff0000NO|r"), 0.8, 0.8, 0.8)
     if not db().inCharacter and not muted then
         -- Said here because this is where it gets switched off, and a button
@@ -1185,7 +1197,7 @@ local function RefreshLanguageWidget()
     local d = db()
     if not d.widget.enabled then langWidget:Hide(); return end
     langWidget:Show()
-    langWidget.name:SetText(Language.GetLanguageName(d.language))
+    langWidget.name:SetText(speakingName(d.language))
     local adj, ar, ag, ab = fluencyAdjective(fluencyPct(d.language))
     langWidget.sub:SetText(adj)
     langWidget.sub:SetTextColor(ar, ag, ab)
@@ -1604,7 +1616,7 @@ local function SetupLanguageWidget()
         f:SetScript("OnEnter", function(self)
             GameTooltip:SetOwner(self, "ANCHOR_TOP")
             GameTooltip:SetText("Glyphic", 1, 1, 1)
-            GameTooltip:AddLine("Language: |cffffffff" .. Language.GetLanguageName(db().language) .. "|r", 0.8, 0.8, 0.8)
+            GameTooltip:AddLine("Language: |cffffffff" .. speakingName(db().language) .. "|r", 0.8, 0.8, 0.8)
             GameTooltip:AddLine(" ")
             GameTooltip:AddLine("|cffffffffLeft-click|r  Next language", 1, 1, 1)
             GameTooltip:AddLine("|cffffffffScroll|r  Cycle languages", 1, 1, 1)
@@ -2172,8 +2184,10 @@ local function BuildLearnedPanel()
     infoFor(content, nativeLabel, "The tongue your character grew up speaking. "
         .. "Words your fluency in the language below does not cover come out in "
         .. "this one instead of English, so a half-learned language sounds like "
-        .. "someone falling back on their own. Your accent only shapes English, "
-        .. "so it has little left to do once this is set.")
+        .. "someone falling back on their own. Speaking None hands it the whole "
+        .. "line, so to talk in plain English with only your accent, speak Common. "
+        .. "Your accent only shapes English, so it has little left to do once "
+        .. "this is set.")
 
     motherDropdown = Compat.CreateDropdown(content, 260)
     motherDropdown:SetPoint("TOPLEFT", nativeLabel, "BOTTOMLEFT", 0, -6)

@@ -860,6 +860,18 @@ end
 
 ns.GetMotherStrength = motherStrength
 
+-- The name to show for the tongue being spoken. "None (speak plainly)" is only
+-- true with no native dialect: with one set, None hands every word to it, so
+-- that label told a Dwarven speaker she would sound like English while the
+-- whole line came out Dwarven. Common is the plain choice in that case.
+function ns.SpeakingName(langId)
+    if Language.IsNoTongue(langId) then
+        local m = motherTongue()
+        if m then return "None (speak " .. Language.GetLanguageName(m) .. ")" end
+    end
+    return Language.GetLanguageName(langId)
+end
+
 --=========================================================================--
 --  Native languages (which tongues the client itself understands)
 --
@@ -2575,7 +2587,7 @@ function ns.SetInCharacter(state, silent)
     local accentName = (a and ns.Accent and a.id ~= ns.Accent.NONE)
         and ns.Accent.GetAccentName(a.id) or nil
     Print("Speaking |cff00ff00in character|r: |cffffff00"
-        .. Language.GetLanguageName(GlyphicDB.language) .. "|r"
+        .. ns.SpeakingName(GlyphicDB.language) .. "|r"
         .. (accentName and (" with a |cffffff00" .. accentName .. "|r accent") or "")
         .. ".")
 end
@@ -3879,7 +3891,8 @@ local function handleSlash(input)
         if arg == "" then
             local m = motherTongue()
             Print(m and ("Native dialect is |cffffff00" .. Language.GetLanguageName(m)
-                    .. "|r. Words your fluency doesn't cover come out in it.")
+                    .. "|r. Words your fluency doesn't cover come out in it, and"
+                    .. " speaking None is speaking it. Speak Common for plain English.")
                 or "No native dialect. Words your fluency doesn't cover stay in English.")
             Print("  |cffffff00/glyphic native <language>|r or |cffffff00/glyphic native none|r")
         elseif arg == "none" or arg == "off" or arg == "clear" then
@@ -3898,7 +3911,8 @@ local function handleSlash(input)
         else
             GlyphicDB.motherTongue = arg
             Print("Native dialect set to |cffffff00" .. Language.GetLanguageName(arg)
-                .. "|r. Words your fluency doesn't cover will come out in it.")
+                .. "|r. Words your fluency doesn't cover will come out in it, and"
+                .. " speaking None is speaking it. Speak Common for plain English.")
             if ns.OnSettingsChanged then ns.OnSettingsChanged() end
         end
     elseif cmd == "next" or cmd == "cycle" then

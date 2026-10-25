@@ -3,6 +3,15 @@
 All notable changes to Glyphic are documented here. The addon was called
 Tongues of Azeroth before 0.5.3.
 
+## [Unreleased]
+- **"None (speak plainly)" no longer says plainly when it isn't.** With a native
+  dialect set, choosing None hands every word to that dialect, so a Dwarven
+  character on None spoke nothing but Dwarven under a label promising English.
+  The entry now reads *None (speak Dwarven)* in that case, and the voice readout,
+  the floating bar and `/glyphic` say the same. For plain English with only your
+  accent, speak **Common**; the native dialect's help text now says so too.
+  Nothing about how you sound has changed.
+
 ## [0.6.2]
 - **Emote phrases.** Cast phrases now have a sibling: wave, bow, cheer or
   /hello, and every so often your character says something to go with it --
