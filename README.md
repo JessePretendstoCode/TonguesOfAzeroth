@@ -178,12 +178,12 @@ in character when you want to be heard in it.
    ```
    World of Warcraft\Interface\AddOns\
    ```
-2. The folder must be named `TonguesOfAzeroth` and contain `TonguesOfAzeroth.toc` plus
+2. The folder must be named `Glyphic` and contain `Glyphic.toc` plus
    `Compat.lua`, `Language.lua`, `Colors.lua`, `Accent.lua`, `Core.lua`, `CastLibrary.lua`,
    `Casts.lua`, `Whispers.lua`, `Game.lua`, `UI.lua` and the `Libs/` folder. (The extra
-   `TonguesOfAzeroth_Mainline.toc` / `_Camelot.toc` / `_Vanilla.toc` / etc. let each client
+   `Glyphic_Mainline.toc` / `_Camelot.toc` / `_Vanilla.toc` / etc. let each client
    pick the right interface version; the base `.toc` is the fallback.)
-3. Launch the game and enable Tongues of Azeroth on the character-select AddOns list.
+3. Launch the game and enable Glyphic on the character-select AddOns list.
 4. In game, type `/toa`, or open Settings → AddOns.
 
 ---
@@ -613,13 +613,13 @@ One download runs on all current clients via version-suffixed TOCs + `Compat.lua
 
 | Client | Interface | TOC |
 |--------|-----------|-----|
-| Retail (Midnight) | `120100` | `TonguesOfAzeroth_Mainline.toc` |
-| Forever | `16001` | `TonguesOfAzeroth_Camelot.toc` |
-| Mists of Pandaria Classic | `50504` | `TonguesOfAzeroth_Mists.toc` |
-| Cataclysm Classic | `40402` | `TonguesOfAzeroth_Cata.toc` |
-| Wrath Classic / Titan Reforged | `30405` | `TonguesOfAzeroth_Wrath.toc` |
-| Classic Era (Vanilla) | `11509` | `TonguesOfAzeroth_Vanilla.toc` |
-| *anything else* | `120100` | `TonguesOfAzeroth.toc` (base fallback) |
+| Retail (Midnight) | `120105` | `Glyphic_Mainline.toc` |
+| Forever | `16001` | `Glyphic_Camelot.toc` |
+| Mists of Pandaria Classic | `50504` | `Glyphic_Mists.toc` |
+| Cataclysm Classic | `40402` | `Glyphic_Cata.toc` |
+| Wrath Classic / Titan Reforged | `30405` | `Glyphic_Wrath.toc` |
+| Classic Era (Vanilla) | `11509` | `Glyphic_Vanilla.toc` |
+| *anything else* | `120105` | `Glyphic.toc` (base fallback) |
 
 Interface numbers only affect the "out of date" flag and are easy to bump. The base
 `.toc` mirrors retail and exists so a client with no matching suffix still loads the addon.

@@ -3,7 +3,11 @@
 All notable changes to Glyphic are documented here. The addon was called
 Tongues of Azeroth before 0.5.3.
 
-## [Unreleased]
+## [0.6.3]
+- Updated for Retail patch 12.1.5 (interface 120105) so it loads without the
+  out-of-date warning. WoW: Forever's release client is still interface 16001,
+  so nothing changes there: the Forever version that worked on beta is the one
+  that runs on live.
 - **"None (speak plainly)" no longer says plainly when it isn't.** With a native
   dialect set, choosing None hands every word to that dialect, so a Dwarven
   character on None spoke nothing but Dwarven under a label promising English.
