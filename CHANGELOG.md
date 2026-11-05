@@ -18,6 +18,12 @@ Tongues of Azeroth before 0.5.3.
   Casting plays one of them and posts nothing in chat. Lines without a voice
   pinned are skipped. Emote phrases are unchanged and still go out as text.
   Retail and Classic are unaffected.
+- **Glyphic never touches an OOC channel.** WoW: Forever's official OOC
+  channel on the RP realms -- and any channel named OOC or "Out of
+  Character" -- is left exactly as typed: no tongue, no accent, and nothing
+  decoded or coloured on what arrives there. This holds even with
+  *Channels* ticked under Chat Channels. General, Trade, Global and every
+  other channel behave as before.
 
 ## [0.6.3]
 - Updated for Retail patch 12.1.5 (interface 120105) so it loads without the

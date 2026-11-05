@@ -1167,12 +1167,42 @@ end
 -- channel with translation off). That was invisible from the UI -- there was a
 -- /glyphic debug line whose entire job was explaining why a configured accent
 -- appeared to do nothing -- and it is why the two read as separate addons.
+-- An out-of-character channel, by name: WoW: Forever's official OOC channel on
+-- its RP realms, and any channel a community calls OOC. Glyphic is an
+-- in-character voice, so it never touches one -- no tongue, no accent, no
+-- decoding or colour on what arrives. Matched by name rather than by number,
+-- because the slot a channel lands in differs from player to player.
+-- Accepts "OOC", "OOC - Stormwind" (a zone suffix), "6. OOC" (as the channel
+-- string arrives) or "Out of Character".
+function ns.IsOOCChannelName(name)
+    if isSecret(name) or type(name) ~= "string" then return false end
+    local base = name:gsub("^%d+%.%s*", ""):gsub("%s+%-%s+.*$", "")
+    base = " " .. base:lower() .. " "
+    return base:find("[^%w]ooc[^%w]") ~= nil
+        or base:find("out of character", 1, true) ~= nil
+end
+
+-- The same question about an outgoing line, whose channel is the number or
+-- name the edit box was aimed at; GetChannelName turns a number into a name.
+function ns.IsOOCChannel(channel)
+    if channel == nil or isSecret(channel) then return false end
+    local name = channel
+    if type(GetChannelName) == "function" then
+        local ok, _, resolved = pcall(GetChannelName, channel)
+        if ok and type(resolved) == "string" and not isSecret(resolved) then
+            name = resolved
+        end
+    end
+    return ns.IsOOCChannelName(name)
+end
+
 local function transformOutgoing(msg, sendType, channel)
     if type(msg) ~= "string" or msg == "" then return msg, false end
 
     local db = GlyphicDB
     if not db then return msg, false end
     local channelKey = normalizeChatType(sendType)
+    if channelKey == "CHANNEL" and ns.IsOOCChannel(channel) then return msg, false end
     local accentOn = accentAppliesTo(channelKey)
 
     -- Translation is paused inside instances: encoded text is only readable if
@@ -2312,6 +2342,14 @@ local function inlineChatFilter(_, event, msg, sender, languageName, ...)
 
     local chatType = CHAT_EVENTS[event]
     if not chatType then return false end
+    -- The channel's base name is the ninth argument, the sixth of the varargs
+    -- left here; the fourth argument ("6. OOC") is the fallback.
+    if chatType == "CHANNEL" then
+        local baseName = select("#", ...) >= 6 and select(6, ...) or nil
+        if ns.IsOOCChannelName(baseName) or ns.IsOOCChannelName((select(1, ...))) then
+            return false
+        end
+    end
 
     -- The numeric language is the tenth chat argument, which is the seventh
     -- left in the varargs -- read positionally because that is the only way it
