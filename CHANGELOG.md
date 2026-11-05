@@ -11,11 +11,11 @@ Tongues of Azeroth before 0.5.3.
   worked. Emote phrases now go out from inside the emote you typed, which
   carries your key press, so they reach other players again. A spell going
   off has no key press behind it and nothing an addon can legitimately do
-  gives it one, so on Forever outside instances a spell's line is shown to you
-  alone, with its voice line, the way it already was during raid lockdown.
-  Inside dungeons and raids spell lines still go out. Glyphic works this out
-  by watching for its own emote to come back, so other clients are unaffected;
-  `/glyphic cast status` says when it has decided lines are staying with you.
+  gives it one, so on Forever outside instances a spell's phrase plays its
+  voice line and posts no text. Inside dungeons and raids spell lines still go
+  out. Glyphic works this out by watching for its own emote to come back, so
+  other clients are unaffected; `/glyphic cast status` says when it has
+  decided spell lines are sound-only.
 
 ## [0.6.3]
 - Updated for Retail patch 12.1.5 (interface 120105) so it loads without the

@@ -804,17 +804,20 @@ end
 -- is behind it, and a spell's line is sent from UNIT_SPELLCAST_SUCCEEDED, which
 -- never has one. The client drops it silently and there is nothing to ask
 -- beforehand, so the only evidence is the line coming back: the server echoes
--- every emote you post as CHAT_MSG_EMOTE. A line that has not returned in
--- ECHO_TIMEOUT is shown to you instead, voice and all.
+-- every emote you post as CHAT_MSG_EMOTE. A spell line that has not returned
+-- in ECHO_TIMEOUT plays its voice line and nothing else: no chat route reaches
+-- the people around you from a cast, and an emote printed to your own window
+-- is one nobody else saw, so the sound is all that is left of it.
 --
 -- Two misses in a row from a send with no key press behind it, outside an
 -- instance, and the client is taken at its word for the rest of the session:
--- spell lines go straight to you rather than each waiting out the timeout.
+-- spell lines play their sound at once rather than each waiting out the
+-- timeout, and are not sent at all.
 -- Two rather than one so a single lag spike on a client that does allow it
 -- doesn't silence every cast until /reload. Any of your own emotes counts as
 -- the echo -- matching the exact string would mean anything that rewrote it
 -- on the way made a delivered line look lost, and printed it a second time.
-local ECHO_TIMEOUT = 2.5
+local ECHO_TIMEOUT = 1.5
 local MISSES_TO_LEARN = 2
 local echoesSeen = 0
 local missesInARow = 0
@@ -838,6 +841,14 @@ echoFrame:SetScript("OnEvent", function(_, event, _, sender, _, _, _, _, _, _, _
     if isMyEmote(sender, guid) then echoesSeen = echoesSeen + 1 end
 end)
 
+local function speakOnly(body, choice)
+    if ns.Voice then ns.Voice.SpeakLocal(body, choice) end
+end
+
+local function wantsKeypress(fromKeypress)
+    return not fromKeypress and not inInstance()
+end
+
 local function watchEcho(body, choice, fromKeypress)
     if not (C_Timer and type(C_Timer.After) == "function") then return end
     local before = echoesSeen
@@ -846,10 +857,15 @@ local function watchEcho(body, choice, fromKeypress)
             if not fromKeypress then missesInARow = 0 end
             return
         end
-        if not fromKeypress and not inInstance() then
+        if wantsKeypress(fromKeypress) then
             missesInARow = missesInARow + 1
             if missesInARow >= MISSES_TO_LEARN then needsKeypress = true end
+            speakOnly(body, choice)
+            return
         end
+        -- Lost for some other reason, which nothing here can name -- an emote
+        -- phrase had its key press, and inside an instance the rule does not
+        -- apply. The line is still worth having, so it is shown to you.
         showLocally(body, choice)
     end)
 end
@@ -865,16 +881,21 @@ function Casts.BlockedReason(fromKeypress)
     if ns.IsInstanceSuppressed() then
         return "Glyphic is standing down in this instance (\"Disable inside instances\")"
     end
-    if needsKeypress and not fromKeypress and not inInstance() then
+    if needsKeypress and wantsKeypress(fromKeypress) then
         return "this client only lets an addon post an emote from a key press outside"
-            .. " instances, so spell lines are shown to you alone (emote lines still go out)"
+            .. " instances, so spell lines play their voice line without the text"
+            .. " (emote lines still go out)"
     end
     return nil
 end
 
 local function deliver(body, choice, fromKeypress)
-    if Casts.BlockedReason(fromKeypress) then
+    if Compat.InChatLockdown() or ns.IsInstanceSuppressed() then
         showLocally(body, choice)
+        return false
+    end
+    if needsKeypress and wantsKeypress(fromKeypress) then
+        speakOnly(body, choice)
         return false
     end
     ns.RawSend(body, "EMOTE")
