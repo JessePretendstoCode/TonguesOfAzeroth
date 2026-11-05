@@ -3,6 +3,20 @@
 All notable changes to Glyphic are documented here. The addon was called
 Tongues of Azeroth before 0.5.3.
 
+## [0.6.4]
+- **Fixed: cast and emote phrases went silent on WoW: Forever 1.60.1.** That
+  patch stopped addons posting an emote outside instances unless a key press
+  is behind it, and the client drops the line without an error -- so nothing
+  appeared in chat and no voice line played, while Preview and Play still
+  worked. Emote phrases now go out from inside the emote you typed, which
+  carries your key press, so they reach other players again. A spell going
+  off has no key press behind it and nothing an addon can legitimately do
+  gives it one, so on Forever outside instances a spell's line is shown to you
+  alone, with its voice line, the way it already was during raid lockdown.
+  Inside dungeons and raids spell lines still go out. Glyphic works this out
+  by watching for its own emote to come back, so other clients are unaffected;
+  `/glyphic cast status` says when it has decided lines are staying with you.
+
 ## [0.6.3]
 - Updated for Retail patch 12.1.5 (interface 120105) so it loads without the
   out-of-date warning. WoW: Forever's release client is still interface 16001,

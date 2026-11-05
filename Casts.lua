@@ -17,8 +17,12 @@
       * Delivery is EMOTE, and only EMOTE. SAY, YELL and numbered channels have
         required a hardware event since 8.2.5: they must come from a keypress,
         which a cast handler is not, so the client refuses them on every flavor
-        we ship for -- this is not a Midnight rule. Emote carries no such
+        we ship for -- this is not a Midnight rule. Emote carried no such
         requirement, and that is the whole reason automatic RP is possible.
+        WoW: Forever 1.60.1 extended the rule to EMOTE outside instances, and
+        drops the line without an error. There is no probe for it, so a sent
+        line is watched for its own CHAT_MSG_EMOTE and shown to you alone when
+        it never comes back -- see "Watching a line come back".
 
       * Midnight (and Forever) additionally refuse *all* addon chat during raid
         encounters, Mythic+ and rated PvP -- see Compat.InChatLockdown. Nothing
@@ -774,7 +778,7 @@ end
 -- Used when the client refuses addon chat outright (Midnight's lockdown in
 -- raids, M+ and rated PvP) and when you've asked Glyphic to stand down in
 -- instances: the RP beat still lands for you, it just doesn't reach anyone else.
-local function showLocally(body)
+local function showLocally(body, choice)
     local me = UnitName("player")
     if type(me) ~= "string" then me = "" end
     local format = CHAT_EMOTE_GET or "%s "
@@ -784,28 +788,97 @@ local function showLocally(body)
     -- Voice normally rides on CHAT_MSG_EMOTE, which never arrives for a line
     -- the client refused to send. This is the only path that has to cue it by
     -- hand, and the RP beat is worth keeping even when nobody else can hear it.
-    if ns.Voice then ns.Voice.SpeakLocal(body) end
+    if ns.Voice then ns.Voice.SpeakLocal(body, choice) end
+end
+
+local function inInstance()
+    if type(IsInInstance) ~= "function" then return false end
+    local ok, inside = pcall(IsInInstance)
+    return ok and inside == true
+end
+
+--=========================================================================--
+--  Watching a line come back
+--=========================================================================--
+-- Forever 1.60.1 refuses an addon's EMOTE outside instances unless a key press
+-- is behind it, and a spell's line is sent from UNIT_SPELLCAST_SUCCEEDED, which
+-- never has one. The client drops it silently and there is nothing to ask
+-- beforehand, so the only evidence is the line coming back: the server echoes
+-- every emote you post as CHAT_MSG_EMOTE. A line that has not returned in
+-- ECHO_TIMEOUT is shown to you instead, voice and all.
+--
+-- Two misses in a row from a send with no key press behind it, outside an
+-- instance, and the client is taken at its word for the rest of the session:
+-- spell lines go straight to you rather than each waiting out the timeout.
+-- Two rather than one so a single lag spike on a client that does allow it
+-- doesn't silence every cast until /reload. Any of your own emotes counts as
+-- the echo -- matching the exact string would mean anything that rewrote it
+-- on the way made a delivered line look lost, and printed it a second time.
+local ECHO_TIMEOUT = 2.5
+local MISSES_TO_LEARN = 2
+local echoesSeen = 0
+local missesInARow = 0
+local needsKeypress = false
+
+local function isMyEmote(sender, guid)
+    if type(guid) == "string" and not ns.IsSecret(guid) and guid ~= "" then
+        local mine = UnitGUID and UnitGUID("player")
+        if type(mine) == "string" and not ns.IsSecret(mine) and mine ~= "" then
+            return guid == mine
+        end
+    end
+    return ns.IsSelfName ~= nil and ns.IsSelfName(sender) or false
+end
+
+local echoFrame = CreateFrame("Frame")
+echoFrame:RegisterEvent("CHAT_MSG_EMOTE")
+echoFrame:SetScript("OnEvent", function(_, event, _, sender, _, _, _, _, _, _, _, _, _, guid)
+    if event ~= "CHAT_MSG_EMOTE" then return end
+    if ns.IsSecret(sender) then return end
+    if isMyEmote(sender, guid) then echoesSeen = echoesSeen + 1 end
+end)
+
+local function watchEcho(body, choice, fromKeypress)
+    if not (C_Timer and type(C_Timer.After) == "function") then return end
+    local before = echoesSeen
+    C_Timer.After(ECHO_TIMEOUT, function()
+        if echoesSeen > before then
+            if not fromKeypress then missesInARow = 0 end
+            return
+        end
+        if not fromKeypress and not inInstance() then
+            missesInARow = missesInARow + 1
+            if missesInARow >= MISSES_TO_LEARN then needsKeypress = true end
+        end
+        showLocally(body, choice)
+    end)
 end
 
 -- Why a line would be kept to yourself rather than sent, or nil when it goes
 -- out normally. Also drives /glyphic cast status, so it returns a reason rather
--- than a bare boolean.
-function Casts.BlockedReason()
+-- than a bare boolean. `fromKeypress` is true for an emote phrase, which is
+-- sent from inside the emote you typed and so still has the key press behind it.
+function Casts.BlockedReason(fromKeypress)
     if Compat.InChatLockdown() then
         return "Blizzard blocks addon chat during raid encounters, Mythic+ and rated PvP"
     end
     if ns.IsInstanceSuppressed() then
         return "Glyphic is standing down in this instance (\"Disable inside instances\")"
     end
+    if needsKeypress and not fromKeypress and not inInstance() then
+        return "this client only lets an addon post an emote from a key press outside"
+            .. " instances, so spell lines are shown to you alone (emote lines still go out)"
+    end
     return nil
 end
 
-local function deliver(body)
-    if Casts.BlockedReason() then
-        showLocally(body)
+local function deliver(body, choice, fromKeypress)
+    if Casts.BlockedReason(fromKeypress) then
+        showLocally(body, choice)
         return false
     end
     ns.RawSend(body, "EMOTE")
+    watchEcho(body, choice, fromKeypress)
     return true
 end
 
@@ -839,16 +912,17 @@ function Casts.Speak(spellName, opts)
     -- The recording this phrase was pinned to, handed over before the line is
     -- sent. Playback rides on the emote coming back round, and by then which
     -- phrase produced it is no longer knowable: an emote body is just a string.
+    local line = Casts.GetPhraseSpoken(key, chosen.orig or chosen.text)
+    local choice = line and { line = line } or nil
     if ns.Voice and ns.Voice.NoteChoice then
-        local line = Casts.GetPhraseSpoken(key, chosen.orig or chosen.text)
-        ns.Voice.NoteChoice(body, line and { line = line } or nil)
+        ns.Voice.NoteChoice(body, choice)
     end
 
     local now = GetTime and GetTime() or 0
     lastSpoken = now
     lastByKey[key] = now
 
-    if deliver(body) and langId and spoken then
+    if deliver(body, choice, opts.fromKeypress) and langId and spoken then
         -- Let grouped Glyphic users in on what the spoken part means, the same way
         -- translated chat does. Nothing to send when only an accent touched it.
         for _, pair in ipairs(spoken) do
@@ -930,15 +1004,17 @@ end)
 -- the emote, and both are hooked because one may forward to the other -- the
 -- same token twice within one frame is the second hook seeing the same emote.
 --
--- The line is sent a moment later rather than from inside the hook. That puts
--- it after the game's own "Corvin waves." where it reads as a follow-on, and
--- keeps our send out of the middle of the client's emote handling.
+-- The line is sent from inside the hook, never deferred. The hook runs within
+-- the key press or click that performed the emote, and Forever 1.60.1 posts an
+-- addon's EMOTE outside instances only from inside one -- a line sent from a
+-- timer, even a fraction of a second later, is silently dropped there. The
+-- game's own "Corvin waves." still lands first: DoEmote has already sent it by
+-- the time a post-hook runs, and the server answers in order.
 --
 -- Its own gate rather than shouldSpeak's: emotes are deliberate and rare, so
 -- they roll at their own (much higher) chance and wait on pauses of their
 -- own -- the same two a spell has, any line and the same one again -- instead
 -- of on a cast cooldown measured in minutes.
-local EMOTE_DELAY = 0.6
 local lastEmoteAt = 0
 local lastEmoteByKey = {}
 local lastEmoteKey
@@ -982,12 +1058,7 @@ local function onEmote(token)
     lastEmoteAt = now
     lastEmoteByKey[key] = now
 
-    local function speak() Casts.Speak(key) end
-    if C_Timer and type(C_Timer.After) == "function" then
-        C_Timer.After(EMOTE_DELAY, speak)
-    else
-        speak()
-    end
+    Casts.Speak(key, { fromKeypress = true })
 end
 
 if type(hooksecurefunc) == "function" then

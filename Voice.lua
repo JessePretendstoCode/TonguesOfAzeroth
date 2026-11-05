@@ -25,7 +25,8 @@
       * Playback is driven by CHAT_MSG_EMOTE, not by our own cast handler.
         The emote is what the server actually sent, so a line Blizzard refused
         to deliver stays silent instead of being heard by its author alone.
-        Casts.showLocally cues the one case the event never carries. The same
+        Casts.showLocally cues the cases the event never carries: a lockdown,
+        and a line Forever dropped for want of a key press. The same
         event is what makes a shared line safe to play: see "Other people's
         lines" below.
 
@@ -512,9 +513,18 @@ end)
 -- The one line CHAT_MSG_EMOTE never delivers: a phrase Blizzard refused to
 -- send, which Casts prints locally instead. Called from there so the RP beat
 -- still has its sound even inside a raid encounter.
-function Voice.SpeakLocal(body)
+--
+-- `choice` is passed when Casts kept it itself: a line that was sent and never
+-- came back is only known to be lost seconds later, and by then another cast
+-- may have replaced the pending choice with its own.
+function Voice.SpeakLocal(body, choice)
     if not Voice.IsEnabled() then return 0 end
-    return Voice.SpeakBody(body, claimChoice(body))
+    if choice == nil then
+        choice = claimChoice(body)
+    elseif pendingBody == body then
+        pendingBody, pendingChoice = nil, nil
+    end
+    return Voice.SpeakBody(body, choice)
 end
 
 -- Audition a pinned line for the play button on the phrase panel. Deliberately
