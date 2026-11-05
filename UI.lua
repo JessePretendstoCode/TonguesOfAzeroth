@@ -3696,8 +3696,99 @@ local function castRow(index, parent)
     row.rule:SetHeight(1)
     Compat.SolidTexture(row.rule, 1, 1, 1, 0.07)
 
+    -- Two shapes for one row. A phrase is two strips, its words and the line
+    -- pinned under them; a voice-only spell on WoW: Forever has no words, so
+    -- the recording moves up into the first strip and the second goes away.
+    -- Re-anchored on every refresh rather than built twice, because the same
+    -- row shows a spell's voice line one moment and an emote's phrase the next.
+    function row:SetVoiceLayout(on)
+        self.text:ClearAllPoints()
+        self.text:SetPoint("LEFT", self.line1, "LEFT", ROW_TEXT_X, 0)
+        self.voicePlay:ClearAllPoints()
+        if on then
+            self.voicePlay:SetPoint("RIGHT", self.remove, "LEFT", -6, 0)
+            self.text:SetPoint("RIGHT", self.voiceBrowse, "LEFT", -10, 0)
+        else
+            self.voicePlay:SetPoint("RIGHT", self.voiceClear, "LEFT", -6, 0)
+            self.text:SetPoint("RIGHT", self.line1, "RIGHT", -ROW_GUTTER, 0)
+        end
+        self.voiceLabel:SetShown(not on)
+        self.spokenText:SetShown(not on)
+        if on then
+            self.voiceClear:Hide()
+            self.action:Hide()
+            self.source:Hide()
+            self.input:Hide()
+            self.keep:Hide()
+            self.discard:Hide()
+            self.preview:Hide()
+            self.text:Show()
+            self:SetHeight(ROW_LINE_H + 4)
+        end
+    end
+
     castRows[index] = row
     return row
+end
+
+-- The game's own voice lines, in a window: a speaker to pick, a kind of line
+-- to narrow to, and a list to scroll. Shared by every row's Browse button and
+-- by "Add a voice line", which differ only in what a pick does. On ns rather
+-- than a local because this file's main chunk is at Lua's 200-local ceiling.
+function ns.OpenCastVoiceBrowser(onPick)
+    local gv = ns.GameVoices
+    if not (gv and gv.Search) then
+        castStatusMsg("No game voice lines are indexed.", true)
+        return
+    end
+    Compat.ShowLineBrowser{
+        title = "Voice lines from the game",
+        groupAll = "All speakers",
+        -- Opens on your own character's voice rather than on all
+        -- ninety-three speakers. Most of the time the line you want is
+        -- one your character already says, and starting from the whole
+        -- catalogue makes you scroll past ninety-two strangers to
+        -- reach it. "All speakers" is still one click away.
+        group = (gv.MyVoices and gv.MyVoices()[1]) or nil,
+        -- Two controls rather than one nested list: pick the kind of
+        -- speaker, then the speaker. The categories come from the same
+        -- place the names do -- see tools/naming.ps1 -- so a speaker is
+        -- filed by what it actually is rather than by a second guess
+        -- made here.
+        categoryAll = "All speakers",
+        category = (gv.MyVoices and #gv.MyVoices() > 0) and gv.MINE or "",
+        categories = function() return gv.Categories() end,
+        groups = function(category, query)
+            local mine = {}
+            for _, who in ipairs(gv.MyVoices and gv.MyVoices() or {}) do
+                mine[who] = true
+            end
+            -- Your own race keeps its star wherever it turns up. It is
+            -- the entry most people are looking for, and a star in
+            -- front survives being read at a glance in a way a note on
+            -- the end does not.
+            local out = {}
+            for _, e in ipairs(gv.SpeakerList(category, query)) do
+                out[#out + 1] = { id = e.who, label =
+                    mine[e.who] and ("|cffffd200*|r " .. e.label) or e.label }
+            end
+            return out
+        end,
+        kindAll = "Every kind",
+        -- Families, with their groups indented underneath. Thirty-one
+        -- headings in a flat list is more than anyone reads down.
+        kinds = function(who) return gv.BrowseList(who) end,
+        filter = function(who, kind, q)
+            return gv.Filter{ who = who, group = kind, query = q,
+                limit = 2000 }
+        end,
+        onPlay = function(entry)
+            if ns.Voice and ns.Voice.PlayGame then
+                ns.Voice.PlayGame(entry.id, "audition")
+            end
+        end,
+        onPick = onPick,
+    }
 end
 
 local function RefreshCasts()
@@ -3849,8 +3940,10 @@ local function RefreshCasts()
     local castWeightTotal = 0
     for _, p in ipairs(phrases) do castWeightTotal = castWeightTotal + (p.step or 0) end
 
+    local voiceOnly = castSelectedKey and Casts.IsVoiceOnly(castSelectedKey) or false
     for i, phrase in ipairs(phrases) do
         local row = castRow(i, castContent)
+        row:SetVoiceLayout(false)
         row:ClearAllPoints()
         -- Eight rather than two between rows: the hairline under each one needs
         -- air on both sides to read as a divider instead of an underline.
@@ -4013,78 +4106,16 @@ local function RefreshCasts()
         end)
 
         row.voiceBrowse:SetScript("OnClick", function()
-            local gv = ns.GameVoices
-            if not (gv and gv.Search) then
-                castStatusMsg("No game voice lines are indexed.", true)
-                return
-            end
-            Compat.ShowLineBrowser{
-                title = "Voice lines from the game",
-                groupAll = "All speakers",
-                -- Opens on your own character's voice rather than on all
-                -- ninety-three speakers. Most of the time the line you want is
-                -- one your character already says, and starting from the whole
-                -- catalogue makes you scroll past ninety-two strangers to
-                -- reach it. "All speakers" is still one click away.
-                group = (gv.MyVoices and gv.MyVoices()[1]) or nil,
-                -- Under headings rather than in one run, because the catalogue
-                -- is heading for thousands of speakers and a flat list of
-                -- thousands is not a list. The headings come from the same
-                -- place the names do -- see tools/naming.ps1 -- so a speaker
-                -- is filed by what it actually is rather than by a second
-                -- guess made here.
-                --
-                -- Your own race keeps its star. It is the one entry most
-                -- people are looking for, and a star in front survives being
-                -- read at a glance in a way a note on the end does not.
-                -- Two controls rather than one nested list: pick the kind of
-                -- speaker, then the speaker. The categories come from the same
-                -- place the names do -- see tools/naming.ps1 -- so a speaker is
-                -- filed by what it actually is rather than by a second guess
-                -- made here.
-                categoryAll = "All speakers",
-                category = (gv.MyVoices and #gv.MyVoices() > 0) and gv.MINE or "",
-                categories = function() return gv.Categories() end,
-                groups = function(category, query)
-                    local mine = {}
-                    for _, who in ipairs(gv.MyVoices and gv.MyVoices() or {}) do
-                        mine[who] = true
-                    end
-                    -- Your own race keeps its star wherever it turns up. It is
-                    -- the entry most people are looking for, and a star in
-                    -- front survives being read at a glance in a way a note on
-                    -- the end does not.
-                    local out = {}
-                    for _, e in ipairs(gv.SpeakerList(category, query)) do
-                        out[#out + 1] = { id = e.who, label =
-                            mine[e.who] and ("|cffffd200*|r " .. e.label) or e.label }
-                    end
-                    return out
-                end,
-                kindAll = "Every kind",
-                -- Families, with their groups indented underneath. Thirty-one
-                -- headings in a flat list is more than anyone reads down.
-                kinds = function(who) return gv.BrowseList(who) end,
-                filter = function(who, kind, q)
-                    return gv.Filter{ who = who, group = kind, query = q,
-                        limit = 2000 }
-                end,
-                onPlay = function(entry)
-                    if ns.Voice and ns.Voice.PlayGame then
-                        ns.Voice.PlayGame(entry.id, "audition")
-                    end
-                end,
-                onPick = function(entry)
-                    local ok, err = Casts.SetPhraseSpoken(key, text,
-                        ns.Voice and ns.Voice.GameRef(entry.id) or nil)
-                    if ok then
-                        castStatusMsg("Now says \"" .. entry.text .. "\" out loud.", false)
-                    else
-                        castStatusMsg("Not set: " .. tostring(err) .. ".", true)
-                    end
-                    RefreshCasts()
-                end,
-            }
+            ns.OpenCastVoiceBrowser(function(entry)
+                local ok, err = Casts.SetPhraseSpoken(key, text,
+                    ns.Voice and ns.Voice.GameRef(entry.id) or nil)
+                if ok then
+                    castStatusMsg("Now says \"" .. entry.text .. "\" out loud.", false)
+                else
+                    castStatusMsg("Not set: " .. tostring(err) .. ".", true)
+                end
+                RefreshCasts()
+            end)
         end)
 
         local editing = (castEdit ~= nil and castEdit.orig == text)
@@ -4185,6 +4216,7 @@ local function RefreshCasts()
             -- which row it belongs to once it has your attention, and says what
             -- removing it costs -- those differ, and one of them is permanent.
             local quoted = phrase.text or text
+            if voiceOnly then quoted = said or "(no voice line yet)" end
             local consequence = phrase.user
                 and "You wrote this one, so it goes for good."
                 or "It can be brought back with Restore under the list."
@@ -4228,6 +4260,34 @@ local function RefreshCasts()
             row.source:SetText(phrase.user and "" or phraseSourceLabel(phrase))
         end
 
+        if voiceOnly then
+            row:SetVoiceLayout(true)
+            if pinned then
+                local who = Voice and Voice.GameId and ns.GameVoices
+                    and ns.GameVoices.SpeakerById[Voice.GameId(pinned)]
+                local quote = "\"" .. (said or pinned) .. "\""
+                row.text:SetText(step == 0 and ((who and (who .. "  ") or "") .. quote)
+                    or ((who and ("|cff909090" .. who .. "|r  ") or "")
+                        .. "|cff88ccff" .. quote .. "|r"))
+            else
+                row.text:SetText("|cff808080No voice line yet -- press Browse voice lines.|r")
+            end
+            -- Nothing to reword: the words were never going to be seen.
+            row.line1:SetScript("OnClick", nil)
+            row.line1:SetScript("OnEnter", function(self)
+                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+                if pinned then
+                    GameTooltip:AddLine("\"" .. (said or pinned) .. "\"", 0.53, 0.8, 1, true)
+                else
+                    GameTooltip:AddLine("No voice line yet", 1, 1, 1)
+                end
+                GameTooltip:AddLine("On WoW: Forever a spell plays its voice line and "
+                    .. "posts nothing in chat: no addon can send an emote from a cast there.",
+                    0.8, 0.8, 0.8, true)
+                GameTooltip:Show()
+            end)
+        end
+
         row:Show()
         anchor = row
     end
@@ -4238,7 +4298,9 @@ local function RefreshCasts()
     local kind = emoteActive and "emote" or "spell"
     if castEmptyNote then
         if #phrases == 0 then
-            castEmptyNote:SetText("No phrases for this " .. kind .. " yet. Write one below.")
+            castEmptyNote:SetText(voiceOnly
+                and "No voice lines for this spell yet. Add one below."
+                or ("No phrases for this " .. kind .. " yet. Write one below."))
             castEmptyNote:ClearAllPoints()
             castEmptyNote:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 4, -10)
             castEmptyNote:SetPoint("RIGHT", castContent, "RIGHT", -24, 0)
@@ -4273,6 +4335,28 @@ local function RefreshCasts()
         castAddRow:ClearAllPoints()
         castAddRow:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", -indent, -14)
         castAddRow:SetPoint("RIGHT", castContent, "RIGHT", -24, 0)
+    end
+
+    -- A voice-only spell has nothing to type and nothing to preview, so the
+    -- text half of the add row gives way to a button, and the status line
+    -- moves up to sit under it.
+    if castNewInput then castNewInput:SetShown(not voiceOnly) end
+    for _, f in ipairs({ castPanel.addBtn, castPanel.tokenHint,
+            castPanel.previewLabel, castPreviewText }) do
+        f:SetShown(not voiceOnly)
+    end
+    if castPanel.addVoiceBtn then castPanel.addVoiceBtn:SetShown(voiceOnly) end
+    if voiceOnly and castNewLabel and castSelectedKey then
+        castNewLabel:SetText("New voice line for " .. Casts.DisplayName(castSelectedKey))
+    end
+    if castStatus then
+        castStatus:ClearAllPoints()
+        if voiceOnly then
+            castStatus:SetPoint("TOPLEFT", castAddRow, "BOTTOMLEFT", 0, -2)
+        else
+            castStatus:SetPoint("TOPLEFT", castPreviewText, "BOTTOMLEFT", 0, -6)
+        end
+        castStatus:SetPoint("RIGHT", castContent, "RIGHT", -24, 0)
     end
 
     -- Preview whatever is being typed, so a phrase can be checked before it's
@@ -4800,7 +4884,11 @@ local function BuildCastPanel()
     limits:SetPoint("RIGHT", content, "RIGHT", -24, 0)
     limits:SetJustifyH("LEFT")
     if limits.SetWordWrap then limits:SetWordWrap(true) end
-    limits:SetText("|cffffd200Heads-up:|r lines go out as emotes. /say and /yell need a real keypress, so no addon can send them from a cast -- and during raid encounters, Mythic+ and rated PvP Blizzard blocks addon chat entirely, where the line is shown to you alone instead.")
+    if Compat.IsForever() then
+        limits:SetText("|cffffd200Heads-up:|r on WoW: Forever a spell's phrase is a voice line and nothing else. Forever only lets an addon post an emote when you press a key, which a spell going off is not -- so a spell plays the line you pick, and nothing appears in chat. Emote phrases still go out as text, because they ride on the emote you typed.")
+    else
+        limits:SetText("|cffffd200Heads-up:|r lines go out as emotes. /say and /yell need a real keypress, so no addon can send them from a cast -- and during raid encounters, Mythic+ and rated PvP Blizzard blocks addon chat entirely, where the line is shown to you alone instead.")
+    end
 
     --  Spells --------------------------------------------------------------
     -- Three sections -- Spells, Emotes, Hearing other players -- each under a
@@ -4997,6 +5085,38 @@ local function BuildCastPanel()
     Compat.PanelButton(addBtn, "Add", ADD_BTN_W, 22)
     addBtn:SetPoint("LEFT", castNewInput, "RIGHT", 10, 0)
     addBtn:SetScript("OnClick", addTypedPhrase)
+    castPanel.addBtn = addBtn
+
+    -- The add row for a voice-only spell on WoW: Forever, where there is no
+    -- text to type. A pick becomes a phrase like any other -- the list, the
+    -- weights and Remove all work on phrases -- worded as the line it plays,
+    -- so it reads sensibly if the same profile is opened on a client that
+    -- does send the text.
+    local addVoiceBtn = CreateFrame("Button", nil, castAddRow)
+    Compat.PanelButton(addVoiceBtn, "Add a voice line", 140, 22)
+    addVoiceBtn:SetPoint("TOPLEFT", castNewLabel, "BOTTOMLEFT", 0, -6)
+    addVoiceBtn:SetScript("OnClick", function()
+        local key = castSelectedKey
+        if not key then
+            castStatusMsg("Pick a spell first.", true)
+            return
+        end
+        ns.OpenCastVoiceBrowser(function(entry)
+            local said = tostring(entry.text or ""):gsub('"', "")
+            local text = ns.FitMessage('says "' .. said .. '"', 200)
+            Casts.AddPhrase(key, text)
+            local ok, err = Casts.SetPhraseSpoken(key, text,
+                ns.Voice and ns.Voice.GameRef(entry.id) or nil)
+            if ok then
+                castStatusMsg("Added \"" .. said .. "\".", false)
+            else
+                castStatusMsg("Not added: " .. tostring(err) .. ".", true)
+            end
+            RefreshCasts()
+        end)
+    end)
+    addVoiceBtn:Hide()
+    castPanel.addVoiceBtn = addVoiceBtn
 
     local tokenHint = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     tokenHint:SetPoint("TOPLEFT", castAddRow, "BOTTOMLEFT", 6, -2)
@@ -5013,9 +5133,12 @@ local function BuildCastPanel()
             table.concat(parts, "   "))
     end
 
+    castPanel.tokenHint = tokenHint
+
     local previewLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     previewLabel:SetPoint("TOPLEFT", tokenHint, "BOTTOMLEFT", -6, -14)
     previewLabel:SetText("Preview")
+    castPanel.previewLabel = previewLabel
 
     castPreviewText = content:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
     castPreviewText:SetPoint("TOPLEFT", previewLabel, "BOTTOMLEFT", 6, -8)
@@ -5025,6 +5148,7 @@ local function BuildCastPanel()
     castPreviewText:SetSpacing(2)
 
     castStatus = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    -- Re-anchored by RefreshCasts: a voice-only spell has no preview to sit under.
     castStatus:SetPoint("TOPLEFT", castPreviewText, "BOTTOMLEFT", 0, -6)
     castStatus:SetPoint("RIGHT", content, "RIGHT", -24, 0)
     castStatus:SetJustifyH("LEFT")

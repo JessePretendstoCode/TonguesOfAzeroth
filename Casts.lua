@@ -489,6 +489,15 @@ function Casts.SetPhraseSpoken(key, origText, spoken)
         hasClip, "that is not a line the game ships")
 end
 
+-- Whether this key's phrases are recordings only, with no text. True for every
+-- spell on WoW: Forever, where an addon cannot post an emote from a cast (see
+-- the file header); an emote phrase still has the player's key press behind it
+-- and stays a written line there.
+function Casts.IsVoiceOnly(key)
+    if not Compat.IsForever() then return false end
+    return not (key and Casts.IsEmoteKey and Casts.IsEmoteKey(key))
+end
+
 function Casts.IsMuted(key)
     local c = castDB()
     return (c and key and c.muted[key]) and true or false
@@ -875,6 +884,10 @@ end
 -- than a bare boolean. `fromKeypress` is true for an emote phrase, which is
 -- sent from inside the emote you typed and so still has the key press behind it.
 function Casts.BlockedReason(fromKeypress)
+    if Compat.IsForever() and not fromKeypress then
+        return "on WoW: Forever spell phrases are voice lines only, since no addon can"
+            .. " post an emote from a cast there (emote phrases still go out)"
+    end
     if Compat.InChatLockdown() then
         return "Blizzard blocks addon chat during raid encounters, Mythic+ and rated PvP"
     end
@@ -914,6 +927,25 @@ function Casts.Speak(spellName, opts)
 
     local phrases = Casts.GetPhrases(key)
     if #phrases == 0 then return nil end
+
+    if Casts.IsVoiceOnly(key) then
+        -- Nothing is written, so only a line with a recording has anything to
+        -- do, and the %tokens that decide whether a text line fits this cast
+        -- are beside the point.
+        local voiced = {}
+        for _, p in ipairs(phrases) do
+            if p.weight > 0 and p.spoken then voiced[#voiced + 1] = p end
+        end
+        local chosen = weightedPick(voiced)
+        if not chosen then return nil end
+        local now = GetTime and GetTime() or 0
+        lastSpoken = now
+        lastByKey[key] = now
+        if ns.Voice and ns.Voice.PlayChoice then
+            ns.Voice.PlayChoice({ line = chosen.spoken })
+        end
+        return chosen.spoken
+    end
 
     local ctx = buildContext(spellName)
     -- Drop phrases this cast can't fill in before rolling, so a pet line in the

@@ -364,6 +364,21 @@ function Compat.IsMainline()
         and WOW_PROJECT_ID == WOW_PROJECT_MAINLINE
 end
 
+-- WoW: Forever, by game type. Not a stand-in for "modern client" -- that is
+-- what issecretvalue is for -- but for the one rule Forever has and Retail
+-- does not: since 1.60.1 an addon's emote outside instances needs a key press,
+-- so nothing a cast triggers can post one. Asked of the project rather than
+-- learned at runtime because the options panel has to know before any spell
+-- has been cast.
+-- Both names, because Blizzard said "Camelot" would be renamed before launch.
+function Compat.IsForever()
+    if type(WOW_PROJECT_ID) ~= "number" then return false end
+    for _, project in ipairs({ WOW_PROJECT_CAMELOT, WOW_PROJECT_FOREVER }) do
+        if type(project) == "number" and WOW_PROJECT_ID == project then return true end
+    end
+    return false
+end
+
 --=========================================================================--
 --  Chat messaging lockdown (Midnight).
 --=========================================================================--

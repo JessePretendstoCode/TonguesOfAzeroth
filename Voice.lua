@@ -527,6 +527,14 @@ function Voice.SpeakLocal(body, choice)
     return Voice.SpeakBody(body, choice)
 end
 
+-- A voice-only cast on WoW: Forever: no emote is sent, so nothing will come
+-- back round to cue this, and nothing is broadcast -- a listener plays a pin
+-- only when the emote it belongs to reaches them.
+function Voice.PlayChoice(choice)
+    if not Voice.IsEnabled() then return 0 end
+    return Voice.SpeakBody(nil, choice)
+end
+
 -- Audition a pinned line for the play button on the phrase panel. Deliberately
 -- not gated on IsEnabled: pressing play is a direct request, and refusing it
 -- because the feature is switched off would leave somebody picking a line they
