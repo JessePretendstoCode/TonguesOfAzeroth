@@ -22,8 +22,8 @@ Tongues of Azeroth before 0.5.3.
   channel on the RP realms -- and any channel named OOC or "Out of
   Character" -- is left exactly as typed: no tongue, no accent, and nothing
   decoded or coloured on what arrives there. This holds even with
-  *Channels* ticked under Chat Channels. General, Trade, Global and every
-  other channel behave as before.
+  *Channels* ticked under Chat Channels. General, Trade, LocalDefense,
+  Services, TradeLocal and every other channel behave as before.
 
 ## [0.6.3]
 - Updated for Retail patch 12.1.5 (interface 120105) so it loads without the
