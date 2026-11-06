@@ -3,6 +3,16 @@
 All notable changes to Glyphic are documented here. The addon was called
 Tongues of Azeroth before 0.5.3.
 
+## [0.6.5]
+- **Fixed: on WoW: Forever, nobody else heard your spells' voice lines.**
+  Since 0.6.4 a spell plays its voice line without an emote, and other
+  players' Glyphic was still waiting for that emote before playing anything.
+  A spell's voice line is now sent on its own and plays as soon as it arrives,
+  for anyone with the matching "Hearing other players" box ticked who is
+  actually near you: a party or raid member the game can see, or anyone in
+  /say range. A guildmate elsewhere in the world does not hear it. Both of you
+  need 0.6.5; older versions ignore the new message.
+
 ## [0.6.4]
 - **Fixed: cast and emote phrases went silent on WoW: Forever 1.60.1.** That
   patch stopped addons posting an emote outside instances unless a key press

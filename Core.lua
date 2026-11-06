@@ -130,6 +130,11 @@ local LANG_SHARE_TAG = "TOAL1:"
 -- number addresses a file the receiving client already has, so this carries no
 -- audio and nothing is redistributed. See Voice.lua.
 local VOICE_TAG = "TOAV1:"
+-- ...and a recording with no emote to follow it, as "TOAW1:<fileDataId>": a
+-- voice-only spell on WoW: Forever. A separate tag rather than a flag on
+-- TOAV1, because a client that predates it must drop it -- an old receiver
+-- would hold a TOAV1 pin for an emote that is never coming.
+local VOICE_ALONE_TAG = "TOAW1:"
 
 local function addonDistribution(chatType, channel)
     chatType = normalizeChatType(chatType)
@@ -181,10 +186,14 @@ end
 --
 -- Say carries addon traffic on the Classic flavors alone. It is the only way to
 -- reach a stranger standing next to you, and on Retail there is no way at all.
-function ns.BroadcastVoicePin(id)
+--
+-- `alone` marks a recording with no emote behind it, which the listener plays
+-- on arrival rather than holding for an emote; see Voice.OnAlone.
+function ns.BroadcastVoicePin(id, alone)
     if not Compat.canSendAddonMessage then return end
     if type(id) ~= "number" then return end
-    local payload = VOICE_TAG .. tostring(id)
+    if Compat.InChatLockdown() then return end
+    local payload = (alone and VOICE_ALONE_TAG or VOICE_TAG) .. tostring(id)
     if #payload > MAX_ADDON_PAYLOAD then return end
 
     if Compat.InRaid() then
@@ -2261,6 +2270,10 @@ chatFrame:SetScript("OnEvent", function(self, event, ...)
             elseif type(message) == "string" and message:sub(1, #VOICE_TAG) == VOICE_TAG then
                 if ns.Voice and ns.Voice.OnBroadcast then
                     ns.Voice.OnBroadcast(tonumber(message:sub(#VOICE_TAG + 1)), sender, channel)
+                end
+            elseif type(message) == "string" and message:sub(1, #VOICE_ALONE_TAG) == VOICE_ALONE_TAG then
+                if ns.Voice and ns.Voice.OnAlone then
+                    ns.Voice.OnAlone(tonumber(message:sub(#VOICE_ALONE_TAG + 1)), sender, channel)
                 end
             elseif Language.ImportDecodePayload then
                 Language.ImportDecodePayload(message)

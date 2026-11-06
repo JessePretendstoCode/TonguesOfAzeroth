@@ -419,6 +419,59 @@ function Voice.OnBroadcast(id, sender, channel)
     heardPins[who] = { id = id, at = now, played = false }
 end
 
+-- A recording with no emote coming: a spell on WoW: Forever, where nothing a
+-- cast does can post one. Without the emote there is no proximity test to
+-- borrow, so this makes its own. Say is range-limited by the server, so a pin
+-- that came that way is nearby by definition. Anything else -- party, raid,
+-- guild -- plays only from a group member the client can currently see, which
+-- is roughly the distance you would have read their emote from. A guildmate
+-- who is not in your group cannot be placed, and is not played.
+local function groupUnitFor(who)
+    if type(GetNumGroupMembers) ~= "function" or type(UnitName) ~= "function" then
+        return nil
+    end
+    local raid = Compat and Compat.InRaid and Compat.InRaid()
+    local n = tonumber(GetNumGroupMembers()) or 0
+    for i = 1, n do
+        local unit = (raid and "raid" or "party") .. i
+        local ok, name = pcall(UnitName, unit)
+        if ok and shortName(name) == who then return unit end
+    end
+    return nil
+end
+
+local function standingNear(who, channel)
+    if channel == "SAY" or channel == "YELL" then return true end
+    local unit = groupUnitFor(who)
+    if not unit or type(UnitIsVisible) ~= "function" then return false end
+    local ok, visible = pcall(UnitIsVisible, unit)
+    if not ok or isSecret(visible) then return false end
+    return visible == true
+end
+
+local heardAlone = {}    -- [speaker] = { id = n, at = t }
+
+function Voice.OnAlone(id, sender, channel)
+    if isSecret(id) or isSecret(channel) then return end
+    if type(id) ~= "number" then return end
+    local who = shortName(sender)
+    if not who then return end
+    local me = myName()
+    if me and who == me then return end
+    if not Voice.CanHear(channel) then return end
+    -- The same catalogue gate as OnBroadcast, for the same reason.
+    local gv = ns.GameVoices
+    if not (gv and gv.ById and gv.ById[id]) then return end
+    if not standingNear(who, channel) then return end
+
+    -- One cast reaches a guildmate in your group on two channels.
+    local now = clock()
+    local last = heardAlone[who]
+    if last and last.id == id and (now - last.at) <= ECHO_WINDOW then return end
+    heardAlone[who] = { id = id, at = now }
+    Voice.PlayGame(id, "other")
+end
+
 -- The emote half, for somebody who is not you.
 local function hearOther(who)
     if not who then return end
@@ -528,11 +581,14 @@ function Voice.SpeakLocal(body, choice)
 end
 
 -- A voice-only cast on WoW: Forever: no emote is sent, so nothing will come
--- back round to cue this, and nothing is broadcast -- a listener plays a pin
--- only when the emote it belongs to reaches them.
+-- back round to cue this. The pin goes out on its own instead, for nearby
+-- listeners to play on arrival (Voice.OnAlone).
 function Voice.PlayChoice(choice)
     if not Voice.IsEnabled() then return 0 end
-    return Voice.SpeakBody(nil, choice)
+    local played = Voice.SpeakBody(nil, choice)
+    local id = choice and Voice.GameId(choice.line)
+    if id and ns.BroadcastVoicePin then ns.BroadcastVoicePin(id, true) end
+    return played
 end
 
 -- Audition a pinned line for the play button on the phrase panel. Deliberately
