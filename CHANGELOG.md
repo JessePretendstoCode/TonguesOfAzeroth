@@ -12,6 +12,13 @@ Tongues of Azeroth before 0.5.3.
   actually near you: a party or raid member the game can see, or anyone in
   /say range. A guildmate elsewhere in the world does not hear it. Both of you
   need 0.6.5; older versions ignore the new message.
+- **Fixed: CPU spikes in large guilds.** Glyphic re-read the whole guild
+  roster every time the game reported a change to it, which in a busy guild is
+  every few seconds, and past 400 remembered names it re-checked the entire
+  list once for every name it read. In a guild of a thousand that was hundreds
+  of thousands of steps per update. The roster is now read at most once a
+  minute and the list is tidied at most every 30 seconds; names are still
+  remembered for an hour, so nothing you see changes.
 
 ## [0.6.4]
 - **Fixed: cast and emote phrases went silent on WoW: Forever 1.60.1.** That

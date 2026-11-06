@@ -55,6 +55,15 @@ local MIN_LEN = 3
 -- Above this many remembered names, prune the expired ones. Purely a ceiling on
 -- table growth; matching is a hash lookup and doesn't care how full this is.
 local MAX_KNOWN = 400
+-- ...and at most this often. A prune only drops what has expired, so it cannot
+-- bring a full list back under the ceiling, and run once per new name it turned
+-- every pass over a large guild into names x list: hundreds of thousands of
+-- steps, many times a minute.
+local PRUNE_GAP = 30
+-- The guild roster is read at most this often. GUILD_ROSTER_UPDATE fires on
+-- every status change in a busy guild and again whenever any addon or the
+-- Communities window requests the roster, and its names last an hour here.
+local GUILD_REFRESH_GAP = 60
 
 -- key (lower case) -> expiry timestamp, or PERMANENT
 local known = {}
@@ -145,8 +154,12 @@ end
 --=========================================================================--
 --  The list
 --=========================================================================--
+local lastPrune
+Names.prunes = 0
 local function prune()
     local t = now()
+    lastPrune = t
+    Names.prunes = Names.prunes + 1
     for key, expiry in pairs(known) do
         if expiry ~= PERMANENT and expiry < t then
             known[key] = nil
@@ -191,7 +204,10 @@ function Names.Note(name, ttl, class)
     local current = known[key]
     if current == nil then
         knownCount = knownCount + 1
-        if knownCount > MAX_KNOWN then prune() end
+        if knownCount > MAX_KNOWN
+            and (lastPrune == nil or now() - lastPrune >= PRUNE_GAP) then
+            prune()
+        end
         known[key] = expiry
         display[key] = name
     elseif current == PERMANENT then
@@ -506,6 +522,24 @@ end
 --=========================================================================--
 -- Its own frame rather than a branch in Core's: everything here is bookkeeping
 -- for one list, and none of it has anything to say about the chat pipeline.
+-- One read now, then none for a minute; an update arriving inside that minute
+-- queues a single read for the end of it, so the last change is not lost.
+local lastGuildRefresh, guildRefreshQueued
+function Names.OnGuildRoster()
+    local t = now()
+    if lastGuildRefresh == nil or t - lastGuildRefresh >= GUILD_REFRESH_GAP then
+        lastGuildRefresh = t
+        Names.RefreshGuild()
+    elseif not guildRefreshQueued and C_Timer and C_Timer.After then
+        guildRefreshQueued = true
+        C_Timer.After(GUILD_REFRESH_GAP - (t - lastGuildRefresh), function()
+            guildRefreshQueued = false
+            lastGuildRefresh = now()
+            Names.RefreshGuild()
+        end)
+    end
+end
+
 local f = CreateFrame("Frame")
 f:RegisterEvent("PLAYER_LOGIN")
 f:RegisterEvent("PLAYER_TARGET_CHANGED")
@@ -533,7 +567,7 @@ f:SetScript("OnEvent", function(_, event, arg1)
     elseif event == "GROUP_ROSTER_UPDATE" or event == "UNIT_PET" then
         Names.RefreshRoster()
     elseif event == "GUILD_ROSTER_UPDATE" then
-        Names.RefreshGuild()
+        Names.OnGuildRoster()
     elseif event == "NAME_PLATE_UNIT_ADDED" then
         if unitScanAllowed() then Names.NoteUnit(arg1) end
     end
