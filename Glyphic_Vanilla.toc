@@ -1,9 +1,10 @@
 ## Interface: 11509
 ## Title: Glyphic: Immersive RP Languages
 ## Notes: Speak Azeroth's languages in character -- 66 of them, plus accents, cast lines, and languages you invent yourself.
+## Category: Roleplay
 ## IconTexture: Interface\AddOns\Glyphic\Media\Glyphic-On
 ## Author: JessePretendstoCode
-## Version: 0.6.5
+## Version: 0.6.4.1
 ## SavedVariablesPerCharacter: GlyphicDB
 ## SavedVariables: GlyphicAccountDB
 ## OptionalDeps: TonguesOfAzeroth
