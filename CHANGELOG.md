@@ -3,6 +3,14 @@
 All notable changes to Glyphic are documented here. The addon was called
 Tongues of Azeroth before 0.5.3.
 
+## [0.6.4.2]
+- **Removed: the TonguesOfAzeroth carry-over folder.** It shipped beside
+  Glyphic so settings from before the 0.5.3 rename could be picked up, and it
+  showed in the AddOns list as a second addon. Glyphic now installs as one
+  folder. If a `TonguesOfAzeroth` folder is still in your AddOns directory you
+  can delete it. Anyone who used Tongues of Azeroth and has not launched
+  Glyphic since 0.5.3 will start from default settings.
+
 ## [0.6.4.1]
 - **Fixed: on WoW: Forever, nobody else heard your spells' voice lines.**
   Since 0.6.4 a spell plays its voice line without an emote, and other

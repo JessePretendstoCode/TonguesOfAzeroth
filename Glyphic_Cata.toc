@@ -4,10 +4,9 @@
 ## Category: Roleplay
 ## IconTexture: Interface\AddOns\Glyphic\Media\Glyphic-On
 ## Author: JessePretendstoCode
-## Version: 0.6.4.1
+## Version: 0.6.4.2
 ## SavedVariablesPerCharacter: GlyphicDB
 ## SavedVariables: GlyphicAccountDB
-## OptionalDeps: TonguesOfAzeroth
 ## X-Curse-Project-ID: 1641225
 ## X-WoWI-ID:
 ## X-Wago-ID:

@@ -274,34 +274,6 @@ local CAST_DEFAULTS = {
 }
 ns.CAST_DEFAULTS = CAST_DEFAULTS
 
--- The folder rename, 0.5.3. This one runs at FILE SCOPE rather than inside
--- migrateDB, and the difference matters: WoW names a saved variables file
--- after the addon FOLDER, so moving TonguesOfAzeroth/ to Glyphic/ left every
--- existing profile sitting in a file this addon no longer causes to be read.
--- The TonguesOfAzeroth shim shipped beside us exists for one purpose -- to
--- declare these two globals, which is what makes the client load that file --
--- and `## OptionalDeps: TonguesOfAzeroth` is what guarantees it has done so
--- before this line runs.
---
--- At file scope because the account-wide table is created lazily by the first
--- thing that writes a color, and migrateDB is not guaranteed to have run by
--- then. Adopting here, while Core.lua is still loading, means no module can
--- reach either table before the handover. Nothing above us in the TOC touches
--- them at file scope; that is checked, not assumed.
---
--- Each global is cleared only in the branch that took it, never unconditionally:
--- clearing one we did not adopt would discard real settings if the shim ever
--- loaded late. Cleared at all so the old file drains to nil on logout and the
--- shim can be dropped in a later release without stranding anything.
-if GlyphicDB == nil and TonguesOfAzerothDB ~= nil then
-    GlyphicDB = TonguesOfAzerothDB
-    TonguesOfAzerothDB = nil
-end
-if GlyphicAccountDB == nil and TonguesOfAzerothAccountDB ~= nil then
-    GlyphicAccountDB = TonguesOfAzerothAccountDB
-    TonguesOfAzerothAccountDB = nil
-end
-
 -- Latches true once migration is fully done. migrateDB() is called on the hot
 -- path (every incoming AND outgoing chat message), so after the one-time work is
 -- complete we skip the whole body instead of re-checking ~40 fields per message.
