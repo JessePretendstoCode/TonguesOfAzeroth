@@ -3,7 +3,7 @@
 All notable changes to Glyphic are documented here. The addon was called
 Tongues of Azeroth before 0.5.3.
 
-## [Unreleased]
+## [0.6.5]
 - **New: the Language Trainer's fluency payout follows the challenge tier.**
   A solved word used to be worth the same on every tier, so on the harder
   ones a good streak in the trainer outpaced the quests the run is built
