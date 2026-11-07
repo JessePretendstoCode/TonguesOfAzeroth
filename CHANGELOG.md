@@ -3,6 +3,19 @@
 All notable changes to Glyphic are documented here. The addon was called
 Tongues of Azeroth before 0.5.3.
 
+## [Unreleased]
+- **New: the Language Trainer's fluency payout follows the challenge tier.**
+  A solved word used to be worth the same on every tier, so on the harder
+  ones a good streak in the trainer outpaced the quests the run is built
+  around. During a Stranger run a solve now pays 100% of its usual fluency on
+  Easy, 80% on Medium, 60% on Hard and 20% on Mythic. Runs already in progress
+  pick up their tier's rate from the next solve on.
+- **New: a Fluency payout slider on the Language Trainer**, from 0% to 200%,
+  for when you're not in a challenge. It starts at 100%, so nothing changes
+  unless you move it. During a run it shows the tier's rate and can't be moved.
+- Nothing already earned changes: your fluency, learned words, streak and
+  best streak are kept as they are. Only solves from now on are scaled.
+
 ## [0.6.4.2]
 - **Removed: the TonguesOfAzeroth carry-over folder.** It shipped beside
   Glyphic so settings from before the 0.5.3 rename could be picked up, and it

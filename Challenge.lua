@@ -321,6 +321,7 @@ local CHALLENGES = {
                 }),
                 cvars = cvars(),
                 wordCost = 1,
+                trainerPayout = 1.0,
             },
             medium = {
                 id    = "medium",
@@ -338,6 +339,7 @@ local CHALLENGES = {
                 -- the problem on this tier, not finding the place.
                 cvars = cvars(),
                 wordCost = 2,
+                trainerPayout = 0.8,
             },
             hard = {
                 id    = "hard",
@@ -365,6 +367,7 @@ local CHALLENGES = {
                 -- you do not finish. Three is three hundred, which is a
                 -- levelling run.
                 wordCost = 3,
+                trainerPayout = 0.6,
                 hideTracker = true,
             },
             mythic = {
@@ -402,6 +405,11 @@ local CHALLENGES = {
                 -- also tripled the grind would be exactly the "same minute
                 -- three times" this file argues against at the top.
                 wordCost = 3,
+                -- Below Hard's even though the word cost is the same: the
+                -- trainer is the one source of fluency the player controls
+                -- the pace of, and a Mythic run's slower quests are what it
+                -- has to keep step with.
+                trainerPayout = 0.2,
                 hideTracker = true,
                 -- Which native dialect drains, rather than a flag saying one
                 -- does: the thing worth writing onto the run is the tongue, so
@@ -837,6 +845,7 @@ function Challenge.Start(id, difficultyId)
         -- from the tier each time, so a run keeps the rules it was started
         -- under if the tiers are ever retuned underneath it.
         wordCost    = diff and diff.wordCost or 1,
+        trainerPayout = diff and diff.trainerPayout or 1,
         hideTracker = (diff and diff.hideTracker) and true or false,
         -- The player's own tracker list, to be handed back when the run ends,
         -- is not recorded here. Challenge.EnforceTracker does it, on the way to
@@ -1241,6 +1250,25 @@ function Challenge.WordCost()
     local cost = run and run.wordCost
     if type(cost) ~= "number" or cost < 1 then return 1 end
     return cost
+end
+
+-- What a trainer solve is worth on the run in progress, as a fraction of its
+-- ordinary value. Nil outside a run, where the player's own setting applies.
+--
+-- A run started before tiers had a payout has none on it, and takes its
+-- tier's current one. That is the one exception to a run keeping the rules it
+-- started under, and it is safe because it only scales solves still to come:
+-- nothing already learned is taken away.
+function Challenge.TrainerPayout()
+    local run = Challenge.Current()
+    if not run then return nil end
+    local pay = run.trainerPayout
+    if type(pay) ~= "number" then
+        local diff = Challenge.Difficulty(run.id, run.difficulty)
+        pay = diff and diff.trainerPayout
+    end
+    if type(pay) ~= "number" or pay < 0 then return 1 end
+    return pay
 end
 
 function Challenge.NoteQuest()

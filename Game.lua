@@ -8,7 +8,9 @@
 
     Difficulty sets the word length and how much fluency each solve is worth:
         Easy (4 letters) = 1%   Medium (5) = 2%   Hard (6) = 3%   Very Hard (7) = 4%
-    A solve streak multiplies that (a longer streak earns more fluency per solve).
+    A solve streak multiplies that (a longer streak earns more fluency per solve),
+    and the payout scales the result: a slider outside a challenge, the tier's
+    own rate during one.
 
     Built entirely from ns.Compat widgets + base frames, so it renders the same
     on every supported client.
@@ -26,6 +28,7 @@ local TILE, GAP = 36, 5
 -- chosen difficulty), and a longer streak makes each solve worth more. Fluency
 -- points persist and never drop, so fluency only grows -- streaks grow it faster.
 local STREAK_BONUS = 0.25  -- +25% fluency per solve for each streak step above 1
+local PAYOUT_MAX = 200     -- the payout slider's ceiling, in percent
 
 local DIFFICULTIES = {
     { id = "easy",     name = "Easy (4)",      len = 4, pct = 1 },
@@ -157,6 +160,7 @@ local gameFrame, grid
 local tiles = {}
 local input, clueLabel, clueText, statusText, statsText, repBar
 local passiveCheck, questCheck
+local payoutSlider, payoutLabel, payoutSyncing
 local built = false
 local wordLen = 5
 
@@ -177,6 +181,7 @@ local function DB()
     t.words = t.words or {}
     t.points = t.points or {}
     if t.difficulty == nil then t.difficulty = "medium" end
+    if t.payout == nil then t.payout = 100 end
     -- The trainer has its own language, independent of the chat speaking language.
     -- A plain tongue is excluded on both branches: "none" passes English
     -- through, so practising it would show you English and ask you to translate
@@ -266,6 +271,27 @@ function ns.Trainer.SetFluency(id, frac)
     -- of fluency has to say so -- there are two, and this is both of them.
     if ns.QuestText then ns.QuestText.ClearCache() end
     return frac
+end
+
+-- What a solve is worth as a fraction of its ordinary value, and whether a
+-- challenge set it. A run's tier decides during one, and the player's slider
+-- only outside it -- otherwise the slider would undo the tier.
+local function payoutFrac()
+    local C = ns.Challenge
+    local run = C and C.TrainerPayout and C.TrainerPayout()
+    if run then return run, true end
+    local pct = tonumber(DB().payout) or 100
+    if pct < 0 then pct = 0 elseif pct > PAYOUT_MAX then pct = PAYOUT_MAX end
+    return pct / 100, false
+end
+ns.Trainer.GetPayout = payoutFrac
+
+-- Fluency one solve earns: the difficulty's base %, scaled by the streak
+-- (streak 1 = x1, 2 = x1.25, 3 = x1.5...) and then by the payout.
+function ns.Trainer.SolveGain(streak, difficultyId)
+    local base = diffFor(difficultyId).pct / 100
+    local mult = 1 + (math.max(1, tonumber(streak) or 1) - 1) * STREAK_BONUS
+    return base * mult * (payoutFrac())
 end
 
 -- Add (or subtract) fluency, clamped to 0-1. Returns the new value.
@@ -364,6 +390,27 @@ function updateStats()
     dress(passiveCheck, GlyphicDB and GlyphicDB.passiveLearning ~= false)
     dress(questCheck, GlyphicDB and GlyphicDB.questLearning ~= false)
 
+    -- During a run the slider shows the tier's rate and cannot be moved; the
+    -- player's own value is left saved underneath for when the run ends.
+    if payoutSlider then
+        local frac, fromRun = payoutFrac()
+        local pct = math.floor(frac * 100 + 0.5)
+        payoutSyncing = true
+        payoutSlider:SetValue(fromRun and math.min(pct, PAYOUT_MAX) or (tonumber(d.payout) or 100))
+        payoutSyncing = false
+        if fromRun then
+            payoutSlider:Disable()
+            payoutLabel:SetTextColor(0.5, 0.5, 0.5)
+            local run = ns.Challenge.Current()
+            local diff = run and ns.Challenge.Difficulty(run.id, run.difficulty)
+            payoutSlider.valueText:SetText(pct .. "% (" .. ((diff and diff.label) or "challenge") .. ")")
+        else
+            payoutSlider:Enable()
+            payoutLabel:SetTextColor(1, 0.82, 0)
+            payoutSlider.valueText:SetText(pct .. "%")
+        end
+    end
+
     -- Live-update the Languages panel's fluency bars if it's open too.
     if ns.RefreshLearnedIfShown then ns.RefreshLearnedIfShown() end
 end
@@ -436,13 +483,12 @@ function submitGuess()
         if d.points[key] == nil then
             d.points[key] = (TOTAL5 > 0) and (countWords(d.words[key]) / TOTAL5) or 0
         end
-        -- Difficulty base %, scaled by streak (streak 1 = x1, 2 = x1.25, 3 = x1.5...).
-        local base = diffFor(d.difficulty).pct / 100
-        local gain = base * (1 + (d.streak - 1) * STREAK_BONUS)
+        local gain = ns.Trainer.SolveGain(d.streak, d.difficulty)
         d.points[key] = math.min(1, d.points[key] + gain)
 
         statusText:SetText(string.format(
-            "|cff33ff33Solved!|r  |cffffd200%s|r = |cffffffff%s|r   |cff88ff88+%.1f%% fluency|r (streak %d)",
+            "|cff33ff33Solved!|r  |cffffd200%s|r = |cffffffff%s|r   |cff88ff88+"
+                .. (gain < 0.01 and "%.2f" or "%.1f") .. "%% fluency|r (streak %d)",
             clue, target, gain * 100, d.streak))
         over = true
         input:SetText("")
@@ -651,8 +697,32 @@ local function build()
     repBar = Compat.CreateStatusBar(f, 340, 18)
     repBar:SetPoint("TOP", repLabel, "BOTTOM", 0, -4)
 
+    -- One compact row rather than the stock slider's stacked captions: this
+    -- panel does not scroll, and a title above and labels below would cost
+    -- the bottom line its place in the window.
+    local payoutRow = CreateFrame("Frame", nil, f)
+    payoutRow:SetSize(340, 20)
+    payoutRow:SetPoint("TOP", repBar, "BOTTOM", 0, -6)
+
+    payoutLabel = payoutRow:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
+    payoutLabel:SetPoint("LEFT", payoutRow, "LEFT", 0, 0)
+    payoutLabel:SetText("Fluency payout:")
+
+    payoutSlider = Compat.CreateSlider(payoutRow, 0, PAYOUT_MAX, 5)
+    payoutSlider:SetPoint("LEFT", payoutLabel, "RIGHT", 10, 0)
+    payoutSlider:SetWidth(150)
+    payoutSlider.valueText:ClearAllPoints()
+    payoutSlider.valueText:SetPoint("LEFT", payoutSlider, "RIGHT", 10, 0)
+    payoutSlider:SetScript("OnValueChanged", function(self, value)
+        if payoutSyncing then return end
+        if ns.Challenge and ns.Challenge.TrainerPayout and ns.Challenge.TrainerPayout() then return end
+        value = math.floor(value / 5 + 0.5) * 5
+        DB().payout = value
+        self.valueText:SetText(value .. "%")
+    end)
+
     local hint = f:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-    hint:SetPoint("TOP", repBar, "BOTTOM", 0, -14)
+    hint:SetPoint("TOP", payoutRow, "BOTTOM", 0, -6)
     hint:SetPoint("LEFT", f, "LEFT", 20, 0)
     hint:SetPoint("RIGHT", f, "RIGHT", -20, 0)
     hint:SetJustifyH("CENTER")
