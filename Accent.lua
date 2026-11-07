@@ -374,37 +374,68 @@ reg("goblin", {
     tails = { ", pal.", ", heh.", ", capiche?", ", fuhgeddaboudit." },
 })
 
--- Gilnean == Cockney. h-dropping ('ello, 'ouse), voiced th->d (the->de),
--- voiceless th->f (think->fink, with->wif), ain't, roight.
+-- Gilnean == Cockney, which is what the worgen voice cast is doing ("Ain't one
+-- bit of rubbish in my selection", "Cheers mate!"). Cockney th-fronting is
+-- not the troll's th-stopping, and treating it as one is how this accent
+-- used to say "de" and "dat":
+--   * voiceless th -> f anywhere: think -> fink, mouth -> mouf, three -> free
+--   * voiced th -> v, but only inside a word: mother -> muvver, with -> wiv
+--   * a voiced th at the START of a word is left alone. "The", "this",
+--     "that", "they" stay as written -- the one place Wells, Tollfree and
+--     every survey of London speech agree it does not front.
+-- Spelling cannot say which th is voiced, so the function words that start
+-- with a voiced one are swapped to themselves below. Swaps are terminal, which
+-- keeps the th -> f patterns off them at every strength.
 reg("gilnean", {
     name = "Gilnean",
     swaps = {
         [10] = {
-            friend = "guv'nor", hello = "'ello", hi = "'ello", my = "me",
-            yes = "aye", ["isn't"] = "ain't", ["aren't"] = "ain't",
+            the = "the", this = "this", that = "that", these = "these",
+            those = "those", they = "they", them = "them", their = "their",
+            theirs = "theirs", there = "there", ["then"] = "then",
+            than = "than", though = "though", although = "although",
+            thus = "thus", thee = "thee", thou = "thou", thy = "thy",
+            themselves = "themselves", therefore = "therefore",
+
+            friend = "mate", friends = "mates", hello = "'ello", hi = "'ello",
+            hey = "oi", my = "me", yes = "yeah", mom = "mum", mommy = "mum",
+            thanks = "cheers", sir = "guv", boss = "guv'nor",
+            ["isn't"] = "ain't", ["aren't"] = "ain't",
             ["haven't"] = "ain't", ["hasn't"] = "ain't",
         },
-        [30] = {
-            your = "yer", right = "roight", about = "abaht", now = "nah",
-            nothing = "nuffink", something = "summat", going = "goin'",
-            ["can't"] = "cahn't",
+        [25] = {
+            think = "fink", thing = "fing", things = "fings", three = "free",
+            with = "wiv", without = "wivout", nothing = "nuffink",
+            something = "somefink", anything = "anyfink",
+            everything = "everyfink", ["thank"] = "fank",
+            your = "yer", ["you're"] = "yer", what = "wot", no = "nah",
         },
-        [55] = {
-            the = "de", this = "dis", that = "dat", these = "dese",
-            those = "dose", them = "'em", there = "dere", they = "dey",
-            think = "fink", thing = "fing", three = "free", brother = "bruv",
-            mother = "muvver", father = "farver", together = "togevver",
+        [45] = {
+            mother = "muvver", brother = "bruvver", father = "farver",
+            other = "uvver", another = "anuvver", others = "uvvers",
+            together = "togevver", rather = "ravver", bother = "bovver",
+            either = "eiver", neither = "neiver", weather = "wevver",
+            whether = "wevver", about = "abaht", out = "aht", down = "dahn",
+            town = "tahn", round = "rahnd", around = "arahnd", now = "nah",
+            ["doesn't"] = "don't", ["can't"] = "cahn't",
+        },
+        [65] = {
+            man = "geezer", money = "dosh", little = "li'l", right = "roight",
+            of = "o'", you = "ya", going = "goin'",
         },
     },
     patterns = {
-        { "^h", "'", 40 },      -- h-dropping: 'ello, 'ouse, 'ave
-        { "ing$", "in'", 30 },  -- droppin' the g
-        { "er$", "a", 50 },     -- betta, geeza, propa
-        { "igh", "oigh", 62 },  -- noight, roight, loight
-        { "th", "f", 75 },      -- voiceless th: wif, bof, mouf
-        { "tt", "'", 85 },      -- glottal stop: be'er, li'le, bo'le
+        { "ing$", "in'", 30 },          -- droppin' the g
+        { "^h", "'", 35 },              -- h-dropping: 'ere, 'ouse, 'ave
+        { "^th", "f", 50 },             -- voiceless th: fief, firsty, fumb
+        { "th$", "f", 50 },             -- and at the end: bof, souf, troof
+        { "([aeiou])ther", "%1vver", 55 },  -- voiced inside a word: gavver
+        { "er$", "a", 60 },             -- betta, propa, neva
+        { "([aeiou])tt([aeiouy])", "%1'%2", 80 },  -- glottal stop: be'er, bo'le
+        { "([aeiou])t([aeiouy])", "%1'%2", 90 },   -- and broader: wa'er, ci'y
+        { "([aeiou])t$", "%1'", 95 },              -- word-final: ge', bu', lo'
     },
-    tails = { ", guv'nor.", ", right proper.", ", innit.", ", mate." },
+    tails = { ", innit.", ", mate.", ", know wot I mean?", ", eh?" },
 })
 
 -- Vrykul == Norse/Viking. Scandinavian-English: w->v (we->ve), j for y

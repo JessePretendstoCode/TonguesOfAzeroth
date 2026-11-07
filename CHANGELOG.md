@@ -3,6 +3,17 @@
 All notable changes to Glyphic are documented here. The addon was called
 Tongues of Azeroth before 0.5.3.
 
+## [Unreleased]
+- **Improved: the Gilnean accent sounds like London, not the Echo Isles.** It
+  used to turn "the", "this" and "that" into "de", "dis" and "dat", which is
+  how trolls talk. Cockney changes "th" differently, and now Gilnean does too:
+  *think* is "fink", *truth* is "truf", *mother* is "muvver", *with* is
+  "wiv", and "the", "this", "that" and "they" stay as they are. It also says
+  "mate" for friend (not "guv'nor", which means boss), "yeah" for yes (not
+  the Scottish "aye") and "somefink" (not the northern "summat"). At the
+  highest strength it drops t's: "a li'l wa'a", "a lo' be'a". New
+  flourishes: ", innit.", ", mate.", ", know wot I mean?" and ", eh?".
+
 ## [0.6.5]
 - **New: the Language Trainer's fluency payout follows the challenge tier.**
   A solved word used to be worth the same on every tier, so on the harder
