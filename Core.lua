@@ -437,24 +437,17 @@ local function migrateDB()
     -- receivers rely on to decode without false-positiving on plain chat. Force it
     -- true so a saved-var that previously had it off still behaves consistently.
     db.tagLanguage = true
-    -- Include a fluency adjective in that tag (Broken/Partial/Fluent) based on
-    -- your Language Trainer progress for the spoken language. This prefix stays
-    -- optional (see the "Show fluency in tag" checkbox).
-    --
-    -- Off by default from 0.6.6. "[Broken Orcish]" is read by everyone in
-    -- /say, most of whom do not run Glyphic, and enough of them took it for
-    -- the addon reporting a fault that it became the most common complaint
-    -- about it. The words themselves cannot simply change: every client
-    -- already out there strips exactly these four before looking the tongue
-    -- up, so a new adjective would make the line undecodable for anyone who
-    -- has not updated. Leaving it off keeps the tag "[Orcish]", which every
-    -- version reads. Applied once, so turning it back on sticks.
+    -- Include a fluency adjective in that tag (Sparse/Partial/Fluent/Perfect)
+    -- based on your Language Trainer progress for the spoken language. This
+    -- prefix stays optional (see the "Show fluency in tag" checkbox).
     if db.tagFluency == nil then
-        db.tagFluency = false
+        db.tagFluency = true
     end
-    if not db.tagFluencyDefaultedOff then
-        db.tagFluencyDefaultedOff = true
-        db.tagFluency = false
+    -- Unreleased builds of 0.6.6 switched the word off once, under this key.
+    -- The word was the problem, not the prefix, so those profiles get it back.
+    if db.tagFluencyDefaultedOff then
+        db.tagFluencyDefaultedOff = nil
+        db.tagFluency = true
     end
     -- Hiding the tongues your race already speaks is gone. It was off by
     -- default from 0.5.5 because it read as the addon being broken -- a night
@@ -1025,8 +1018,10 @@ local preSendRegistered = false
 -- below, which is called with the untagged text), and receivers strip it before
 -- decoding, so learned-language decoding is unaffected.
 -- Roleplay flavor: how well you actually speak the tongue, from your Language
--- Trainer (Wordle) fluency for that language. <25% Broken, <75% Partial,
+-- Trainer (Wordle) fluency for that language. <25% Sparse, <75% Partial,
 -- <100% Fluent, 100% Perfect. Returns nil if the trainer module/data is absent.
+-- The lowest was "Broken" until 0.6.6; people who don't run Glyphic read
+-- "[Broken Orcish]" as the addon being broken.
 local function fluencyAdjective(langId)
     if not (ns.Trainer and ns.Trainer.GetProgress) then return nil end
     local ok, _, _, frac = pcall(ns.Trainer.GetProgress, langId)
@@ -1034,7 +1029,7 @@ local function fluencyAdjective(langId)
     if frac >= 1 then return "Perfect"
     elseif frac >= 0.75 then return "Fluent"
     elseif frac >= 0.25 then return "Partial"
-    else return "Broken" end
+    else return "Sparse" end
 end
 
 -- The tongue's name as the player would say it, fluency adjective and all:
@@ -1809,7 +1804,10 @@ end
 -- quarter-tier, ~400 words to reach Perfect. Only OTHER players' tagged speech
 -- counts, and only up to full fluency.
 local PASSIVE_PER_WORD = 0.0025
-local FLUENCY_ADJECTIVES = { broken = true, partial = true, fluent = true, perfect = true }
+-- "broken" stays: anyone on a build before 0.6.6 still sends it.
+local FLUENCY_ADJECTIVES = {
+    broken = true, sparse = true, partial = true, fluent = true, perfect = true,
+}
 -- Built from GetAllLanguages rather than GetLanguages, which is the difference
 -- between the two the hard way. A hidden tongue is one you cannot pick off a
 -- list, not one nobody speaks: Legendspeech is hidden for the whole of a Mythic
@@ -3889,7 +3887,7 @@ local function usage()
     Print("  |cffffff00/glyphic minimap|r  - show/hide the minimap button")
     Print("  |cffffff00/glyphic output <1-N|default>|r  - send translations to a chat window")
     Print("  |cffffff00/glyphic native <language>|r  - the tongue you fall back on (|cffffff00none|r to switch off)")
-    Print("  |cffffff00/glyphic tag [on|off]|r  - show fluency in the [Language] tag (e.g. [Broken Orcish])")
+    Print("  |cffffff00/glyphic tag [on|off]|r  - show fluency in the [Language] tag (e.g. [Partial Orcish])")
     Print("  |cffffff00/glyphic game|r  - play the Decipher language trainer")
     Print("  |cffffff00/glyphic accent [on|off|<id>|list]|r  - speak in a dialect accent")
     Print("  |cffffff00/glyphic accentstrength <0-100>|r  - set accent thickness")
@@ -4205,7 +4203,7 @@ local function handleSlash(input)
         end
         Print("Messages always start with [Language]. Fluency prefix "
             .. (GlyphicDB.tagFluency
-                and "|cff00ff00ON|r (e.g. [Broken Orcish])"
+                and "|cff00ff00ON|r (e.g. [Partial Orcish])"
                 or "|cffff0000OFF|r") .. ".")
         if ns.OnSettingsChanged then ns.OnSettingsChanged() end
     elseif cmd == "names" then

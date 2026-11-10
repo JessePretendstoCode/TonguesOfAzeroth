@@ -3,44 +3,20 @@
 All notable changes to Glyphic are documented here. The addon was called
 Tongues of Azeroth before 0.5.3.
 
-## [Unreleased]
-- **New: Glyphic has its own window.** Every page is listed down the left
-  side, and the page you pick opens beside the list. `/glyphic` and the
-  minimap button open it. The game's AddOns settings now show one Glyphic
-  page with an **Open Glyphic** button. Settings are laid out as rows: an
-  "i" icon, a name, and the control on the right. Hover the icon for the
-  explanation that used to be printed under every control.
-- **New: a Settings group** for the things you set once and forget:
-  **General** (minimap button and floating bar), **Chat Channels**,
-  **Immersion** (moved off the Languages page), **Advanced** and
-  **Profiles**. Advanced holds the instance auto-switch, how decoded speech
-  is shown and where it goes, and the fluency word in the tag.
-- **Changed: the `[Language]` tag no longer says how well you speak.** It
-  used to read `[Broken Orcish]` at low fluency, and players took "Broken"
-  to mean the addon was broken. It now reads `[Orcish]`. To bring the word
-  back, tick **Show your fluency in the [Language] tag** under Settings >
-  Advanced. Players on older versions still read the new tag correctly.
-- **Improved: the landing page says what your voice adds up to.** In
-  character, Speaking, Native dialect and Accent now sit together on the
-  first page, with Native dialect listed under the language it fills in.
-  Under them, one sentence says what your chat will actually sound like.
-  For example: "You speak Orcish at 40%. The words you haven't learned yet
-  come out in Darnassian, your native dialect, instead of English." The
-  sentence also says when None gives the whole line to your native dialect,
-  when Common keeps it in plain English, and when an accent has no English
-  left to change. The preview sits right below it.
-- The **Languages** page (formerly *Languages & Fluency*) now only lists
-  your languages. The language and native dialect pickers moved to the
-  landing page.
-- **Improved: the Gilnean accent sounds like London, not the Echo Isles.** It
-  used to turn "the", "this" and "that" into "de", "dis" and "dat", which is
-  how trolls talk. Cockney changes "th" differently, and now Gilnean does too:
-  *think* is "fink", *truth* is "truf", *mother* is "muvver", *with* is
-  "wiv", and "the", "this", "that" and "they" stay as they are. It also says
-  "mate" for friend (not "guv'nor", which means boss), "yeah" for yes (not
-  the Scottish "aye") and "somefink" (not the northern "summat"). At the
-  highest strength it drops t's: "a li'l wa'a", "a lo' be'a". New
-  flourishes: ", innit.", ", mate.", ", know wot I mean?" and ", eh?".
+## [0.6.6]
+- **New:** Glyphic has its own window, with every page listed down the left.
+- **New:** a home page with your status, what's new, and an About tab.
+- **New:** a Settings group for the things you set once and forget.
+- **Changed:** explanations moved off the pages and behind an "i" icon.
+- **Changed:** your language, native dialect and accent moved to a new IC
+  Speech page.
+- **Changed:** the lowest fluency is now called Sparse instead of Broken,
+  in your tag and on the bar.
+- **Improved:** IC Speech sums up in one sentence how your chat will sound.
+- **Improved:** the window wears Forever's bronze around the game's own wood
+  and parchment, with in-game scroll bars.
+- **Improved:** the Gilnean accent sounds like London instead of the Echo
+  Isles.
 
 ## [0.6.5]
 - **New: the Language Trainer's fluency payout follows the challenge tier.**

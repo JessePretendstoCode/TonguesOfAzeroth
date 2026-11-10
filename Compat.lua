@@ -528,8 +528,32 @@ local BACKDROPS = {
         tile = true, tileSize = 32, edgeSize = 32,
         insets = { left = 11, right = 12, top = 12, bottom = 11 },
     },
+    -- The same dialog border in its gold casting, at half size: a thin bronze
+    -- line with small cornerpieces, to match the bronze frame Forever puts
+    -- round its windows. The art is bronze already; nothing here tints it.
+    bronze = {
+        bgFile   = "Interface\\Tooltips\\UI-Tooltip-Background",
+        edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Gold-Border",
+        tile = true, tileSize = 16, edgeSize = 16,
+        insets = { left = 4, right = 4, top = 4, bottom = 4 },
+    },
+    -- The achievement window's frame, as Blizzard's own BACKDROP_ACHIEVEMENTS_0_64
+    -- declares it on Retail, Classic and Classic Era alike. No fill: the wood
+    -- goes round whatever the frame lays underneath it.
+    wood = {
+        edgeFile = "Interface\\AchievementFrame\\UI-Achievement-WoodBorder",
+        edgeSize = 64, tileEdge = true,
+        insets = { left = 0, right = 0, top = 0, bottom = 0 },
+    },
 }
 Compat.BACKDROPS = BACKDROPS
+
+-- The wood in one 64px segment of that border's strip runs from column 5 to
+-- column 23; the rest is transparent. Column 6 is a grey bevel, a rim on the
+-- frame's outer edge but a silver stripe down a divider, so the divider's cut
+-- starts at column 7.
+local WOOD_FILE = BACKDROPS.wood.edgeFile
+local WOOD_L, WOOD_R, WOOD_W = 7 / 512, 24 / 512, 17
 
 -- A frame that can wear one of the above.
 --
@@ -628,6 +652,206 @@ function Compat.CreateOptionsPanel(globalName)
     return f
 end
 
+-- The game's own minimal scroll bar, worn by our plain vertical Slider: the
+-- 8px track, the bronze three-part thumb and the chevron steppers, by atlas
+-- name from Blizzard's MinimalScrollBar.xml. Not the template itself -- that
+-- is a ScrollBox control, and the Slider underneath is what works on every
+-- client. Where the atlases are missing the bar keeps its plain look.
+--
+-- The slider is the track only, so the caller anchors it
+-- `Compat.ScrollBarGap()` in from each end of the room it has; the steppers
+-- sit in that gap. Its width is `Compat.ScrollBarWidth()`. `step` is how far
+-- one click on a stepper moves the value. Returns true when it skinned.
+local SB = {
+    ARROW_GAP = 19, MIN_THUMB = 23,
+    TRACK = { "minimal-scrollbar-track-top", "!minimal-scrollbar-track-middle",
+              "minimal-scrollbar-track-bottom" },
+    THUMB = "minimal-scrollbar-small-thumb-",
+    ARROW = "minimal-scrollbar-arrow-",
+}
+function SB.atlasInfo(name)
+    local info = (C_Texture and C_Texture.GetAtlasInfo) or _G.GetAtlasInfo
+    if not info then return nil end
+    local ok, res = pcall(info, name)
+    return ok and type(res) == "table" and res or nil
+end
+function Compat.HasMinimalScrollBar()
+    return SB.atlasInfo("minimal-scrollbar-track-top") ~= nil
+        and SB.atlasInfo(SB.THUMB .. "middle") ~= nil
+        and SB.atlasInfo(SB.ARROW .. "top") ~= nil
+end
+
+function Compat.ScrollBarGap()
+    return Compat.HasMinimalScrollBar() and SB.ARROW_GAP or 0
+end
+function Compat.ScrollBarWidth(plain)
+    return Compat.HasMinimalScrollBar() and 8 or plain
+end
+
+function Compat.SkinScrollBar(bar, step)
+    if not Compat.HasMinimalScrollBar() then return false end
+    bar:SetWidth(8)
+    if SB.atlasInfo(SB.TRACK[2]) == nil then
+        SB.TRACK[2] = "minimal-scrollbar-track-middle"
+    end
+
+    local tb = bar:CreateTexture(nil, "BACKGROUND")
+    tb:SetAtlas(SB.TRACK[1], true)
+    tb:SetPoint("TOP")
+    local te = bar:CreateTexture(nil, "BACKGROUND")
+    te:SetAtlas(SB.TRACK[3], true)
+    te:SetPoint("BOTTOM")
+    local tm = bar:CreateTexture(nil, "BACKGROUND")
+    tm:SetAtlas(SB.TRACK[2], false)
+    tm:SetPoint("TOPLEFT", tb, "BOTTOMLEFT")
+    tm:SetPoint("BOTTOMRIGHT", te, "TOPRIGHT")
+    -- The plain look's own track, if the caller drew one, would show round it.
+    for _, r in ipairs({ bar:GetRegions() }) do
+        if r ~= tb and r ~= te and r ~= tm and r.SetAlpha then r:SetAlpha(0) end
+    end
+
+    -- The Slider keeps the value; the thumb is our own button. A Slider's
+    -- built-in thumb goes on measuring the size it had when it was set, so
+    -- one that grows with the page drew out of step with the value and took
+    -- clicks on its lower half for clicks on the track. The Slider stops
+    -- taking the mouse at all, and its thumb is an invisible sliver.
+    bar:EnableMouse(false)
+    local ghost = bar:CreateTexture(nil, "ARTWORK")
+    ghost:SetSize(8, 1)
+    ghost:SetAlpha(0)
+    bar:SetThumbTexture(ghost)
+
+    local capTop = SB.atlasInfo(SB.THUMB .. "top") or {}
+    local capBot = SB.atlasInfo(SB.THUMB .. "bottom") or {}
+    bar._capH = (capTop.height or 4) + (capBot.height or 4)
+    local thumb = CreateFrame("Button", nil, bar)
+    thumb:SetWidth(8)
+    thumb:SetHeight(SB.MIN_THUMB)
+    thumb:SetPoint("TOP", bar, "TOP", 0, 0)
+    local top = thumb:CreateTexture(nil, "ARTWORK")
+    top:SetAtlas(SB.THUMB .. "top", true)
+    top:SetPoint("TOP")
+    local bot = thumb:CreateTexture(nil, "ARTWORK")
+    bot:SetAtlas(SB.THUMB .. "bottom", true)
+    bot:SetPoint("BOTTOM")
+    local mid = thumb:CreateTexture(nil, "ARTWORK")
+    mid:SetAtlas(SB.THUMB .. "middle")
+    mid:SetPoint("TOPLEFT", top, "BOTTOMLEFT")
+    mid:SetPoint("BOTTOMRIGHT", bot, "TOPRIGHT")
+    bar.thumb = thumb
+    bar._thumbParts = { top = top, middle = mid, bottom = bot }
+
+    local function place()
+        local lo, hi = bar:GetMinMaxValues()
+        local travel = math.max(0, (bar:GetHeight() or 0) - (thumb:GetHeight() or 0))
+        local frac = (hi > lo) and ((bar:GetValue() - lo) / (hi - lo)) or 0
+        thumb:ClearAllPoints()
+        thumb:SetPoint("TOP", bar, "TOP", 0, -travel * math.max(0, math.min(1, frac)))
+    end
+    bar._placeThumb = place
+    -- Wrapped rather than hooked: both callers set OnValueChanged after this,
+    -- and SetScript throws away any hook laid on the script before it.
+    bar:HookScript("OnSizeChanged", place)
+    local setRange, setValue = bar.SetMinMaxValues, bar.SetValue
+    function bar:SetMinMaxValues(lo, hi)
+        setRange(self, lo, hi)
+        place()
+    end
+    function bar:SetValue(v)
+        setValue(self, v)
+        place()
+    end
+
+    local state, dragging
+    local function thumbState(s)
+        state = s
+        local sfx = s and ("-" .. s) or ""
+        top:SetAtlas(SB.THUMB .. "top" .. sfx, true)
+        bot:SetAtlas(SB.THUMB .. "bottom" .. sfx, true)
+        mid:SetAtlas(SB.THUMB .. "middle" .. sfx)
+    end
+    local function cursorY(self)
+        local _, y = GetCursorPosition()
+        return (y or 0) / ((self.GetEffectiveScale and self:GetEffectiveScale()) or 1)
+    end
+    thumb:SetScript("OnEnter", function() if not dragging then thumbState("over") end end)
+    thumb:SetScript("OnLeave", function() if not dragging then thumbState(nil) end end)
+    -- Dragging down the screen is down the page: the cursor's y falls as it
+    -- moves down, so the distance travelled is start minus now.
+    thumb:SetScript("OnMouseDown", function(self, button)
+        if button and button ~= "LeftButton" then return end
+        dragging = { y = cursorY(self), v = bar:GetValue() }
+        thumbState("down")
+        self:SetScript("OnUpdate", function(me)
+            local lo, hi = bar:GetMinMaxValues()
+            local travel = (bar:GetHeight() or 0) - (me:GetHeight() or 0)
+            if travel <= 0 or hi <= lo then return end
+            local v = dragging.v + (dragging.y - cursorY(me)) / travel * (hi - lo)
+            bar:SetValue(math.max(lo, math.min(hi, v)))
+        end)
+    end)
+    thumb:SetScript("OnMouseUp", function(self)
+        dragging = nil
+        self:SetScript("OnUpdate", nil)
+        thumbState(self:IsMouseOver() and "over" or nil)
+    end)
+
+    -- A click on the track pages toward it, as the game's own bar does.
+    local track = CreateFrame("Button", nil, bar)
+    track:SetAllPoints()
+    track:SetFrameLevel(math.max(0, thumb:GetFrameLevel() - 1))
+    track:SetScript("OnClick", function(self)
+        local lo, hi = bar:GetMinMaxValues()
+        if hi <= lo then return end
+        local y = cursorY(self)
+        local thumbMid = ((thumb:GetTop() or 0) + (thumb:GetBottom() or 0)) / 2
+        local dir = (y < thumbMid) and 1 or -1
+        local page = math.max(step or 32, bar._page or 0)
+        bar:SetValue(math.max(lo, math.min(hi, bar:GetValue() + dir * page)))
+    end)
+    bar.track = track
+
+    -- The thumb is as long as the share of the content in view, the way the
+    -- game's own is; never shorter than Blizzard's usable minimum.
+    function bar:SetThumbFraction(frac)
+        frac = math.max(0, math.min(1, frac or 1))
+        local h = math.max(SB.MIN_THUMB, (self:GetHeight() or 0) * frac)
+        thumb:SetHeight(h)
+        local lo, hi = self:GetMinMaxValues()
+        -- One page is what is in view, in the value's own units.
+        self._page = (frac > 0 and frac < 1) and (hi - lo) * frac / (1 - frac) or 0
+        place()
+    end
+
+    local function stepper(dir)
+        local b = CreateFrame("Button", nil, bar)
+        b:SetSize(17, 11)
+        if dir == "top" then
+            b:SetPoint("BOTTOM", bar, "TOP", 0, SB.ARROW_GAP - 11)
+        else
+            b:SetPoint("TOP", bar, "BOTTOM", 0, -(SB.ARROW_GAP - 11))
+        end
+        local t = b:CreateTexture(nil, "BACKGROUND")
+        t:SetAllPoints()
+        t:SetAtlas(SB.ARROW .. dir)
+        local function state(s) t:SetAtlas(SB.ARROW .. dir .. (s and ("-" .. s) or "")) end
+        b:SetScript("OnEnter", function() state("over") end)
+        b:SetScript("OnLeave", function() state(nil) end)
+        b:SetScript("OnMouseDown", function() state("down") end)
+        b:SetScript("OnMouseUp", function(self) state(self:IsMouseOver() and "over" or nil) end)
+        b:SetScript("OnClick", function()
+            local lo, hi = bar:GetMinMaxValues()
+            local v = bar:GetValue() + (dir == "top" and -1 or 1) * (step or 32)
+            bar:SetValue(math.max(lo, math.min(hi, v)))
+        end)
+        b.tex = t
+        return b
+    end
+    bar.back, bar.forward = stepper("top"), stepper("bottom")
+    bar._minimal = true
+    return true
+end
+
 -- Wrap a panel's contents in a vertical scroll region so a tall layout never
 -- spills outside the options window. Returns a `content` frame to parent/anchor
 -- everything to (instead of the panel itself). The content frame gets a
@@ -649,9 +873,12 @@ function Compat.CreateScrollContent(panel, contentHeight)
     -- so it is immune to retail's template churn).
     local bar = CreateFrame("Slider", nil, panel)
     bar:SetOrientation("VERTICAL")
-    bar:SetWidth(BARW)
-    bar:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -4, -4)
-    bar:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -4, 4)
+    local barW, gap = Compat.ScrollBarWidth(BARW), Compat.ScrollBarGap()
+    -- Centred where the plain bar's middle was, whatever its width.
+    local right = -4 - (BARW - barW) / 2
+    bar:SetWidth(barW)
+    bar:SetPoint("TOPRIGHT", panel, "TOPRIGHT", right, -4 - gap)
+    bar:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", right, 4 + gap)
     bar:SetMinMaxValues(0, 1)
     bar:SetValueStep(1)
     if bar.SetObeyStepOnDrag then bar:SetObeyStepOnDrag(true) end
@@ -663,6 +890,7 @@ function Compat.CreateScrollContent(panel, contentHeight)
     thumb:SetSize(BARW, 48)
     Compat.SolidTexture(thumb, 0.55, 0.5, 0.72, 0.9)
     bar:SetThumbTexture(thumb)
+    Compat.SkinScrollBar(bar, 32)
 
     local syncing = false
     local function updateRange()
@@ -672,6 +900,7 @@ function Compat.CreateScrollContent(panel, contentHeight)
         if range < 1 then range = 0 end
         bar:SetMinMaxValues(0, range)
         bar:SetShown(range > 0)
+        if rawget(bar, "SetThumbFraction") and ch > 0 then bar:SetThumbFraction(vh / ch) end
         local v = scroll:GetVerticalScroll()
         if v > range then
             syncing = true
@@ -872,12 +1101,32 @@ end
 -- opens its first child, and its children are listed under it, indented,
 -- while any one of them is the page on show.
 local NAV = {
-    W = 900, H = 640,     -- the window
+    W = 940, H = 660,     -- the window
     COL = 212,            -- the page list, inset to inset
-    BTN_H = 26, SUB_H = 24, GAP = 4,
+    EDGE = 28,            -- clear of the wood frame, which is 23px deep
+    WOOD_GLOW = 0.6,      -- how much brighter than the art the wood is drawn
+    SPLIT = 26,           -- list to page, with the wood divider in it
+    BTN_H = 32, SUB_H = 28, GAP = 2,
     entries = {}, byName = {}, byFrame = {},
+    -- The inscription at a parchment page's foot: five of the old glyph
+    -- pane's twenty runes, the middle one largest and brightest.
+    RUNE_SIZES = { 40, 48, 56, 48, 40 },
+    RUNE_ALPHA = { 0.16, 0.22, 0.3, 0.22, 0.16 },
+    RUNE_COUNT = 20,
 }
 Compat.NAV = NAV
+
+-- Each parchment page its own five runes. Stepping by 7 through 20 (coprime)
+-- visits every rune, and a page's start moves by 11, so no two of the first
+-- several pages share a sequence or even a middle rune.
+function NAV.RunesFor(seed)
+    if not seed then return nil end
+    local out = {}
+    for k = 0, #NAV.RUNE_SIZES - 1 do
+        out[k + 1] = ((seed - 1) * 11 + k * 7) % NAV.RUNE_COUNT + 1
+    end
+    return out
+end
 
 local function navEntry(name, frame, parentName, opts)
     local e = NAV.byName[name]
@@ -898,6 +1147,12 @@ local function navEntry(name, frame, parentName, opts)
         frame._navEntry = e
     end
     if opts and opts.ruleAbove then e.ruleAbove = true end
+    if opts and opts.background then e.background = opts.background end
+    if opts and opts.shade then e.shade = opts.shade end
+    if e.background == "parchment" and not e.runeSeed then
+        NAV.parchments = (NAV.parchments or 0) + 1
+        e.runeSeed = NAV.parchments
+    end
     if NAV.win then NAV.Reflow() end
     return e
 end
@@ -936,13 +1191,100 @@ local function firstPage(e)
     end
 end
 
-local function navButton(parent, sub)
-    local b = Compat.CreateBackdropFrame("Button", nil, parent)
+-- The achievement window's category plate: a dark body inside a warm
+-- gold-brown rim. In the 256x32 file the plate itself is opaque from column
+-- 5 to 161 and row 5 to 22; around that is drop shadow and nothing. The
+-- texture is cropped to exactly the plate, so the button's own rectangle is
+-- the plate's edge and nothing drawn inside the button can spill past the
+-- rim. Stretched to the button the way Blizzard stretches it, never cut into
+-- caps and a middle.
+local PLATE = "Interface\\AchievementFrame\\UI-Achievement-Category-Background"
+-- Exactly the copper rim (x 8-160, y 5-22). The art has a dark drop shadow
+-- baked in round it, which on parchment reads as a black box.
+local PLATE_TC = { 8 / 256, 161 / 256, 5 / 32, 23 / 32 }
+Compat.NAV_PLATE = PLATE
+
+local function plateTexture(b, layer, sub)
+    local t = b:CreateTexture(nil, layer, nil, sub)
+    t:SetAllPoints()
+    t:SetTexture(PLATE)
+    t:SetTexCoord(PLATE_TC[1], PLATE_TC[2], PLATE_TC[3], PLATE_TC[4])
+    return t
+end
+
+-- A copper sheen inside the rim: brightest along the middle, gone at the top
+-- and bottom edges, which is what makes a flat plate read as a raised button
+-- -- and, since it reaches nothing at either edge, it can't show past the
+-- rounded corners. Two halves, each fading out from the middle line.
+-- Copper and bronze because that is Forever's palette; this is our own
+-- colour on our own texture, never a tint on the plate's art.
+local function sheen(b, layer, sub, r, g, bl, mid, edge)
+    local inset = 3
+    local top = b:CreateTexture(nil, layer, nil, sub)
+    top:SetPoint("TOPLEFT", inset, -2)
+    top:SetPoint("BOTTOMRIGHT", b, "RIGHT", -inset, 0)
+    Compat.GradientTexture(top, "VERTICAL", r, g, bl, mid, edge)
+    local bottom = b:CreateTexture(nil, layer, nil, sub)
+    bottom:SetPoint("TOPLEFT", b, "LEFT", inset, 0)
+    bottom:SetPoint("BOTTOMRIGHT", -inset, 2)
+    Compat.GradientTexture(bottom, "VERTICAL", r, g, bl, edge, mid)
+    return {
+        top = top, bottom = bottom,
+        SetShown = function(_, on) top:SetShown(on); bottom:SetShown(on) end,
+    }
+end
+
+-- The radiant glyph ring from the old glyph pane, faint, for empty space.
+-- Drawn on black, so added over a dark ground only the runes and light
+-- remain. Its rays run out to the corners of the square they are cut from,
+-- so it is masked to a circle where the client can: otherwise the light
+-- stops in two straight edges either side of the ring.
+function Compat.GlyphSigil(parent, size, alpha, sublevel)
+    local t = parent:CreateTexture(nil, "BACKGROUND", nil, sublevel or 1)
+    t:SetSize(size, size)
+    t:SetTexture("Interface\\Spellbook\\UI-GlyphFrame")
+    t:SetTexCoord(0, 436/1024, 0, 436/1024)
+    t:SetBlendMode("ADD")
+    t:SetAlpha(alpha)
+    if t.SetMask then t:SetMask("Interface\\CharacterFrame\\TempPortraitAlphaMask") end
+    return t
+end
+
+-- `centered` letters it in the middle, for a plate used as a tab.
+local function navButton(parent, sub, centered)
+    local b = CreateFrame("Button", nil, parent)
     b:SetHeight(sub and NAV.SUB_H or NAV.BTN_H)
-    Compat.Backdrop(b, "tooltip", 0.06, 0.05, 0.05, 0.92)
+
+    -- Neutral: the plate as Blizzard draws it, with a faint copper sheen.
+    b.plate = plateTexture(b, "BACKGROUND", 1)
+    sheen(b, "BACKGROUND", 2, 0.72, 0.45, 0.24, 0.16, 0)
+
+    -- Selected: lit from inside in bronze, so the page you are on reads as a
+    -- polished plate rather than a dark one, plus a soft glow on the rim.
+    local sel = sheen(b, "BACKGROUND", 3, 0.80, 0.52, 0.26, 0.62, 0.08)
+    sel:SetShown(false)
+    b.sel = sel
+
+    -- The rim lit gold. The plate drawn again on additive blend: its body is
+    -- near black and adds almost nothing, its rim is the bright part and
+    -- doubles, so the copy reads as the border glowing. Softly while a page
+    -- is selected, fully under the cursor, where the sheen brightens too.
+    local selGlow = plateTexture(b, "ARTWORK", 1)
+    selGlow:SetBlendMode("ADD")
+    selGlow:SetAlpha(0.45)
+    selGlow:Hide()
+    b.selGlow = selGlow
+    local hover = plateTexture(b, "HIGHLIGHT", 1)
+    hover:SetBlendMode("ADD")
+    hover:SetAlpha(0.9)
+    b.hover = hover
+    sheen(b, "HIGHLIGHT", 2, 0.85, 0.58, 0.30, 0.22, 0)
+
     local text = b:CreateFontString(nil, "OVERLAY",
-        sub and "GameFontHighlightSmall" or "GameFontNormal")
-    if sub then
+        sub and "GameFontHighlight" or "GameFontNormal")
+    if centered then
+        text:SetPoint("CENTER", b, "CENTER", 0, 0)
+    elseif sub then
         -- Right-aligned, the way TRP files a page under its heading: the
         -- indent says "belongs to the one above" and the ragged left edge
         -- keeps the two levels from reading as one list.
@@ -953,21 +1295,35 @@ local function navButton(parent, sub)
         text:SetJustifyH("LEFT")
     end
     b.text = text
-    local hl = b:CreateTexture(nil, "HIGHLIGHT")
-    hl:SetPoint("TOPLEFT", 4, -4)
-    hl:SetPoint("BOTTOMRIGHT", -4, 4)
-    Compat.SolidTexture(hl, 1, 0.85, 0.5, 0.10)
-    -- The selected page is told apart by its fill and its lettering, never by
-    -- recolouring the border: the border is the game's art, and tinting it is
-    -- how a frame stops looking like part of WoW.
-    local sel = b:CreateTexture(nil, "ARTWORK")
-    sel:SetPoint("TOPLEFT", 4, -4)
-    sel:SetPoint("BOTTOMRIGHT", -4, 4)
-    Compat.SolidTexture(sel, 1, 0.82, 0.35, 0.16)
-    sel:Hide()
-    b.sel = sel
+
+    -- Pressed: the lettering sinks a pixel, the way the game's own buttons do.
+    local function textAt(dx, dy)
+        text:ClearAllPoints()
+        if centered then
+            text:SetPoint("CENTER", b, "CENTER", dx, dy)
+        elseif sub then
+            text:SetPoint("RIGHT", b, "RIGHT", -12 + dx, dy)
+        else
+            text:SetPoint("LEFT", b, "LEFT", 12 + dx, dy)
+        end
+    end
+    b:SetScript("OnMouseDown", function() textAt(1, -1) end)
+    b:SetScript("OnMouseUp", function() textAt(0, 0) end)
+
+    function b:SetSelected(on)
+        sel:SetShown(on)
+        selGlow:SetShown(on)
+        if sub then
+            local v = on and 1 or 0.85
+            text:SetTextColor(v, v, v, 1)
+        else
+            -- Gold at rest, as the game letters a list; white once lit.
+            text:SetTextColor(1, on and 1 or 0.82, on and 1 or 0, 1)
+        end
+    end
     return b
 end
+Compat.PlateButton = navButton
 
 local function contains(e, target)
     if e == target then return true end
@@ -1018,15 +1374,11 @@ function NAV.Reflow()
         b:SetPoint("TOPLEFT", col, "TOPLEFT", depth > 0 and 22 or 4, y)
         b:SetPoint("RIGHT", col, "RIGHT", -4, 0)
         b:Show()
-        local on = (current == e)
-        b.sel:SetShown(on)
-        if depth > 0 then
-            b.text:SetTextColor(on and 1 or 0.85, on and 0.82 or 0.85, on and 0.2 or 0.85)
-        else
-            b.text:SetTextColor(1, on and 1 or 0.82, on and 1 or 0)
-        end
-        y = y - b:GetHeight() - NAV.GAP
+        -- A group stays lit while any page under it is open, so the list
+        -- says which section you are in as well as which page.
         local open = current and contains(e, current)
+        b:SetSelected(open and true or false)
+        y = y - b:GetHeight() - NAV.GAP
         for i = 1, #e.children do
             local c = e.children[i]
             if open then
@@ -1040,10 +1392,29 @@ function NAV.Reflow()
     for i = 1, #NAV.entries do place(NAV.entries[i], 0) end
 end
 
+function Compat.HasTemplate(name)
+    local X = C_XMLUtil
+    if not (X and X.GetTemplateInfo) then return false end
+    local ok, info = pcall(X.GetTemplateInfo, name)
+    return ok and info ~= nil
+end
+
 local function ensureNavWindow()
     if NAV.win then return NAV.win end
 
-    local win = Compat.CreateBackdropFrame("Frame", "GlyphicWindow", UIParent)
+    -- The game's own window where the client has it: PortraitFrameTemplate is
+    -- what the character sheet is built from, so the window wears whatever
+    -- that client's frames wear -- bronze on Forever -- with the portrait,
+    -- title bar and close button in Blizzard's places. The achievement wood
+    -- below is the fallback for a client without the template.
+    local win
+    if Compat.HasTemplate("PortraitFrameTemplate") then
+        local ok, f = pcall(CreateFrame, "Frame", "GlyphicWindow", UIParent, "PortraitFrameTemplate")
+        if ok and f then win = f end
+    end
+    local framed = win ~= nil
+    if not win then win = Compat.CreateBackdropFrame("Frame", "GlyphicWindow", UIParent) end
+    win.framed = framed
     win:SetFrameStrata("HIGH")
     win:SetToplevel(true)
     win:SetSize(NAV.W, NAV.H)
@@ -1055,63 +1426,200 @@ local function ensureNavWindow()
     win:SetScript("OnDragStart", function(self) self:StartMoving() end)
     win:SetScript("OnDragStop", function(self) self:StopMovingOrSizing() end)
     win:Hide()
-    Compat.Backdrop(win, "dialog")
 
-    -- Stone under the whole window, as the game's own framed windows have.
-    -- A client without the file shows the dialog's dark fill instead, which
-    -- is plain but whole.
-    local stone = win:CreateTexture(nil, "BACKGROUND", nil, 1)
-    stone:SetPoint("TOPLEFT", 11, -12)
-    stone:SetPoint("BOTTOMRIGHT", -12, 11)
-    if stone:SetTexture("Interface\\FrameGeneral\\UI-Background-Rock", "REPEAT", "REPEAT") == false then
-        stone:Hide()
+    -- E: the side and bottom margin inside the frame. TOP: where the page
+    -- starts, under the title bar. SPLIT: the gap between list and page.
+    local E, TOP, SPLIT = NAV.EDGE, NAV.EDGE, NAV.SPLIT
+    if framed then
+        -- The user's blend: Forever's bronze on the outside, the achievement
+        -- wood just inside it, under the title bar. The wood's frame starts
+        -- where the template's own background does (2 in, 21 down).
+        if win.SetTitle then win:SetTitle("Glyphic")
+        elseif win.TitleContainer then win.TitleContainer.TitleText:SetText("Glyphic") end
+        local portrait = win.PortraitContainer and win.PortraitContainer.portrait
+        if portrait then portrait:SetTexture("Interface\\AddOns\\Glyphic\\Media\\Glyphic-Mark-On") end
+        win.titleText = win.TitleContainer and win.TitleContainer.TitleText
+        local holder = Compat.CreateBackdropFrame("Frame", nil, win)
+        holder:SetPoint("TOPLEFT", 2, -21)
+        holder:SetPoint("BOTTOMRIGHT", -2, 2)
+        NAV.BuildWood(win, holder)
+        E, TOP = 2 + NAV.EDGE, 21 + NAV.EDGE
+    else
+        NAV.BuildWood(win, win)
     end
-    if stone.SetHorizTile then stone:SetHorizTile(true); stone:SetVertTile(true) end
-    stone:SetVertexColor(0.55, 0.5, 0.45, 1)
+    NAV.margins = { E = E, TOP = TOP, SPLIT = SPLIT }
 
-    local col = CreateFrame("Frame", nil, win)
-    col:SetPoint("TOPLEFT", 14, -64)
-    col:SetPoint("BOTTOMLEFT", 14, 14)
+    local col = framed and Compat.CreateBackdropFrame("Frame", nil, win) or CreateFrame("Frame", nil, win)
+    col:SetPoint("TOPLEFT", E, -70)
+    col:SetPoint("BOTTOMLEFT", E, E)
     col:SetWidth(NAV.COL)
+    if framed then
+        -- Outlined in bronze like the page beside it, the way the character
+        -- sheet outlines each of its panes.
+        Compat.Backdrop(col, "bronze", 0.02, 0.02, 0.02, 0.6)
+    end
     local colBg = col:CreateTexture(nil, "BACKGROUND", nil, 2)
     colBg:SetAllPoints()
     Compat.SolidTexture(colBg, 0, 0, 0, 0.35)
     win.navCol = col
 
-    -- The addon's name over the list, where TRP keeps its own.
-    local mark = win:CreateTexture(nil, "ARTWORK")
-    mark:SetSize(32, 32)
-    mark:SetPoint("TOPLEFT", 20, -20)
-    mark:SetTexture("Interface\\AddOns\\Glyphic\\Media\\Glyphic-Mark-On")
-    local title = win:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
-    title:SetPoint("LEFT", mark, "RIGHT", 8, 0)
-    title:SetText("Glyphic")
-    win.titleText = title
+    NAV.BuildBody(win, col, E, TOP, SPLIT, framed)
+    NAV.win = win
+    return win
+end
+
+-- The achievement window's wood round `holder`: the whole window on a client
+-- without PortraitFrameTemplate, a frame just inside the bronze on one with
+-- it. Without the carved steel corners the achievement window lays over its
+-- own: the user asked for the steel and stone gone.
+function NAV.BuildWood(win, holder)
+    -- Placed by the client from the backdrop table. The dark marble goes
+    -- underneath it rather than in the backdrop, so it can tile at its own
+    -- size and sit inside the frame's inner edge.
+    Compat.Backdrop(holder, "wood")
+
+    -- The achievement wood is dark art, and a vertex colour tops out at the
+    -- art itself, so it is brightened by drawing it twice: a second copy on
+    -- additive blend lifts the wood's own colours without adding one. For the
+    -- frame that copy is a second backdrop, so the client places it too; a
+    -- client that keeps its backdrop pieces out of GetRegions just gets the
+    -- plain wood.
+    local function glow(t)
+        if t and t.SetBlendMode then
+            t:SetBlendMode("ADD")
+            t:SetAlpha(NAV.WOOD_GLOW)
+        end
+    end
+    local woodGlow = Compat.CreateBackdropFrame("Frame", nil, holder)
+    woodGlow:SetAllPoints(holder)
+    woodGlow:SetFrameLevel(holder:GetFrameLevel())
+    Compat.Backdrop(woodGlow, "wood")
+    for _, r in ipairs({ woodGlow:GetRegions() }) do glow(r) end
+    win.woodGlow = woodGlow
+
+    -- On the window, under everything, over the template's own rock.
+    local fill = win:CreateTexture(nil, "BACKGROUND", nil, 1)
+    fill:SetPoint("TOPLEFT", holder, "TOPLEFT", 16, -16)
+    fill:SetPoint("BOTTOMRIGHT", holder, "BOTTOMRIGHT", -16, 16)
+    -- Black first, so a client missing the marble shows a dark window, never
+    -- a see-through one.
+    Compat.SolidTexture(fill, 0.04, 0.035, 0.03, 0.97)
+    local marble = win:CreateTexture(nil, "BACKGROUND", nil, 2)
+    marble:SetPoint("TOPLEFT", holder, "TOPLEFT", 16, -16)
+    marble:SetPoint("BOTTOMRIGHT", holder, "BOTTOMRIGHT", -16, 16)
+    marble:SetTexture("Interface\\FrameGeneral\\UI-Background-Marble", "REPEAT", "REPEAT")
+    if marble.SetHorizTile then marble:SetHorizTile(true); marble:SetVertTile(true) end
+    win.woodGlowFn = glow
+end
+
+-- Everything inside the frame, whichever frame it is.
+function NAV.BuildBody(win, col, E, TOP, SPLIT, framed)
+    -- A glyph circle in the empty foot of the list, where TRP keeps its die:
+    -- the radiant ring from the old glyph pane, which is drawn on black, so
+    -- added over the column its black disappears and only the runes and
+    -- light remain, faintly. The list draws over it when it runs long.
+    local sigil = Compat.GlyphSigil(col, 200, 0.22, 3)
+    sigil:SetPoint("CENTER", col, "BOTTOM", 0, 150)
+    win.sigil = sigil
+
+    -- A length of the same wood between the list and the page, as TRP runs
+    -- one down its sidebar. Cut from the frame's own left edge and tiled
+    -- down: the strip is 64px tall, so the coordinates run past 1 and the
+    -- wrap mode repeats it. It runs between the wood's top and bottom edges,
+    -- which sit 8px outside the margins.
+    for pass = 1, 2 do
+        local split = win:CreateTexture(nil, "BORDER", nil, pass)
+        split:SetWidth(WOOD_W)
+        split:SetPoint("TOP", win, "TOP", 0, -(TOP - 8))
+        split:SetPoint("BOTTOM", win, "BOTTOM", 0, E - 8)
+        split:SetPoint("LEFT", col, "RIGHT", math.floor((SPLIT - WOOD_W) / 2), 0)
+        split:SetTexture(WOOD_FILE, "CLAMP", "REPEAT")
+        split:SetTexCoord(WOOD_L, WOOD_R, 0, (NAV.H - 40) / 64)
+        if pass == 1 then win.split = split else win.woodGlowFn(split) end
+    end
+
+    -- What the page on show is for, behind one icon at the foot of the list,
+    -- where TRP keeps its own. A page says so by carrying `pageInfo` (text,
+    -- or a function for one that changes); the icon is hidden on a page that
+    -- carries none rather than offering a hover with nothing behind it.
+    local pageInfo = Compat.InfoButton(win, function()
+        local e = win._entry
+        local body = e and e.frame and rawget(e.frame, "pageInfo")
+        if type(body) == "function" then body = body() end
+        if not body or body == "" then return nil end
+        return "|cffffd200" .. e.name .. "|r\n\n" .. body
+    end, 30)
+    pageInfo:SetPoint("BOTTOM", col, "BOTTOM", 0, 12)
+    pageInfo:Hide()
+    win.pageInfo = pageInfo
+
+    -- The addon's name over the list, where TRP keeps its own. Inside
+    -- Forever's frame the portrait and title bar already say it.
+    if not framed then
+        local mark = win:CreateTexture(nil, "ARTWORK")
+        mark:SetSize(32, 32)
+        mark:SetPoint("TOPLEFT", E, -E)
+        mark:SetTexture("Interface\\AddOns\\Glyphic\\Media\\Glyphic-Mark-On")
+        local title = win:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+        title:SetPoint("LEFT", mark, "RIGHT", 8, 0)
+        title:SetText("Glyphic")
+        win.titleText = title
+    end
 
     -- Where the page goes: a recessed panel to the right of the list.
     local host = Compat.CreateBackdropFrame("Frame", "GlyphicWindowPage", win)
-    host:SetPoint("TOPLEFT", col, "TOPRIGHT", 8, 50)
-    host:SetPoint("BOTTOMRIGHT", -14, 14)
-    Compat.Backdrop(host, "tooltip", 0.05, 0.045, 0.04, 0.82)
+    host:SetPoint("TOPLEFT", win, "TOPLEFT", E + NAV.COL + SPLIT, -TOP)
+    host:SetPoint("BOTTOMRIGHT", -E, E)
+    Compat.Backdrop(host, "bronze", 0.05, 0.045, 0.04, 0.82)
     win.host = host
 
-    local okClose, close = pcall(CreateFrame, "Button", nil, win, "UIPanelCloseButton")
-    if not okClose or not close then close = CreateFrame("Button", nil, win) end
-    close:SetPoint("TOPRIGHT", -6, -6)
+    -- Behind a page that asks for it (`AddPage(..., { background =
+    -- "parchment" })`): the achievement window's parchment, darkened with a
+    -- grey -- never a hue -- until gold and white lettering read on it.
+    -- Stretched rather than tiled, because it is a painting with a vignette
+    -- round its edge, not a pattern. A page whose text sits in boxes of its
+    -- own can ask for less darkening with `shade` (the grey, 0-1).
+    local parchment = host:CreateTexture(nil, "BACKGROUND", nil, 3)
+    parchment:SetPoint("TOPLEFT", 4, -4)
+    parchment:SetPoint("BOTTOMRIGHT", -4, 4)
+    parchment:SetTexture("Interface\\AchievementFrame\\UI-Achievement-Parchment-Horizontal")
+    parchment:SetVertexColor(0.36, 0.36, 0.36, 1)
+    parchment:Hide()
+    host.parchment = parchment
+
+    -- A faint inscription along the foot of a parchment page, so a short page
+    -- isn't a bare sheet. Added light, like the circle under the list.
+    host.runes = {}
+    for i = 1, #NAV.RUNE_SIZES do
+        local r = host:CreateTexture(nil, "BACKGROUND", nil, 4)
+        local size = NAV.RUNE_SIZES[i]
+        r:SetSize(size, size)
+        r:SetPoint("CENTER", host, "BOTTOM", (i - 3) * 66, 44)
+        r:SetBlendMode("ADD")
+        r:SetVertexColor(1, 0.85, 0.55)
+        r:SetAlpha(NAV.RUNE_ALPHA[i])
+        r:Hide()
+        host.runes[i] = r
+    end
+
+    local close = framed and rawget(win, "CloseButton")
+    if not close then
+        local okClose, made = pcall(CreateFrame, "Button", nil, win, "UIPanelCloseButton")
+        close = (okClose and made) or CreateFrame("Button", nil, win)
+        close:SetPoint("TOPRIGHT", -8, -8)
+    end
     close:SetScript("OnClick", function() win:Hide() end)
     win.closeBtn = close
 
     tinsert(UISpecialFrames, "GlyphicWindow")
 
-    win:SetScript("OnHide", function(self)
+    -- Hooked, not set: the template may carry an OnHide of its own.
+    win:HookScript("OnHide", function(self)
         -- Hidden rather than detached: the page stays parented here, and
         -- hiding it is what makes its OnShow refresh run next time.
         local e = self._entry
         if e and e.frame then e.frame:Hide() end
     end)
-
-    NAV.win = win
-    return win
 end
 
 -- Shows the window at `frame`'s page. Returns false for a frame that is not a
@@ -1128,6 +1636,15 @@ function Compat.OpenPage(frame)
     frame:SetPoint("TOPLEFT", win.host, "TOPLEFT", 6, -6)
     frame:SetPoint("BOTTOMRIGHT", win.host, "BOTTOMRIGHT", -6, 6)
     win._entry = e
+    win.host.parchment:SetShown(e.background == "parchment")
+    local shade = e.shade or 0.36
+    win.host.parchment:SetVertexColor(shade, shade, shade, 1)
+    local runes = NAV.RunesFor(e.runeSeed)
+    for i, r in ipairs(win.host.runes) do
+        if runes then r:SetTexture("Interface\\Spellbook\\UI-Glyph-Rune-" .. runes[i]) end
+        r:SetShown(runes ~= nil)
+    end
+    win.pageInfo:SetShown(rawget(frame, "pageInfo") ~= nil)
     NAV.Reflow()
     win:Show()
     if win.Raise then win:Raise() end
@@ -1769,38 +2286,219 @@ end
 --
 -- The text can be a function, for the handful that depend on what the
 -- addon is currently doing and would otherwise go stale behind the icon.
+--
+-- The explanation opens in the game's own help callout -- the glowing gold
+-- box with an arrow its tutorials use, and TRP's -- built from Blizzard's
+-- GlowBoxTemplate / GlowBoxArrowTemplate. Not HelpTip:Show itself: that
+-- hands out frames from a pool Blizzard's own tutorials draw from, and
+-- addon code touching those is how shared UI gets tainted. A client
+-- without the templates gets the plain tooltip instead.
+local function hasTemplate(name)
+    local X = C_XMLUtil
+    return X and X.GetTemplateInfo and pcall(X.GetTemplateInfo, name)
+        and X.GetTemplateInfo(name) ~= nil or false
+end
+Compat.hasHelpCallout = hasTemplate("GlowBoxTemplate")
+    and hasTemplate("GlowBoxArrowTemplate")
+
+-- HelpTip's numbers: 15px either side of the text, 31 over and under it,
+-- and an arrow 61px square centred 5px outside the edge it points from.
+-- `owner` is the icon it is open for; `pinned` once that icon was clicked.
+local CALLOUT = { W = 320, PAD = 15, VPAD = 31, MIN_H = 72, GAP = 20 }
+
+function CALLOUT.close()
+    CALLOUT.owner, CALLOUT.pinned = nil, nil
+    if Compat._callout then Compat._callout:Hide() end
+end
+
+local function rotate(tex, degrees)
+    if SetClampedTextureRotation then
+        SetClampedTextureRotation(tex, degrees)
+    elseif tex.SetRotation then
+        tex:SetRotation(math.rad(degrees))
+    end
+end
+
+local function callout()
+    if Compat._callout then return Compat._callout end
+    local f = CreateFrame("Frame", "GlyphicInfoCallout", UIParent, "GlowBoxTemplate")
+    f:SetFrameStrata("TOOLTIP")
+    f:SetWidth(CALLOUT.W)
+    f:EnableMouse(true)
+    f:Hide()
+    local text = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightLeft")
+    text:SetWidth(CALLOUT.W - 2 * CALLOUT.PAD)
+    text:SetJustifyH("LEFT")
+    text:SetPoint("LEFT", CALLOUT.PAD, 0)
+    f.text = text
+    local arrow = CreateFrame("Frame", nil, f, "GlowBoxArrowTemplate")
+    arrow:SetSize(61, 61)
+    arrow.Arrow:ClearAllPoints()
+    arrow.Arrow:SetPoint("CENTER")
+    f.arrow = arrow
+    -- A pinned callout goes the way a tooltip would once it is clicked.
+    f:SetScript("OnMouseUp", CALLOUT.close)
+    Compat._callout = f
+    return f
+end
+
+-- Opens beside `owner`, on the right unless that would run off the screen.
+function Compat.ShowCallout(owner, body)
+    local f = callout()
+    f.text:SetText(body)
+    f:SetHeight(math.max(CALLOUT.MIN_H, CALLOUT.VPAD + (f.text:GetHeight() or 0)))
+    local right = (owner:GetRight() or 0) + CALLOUT.GAP + CALLOUT.W
+        < (UIParent:GetRight() or math.huge)
+    local a = f.arrow
+    f:ClearAllPoints()
+    a:ClearAllPoints()
+    a.Glow:ClearAllPoints()
+    if right then
+        f:SetPoint("LEFT", owner, "RIGHT", CALLOUT.GAP, 0)
+        a:SetPoint("CENTER", f, "LEFT", -5, 0)
+        rotate(a.Arrow, 90)
+        rotate(a.Glow, 90)
+        a.Glow:SetPoint("CENTER", a.Arrow, "CENTER", -4, 0)
+    else
+        f:SetPoint("RIGHT", owner, "LEFT", -CALLOUT.GAP, 0)
+        a:SetPoint("CENTER", f, "RIGHT", 5, 0)
+        rotate(a.Arrow, 270)
+        rotate(a.Glow, 270)
+        a.Glow:SetPoint("CENTER", a.Arrow, "CENTER", 4, 0)
+    end
+    if CALLOUT.owner ~= owner then CALLOUT.pinned = nil end
+    CALLOUT.owner = owner
+    f:Show()
+    return f
+end
+
 function Compat.InfoButton(parent, text, size)
     size = size or 16
     local b = CreateFrame("Button", nil, parent)
     b:SetSize(size, size)
 
+    -- The help coin Blizzard's own panels use, 64px and cropped to the coin,
+    -- so it stays sharp at the 30px the page icon is drawn at. The friends
+    -- list's 16px "i" is the fallback, for a client too old for the callout.
     local icon = b:CreateTexture(nil, "ARTWORK")
     icon:SetAllPoints()
-    -- In the game since vanilla, which the Common\help-i atlas the modern
-    -- panels use is not.
-    icon:SetTexture("Interface\\FriendsFrame\\InformationIcon")
+    local file, l, r = "Interface\\FriendsFrame\\InformationIcon", 0, 1
+    if Compat.hasHelpCallout then
+        file, l, r = "Interface\\Common\\help-i", 13/64, 49/64
+    end
+    icon:SetTexture(file)
+    icon:SetTexCoord(l, r, l, r)
     b.icon = icon
 
+    -- The coin again, added over itself: lit in its own round shape rather
+    -- than a square drawn over the corners.
     local hl = b:CreateTexture(nil, "HIGHLIGHT")
     hl:SetAllPoints()
-    Compat.SolidTexture(hl, 1, 1, 1, 0.3)
+    hl:SetTexture(file)
+    hl:SetTexCoord(l, r, l, r)
+    hl:SetBlendMode("ADD")
+    hl:SetAlpha(0.4)
+    b.highlight = hl
 
     b.infoText = text
     function b:SetInfoText(t) self.infoText = t end
-
-    b._toaTooltip = true
-    b:SetScript("OnEnter", function(self)
+    function b:GetInfo()
         local body = self.infoText
         if type(body) == "function" then body = body() end
-        if not body or body == "" then return end
+        if body == "" then body = nil end
+        return body
+    end
+
+    -- Hover to read, click to keep it open while the cursor goes elsewhere
+    -- (to the control it explains, say); click again, or click the box, to
+    -- put it away.
+    b._toaTooltip = true
+    b:SetScript("OnEnter", function(self)
+        local body = self:GetInfo()
+        if not body then return end
+        if Compat.hasHelpCallout then
+            Compat.ShowCallout(self, body)
+            return
+        end
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         -- Wrapped, because these are paragraphs rather than labels and an
         -- unwrapped one runs off the side of the screen.
         GameTooltip:SetText(body, 1, 1, 1, 1, true)
         GameTooltip:Show()
     end)
-    b:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    b:SetScript("OnLeave", function(self)
+        if not Compat.hasHelpCallout then
+            GameTooltip:Hide()
+        elseif CALLOUT.owner == self and not CALLOUT.pinned then
+            CALLOUT.close()
+        end
+    end)
+    b:SetScript("OnClick", function(self)
+        if not Compat.hasHelpCallout then return end
+        if CALLOUT.owner == self and CALLOUT.pinned then
+            CALLOUT.close()
+            return
+        end
+        local body = self:GetInfo()
+        if not body then return end
+        Compat.ShowCallout(self, body)
+        CALLOUT.pinned = true
+    end)
+    b:SetScript("OnHide", function(self)
+        if CALLOUT.owner == self then CALLOUT.close() end
+    end)
     return b
+end
+
+-- Takes a paragraph off the page and hands back what it said. The FontString
+-- stays where it was, a pixel tall and hidden, because everything below it
+-- is anchored to it: removing it would mean re-anchoring every page, and a
+-- collapsed line closes the gap on its own. A later SetText on it lands
+-- wherever `sink` sends it instead of back on the page.
+function Compat.Collapse(fs, sink)
+    local text = fs:GetText()
+    fs:SetText("")
+    fs:SetHeight(1)
+    fs:Hide()
+    fs._tucked = true
+    fs.SetText = function(_, t) if sink then sink(t) end end
+    fs.Show = function() end
+    return text
+end
+
+-- An explanation printed under a control, moved into an information icon
+-- beside it: `owner` is what it explains (a label, a header, a checkbox's
+-- labelText, a slider's titleText). With `caption`, a short line is left
+-- in its place and the icon sits at the end of it, for a paragraph whose
+-- position on the page matters but whose wording does not.
+--
+-- The icon belongs to whatever owns `owner` -- a checkbox, a slider -- so it
+-- goes when that does; a label that is shown and hidden on its own carries
+-- the icon with it.
+function Compat.Tuck(parent, fs, owner, caption)
+    owner = caption and fs or owner
+    local host = owner.CreateFontString and owner
+        or (owner.GetParent and owner:GetParent()) or parent
+    local info = Compat.InfoButton(host, nil)
+    if not owner.CreateFontString then
+        local show, hide = owner.Show, owner.Hide
+        owner.Show = function(self) show(self); info:Show() end
+        owner.Hide = function(self) hide(self); info:Hide() end
+        owner.SetShown = function(self, on)
+            if on then self:Show() else self:Hide() end
+        end
+    end
+    if caption then
+        info:SetInfoText(fs:GetText())
+        if fs.SetWordWrap then fs:SetWordWrap(false) end
+        fs:SetText(caption)
+        fs.SetText = function(_, t) info:SetInfoText(t) end
+        info:SetPoint("LEFT", fs, "LEFT", (fs:GetStringWidth() or 0) + 6, 0)
+    else
+        info:SetInfoText(Compat.Collapse(fs, function(t) info:SetInfoText(t) end))
+        info:SetPoint("LEFT", owner, "RIGHT", 6, 0)
+    end
+    return info
 end
 
 function Compat.CreateDropdown(parent, width)
@@ -2461,8 +3159,12 @@ local function browserScrollbar(f)
     f._settingScroll = false
     -- A bar with nowhere to go is shown greyed rather than hidden, so the list
     -- does not change width as you narrow it.
-    local thumb = f.scroll:GetThumbTexture()
-    if thumb then thumb:SetAlpha(max > 0 and 1 or 0.25) end
+    local parts = rawget(f.scroll, "_thumbParts") or { f.scroll:GetThumbTexture() }
+    for _, t in pairs(parts) do t:SetAlpha(max > 0 and 1 or 0.25) end
+    if rawget(f.scroll, "SetThumbFraction") then
+        local n = #(f.results or {})
+        f.scroll:SetThumbFraction(n > 0 and (#f.rows / n) or 1)
+    end
 end
 
 local function browserRefresh(f, keepOffset)
@@ -2817,9 +3519,10 @@ local function buildBrowser()
     -- a missing one is a frame that does not appear at all.
     local scroll = CreateFrame("Slider", nil, f)
     scroll:SetOrientation("VERTICAL")
-    scroll:SetWidth(16)
-    scroll:SetPoint("TOPRIGHT", f.rows[1], "TOPRIGHT", 22, -2)
-    scroll:SetPoint("BOTTOMRIGHT", f.rows[ROWS], "BOTTOMRIGHT", 22, 2)
+    local barW, gap = Compat.ScrollBarWidth(16), Compat.ScrollBarGap()
+    scroll:SetWidth(barW)
+    scroll:SetPoint("TOPRIGHT", f.rows[1], "TOPRIGHT", 22 - (16 - barW) / 2, -2 - gap)
+    scroll:SetPoint("BOTTOMRIGHT", f.rows[ROWS], "BOTTOMRIGHT", 22 - (16 - barW) / 2, 2 + gap)
     scroll:SetValueStep(1)
     if scroll.SetObeyStepOnDrag then scroll:SetObeyStepOnDrag(true) end
     scroll:SetMinMaxValues(0, 0)
@@ -2834,6 +3537,7 @@ local function buildBrowser()
     scroll:SetThumbTexture("Interface\\Buttons\\UI-SliderBar-Button-Vertical")
     local thumb = scroll:GetThumbTexture()
     if thumb then thumb:SetSize(16, 24) end
+    Compat.SkinScrollBar(scroll, 3)
 
     scroll:SetScript("OnValueChanged", function(self, value)
         if f._settingScroll then return end

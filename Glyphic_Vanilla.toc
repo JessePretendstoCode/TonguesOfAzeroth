@@ -3,8 +3,8 @@
 ## Notes: Speak Azeroth's languages in character -- 66 of them, plus accents, cast lines, and languages you invent yourself.
 ## Category: Roleplay
 ## IconTexture: Interface\AddOns\Glyphic\Media\Glyphic-On
-## Author: JessePretendstoCode
-## Version: 0.6.5
+## Author: JesseMods
+## Version: 0.6.6
 ## SavedVariablesPerCharacter: GlyphicDB
 ## SavedVariables: GlyphicAccountDB
 ## X-Curse-Project-ID: 1641225
@@ -34,4 +34,5 @@ Voice.lua
 Whispers.lua
 Game.lua
 Toast.lua
+WhatsNew.lua
 UI.lua

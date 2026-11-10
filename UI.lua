@@ -71,7 +71,7 @@ local CH = {}
 -- The same arrangement for the window's pages: the home page's status rows,
 -- the second voice readout, and the three settings pages that have no
 -- business taking a local each.
-local V = { voices = {} }
+local V = { voices = {}, PARCHMENT = { background = "parchment" } }
 local namesCheck, nameColorCheck
 local widgetCheck, widgetLockCheck
 local accentDropdown, accentSlider, accentValueText
@@ -169,9 +169,7 @@ local function db()
     if GlyphicDB.widget.y == nil then GlyphicDB.widget.y = -140 end
     if GlyphicDB.outputFrame == nil then GlyphicDB.outputFrame = 0 end
     GlyphicDB.tagLanguage = true
-    -- Off, and Core turns it off once for profiles that already had it on;
-    -- see migrateDB for why.
-    if GlyphicDB.tagFluency == nil then GlyphicDB.tagFluency = false end
+    if GlyphicDB.tagFluency == nil then GlyphicDB.tagFluency = true end
     if not GlyphicDB.accent then GlyphicDB.accent = {} end
     if GlyphicDB.accent.strength == nil then GlyphicDB.accent.strength = 100 end
     if GlyphicDB.accent.emotes == nil then GlyphicDB.accent.emotes = false end
@@ -212,7 +210,7 @@ local function fluencyAdjective(pct)
     if pct >= 100 then return "Perfect", 1, 0.85, 0.2 end
     if pct >= 75 then return "Fluent", 0.4, 0.85, 0.4 end
     if pct >= 25 then return "Partial", 0.95, 0.8, 0.3 end
-    return "Broken", 0.95, 0.5, 0.4
+    return "Sparse", 0.95, 0.5, 0.4
 end
 
 local function refreshPreview()
@@ -756,7 +754,7 @@ end
 function V.RefreshAdvanced()
     if not V.advancedPanel then return end
     local d = db()
-    if fluencyCheck then fluencyCheck:SetChecked(d.tagFluency == true) end
+    if fluencyCheck then fluencyCheck:SetChecked(d.tagFluency ~= false) end
     if autoDisableCheck then autoDisableCheck:SetChecked(d.autoDisableInInstances ~= false) end
     if decodeStyleDropdown then
         decodeStyleDropdown:SetSelected(d.decodeStyle, decodeStyleLabel(d.decodeStyle))
@@ -1306,7 +1304,9 @@ local function RefreshLanguageWidget()
     if not d.widget.enabled then langWidget:Hide(); return end
     langWidget:Show()
     langWidget.name:SetText(speakingName(d.language))
+    -- Plain speech has no fluency to grade; a word there would be made up.
     local adj, ar, ag, ab = fluencyAdjective(fluencyPct(d.language))
+    if Language.IsPlain and Language.IsPlain(d.language) then adj = "" end
     langWidget.sub:SetText(adj)
     langWidget.sub:SetTextColor(ar, ag, ab)
     local tr, tg, tb, on = stateTint()
@@ -1759,7 +1759,7 @@ end
 
 local function BuildMainPanel()
     mainPanel = Compat.CreateOptionsPanel("TonguesOfAzerothOptions")
-    mainPanel.name = "Glyphic"
+    mainPanel.name = "IC Speech"
 
     -- Everything lives inside a scroll region so the panel never spills outside
     -- the options window, no matter how tall the layout gets. Anchor children to
@@ -1768,21 +1768,23 @@ local function BuildMainPanel()
 
     local title = content:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
     title:SetPoint("TOPLEFT", 16, -16)
-    title:SetText("Glyphic")
+    -- Spelled out on the page; the nav list keeps the short name.
+    title:SetText("In Character Speech")
 
     local subtitle = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -8)
     subtitle:SetPoint("RIGHT", content, "RIGHT", -24, 0)
     subtitle:SetJustifyH("LEFT")
-    subtitle:SetText("Speak the languages of Azeroth in chat, Tongues-style. Hover "
-        .. "|TInterface\\FriendsFrame\\InformationIcon:14|t beside a setting for what it does.")
+    subtitle:SetText("Whether you are in character, the tongue you speak, the "
+        .. "native dialect that fills in the words you haven't learned yet, and "
+        .. "your accent. The sentence under them says what the four add up to, "
+        .. "and the preview runs a line through all of it.")
+    mainPanel.pageInfo = Compat.Collapse(subtitle)
 
-    -- The landing page is the character's voice, the way TRP's is the
-    -- character's status: the handful of answers somebody changes in the
+    -- The character's voice: the handful of answers somebody changes in the
     -- middle of playing, together, with the sentence that says what they add
-    -- up to. Everything set once and left alone is under Settings, and every
-    -- page is in the list down the left, so this page no longer carries a
-    -- column of buttons out to them.
+    -- up to. It was the landing page until the home page took that place;
+    -- the in-character switch and the sentence are repeated there.
     --
     -- Speaking, native dialect and accent sit together because they are one
     -- voice. Apart -- the tongue on one page and the accent on another -- they
@@ -1821,18 +1823,34 @@ local function BuildMainPanel()
         if ns.OnSettingsChanged then ns.OnSettingsChanged() else RefreshMain() end
     end)
 
-    -- Speaking before native dialect, because that is the order they apply
-    -- in: the tongue you are attempting takes every word you know, and the
-    -- native dialect only ever gets what is left. Read top to bottom the two
-    -- rows now say "this, and then that", where the other way round they
-    -- looked like two languages competing for the line.
+    -- Native dialect, then Speaking, then Accent: who your character is, what
+    -- they are talking in right now, and how their English sounds. The user's
+    -- order, over an earlier one that put Speaking first because it is applied
+    -- first. The voice sentence below still says how the two combine.
     local DROP_W = 240
+    local nativeRow = Compat.OptionRow(content, "Native dialect",
+        "The tongue your character grew up speaking. Words your fluency in the "
+        .. "language you're speaking does not cover come out in this one instead of "
+        .. "English, so a half-learned language sounds like someone falling back on "
+        .. "their own. Speaking None hands it the whole line, so to talk in plain "
+        .. "English with only your accent, speak Common. Your accent only shapes "
+        .. "English, so it has little left to do once this is set. The sentence under "
+        .. "|cffffd200Your voice|r always says what the two add up to.")
+    Compat.PlaceRow(nativeRow, enableCheck.row, content)
+    motherDropdown = Compat.CreateDropdown(content, DROP_W)
+    nativeRow:Attach(motherDropdown, DROP_W)
+    motherDropdown:SetItems(motherItems())
+    motherDropdown.onSelect = function(value)
+        db().motherTongue = (value ~= "" and value) or nil
+        if ns.OnSettingsChanged then ns.OnSettingsChanged() else RefreshMain() end
+    end
+
     local speakRow = Compat.OptionRow(content, "Speaking",
         "The language your character is talking in right now. Change it as "
         .. "often as you like -- it follows whoever you are standing next to. "
         .. "How much of it comes through is your fluency, set on |cffffd200Languages|r. "
         .. "|cffffffffRight-click|r a language to make it a favorite.")
-    Compat.PlaceRow(speakRow, enableCheck.row, content)
+    Compat.PlaceRow(speakRow, nativeRow, content)
     langDropdown = Compat.CreateDropdown(content, DROP_W)
     speakRow:Attach(langDropdown, DROP_W)
     langDropdown:SetItems(langItems())
@@ -1850,28 +1868,11 @@ local function BuildMainPanel()
         if ns.OnSettingsChanged then ns.OnSettingsChanged() else RefreshMain() end
     end
 
-    local nativeRow = Compat.OptionRow(content, "Native dialect",
-        "The tongue your character grew up speaking. Words your fluency in the "
-        .. "language above does not cover come out in this one instead of English, "
-        .. "so a half-learned language sounds like someone falling back on their "
-        .. "own. Speaking None hands it the whole line, so to talk in plain English "
-        .. "with only your accent, speak Common. Your accent only shapes English, so "
-        .. "it has little left to do once this is set. The sentence under "
-        .. "|cffffd200Your voice|r always says what the two add up to.")
-    Compat.PlaceRow(nativeRow, speakRow, content)
-    motherDropdown = Compat.CreateDropdown(content, DROP_W)
-    nativeRow:Attach(motherDropdown, DROP_W)
-    motherDropdown:SetItems(motherItems())
-    motherDropdown.onSelect = function(value)
-        db().motherTongue = (value ~= "" and value) or nil
-        if ns.OnSettingsChanged then ns.OnSettingsChanged() else RefreshMain() end
-    end
-
     local accentRow = Compat.OptionRow(content, "Accent",
         "How your English sounds: the words your languages leave in English are "
         .. "spoken in this accent. Its strength and its flourishes are on "
         .. "|cffffd200Accents|r.")
-    Compat.PlaceRow(accentRow, nativeRow, content)
+    Compat.PlaceRow(accentRow, speakRow, content)
     V.accentDropdown = Compat.CreateDropdown(content, DROP_W)
     accentRow:Attach(V.accentDropdown, DROP_W)
     V.accentDropdown.onSelect = function(value)
@@ -1933,6 +1934,251 @@ function V.voicePreview(content, anchor)
 
     V.voices[#V.voices + 1] = v
     return v
+end
+
+--=========================================================================--
+--  Home
+--  The front page, on TRP's pattern: the addon's name over a status box,
+--  then tabs for what changed lately and what this is. Not a settings page:
+--  the one switch on it is the one players hit mid-conversation, and the
+--  rest of the voice is a click away on IC Speech.
+--=========================================================================--
+V.HOME_TABS = { "What's new", "About Glyphic" }
+
+-- Each tab is a stack of lines down the sheet, built once: a font, the
+-- text, and the gap above it. TRP's changelog shape -- a version in large
+-- gold, its groups (Added, Changed, Fixed) in smaller gold, and under each
+-- a bulleted list in plain white, one entry to a bullet.
+V.HOME_BULLET = "|TInterface\\QuestFrame\\UI-Quest-BulletPoint:14:14:0:-1|t "
+V.HOME_HUGE = "title"
+
+function V.homeTabText(which)
+    local lines = {}
+    local function add(font, text, gap)
+        lines[#lines + 1] = { font = font, text = text, gap = gap }
+    end
+    if which == 1 then
+        for i, s in ipairs(ns.WhatsNew or {}) do
+            add(V.HOME_HUGE, s.title, i == 1 and 10 or 26)
+            for _, g in ipairs(s.groups or {}) do
+                add("GameFontNormalLarge", g.name, 14)
+                local items = {}
+                for _, e in ipairs(g.entries) do
+                    items[#items + 1] = (e.sub and "      " or "") .. V.HOME_BULLET .. e.text
+                end
+                add("GameFontHighlight", table.concat(items, "\n"), 8)
+            end
+        end
+        return lines
+    end
+    local author = Compat.GetAddOnMetadata(ADDON, "Author")
+    add(V.HOME_HUGE, "About Glyphic", 10)
+    add("GameFontHighlight", "Speak the languages of Azeroth in chat, and read "
+        .. "them back from other Glyphic players.", 12)
+    add("GameFontNormalLarge", "Commands", 18)
+    add("GameFontHighlight", V.HOME_BULLET .. "|cffffd200/glyphic|r opens this window.\n"
+        .. V.HOME_BULLET .. "|cffffd200/glyphic help|r lists the rest.", 8)
+    add("GameFontNormalLarge", "Credits", 18)
+    if not author or author == "" then author = "JesseMods" end
+    add("GameFontHighlight", "Made by |cffffd200" .. author .. "|r\n"
+        .. "Currently playing WoW: Forever on RP as |cffffd200Jessiah Oathbreaker|r\n"
+        .. "Feel free to whisper me in game with any questions or feedback!", 8)
+    add("GameFontNormalLarge", "Contributors", 18)
+    add("GameFontHighlight", table.concat({ "Bockses", "Tirasa", "Rhysi",
+        "RizTheHuntress", "xxglitch404xx", "Andrey_IMN" }, "  |cff8a7a5a\194\183|r  "), 8)
+    add("GameFontDisableSmall", "Formerly Tongues of Azeroth.", 16)
+    return lines
+end
+
+function V.BuildHome()
+    local panel = Compat.CreateOptionsPanel("GlyphicHomeOptions")
+    panel.name = "Glyphic"
+    V.homePanel = panel
+    panel.pageInfo = "Speak the languages of Azeroth in chat, Tongues-style.\n\n"
+        .. "|cffffd200Speak in character|r is the switch you'll reach for most: off, "
+        .. "your chat goes out exactly as typed. The sentence under it says what "
+        .. "your chat sounds like right now; the language, native dialect and "
+        .. "accent behind it are on |cffffd200IC Speech|r.\n\n"
+        .. "Hover |TInterface\\Common\\help-i:14|t beside a setting for what it does."
+
+    -- The name, over the glyph circle the list's foot carries.
+    -- Small enough to sit wholly between the page's top edge and the Status
+    -- box (the banner is 148px tall); any larger and the frame cuts it.
+    local sigil = Compat.GlyphSigil(panel, 132, 0.3, 1)
+    sigil:SetPoint("CENTER", panel, "TOP", 0, -76)
+    V.homeSigil = sigil
+
+    -- Gold lettering on gold parchment needs a dark ground to stand on. The
+    -- game's NameShadow is solid along its top and soft everywhere else, so
+    -- two of them back to back make a band that fades out on every side.
+    -- Under the circle, which is added light and stays bright over it.
+    V.homeShade = {}
+    for i, flip in ipairs({ true, false }) do
+        local s = panel:CreateTexture(nil, "BACKGROUND", nil, 0)
+        s:SetTexture("Interface\\Common\\NameShadow")
+        -- Tall enough that the solid middle covers the mark and the version
+        -- line, not just the tagline; the faded tips are what reach further.
+        s:SetSize(440, 78)
+        if flip then
+            s:SetTexCoord(0, 1, 1, 0)
+            s:SetPoint("BOTTOM", panel, "TOP", 0, -78)
+        else
+            s:SetPoint("TOP", panel, "TOP", 0, -78)
+        end
+        s:SetAlpha(0.7)
+        V.homeShade[i] = s
+    end
+
+    local title = panel:CreateFontString(nil, "ARTWORK",
+        _G.Fancy32Font and "Fancy32Font" or "GameFontNormalHuge")
+    title:SetPoint("TOP", panel, "TOP", 20, -38)
+    title:SetText("Glyphic")
+    title:SetTextColor(1, 0.82, 0)
+    title:SetShadowColor(0, 0, 0, 1)
+    title:SetShadowOffset(2, -2)
+    V.homeTitle = title
+    local mark = panel:CreateTexture(nil, "ARTWORK")
+    mark:SetSize(48, 48)
+    mark:SetPoint("RIGHT", title, "LEFT", -10, 0)
+    mark:SetTexture("Interface\\AddOns\\Glyphic\\Media\\Glyphic-Mark-On")
+    local tagline = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+    tagline:SetPoint("TOP", title, "BOTTOM", -20, -10)
+    tagline:SetText("The languages of Azeroth, spoken in chat")
+    tagline:SetShadowColor(0, 0, 0, 1)
+    tagline:SetShadowOffset(1, -1)
+    V.homeVersion = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    V.homeVersion:SetTextColor(0.85, 0.8, 0.7)
+    V.homeVersion:SetPoint("TOP", tagline, "BOTTOM", 0, -4)
+
+    --  Status --------------------------------------------------------------
+    local box = Compat.CreateBackdropFrame("Frame", nil, panel)
+    Compat.Backdrop(box, "bronze", 0.05, 0.04, 0.03, 0.85)
+    box:SetPoint("TOPLEFT", panel, "TOPLEFT", 16, -148)
+    box:SetPoint("RIGHT", panel, "RIGHT", -16, 0)
+    box:SetHeight(126)
+    V.homeStatus = box
+
+    -- A heading and a rule, not a plate: the plate is the window's button art,
+    -- and a label wearing it gets clicked.
+    local heading = box:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+    heading:SetPoint("TOPLEFT", box, "TOPLEFT", 14, -12)
+    heading:SetText("Status")
+    V.homeStatusHeading = heading
+    local rule = Compat.Divider(box)
+    rule:SetPoint("TOPLEFT", heading, "BOTTOMLEFT", 0, -5)
+    rule:SetPoint("RIGHT", box, "RIGHT", -14, 0)
+
+    V.homeEnable = Compat.CheckRow(box, "Speak in character",
+        "Off mutes everything this addon says for you: your chat goes out exactly "
+        .. "as typed, with no accent, and cast phrases stay quiet. You still read, "
+        .. "color and decode everyone else either way.")
+    V.homeEnable.row:SetPoint("TOPLEFT", box, "TOPLEFT", 12, -42)
+    V.homeEnable.row:SetPoint("RIGHT", box, "RIGHT", -12, 0)
+    V.homeEnable:SetScript("OnClick", function(self)
+        if ns.SetInCharacter then
+            ns.SetInCharacter(self:GetChecked(), true)
+        else
+            db().inCharacter = self:GetChecked() and true or false
+        end
+        if ns.OnSettingsChanged then ns.OnSettingsChanged() else V.RefreshHome() end
+    end)
+
+    V.homeSentence = box:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    V.homeSentence:SetPoint("TOPLEFT", V.homeEnable.row, "BOTTOMLEFT", 30, -6)
+    V.homeSentence:SetPoint("RIGHT", box, "RIGHT", -160, 0)
+    V.homeSentence:SetJustifyH("LEFT")
+    V.homeSentence:SetJustifyV("TOP")
+    if V.homeSentence.SetWordWrap then V.homeSentence:SetWordWrap(true) end
+    V.homeSentence:SetSpacing(2)
+
+    local voiceBtn = CreateFrame("Button", nil, box, "UIPanelButtonTemplate")
+    voiceBtn:SetSize(130, 22)
+    voiceBtn:SetPoint("BOTTOMRIGHT", box, "BOTTOMRIGHT", -12, 12)
+    voiceBtn:SetText("IC Speech")
+    voiceBtn:SetScript("OnClick", function() ns.OpenVoiceConfig() end)
+    V.homeVoiceButton = voiceBtn
+
+    --  Tabs ----------------------------------------------------------------
+    local sheet = Compat.CreateBackdropFrame("Frame", nil, panel)
+    Compat.Backdrop(sheet, "bronze", 0.05, 0.04, 0.03, 0.85)
+    sheet:SetPoint("TOPLEFT", box, "BOTTOMLEFT", 0, -48)
+    sheet:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -16, 16)
+    local inner = CreateFrame("Frame", nil, sheet)
+    inner:SetPoint("TOPLEFT", 8, -8)
+    inner:SetPoint("BOTTOMRIGHT", -6, 8)
+    local content = Compat.CreateScrollContent(inner, 400)
+    V.homeSheet = sheet
+
+    V.homeTabs, V.homeTabBlocks = {}, {}
+    for i, label in ipairs(V.HOME_TABS) do
+        local t = Compat.PlateButton(panel, false, true)
+        t:SetSize(170, 28)
+        if i == 1 then
+            t:SetPoint("BOTTOMLEFT", sheet, "TOPLEFT", 12, 2)
+        else
+            t:SetPoint("LEFT", V.homeTabs[i - 1], "RIGHT", 6, 0)
+        end
+        t.text:SetText(label)
+        t:SetScript("OnClick", function() V.ShowHomeTab(i) end)
+        V.homeTabs[i] = t
+
+        local fss, prev = {}, nil
+        for _, line in ipairs(V.homeTabText(i)) do
+            -- A title is the large gold font made bigger, rather than a
+            -- template of its own that a client may not define.
+            local title = line.font == V.HOME_HUGE
+            local fs = content:CreateFontString(nil, "ARTWORK",
+                title and "GameFontNormalLarge" or line.font)
+            if title and fs.GetFont then
+                local face, _, flags = fs:GetFont()
+                if face then fs:SetFont(face, 20, flags) end
+            end
+            if prev then
+                fs:SetPoint("TOPLEFT", prev, "BOTTOMLEFT", 0, -line.gap)
+            else
+                fs:SetPoint("TOPLEFT", content, "TOPLEFT", 10, -line.gap)
+            end
+            fs:SetWidth(530)
+            fs:SetJustifyH("LEFT")
+            if fs.SetWordWrap then fs:SetWordWrap(true) end
+            fs:SetSpacing(3)
+            fs:SetText(line.text)
+            fs._gap = line.gap
+            fss[#fss + 1] = fs
+            prev = fs
+        end
+        V.homeTabBlocks[i] = fss
+    end
+    V.homeContent = content
+    V.homeTab = 1
+
+    panel.refresh = V.RefreshHome
+    panel:SetScript("OnShow", V.RefreshHome)
+    return panel
+end
+
+function V.ShowHomeTab(which)
+    V.homeTab = which
+    local height = 20
+    for i, fss in ipairs(V.homeTabBlocks) do
+        for _, fs in ipairs(fss) do
+            fs:SetShown(i == which)
+            if i == which then height = height + (fs:GetStringHeight() or 0) + (fs._gap or 0) end
+        end
+        V.homeTabs[i]:SetSelected(i == which)
+    end
+    if V.homeContent.SetContentHeight then V.homeContent:SetContentHeight(height) end
+end
+
+function V.RefreshHome()
+    if not V.homePanel then return end
+    local d = db()
+    V.homeEnable:SetChecked(d.inCharacter)
+    CH.setLocked(V.homeEnable, CH.lockedBy("inCharacter"))
+    V.homeSentence:SetText(V.voiceSentence())
+    local version = Compat.GetAddOnMetadata(ADDON, "Version")
+    V.homeVersion:SetText(version and ("Version " .. version) or "")
+    V.ShowHomeTab(V.homeTab or 1)
 end
 
 --=========================================================================--
@@ -2009,6 +2255,7 @@ local function BuildChatPanel()
     subtitle:SetPoint("RIGHT", content, "RIGHT", -24, 0)
     subtitle:SetJustifyH("LEFT")
     subtitle:SetText("Where you speak in character, and how names and languages are colored in your chat window.")
+    chatPanel.pageInfo = Compat.Collapse(subtitle)
 
     --------------------------------------------------------------------
     -- When you speak
@@ -2167,10 +2414,7 @@ function V.BuildAdvanced()
     -- optional fluency adjective prefix is configurable.
     fluencyCheck = Compat.CheckRow(content, "Show your fluency in the [Language] tag",
         "Adds how well you speak the tongue to the tag everyone sees: "
-        .. "[Partial Orcish] instead of [Orcish]. Off by default, because the lowest "
-        .. "of the four words is \"Broken\", and players who don't run Glyphic took "
-        .. "[Broken Orcish] to mean the addon was broken. Other Glyphic users read "
-        .. "either form.")
+        .. "[Partial Orcish] instead of [Orcish].")
     Compat.PlaceRow(fluencyCheck.row, speakHeader, content, 0, 8)
     fluencyCheck:SetScript("OnClick", function(self)
         db().tagFluency = self:GetChecked() and true or false
@@ -2293,7 +2537,8 @@ local function BuildLearnedPanel()
     subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -8)
     subtitle:SetPoint("RIGHT", content, "RIGHT", -32, 0)
     subtitle:SetJustifyH("LEFT")
-    subtitle:SetText("How fluently you speak each tongue, and the color it reads in. |cffffd200Drag the handle|r on a bar to set fluency; |cffffd200star|r a language to keep it near the top. The tongue you're speaking is always the first row. Which one that is, and your native dialect, are on the |cffffd200Glyphic|r page.")
+    subtitle:SetText("How fluently you speak each tongue, and the color it reads in. |cffffd200Drag the handle|r on a bar to set fluency; |cffffd200star|r a language to keep it near the top. The tongue you're speaking is always the first row. Which one that is, and your native dialect, are on |cffffd200IC Speech|r.")
+    learnedPanel.pageInfo = Compat.Collapse(subtitle)
 
     -- The readout and the preview stay here as well as on the landing page:
     -- dragging a fluency bar and watching the line change is how a fluency
@@ -2723,6 +2968,7 @@ function V.BuildImmersion()
     subtitle:SetJustifyH("LEFT")
     subtitle:SetText("Stop understanding the game's own languages unless Glyphic "
         .. "says you studied them. Everything here is off until you ask for it.")
+    panel.pageInfo = Compat.Collapse(subtitle)
 
     local header = sectionHeader(content, "Full immersion")
     header:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -26)
@@ -2935,6 +3181,7 @@ local function BuildAccentPanel()
     subtitle:SetPoint("RIGHT", content, "RIGHT", -24, 0)
     subtitle:SetJustifyH("LEFT")
     subtitle:SetText("Flavor your English with a spoken dialect, e.g. Dwarven \"I cannae do this, aye!\" or Troll \"da voodoo, mon.\"")
+    accentPanel.pageInfo = Compat.Collapse(subtitle)
 
     -- No enable checkbox here any more: "None" in the list below is the off
     -- switch, and whether your voice applies at all is the one in-character
@@ -2948,6 +3195,7 @@ local function BuildAccentPanel()
 
     local accentLabel = sectionHeader(content, "Accent")
     accentLabel:SetPoint("TOPLEFT", hint, "BOTTOMLEFT", 0, -24)
+    Compat.Tuck(content, hint, accentLabel)
 
     accentDropdown = Compat.CreateDropdown(content, 260)
     accentDropdown:SetPoint("TOPLEFT", accentLabel, "BOTTOMLEFT", 0, -8)
@@ -3004,6 +3252,7 @@ local function BuildAccentPanel()
     tailHint:SetText("How often a line ends with a flourish like \", aye.\" Most accents "
         .. "also space them out, skip them on short lines and keep them off questions, "
         .. "so they turn up less often in chat than in this preview.")
+    Compat.Tuck(content, tailHint, accentTailSlider.titleText)
 
     accentEmotesCheck = Compat.CreateCheckbox(content, "Also apply accent to emotes (/e and inline *actions*)")
     local whereHeader = sectionHeader(content, "Where it applies")
@@ -3023,6 +3272,7 @@ local function BuildAccentPanel()
     channelHint:SetJustifyH("LEFT")
     if channelHint.SetWordWrap then channelHint:SetWordWrap(true) end
     channelHint:SetText("Your accent follows the same channels as your tongue -- pick them under |cffffd200Chat Channels|r.")
+    Compat.Tuck(content, channelHint, whereHeader)
 
     local previewLabel = sectionHeader(content, "Preview (type to test)")
     previewLabel:SetPoint("TOPLEFT", channelHint, "BOTTOMLEFT", 0, -24)
@@ -3175,6 +3425,7 @@ local function BuildCustomPanel()
     subtitle:SetJustifyH("LEFT")
     if subtitle.SetWordWrap then subtitle:SetWordWrap(true) end
     subtitle:SetText("Build a tongue from sounds. Words keep their length so it reads like a real language. Separate sounds with commas; use two commas (, ,) to allow \"no sound\".")
+    customPanel.pageInfo = Compat.Collapse(subtitle)
 
     local editLabel = customPanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     editLabel:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -14)
@@ -3209,10 +3460,15 @@ local function BuildCustomPanel()
         box:SetScript("OnTextChanged", refreshCustomPreview)
         box:SetScript("OnEnterPressed", box.ClearFocus)
         box:SetScript("OnEscapePressed", box.ClearFocus)
-        return box
+        return box, lbl
     end
 
-    customOnsetInput  = poolBox("TonguesOfAzerothCustomOnsets", "Starting sounds (onsets)", customEditDropdown, -20)
+    local onsetLabel
+    customOnsetInput, onsetLabel = poolBox("TonguesOfAzerothCustomOnsets", "Starting sounds (onsets)", customEditDropdown, -20)
+    Compat.InfoButton(customPanel, "Separate sounds with commas. Use two commas "
+        .. "in a row (|cffffd200, ,|r) to allow \"no sound\" -- a word that may "
+        .. "start, or end, on a vowel. The vowel list can't be left empty.")
+        :SetPoint("LEFT", onsetLabel, "RIGHT", 6, 0)
     customNucleiInput = poolBox("TonguesOfAzerothCustomNuclei", "Vowel sounds (required)", customOnsetInput, -12)
     customCodaInput   = poolBox("TonguesOfAzerothCustomCodas", "Ending sounds (codas)", customNucleiInput, -12)
 
@@ -3298,6 +3554,7 @@ local function BuildCustomPanel()
     shareHint:SetJustifyH("LEFT")
     if shareHint.SetWordWrap then shareHint:SetWordWrap(true) end
     shareHint:SetText("Copy the code to send via Discord, or paste one in and Import. \"Share to target\" sends it in-game to your target/group.")
+    Compat.Tuck(customPanel, shareHint, shareLabel)
 
     customShareInput = CreateFrame("EditBox", "TonguesOfAzerothCustomShare", customPanel, "InputBoxTemplate")
     customShareInput:SetPoint("TOPLEFT", shareHint, "BOTTOMLEFT", 6, -8)
@@ -4003,16 +4260,20 @@ local function RefreshCasts()
     end
 
     local editorTop = (emoteActive and emoteMute) or castMuteCheck
-    local emoteHeader, hearHeader = castPanel.emoteHeader, castPanel.hearHeader
-    if emoteHeader and hearHeader and castSpellDropdown and emoteDrop then
-        emoteHeader:ClearAllPoints()
-        hearHeader:ClearAllPoints()
+    -- Each section ends with its frequency sliders, under the editor when the
+    -- editor is open there and under the picker when it isn't. The headers
+    -- below hang off the last slider, so they follow.
+    local emoteChance = castPanel.emoteChance
+    if castChanceSlider and emoteChance and castSpellDropdown and emoteDrop and castStatus then
+        castChanceSlider:ClearAllPoints()
+        emoteChance:ClearAllPoints()
+        -- castStatus sits 6px in from the section's left edge.
         if emoteActive then
-            emoteHeader:SetPoint("TOPLEFT", castSpellDropdown, "BOTTOMLEFT", 0, -30)
-            hearHeader:SetPoint("TOPLEFT", castStatus, "BOTTOMLEFT", -6, -28)
+            castChanceSlider:SetPoint("TOPLEFT", castSpellDropdown, "BOTTOMLEFT", 4, -34)
+            emoteChance:SetPoint("TOPLEFT", castStatus, "BOTTOMLEFT", -2, -34)
         else
-            emoteHeader:SetPoint("TOPLEFT", castStatus, "BOTTOMLEFT", -6, -28)
-            hearHeader:SetPoint("TOPLEFT", emoteDrop, "BOTTOMLEFT", 0, -30)
+            castChanceSlider:SetPoint("TOPLEFT", castStatus, "BOTTOMLEFT", -2, -34)
+            emoteChance:SetPoint("TOPLEFT", emoteDrop, "BOTTOMLEFT", 4, -34)
         end
     end
 
@@ -4623,7 +4884,7 @@ local function RefreshChallenge()
         -- descriptions are two, four and six lines, so a fixed height is
         -- either too tall for Easy or too short for Hard, and too short
         -- means the requirements below are printed over the end of it.
-        if CH.tierBlurb.GetStringHeight then
+        if CH.tierBlurb.GetStringHeight and not CH.tierBlurb._tucked then
             local h = CH.tierBlurb:GetStringHeight() or 0
             CH.tierBlurb:SetHeight(math.max(32, math.ceil(h) + 2))
         end
@@ -4744,6 +5005,7 @@ local function BuildChallengePanel()
         .. "thing. Nothing here is needed to use immersion normally -- the "
         .. "ordinary switches are on |cffffd200Settings > Immersion|r and work "
         .. "on their own.")
+    panel.pageInfo = Compat.Collapse(subtitle)
 
     CH.panelStatus = content:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
     CH.panelStatus:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -14)
@@ -4759,6 +5021,7 @@ local function BuildChallengePanel()
     blurb:SetJustifyH("LEFT")
     if blurb.SetWordWrap then blurb:SetWordWrap(true) end
     blurb:SetText((def and def.blurb) or "")
+    Compat.Tuck(content, blurb, nameLabel)
 
     -- One dropdown and one description, rather than a checkbox and a
     -- paragraph per tier. Three stacked blurbs is three paragraphs of small
@@ -4788,6 +5051,7 @@ local function BuildChallengePanel()
     CH.tierBlurb:SetJustifyV("TOP")
     CH.tierBlurb:SetHeight(32)
     if CH.tierBlurb.SetWordWrap then CH.tierBlurb:SetWordWrap(true) end
+    Compat.Tuck(content, CH.tierBlurb, CH.tierDrop)
 
     CH.reqHeader = sectionHeader(content, "Before you can start", 32)
     CH.reqHeader:SetPoint("TOPLEFT", CH.tierBlurb, "BOTTOMLEFT", -2, -22)
@@ -4886,6 +5150,7 @@ local function BuildProfilePanel()
     subtitle:SetJustifyH("LEFT")
     if subtitle.SetWordWrap then subtitle:SetWordWrap(true) end
     subtitle:SetText("Copy this character's whole setup into a code you can paste onto another character, another realm, or another install. Useful before a beta ends, or to set up an alt in one step.")
+    profilePanel.pageInfo = Compat.Collapse(subtitle)
 
     -- Export
     local outLabel = sectionHeader(profilePanel, "Save a copy", 32)
@@ -4897,6 +5162,7 @@ local function BuildProfilePanel()
     outHint:SetJustifyH("LEFT")
     if outHint.SetWordWrap then outHint:SetWordWrap(true) end
     outHint:SetText("Includes your language, fluency, accents, channels, cast phrases, invented languages and the shared colour palette. Keep the code somewhere outside the game.")
+    Compat.Tuck(profilePanel, outHint, outLabel)
 
     profileOutput = CreateFrame("EditBox", "TonguesOfAzerothProfileOut", profilePanel, "InputBoxTemplate")
     profileOutput:SetPoint("TOPLEFT", outHint, "BOTTOMLEFT", 6, -8)
@@ -4926,6 +5192,7 @@ local function BuildProfilePanel()
     inHint:SetJustifyH("LEFT")
     if inHint.SetWordWrap then inHint:SetWordWrap(true) end
     inHint:SetText("Paste a code and press Import. This replaces everything on this character, so you will be asked to confirm first.")
+    Compat.Tuck(profilePanel, inHint, inLabel)
 
     profileInput = CreateFrame("EditBox", "TonguesOfAzerothProfileIn", profilePanel, "InputBoxTemplate")
     profileInput:SetPoint("TOPLEFT", inHint, "BOTTOMLEFT", 6, -8)
@@ -4980,6 +5247,7 @@ local function BuildCastPanel()
     subtitle:SetJustifyH("LEFT")
     if subtitle.SetWordWrap then subtitle:SetWordWrap(true) end
     subtitle:SetText("Speak a line of your own when a spell lands or you emote -- Corvin roars \"Nuk'luk!\" -- in whatever tongue you're currently speaking. Words in \"quotes\" are spoken aloud and get translated; the rest is narration and stays in English. A phrase goes out as an emote, so it is only translated while |cffffd200Emote|r is ticked under |cffffd200Chat Channels|r.")
+    castPanel.pageInfo = Compat.Collapse(subtitle)
 
     local limits = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     limits:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -10)
@@ -4998,6 +5266,7 @@ local function BuildCastPanel()
     -- first two owns the selection; RefreshCasts moves the sections around it.
     local spellsHeader = sectionHeader(content, "Spells")
     spellsHeader:SetPoint("TOPLEFT", limits, "BOTTOMLEFT", 0, -24)
+    Compat.Tuck(content, limits, spellsHeader)
 
     castEnableCheck = Compat.CreateCheckbox(content, "Speak a phrase when I cast something")
     castEnableCheck:SetPoint("TOPLEFT", spellsHeader, "BOTTOMLEFT", 0, -8)
@@ -5012,8 +5281,11 @@ local function BuildCastPanel()
         castDB().pets = self:GetChecked() and true or false
     end)
 
+    -- How often and how quietly come after the spells themselves: you set up
+    -- what a spell says before you tune how often it says it. RefreshCasts
+    -- hangs these under the phrase editor, or under the picker when the
+    -- editor is open on an emote instead.
     castChanceSlider = Compat.CreateSlider(content, 0, 100, 5, "How often", "0 - Never", "100 - Every cast")
-    castChanceSlider:SetPoint("TOPLEFT", castPetCheck, "BOTTOMLEFT", 4, -34)
     castChanceSlider:SetWidth(320)
     castChanceSlider:SetScript("OnValueChanged", function(self, value)
         value = math.floor(value / 5 + 0.5) * 5
@@ -5045,10 +5317,13 @@ local function BuildCastPanel()
     throttleHint:SetJustifyH("LEFT")
     if throttleHint.SetWordWrap then throttleHint:SetWordWrap(true) end
     throttleHint:SetText("The two pauses are what keep a spammable spell from turning your emotes into a wall of text. A cast that rolls a phrase while either pause is running simply stays quiet.")
+    Compat.Tuck(content, throttleHint, castGapSlider.titleText)
 
     --  The spell being edited --------------------------------------------
     castFilterSpellbookCheck = Compat.CreateCheckbox(content, "Only show spells I can cast")
-    castFilterSpellbookCheck:SetPoint("TOPLEFT", throttleHint, "BOTTOMLEFT", 0, -14)
+    castFilterSpellbookCheck:SetPoint("TOPLEFT", castPetCheck, "BOTTOMLEFT", 0, -10)
+    castChanceSlider:SetPoint("TOPLEFT", castStatus or castMuteCheck or castFilterSpellbookCheck,
+        "BOTTOMLEFT", 4, -34)
     castFilterSpellbookCheck:SetScript("OnClick", function(self)
         castDB().filterSpellbook = self:GetChecked() and true or false
         RefreshCasts()
@@ -5117,6 +5392,7 @@ local function BuildCastPanel()
     castWeightHeader:SetJustifyH("LEFT")
     if castWeightHeader.SetWordWrap then castWeightHeader:SetWordWrap(true) end
     castWeightHeader:SetText("The |cffffd200%|r on each line is how much it is favoured, not a share of a hundred -- two lines at 100% are a coin toss. Nudge it with |cffffd200-|r and |cffffd200+|r; take a line down to |cffffd200off|r to keep it in the list but never say it. |cffffd200Remove|r takes it out of the list altogether.")
+    Compat.Tuck(content, castWeightHeader, nil, "What the % means")
 
     castEmptyNote = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     castEmptyNote:SetJustifyH("LEFT")
@@ -5231,9 +5507,10 @@ local function BuildCastPanel()
             parts[#parts + 1] = entry.token .. " = " .. entry.desc
         end
         tokenHint:SetText("A phrase continues the sentence \"" ..
-            (UnitName("player") or "You") .. " ...\", so start with a verb.  " ..
-            table.concat(parts, "   "))
+            (UnitName("player") or "You") .. " ...\", so start with a verb.\n\n" ..
+            table.concat(parts, "\n"))
     end
+    Compat.Tuck(content, tokenHint, nil, "Writing a phrase")
 
     castPanel.tokenHint = tokenHint
 
@@ -5270,7 +5547,7 @@ local function BuildCastPanel()
     -- Everything here is kept on castPanel rather than in file locals: UI.lua's
     -- main chunk is at Lua's 200-local ceiling. Positioned by RefreshCasts.
     local emoteHeader = sectionHeader(content, "Emotes")
-    emoteHeader:SetPoint("TOPLEFT", castStatus, "BOTTOMLEFT", -6, -28)
+    emoteHeader:SetPoint("TOPLEFT", castSpellGapSlider, "BOTTOMLEFT", -4, -56)
     castPanel.emoteHeader = emoteHeader
 
     local emoteCheck = Compat.CreateCheckbox(content, "Speak a phrase when I emote (/hello, /bow, ...)")
@@ -5280,8 +5557,9 @@ local function BuildCastPanel()
     end)
     castPanel.emoteCheck = emoteCheck
 
+    -- Placed by RefreshCasts, under the emote picker or the editor, the same
+    -- way as the spell sliders above.
     local emoteChance = Compat.CreateSlider(content, 0, 100, 5, "How often for emotes", "0 - Never", "100 - Every emote")
-    emoteChance:SetPoint("TOPLEFT", emoteCheck, "BOTTOMLEFT", 4, -34)
     emoteChance:SetWidth(320)
     emoteChance:SetScript("OnValueChanged", function(self, value)
         value = math.floor(value / 5 + 0.5) * 5
@@ -5316,9 +5594,11 @@ local function BuildCastPanel()
     emoteHint:SetJustifyH("LEFT")
     if emoteHint.SetWordWrap then emoteHint:SetWordWrap(true) end
     emoteHint:SetText("Separate from the spell pauses, so a cast line never silences an emote. Pick an emote to see or change what it says -- or type one that isn't listed.")
+    Compat.Tuck(content, emoteHint, emoteHeader)
 
     local emoteDrop = Compat.CreateDropdown(content, 240)
-    emoteDrop:SetPoint("TOPLEFT", emoteHint, "BOTTOMLEFT", 0, -10)
+    emoteDrop:SetPoint("TOPLEFT", emoteCheck, "BOTTOMLEFT", 0, -10)
+    emoteChance:SetPoint("TOPLEFT", emoteDrop, "BOTTOMLEFT", 4, -34)
     emoteDrop.onSelect = function(value)
         castLeaveEdit()
         castSelectedKey = value
@@ -5364,7 +5644,7 @@ local function BuildCastPanel()
     castPanel.emoteMute = emoteMute
 
     local hearLabel = sectionHeader(content, "Hearing other players")
-    hearLabel:SetPoint("TOPLEFT", emoteDrop, "BOTTOMLEFT", 0, -30)
+    hearLabel:SetPoint("TOPLEFT", emoteSameGap, "BOTTOMLEFT", -4, -56)
     castPanel.hearHeader = hearLabel
 
     local hearIntro = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
@@ -5373,6 +5653,7 @@ local function BuildCastPanel()
     hearIntro:SetJustifyH("LEFT")
     if hearIntro.SetWordWrap then hearIntro:SetWordWrap(true) end
     hearIntro:SetText("A pinned line is a number, not a sound file, so Glyphic can tell other people running it which of their own recordings to play -- and they can tell you. You only ever hear it if their emote reached you, which keeps it to people you are standing with.")
+    Compat.Tuck(content, hearIntro, hearLabel)
 
     local HEAR_ROWS = {
         { key = "PARTY",  label = "Play lines from my party" },
@@ -5392,9 +5673,9 @@ local function BuildCastPanel()
         hearAnchor, hearGap = check, -6
     end
 
-    -- Why the last box is greyed out on Retail. Written as its own line rather
-    -- than folded into a tooltip: a disabled tick with no explanation reads as
-    -- a broken addon, and this one is disabled for a reason nobody could guess.
+    -- Why the last box is greyed out on Retail. A disabled tick with no
+    -- explanation reads as a broken addon, and this one is disabled for a
+    -- reason nobody could guess, so the icon sits on the box itself.
     local hearNearbyNote = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     hearNearbyNote:SetPoint("TOPLEFT", castHearChecks.NEARBY, "BOTTOMLEFT", 26, -2)
     hearNearbyNote:SetPoint("RIGHT", content, "RIGHT", -24, 0)
@@ -5405,6 +5686,7 @@ local function BuildCastPanel()
     else
         hearNearbyNote:SetText("Not available on this version of the game: it only lets addons talk to players you are grouped or guilded with, so a stranger's line cannot reach you at all.")
     end
+    Compat.Tuck(content, hearNearbyNote, castHearChecks.NEARBY.labelText)
 
     castPanel._lastChild = hearNearbyNote
     castPanel.refresh = RefreshCasts
@@ -5435,22 +5717,29 @@ local function BuildPanels()
     -- so their places are held here by name and filled in when they arrive.
     -- The list is drawn in the order entries were made, not the order pages
     -- turned up, and an entry with no page yet is simply not drawn.
+    --
+    -- The pages you play with sit on parchment; the Settings pages stay on
+    -- the plain dark ground, so the two halves of the list look different
+    -- once you are in them as well as in the list.
+    -- Lighter than the other pages: everything to read on it is in a dark box.
+    Compat.AddPage(V.BuildHome(), "Glyphic", nil, { background = "parchment", shade = 0.85 })
+
     BuildMainPanel()
-    Compat.AddPage(mainPanel, mainPanel.name)
+    Compat.AddPage(mainPanel, mainPanel.name, nil, V.PARCHMENT)
 
     BuildLearnedPanel()
-    Compat.AddPage(learnedPanel, learnedPanel.name)
+    Compat.AddPage(learnedPanel, learnedPanel.name, nil, V.PARCHMENT)
 
     BuildAccentPanel()
-    Compat.AddPage(accentPanel, accentPanel.name)
+    Compat.AddPage(accentPanel, accentPanel.name, nil, V.PARCHMENT)
 
     BuildCastPanel()
-    Compat.AddPage(castPanel, castPanel.name)
+    Compat.AddPage(castPanel, castPanel.name, nil, V.PARCHMENT)
 
     Compat.AddPageGroup("Language Trainer")
 
     BuildCustomPanel()
-    Compat.AddPage(customPanel, customPanel.name)
+    Compat.AddPage(customPanel, customPanel.name, nil, V.PARCHMENT)
 
     if ns.Challenge then BuildChallengePanel() end
     Compat.AddPageGroup("Challenges", { ruleAbove = true })
@@ -5491,7 +5780,7 @@ local function RegisterTrainerPanel()
     local trainer = ns.BuildTrainerPanel()
     -- nil means BuildTrainerPanel already reported why in chat.
     if not trainer then return end
-    Compat.AddPage(trainer, trainer.name)
+    Compat.AddPage(trainer, trainer.name, nil, V.PARCHMENT)
     trainerRegistered = true
 end
 ns.EnsureTrainerPanel = RegisterTrainerPanel
@@ -5508,7 +5797,7 @@ local function RegisterChallengePanel()
     if challengeRegistered or not CH.panel then return end
     BuildPanels()
     -- Into the place BuildPanels held for it, under its rule.
-    Compat.AddPage(CH.panel, CH.panel.name)
+    Compat.AddPage(CH.panel, CH.panel.name, nil, V.PARCHMENT)
     challengeRegistered = true
 end
 ns.EnsureChallengePanel = RegisterChallengePanel
@@ -5535,6 +5824,7 @@ ns.OnSettingsChanged = function()
     -- fires on every write a panel makes, which is exactly the moment a
     -- locked setting would have moved.
     if ns.Challenge and ns.Challenge.Audit then ns.Challenge.Audit() end
+    if V.homePanel and V.homePanel:IsVisible() then V.RefreshHome() end
     if mainPanel and mainPanel:IsVisible() then RefreshMain() end
     if learnedPanel and learnedPanel:IsVisible() then RefreshLearned() end
     if chatPanel and chatPanel:IsVisible() then RefreshChat() end
@@ -5565,12 +5855,18 @@ end
 -- drags, Make Fluent / Reset). Only touches visible panels and, crucially, does
 -- NOT rebuild the language dropdown list (unlike OnSettingsChanged).
 ns.RefreshFluencyIfShown = function()
+    if V.homePanel and V.homePanel:IsVisible() then V.RefreshHome() end
     if mainPanel and mainPanel:IsVisible() then RefreshMain() end
     if learnedPanel and learnedPanel:IsVisible() then RefreshLearned() end
     RefreshLanguageWidget()
 end
 
 function ns.OpenConfig()
+    BuildPanels()
+    Compat.OpenOptionsPanel(V.homePanel)
+end
+
+function ns.OpenVoiceConfig()
     BuildPanels()
     Compat.OpenOptionsPanel(mainPanel)
 end

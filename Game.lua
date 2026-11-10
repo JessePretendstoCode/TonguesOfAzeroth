@@ -726,19 +726,32 @@ local function build()
     hint:SetPoint("LEFT", f, "LEFT", 20, 0)
     hint:SetPoint("RIGHT", f, "RIGHT", -20, 0)
     hint:SetJustifyH("CENTER")
-    hint:SetText("Green = right letter & spot, Yellow = right letter wrong spot, Gray = not in word.\nHarder words and longer streaks earn more fluency. Reveal gives up (and resets the streak).")
+    hint:SetText("|cff6fc25aGreen|r: right letter, right spot.\n"
+        .. "|cffe0c040Yellow|r: right letter, wrong spot.\n"
+        .. "|cff999999Gray|r: not in the word.\n\n"
+        .. "Harder words and longer streaks earn more fluency. Reveal gives up, "
+        .. "and resets the streak.")
+    Compat.Tuck(f, hint, clueLabel)
+    f.pageInfo = "Guess a word of the tongue you are learning, one letter "
+        .. "at a time, and each solve raises your fluency in it. The colours "
+        .. "on each guess say how close it came.\n\n"
+        .. "Solving words here, overhearing the tongue, and finishing quests "
+        .. "all feed the same fluency number you see on the Languages page."
 
     -- The other way to earn fluency, so it belongs on the panel about earning
     -- fluency rather than on the one that only displays it. Solving words here
     -- and overhearing a tongue out in the world feed the same number.
-    passiveCheck = Compat.CreateCheckbox(f, "Passive learning -- overhearing a tongue slowly builds your fluency in it")
+    passiveCheck = Compat.CreateCheckbox(f, "Learn by overhearing")
+    Compat.InfoButton(passiveCheck, "Hearing a tongue spoken around you slowly "
+        .. "builds your fluency in it, without opening the trainer.")
+        :SetPoint("LEFT", passiveCheck.labelText, "RIGHT", 6, 0)
     -- Centered like everything else on this panel, which takes arithmetic: the
     -- box is a 24px frame with its label hung off the right edge, so anchoring
     -- the frame to the middle centers the box and pushes the words off to one
     -- side. Shift left by half the label to center the pair instead.
     local passiveShift = 0
     if passiveCheck.labelText and passiveCheck.labelText.GetStringWidth then
-        passiveShift = -((passiveCheck.labelText:GetStringWidth() or 0) / 2) - 1
+        passiveShift = -((passiveCheck.labelText:GetStringWidth() or 0) / 2) - 12
     end
     local learnRule = Compat.Divider(f)
     learnRule:SetPoint("TOPLEFT", hint, "BOTTOMLEFT", 0, -8)
@@ -753,11 +766,10 @@ local function build()
     -- The third way in, and the only one that works for somebody playing
     -- alone: overhearing needs other people talking, and the trainer needs
     -- you to stop playing and come here.
-    questCheck = Compat.CreateCheckbox(f,
-        "Learn from quests -- finishing one teaches a word of its giver's tongue")
+    questCheck = Compat.CreateCheckbox(f, "Learn from quests")
     local questShift = 0
     if questCheck.labelText and questCheck.labelText.GetStringWidth then
-        questShift = -((questCheck.labelText:GetStringWidth() or 0) / 2) - 1
+        questShift = -((questCheck.labelText:GetStringWidth() or 0) / 2) - 12
     end
     questCheck:SetPoint("TOP", passiveCheck, "BOTTOM", questShift - passiveShift, -4)
     questCheck:SetScript("OnClick", function(self)
@@ -772,8 +784,10 @@ local function build()
     questHint:SetJustifyH("CENTER")
     -- The number is the point: a tongue takes as many quests as it has words,
     -- so saying "about a hundred" is both true and the whole design.
-    questHint:SetText("One word per quest, so a tongue takes about a hundred of them."
-        .. "\nGreen or better while you are levelling; at the level cap, any quest counts.")
+    questHint:SetText("Finishing a quest teaches you a word of its giver's tongue. "
+        .. "One word per quest, so a tongue takes about a hundred of them.\n\n"
+        .. "Green or better while you are levelling; at the level cap, any quest counts.")
+    Compat.Tuck(f, questHint, questCheck.labelText)
 
     -- Match the grid to the saved difficulty before the first round.
     applyLength(diffFor(DB().difficulty).len)
