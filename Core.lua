@@ -440,8 +440,21 @@ local function migrateDB()
     -- Include a fluency adjective in that tag (Broken/Partial/Fluent) based on
     -- your Language Trainer progress for the spoken language. This prefix stays
     -- optional (see the "Show fluency in tag" checkbox).
+    --
+    -- Off by default from 0.6.6. "[Broken Orcish]" is read by everyone in
+    -- /say, most of whom do not run Glyphic, and enough of them took it for
+    -- the addon reporting a fault that it became the most common complaint
+    -- about it. The words themselves cannot simply change: every client
+    -- already out there strips exactly these four before looking the tongue
+    -- up, so a new adjective would make the line undecodable for anyone who
+    -- has not updated. Leaving it off keeps the tag "[Orcish]", which every
+    -- version reads. Applied once, so turning it back on sticks.
     if db.tagFluency == nil then
-        db.tagFluency = true
+        db.tagFluency = false
+    end
+    if not db.tagFluencyDefaultedOff then
+        db.tagFluencyDefaultedOff = true
+        db.tagFluency = false
     end
     -- Hiding the tongues your race already speaks is gone. It was off by
     -- default from 0.5.5 because it read as the addon being broken -- a night
@@ -3224,7 +3237,7 @@ local function listLearned()
         end
     end
     if not any then
-        Print("  |cffff0000(none)|r - check languages under Interface -> AddOns -> Languages & Fluency")
+        Print("  |cffff0000(none)|r - check languages under /glyphic -> Languages")
     end
 end
 

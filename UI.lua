@@ -1,27 +1,33 @@
 --[[-------------------------------------------------------------------------
     Glyphic - UI.lua
-    In-game configuration registered under the game's AddOns options.
+    In-game configuration. Every page lives in Glyphic's own window (TRP's
+    shape: pages down the left, one on show); the game's Settings tree gets a
+    single launcher page with an "Open Glyphic" button.
 
-    Each panel answers one question, which is what decides where a setting goes:
+    Each page answers one question, which is what decides where a setting goes:
 
-      * Main -- what am I speaking right now? Auto-translate, language, fluency,
-        preview, and the addon's own furniture (minimap button, floating bar).
+      * Glyphic (home) -- what do I sound like right now? In character,
+        Speaking, Native dialect and Accent as rows, then a sentence saying
+        what those add up to and a preview that runs the real outgoing path.
       * Languages -- how is each tongue set up? The per-language list: what you
         understand, how fluently, and what color it reads in.
-      * Chat -- where does translation apply, and how does it read? Split by the
-        two directions the pipeline runs in: what leaves your keyboard
-        (channels, tag, instances) and what arrives in your window (decode
-        style, output frame).
-      * Accents, Cast Phrases, Create Language -- self-contained jobs.
+      * Accents, Cast Phrases, Language Trainer, Create Language, Challenges --
+        self-contained jobs.
+      * Settings -- the things a player sets once: General (minimap, bar),
+        Chat Channels (where you speak in character, names and colors),
+        Immersion, Advanced (the fluency word in the tag, instances, how
+        decoded speech arrives) and Profiles.
 
-    A setting that answers none of those, or two of them, is a sign the grouping
-    is wrong rather than an invitation to append it to whichever panel is
-    nearest; that is how the main panel previously came to hold seven unrelated
-    checkboxes in a flat stack.
+    Advanced holds what a new player can leave alone, never what they came
+    for: the native dialect was kept on the home page on purpose, and made
+    clear there rather than hidden. A setting that answers none of these
+    questions, or two, means the grouping needs revisiting rather than an
+    append to whichever page is nearest.
 
-    All widgets come from ns.Compat, so the same panel renders in the Settings
-    tree and in our standalone window, with no reliance on UIDropDownMenu or
-    templates that retail has removed.
+    Rows are icon, label, control at the right edge (Compat.OptionRow /
+    CheckRow); explanations go behind the info icon, not printed under the
+    control. All widgets come from ns.Compat, with no reliance on
+    UIDropDownMenu or templates that retail has removed.
 ---------------------------------------------------------------------------]]
 
 local ADDON, ns = ...
@@ -52,8 +58,7 @@ local DECODE_STYLES = {
 }
 
 local mainPanel, learnedPanel, accentPanel, customPanel
-local chatPanel, chatContent
-local mainContent
+local chatPanel
 local langDropdown, motherDropdown, enableCheck, previewInput, previewOutput
 local voiceText, voiceHint
 local minimapCheck, fluencyCheck, autoDisableCheck
@@ -63,6 +68,10 @@ local immersionCheck, immersionNPCCheck, immersionQuestCheck, immersionChannelCh
 -- and its widgets, and the two greying helpers -- shares one table instead of
 -- taking a name each.
 local CH = {}
+-- The same arrangement for the window's pages: the home page's status rows,
+-- the second voice readout, and the three settings pages that have no
+-- business taking a local each.
+local V = { voices = {} }
 local namesCheck, nameColorCheck
 local widgetCheck, widgetLockCheck
 local accentDropdown, accentSlider, accentValueText
@@ -160,7 +169,9 @@ local function db()
     if GlyphicDB.widget.y == nil then GlyphicDB.widget.y = -140 end
     if GlyphicDB.outputFrame == nil then GlyphicDB.outputFrame = 0 end
     GlyphicDB.tagLanguage = true
-    if GlyphicDB.tagFluency == nil then GlyphicDB.tagFluency = true end
+    -- Off, and Core turns it off once for profiles that already had it on;
+    -- see migrateDB for why.
+    if GlyphicDB.tagFluency == nil then GlyphicDB.tagFluency = false end
     if not GlyphicDB.accent then GlyphicDB.accent = {} end
     if GlyphicDB.accent.strength == nil then GlyphicDB.accent.strength = 100 end
     if GlyphicDB.accent.emotes == nil then GlyphicDB.accent.emotes = false end
@@ -205,10 +216,20 @@ local function fluencyAdjective(pct)
 end
 
 local function refreshPreview()
+    -- Every preview on every page, not only the one being typed in: they
+    -- show the same voice, and one left stale on a page you go back to is
+    -- the preview disagreeing with itself.
+    for i = 1, #V.voices do
+        local v = V.voices[i]
+        if v.input and v.output then v.output:SetText(V.previewLine(v.input:GetText())) end
+    end
     if not (previewInput and previewOutput) then return end
+    previewOutput:SetText(V.previewLine(previewInput:GetText()))
+end
+
+function V.previewLine(src)
     local d = db()
-    local src = previewInput:GetText()
-    if src == "" then src = SAMPLE end
+    if src == nil or src == "" then src = SAMPLE end
 
     -- Run the real outgoing path rather than translating by hand, so the
     -- preview shows the composed voice -- tongue first, accent over whatever
@@ -232,7 +253,7 @@ local function refreshPreview()
     -- preview answers "did my name survive that?" without having to go and say
     -- it to someone.
     if ns.Names then out = ns.Names.Highlight(out) end
-    previewOutput:SetText(out)
+    return out
 end
 
 local function speakingName(id)
@@ -283,7 +304,81 @@ local function RefreshVoice()
         voiceHint:SetText(d.inCharacter and ""
             or "|cffff8080Out of character -- none of this is applied to your chat right now.|r")
     end
+    for i = 1, #V.voices do
+        local v = V.voices[i]
+        if v.sentence then v.sentence:SetText(V.voiceSentence()) end
+    end
     refreshPreview()
+end
+
+-- What Speaking, Native dialect and the accent add up to, said in words.
+--
+-- Three dropdowns that each change what the others do were the commonest
+-- confusion the addon had: a native dialect set alongside a language reads
+-- as two languages competing, when it is the one filling in for the other,
+-- and with None selected it is the whole voice. The explanation used to live
+-- behind an icon. It lives under the dropdowns now, and is rebuilt from the
+-- settings every time they move, so it cannot describe a voice you do not
+-- have.
+function V.voiceSentence()
+    local d = db()
+    if not d.inCharacter then
+        return "|cffff8080Out of character.|r Your chat goes out exactly as you type it: "
+            .. "no language and no accent."
+    end
+    local function w(s) return "|cffffffff" .. s .. "|r" end
+    local accentOn = Accent and d.accent and d.accent.id ~= Accent.NONE
+    local accentName = accentOn and Accent.GetAccentName(d.accent.id) or nil
+    local native = ns.GetMotherTongue and ns.GetMotherTongue()
+    local nativeName = native and Language.GetLanguageName(native)
+    -- Only a running challenge drains the native dialect; everywhere else it
+    -- covers every word handed to it.
+    local nativePct = native and ns.GetMotherStrength and ns.GetMotherStrength() or 100
+    if native and nativePct < 100 then
+        nativeName = string.format("%s (%d%% of it, while your challenge lasts)",
+            nativeName, math.floor(nativePct + 0.5))
+    end
+
+    local first, englishLeft
+    if Language.IsNoTongue(d.language) then
+        if native then
+            first = "Every word comes out in " .. w(nativeName)
+                .. ", your native dialect, because you aren't speaking another language over it."
+            englishLeft = false
+        else
+            first = "You speak plain English."
+            englishLeft = true
+        end
+    elseif Language.IsPlain(d.language) then
+        first = "You speak " .. w(Language.GetLanguageName(d.language))
+            .. ", which everyone reads as plain English."
+        englishLeft = true
+    else
+        local pct = fluencyPct(d.language)
+        local name = w(Language.GetLanguageName(d.language))
+        if pct >= 100 then
+            first = "You speak " .. name .. " fluently, so every word comes out in it."
+            englishLeft = false
+        elseif native then
+            first = string.format("You speak %s at %d%% fluency. The words you haven't "
+                .. "learned yet come out in %s, your native dialect, instead of English.",
+                name, pct, w(nativeName))
+            englishLeft = false
+        else
+            first = string.format("You speak %s at %d%% fluency. The words you haven't "
+                .. "learned yet stay in English.", name, pct)
+            englishLeft = true
+        end
+    end
+
+    local second
+    if accentOn and englishLeft then
+        second = "Your " .. w(accentName) .. " accent shapes the English."
+    elseif accentOn then
+        second = "Your " .. w(accentName) .. " accent only changes English words, and "
+            .. "there are none left for it."
+    end
+    return second and (first .. " " .. second) or first
 end
 
 local function langItems()
@@ -550,59 +645,82 @@ function CH.shortStatus()
         .. tostring(record.level or "?") .. "|r"
 end
 
--- The lock row only means anything while the bar is shown, so it comes and
--- goes. The Challenges block below it is anchored to the row rather than to
--- whichever control is currently last, so hiding the row leaves a gap rather
--- than shuffling the section -- which is the cheaper of the two wrongs, and
--- the one that cannot put a heading through a checkbox.
-local function layoutMainWidgetLock()
-    if not (mainPanel and widgetCheck) then return end
-    local d = db()
-    local barOn = d.widget and d.widget.enabled and true or false
-    if widgetLockCheck then widgetLockCheck:SetShown(barOn) end
-    mainPanel._lastChild = (barOn and widgetLockCheck) or widgetCheck
+-- Sizes a page's scroll child to the bottom of its last element, so it
+-- scrolls exactly as far as there is something to see. Falls back to the
+-- generous height set at creation while geometry is not ready yet.
+function V.sizePage(panel)
+    local content = panel and panel._content
+    if not (content and content.SetContentHeight and panel._lastChild) then return end
+    local top, bot = content:GetTop(), panel._lastChild:GetBottom()
+    if top and bot and top > bot then content:SetContentHeight(top - bot + 20) end
 end
 
-local function RefreshMain()
-    if not mainPanel then return end
+-- The lock row only means anything while the bar is shown, so it comes and
+-- goes. It is the last row on its page, so hiding it shortens the page
+-- rather than leaving a hole in the middle of it.
+local function layoutMainWidgetLock()
+    if not (V.generalPanel and widgetCheck) then return end
+    local d = db()
+    local barOn = d.widget and d.widget.enabled and true or false
+    if widgetLockCheck then widgetLockCheck.row:SetShown(barOn) end
+    V.generalPanel._lastChild = (barOn and widgetLockCheck.row) or widgetCheck.row
+end
+
+function V.RefreshGeneral()
+    if not V.generalPanel then return end
     local d = db()
     if minimapCheck then minimapCheck:SetChecked(not d.minimap.hide) end
     if widgetCheck then widgetCheck:SetChecked(d.widget.enabled and true or false) end
     if widgetLockCheck then
         widgetLockCheck:SetChecked(d.widget.locked and true or false)
-        widgetLockCheck:SetShown(d.widget.enabled and true or false)
     end
     layoutMainWidgetLock()
+    V.sizePage(V.generalPanel)
+end
+
+local function RefreshMain()
+    if not mainPanel then return end
+    local d = db()
     enableCheck:SetChecked(d.inCharacter)
     -- Refused in Core either way; this is so nobody clicks it twice.
     CH.setLocked(enableCheck, CH.lockedBy("inCharacter"))
 
-    local short = CH.shortStatus and CH.shortStatus()
-    if CH.status then
-        CH.status:SetText(short or "")
-        CH.status:SetShown(short ~= nil)
+    if langDropdown then
+        langDropdown:SetSelected(d.language, speakingName(d.language))
     end
-    if CH.button then CH.button:SetShown(ns.Challenge ~= nil) end
-    if CH.rule then CH.rule:SetShown(ns.Challenge ~= nil) end
-
-    -- Size the scroll child to the actual bottom of the last element (accounts
-    -- for the floating-bar lock row appearing/disappearing). Falls back to the
-    -- generous default set at creation if geometry isn't ready yet.
-    --
-    -- Both columns are measured, not just the settings stack. The nav list on
-    -- the right grew past it once already and the panel simply stopped
-    -- scrolling far enough to reach the last button, with nothing on screen
-    -- to say why.
-    if mainContent and mainContent.SetContentHeight and mainPanel._lastChild then
-        local top = mainContent:GetTop()
-        local bot = mainPanel._lastChild:GetBottom()
-        local navBot = (short and CH.status and CH.status:GetBottom())
-            or (CH.button and CH.button:IsShown() and CH.button:GetBottom())
-        if navBot and (not bot or navBot < bot) then bot = navBot end
-        if top and bot and top > bot then
-            mainContent:SetContentHeight(top - bot + 20)
+    if motherDropdown then
+        local m = d.motherTongue
+        motherDropdown:SetSelected(m or "",
+            m and Language.GetLanguageName(m) or "None")
+        -- The fallback tongue decides what an unknown word turns into, so it
+        -- is a difficulty setting wearing a preference's clothes. The
+        -- dropdown is a Button underneath, so disabling it stops the menu
+        -- opening rather than only dimming it.
+        local motherLocked = CH.lockedBy("motherTongue")
+        CH.setLocked(motherDropdown, motherLocked)
+        motherDropdown:SetAlpha(motherLocked and 0.4 or 1)
+    end
+    if V.accentDropdown and Accent then
+        local items = V.accentItems and V.accentItems() or {}
+        if V.accentCount ~= #items then
+            V.accentCount = #items
+            V.accentDropdown:SetItems(items)
         end
+        V.accentDropdown:SetSelected(d.accent.id, Accent.GetAccentName(d.accent.id))
+        CH.setLocked(V.accentDropdown, CH.lockedBy("accent.id"))
     end
+
+    -- A run in progress is said on the Status heading's own line, and only
+    -- while there is one: a permanent "no challenge running" is a label for
+    -- the absence of a thing.
+    local short = CH.shortStatus and CH.shortStatus()
+    if V.challengeText then
+        V.challengeText:SetText(short or "")
+        V.challengeText:SetShown(short ~= nil)
+    end
+
+    RefreshVoice()
+    V.sizePage(mainPanel)
 end
 
 local function RefreshChat()
@@ -615,7 +733,6 @@ local function RefreshChat()
         -- would grey a box whose state the run did not choose.
         CH.setLocked(check, CH.lockedBy("channels." .. ch))
     end
-    if fluencyCheck then fluencyCheck:SetChecked(d.tagFluency ~= false) end
     if namesCheck then namesCheck:SetChecked(d.protectNames ~= false) end
     if nameColorCheck then
         nameColorCheck:SetChecked(d.colorNames ~= false)
@@ -630,6 +747,16 @@ local function RefreshChat()
             nameColorCheck.labelText:SetTextColor(0.5, 0.5, 0.5)
         end
     end
+    if colorTagCheck then colorTagCheck:SetChecked(colorTagCheck._get() and true or false) end
+    if colorSpeechCheck then colorSpeechCheck:SetChecked(colorSpeechCheck._get() and true or false) end
+    if colorRealCheck then colorRealCheck:SetChecked(colorRealCheck._get() and true or false) end
+    V.sizePage(chatPanel)
+end
+
+function V.RefreshAdvanced()
+    if not V.advancedPanel then return end
+    local d = db()
+    if fluencyCheck then fluencyCheck:SetChecked(d.tagFluency == true) end
     if autoDisableCheck then autoDisableCheck:SetChecked(d.autoDisableInInstances ~= false) end
     if decodeStyleDropdown then
         decodeStyleDropdown:SetSelected(d.decodeStyle, decodeStyleLabel(d.decodeStyle))
@@ -640,16 +767,38 @@ local function RefreshChat()
         outputDropdown:SetItems(outputItems())
         outputDropdown:SetSelected(d.outputFrame or 0, outputWindowLabel(d.outputFrame or 0))
     end
-    if colorTagCheck then colorTagCheck:SetChecked(colorTagCheck._get() and true or false) end
-    if colorSpeechCheck then colorSpeechCheck:SetChecked(colorSpeechCheck._get() and true or false) end
-    if colorRealCheck then colorRealCheck:SetChecked(colorRealCheck._get() and true or false) end
+    V.sizePage(V.advancedPanel)
+end
 
-    if chatContent and chatContent.SetContentHeight and chatPanel._lastChild then
-        local top, bot = chatContent:GetTop(), chatPanel._lastChild:GetBottom()
-        if top and bot and top > bot then
-            chatContent:SetContentHeight(top - bot + 20)
-        end
+function V.RefreshImmersion()
+    if not V.immersionPanel then return end
+    local d = db()
+    if immersionCheck then immersionCheck:SetChecked(d.fullImmersion and true or false) end
+    if immersionNPCCheck then immersionNPCCheck:SetChecked(d.immersionNPCs and true or false) end
+    if immersionQuestCheck then immersionQuestCheck:SetChecked(d.immersionQuests and true or false) end
+    if immersionChannelCheck then immersionChannelCheck:SetChecked(d.immersionChannels and true or false) end
+    if CH.trackerCheck then
+        CH.trackerCheck:SetChecked(d.immersionTracker and true or false)
     end
+    if CH.optionsCheck then
+        CH.optionsCheck:SetChecked(d.immersionGossipOptions and true or false)
+    end
+
+    -- The six switches a challenge publishes. Nothing here is enforcement --
+    -- the audit is -- but a run whose settings you can still click is a run
+    -- that looks optional.
+    CH.setLocked(immersionCheck,      CH.lockedBy("fullImmersion"))
+    CH.setLocked(immersionNPCCheck,   CH.lockedBy("immersionNPCs"))
+    CH.setLocked(immersionQuestCheck, CH.lockedBy("immersionQuests"))
+    CH.setLocked(immersionChannelCheck, CH.lockedBy("immersionChannels"))
+    CH.setLocked(CH.trackerCheck,     CH.lockedBy("immersionTracker"))
+    CH.setLocked(CH.optionsCheck,     CH.lockedBy("immersionGossipOptions"))
+    if CH.lockNote then
+        local reason = ns.Challenge and ns.Challenge.LockReason()
+        CH.lockNote:SetText(reason or "")
+        CH.lockNote:SetShown(reason ~= nil)
+    end
+    V.sizePage(V.immersionPanel)
 end
 
 -- Make sure there is a row for every primary language, and that learnedOrder
@@ -834,47 +983,6 @@ local function RefreshLearned()
             swatch:SetAlpha(ns.Colors.AnyEnabled() and 1 or 0.35)
         end
       end
-    end
-    if immersionCheck then immersionCheck:SetChecked(d.fullImmersion and true or false) end
-    if immersionNPCCheck then immersionNPCCheck:SetChecked(d.immersionNPCs and true or false) end
-    if immersionQuestCheck then immersionQuestCheck:SetChecked(d.immersionQuests and true or false) end
-    if immersionChannelCheck then immersionChannelCheck:SetChecked(d.immersionChannels and true or false) end
-    if CH.trackerCheck then
-        CH.trackerCheck:SetChecked(d.immersionTracker and true or false)
-    end
-    if CH.optionsCheck then
-        CH.optionsCheck:SetChecked(d.immersionGossipOptions and true or false)
-    end
-
-    -- The five switches a challenge publishes. Nothing here is enforcement --
-    -- the audit is -- but a run whose settings you can still click is a run
-    -- that looks optional.
-    CH.setLocked(immersionCheck,      CH.lockedBy("fullImmersion"))
-    CH.setLocked(immersionNPCCheck,   CH.lockedBy("immersionNPCs"))
-    CH.setLocked(immersionQuestCheck, CH.lockedBy("immersionQuests"))
-    CH.setLocked(immersionChannelCheck, CH.lockedBy("immersionChannels"))
-    CH.setLocked(CH.trackerCheck,     CH.lockedBy("immersionTracker"))
-    CH.setLocked(CH.optionsCheck,     CH.lockedBy("immersionGossipOptions"))
-    if CH.lockNote then
-        local reason = ns.Challenge and ns.Challenge.LockReason()
-        CH.lockNote:SetText(reason or "")
-        CH.lockNote:SetShown(reason ~= nil)
-    end
-
-    if langDropdown then
-        langDropdown:SetSelected(d.language, speakingName(d.language))
-    end
-    if motherDropdown then
-        local m = d.motherTongue
-        motherDropdown:SetSelected(m or "",
-            m and Language.GetLanguageName(m) or "None")
-        -- The fallback tongue decides what an unknown word turns into, so it
-        -- is a difficulty setting wearing a preference's clothes. The
-        -- dropdown is a Button underneath, so disabling it stops the menu
-        -- opening rather than only dimming it.
-        local motherLocked = CH.lockedBy("motherTongue")
-        CH.setLocked(motherDropdown, motherLocked)
-        motherDropdown:SetAlpha(motherLocked and 0.4 or 1)
     end
     RefreshVoice()
     -- Again at the end, not only inside the reflow: the preview line above the
@@ -1576,7 +1684,7 @@ local function SetupLanguageWidget()
             local n = (ns.GetFavorites and #ns.GetFavorites()) or 0
             if n == 0 then
                 GameTooltip:AddLine(
-                    "No favorites yet. Star a language on its row under Options -> Languages & Fluency.",
+                    "No favorites yet. Star a language on its row under Glyphic -> Languages.",
                     0.8, 0.8, 0.8, true)
             elseif db().favOnly then
                 GameTooltip:AddLine("On: scrolling walks your " .. n .. " favorite" ..
@@ -1638,6 +1746,17 @@ local function SetupLanguageWidget()
 end
 ns.SetupLanguageWidget = SetupLanguageWidget
 
+-- Puts the game's information icon beside a label or a checkbox, with the
+-- explanation behind it. `after` is the thing it sits to the right of; a
+-- checkbox is given by name rather than by its label, since the label is
+-- the part the icon actually has to clear.
+local function infoFor(parent, after, text)
+    local anchor = (type(after) == "table" and rawget(after, "labelText")) or after
+    local b = Compat.InfoButton(parent, text)
+    b:SetPoint("LEFT", anchor, "RIGHT", 6, 0)
+    return b
+end
+
 local function BuildMainPanel()
     mainPanel = Compat.CreateOptionsPanel("TonguesOfAzerothOptions")
     mainPanel.name = "Glyphic"
@@ -1645,18 +1764,7 @@ local function BuildMainPanel()
     -- Everything lives inside a scroll region so the panel never spills outside
     -- the options window, no matter how tall the layout gets. Anchor children to
     -- `content` (the scroll child), not to mainPanel.
-    local content = Compat.CreateScrollContent(mainPanel, 760)
-    mainContent = content
-
-    -- The nav column down the right, and how far the prose on the left has to
-    -- stop short of it. These were two unrelated numbers before and they
-    -- disagreed: the column is 170 wide sitting 16 off the right edge, so it
-    -- begins 186 in, while the text beside it was told to stop at 170 -- and
-    -- ran sixteen pixels underneath the buttons. Local to this function
-    -- because this is the only panel with a nav column, and the file is on
-    -- Lua's limit of two hundred locals.
-    local NAV = { W = 170, MARGIN = 16 }
-    NAV.TEXT_INSET = NAV.W + NAV.MARGIN + 14
+    local content = Compat.CreateScrollContent(mainPanel, 640)
 
     local title = content:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
     title:SetPoint("TOPLEFT", 16, -16)
@@ -1664,85 +1772,29 @@ local function BuildMainPanel()
 
     local subtitle = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -8)
-    subtitle:SetPoint("RIGHT", content, "RIGHT", -NAV.TEXT_INSET, 0)
+    subtitle:SetPoint("RIGHT", content, "RIGHT", -24, 0)
     subtitle:SetJustifyH("LEFT")
-    subtitle:SetText("Speak the languages of Azeroth in chat, Tongues-style.")
+    subtitle:SetText("Speak the languages of Azeroth in chat, Tongues-style. Hover "
+        .. "|TInterface\\FriendsFrame\\InformationIcon:14|t beside a setting for what it does.")
 
-    local function makeNavButton(label, onClick)
-        local btn = CreateFrame("Button", nil, content)
-        -- Wide enough for the longest label ("Languages & Fluency"); a
-        -- FontString that doesn't fit spills past the button's plate rather
-        -- than truncating, so the whole row has to size to the worst case.
-        Compat.PanelButton(btn, label, NAV.W, 24)
-        btn:SetScript("OnClick", onClick)
-        return btn
-    end
-
-    -- Nav buttons are stacked vertically down the right edge so a growing list
-    -- of sub-panels stays clear of the title on the left. The order matches
-    -- the order the same panels appear in Blizzard's settings tree, because
-    -- the two lists are the same list and somebody who learns one has learned
-    -- the other.
+    -- The landing page is the character's voice, the way TRP's is the
+    -- character's status: the handful of answers somebody changes in the
+    -- middle of playing, together, with the sentence that says what they add
+    -- up to. Everything set once and left alone is under Settings, and every
+    -- page is in the list down the left, so this page no longer carries a
+    -- column of buttons out to them.
     --
-    -- Opening a panel from here rather than only from the tree matters in the
-    -- standalone window, which has no tree to navigate.
-    local prev
-    local function stack(btn)
-        if prev then
-            btn:SetPoint("TOPRIGHT", prev, "BOTTOMRIGHT", 0, -4)
-        else
-            btn:SetPoint("TOPRIGHT", content, "TOPRIGHT", -NAV.MARGIN, -16)
-        end
-        prev = btn
-        return btn
-    end
+    -- Speaking, native dialect and accent sit together because they are one
+    -- voice. Apart -- the tongue on one page and the accent on another -- they
+    -- read as three unrelated settings, which is what made the interaction
+    -- between them so hard to follow.
+    local statusHeader = sectionHeader(content, "Status")
+    statusHeader:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -26)
 
-    stack(makeNavButton("Languages & Fluency", function()
-        if ns.OpenLearnedConfig then ns.OpenLearnedConfig() end
-    end))
-    stack(makeNavButton("Chat Channels", function()
-        if ns.OpenChatConfig then ns.OpenChatConfig() end
-    end))
-    stack(makeNavButton("Accents", function()
-        if ns.OpenAccentConfig then ns.OpenAccentConfig() end
-    end))
-    stack(makeNavButton("Create Language", function()
-        if ns.OpenCustomConfig then ns.OpenCustomConfig() end
-    end))
-    stack(makeNavButton("Cast Phrases", function()
-        if ns.OpenCastConfig then ns.OpenCastConfig() end
-    end))
-    stack(makeNavButton("Profiles", function()
-        if ns.OpenProfileConfig then ns.OpenProfileConfig() end
-    end))
-    local trainerBtn = stack(makeNavButton("Language Trainer", function()
-        if ns.OpenTrainer then ns.OpenTrainer() end
-    end))
-
-    -- Challenges goes at the foot of the same column but under a rule, which
-    -- is the whole of the distinction: everything above the line is somewhere
-    -- you go to tune the addon, and this is the one entry that changes what
-    -- the addon is doing. It is still a destination, so it belongs in the
-    -- list of destinations rather than wedged in among the checkboxes.
-    CH.rule = content:CreateTexture(nil, "ARTWORK")
-    CH.rule:SetHeight(1)
-    CH.rule:SetPoint("TOPRIGHT", trainerBtn, "BOTTOMRIGHT", 0, -10)
-    CH.rule:SetWidth(NAV.W)
-    Compat.SolidTexture(CH.rule, 1, 1, 1, 0.16)
-
-    CH.button = makeNavButton("Challenges", function()
-        if ns.OpenChallengeConfig then ns.OpenChallengeConfig() end
-    end)
-    CH.button:SetPoint("TOPRIGHT", CH.rule, "BOTTOMRIGHT", 0, -10)
-
-    -- One short line under the button, and only while something is happening.
-    -- A permanent "no challenge running" in the corner of the main panel is a
-    -- label for the absence of a thing, which is noise.
-    CH.status = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-    CH.status:SetPoint("TOPRIGHT", CH.button, "BOTTOMRIGHT", 0, -5)
-    CH.status:SetWidth(NAV.W)
-    CH.status:SetJustifyH("RIGHT")
-    if CH.status.SetWordWrap then CH.status:SetWordWrap(true) end
+    V.challengeText = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    V.challengeText:SetPoint("BOTTOMRIGHT", statusHeader.rule, "TOPRIGHT", 0, -18)
+    V.challengeText:SetJustifyH("RIGHT")
+    V.challengeText:Hide()
 
     -- One switch over everything the addon says in your name: the tongue, the
     -- accent, and the cast phrases with the voice clips that ride on them. It
@@ -1750,11 +1802,12 @@ local function BuildMainPanel()
     -- players, get the colors and go on training exactly as before. It mutes
     -- what you send. It's the thing you hit to answer your raid leader in
     -- plain English and hit again after.
-    local switchHeader = sectionHeader(content, "In character", NAV.TEXT_INSET)
-    switchHeader:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -24)
-
-    enableCheck = Compat.CreateCheckbox(content, "Speak in character")
-    enableCheck:SetPoint("TOPLEFT", switchHeader, "BOTTOMLEFT", 0, -8)
+    enableCheck = Compat.CheckRow(content, "Speak in character",
+        "Off mutes everything this addon says for you: your chat goes out exactly "
+        .. "as typed, with no accent, and cast phrases stay quiet. You still read, "
+        .. "color and decode everyone else either way. Applies to the channels "
+        .. "picked under |cffffd200Settings > Chat Channels|r.")
+    Compat.PlaceRow(enableCheck.row, statusHeader, content, 0, 8)
     enableCheck:SetScript("OnClick", function(self)
         -- Through Core rather than straight at the saved variable, which is
         -- what every other door into this switch already does. This one wrote
@@ -1768,59 +1821,168 @@ local function BuildMainPanel()
         if ns.OnSettingsChanged then ns.OnSettingsChanged() else RefreshMain() end
     end)
 
-    local enableHint = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-    enableHint:SetPoint("TOPLEFT", enableCheck, "BOTTOMLEFT", 24, -2)
-    enableHint:SetPoint("RIGHT", content, "RIGHT", -NAV.TEXT_INSET, 0)
-    enableHint:SetJustifyH("LEFT")
-    if enableHint.SetWordWrap then enableHint:SetWordWrap(true) end
-    enableHint:SetText("Off mutes everything this addon says for you: your chat goes out exactly as typed, with no accent, and cast phrases stay quiet. You still read, color and decode everyone else either way. Applies to the channels picked under |cffffd200Chat Channels|r.")
+    -- Speaking before native dialect, because that is the order they apply
+    -- in: the tongue you are attempting takes every word you know, and the
+    -- native dialect only ever gets what is left. Read top to bottom the two
+    -- rows now say "this, and then that", where the other way round they
+    -- looked like two languages competing for the line.
+    local DROP_W = 240
+    local speakRow = Compat.OptionRow(content, "Speaking",
+        "The language your character is talking in right now. Change it as "
+        .. "often as you like -- it follows whoever you are standing next to. "
+        .. "How much of it comes through is your fluency, set on |cffffd200Languages|r. "
+        .. "|cffffffffRight-click|r a language to make it a favorite.")
+    Compat.PlaceRow(speakRow, enableCheck.row, content)
+    langDropdown = Compat.CreateDropdown(content, DROP_W)
+    speakRow:Attach(langDropdown, DROP_W)
+    langDropdown:SetItems(langItems())
+    langDropdown.onSelect = function(value)
+        db().language = value
+        -- Through the shared refresh: the floating bar and the Languages
+        -- page both report this.
+        if ns.OnSettingsChanged then ns.OnSettingsChanged() else RefreshMain() end
+    end
+    -- Right-click favorites, without a star drawn on every row, because it is
+    -- the only way to favorite a *sub-dialect* -- the rows on Languages are
+    -- primaries, so Eldre'Thalassian (Skyborne) has no star of its own.
+    langDropdown.onAltClick = function(value)
+        if ns.ToggleFavorite then ns.ToggleFavorite(value) end
+        if ns.OnSettingsChanged then ns.OnSettingsChanged() else RefreshMain() end
+    end
 
-    -- The voice readout and the preview used to live here. They moved to
-    -- Languages, which is where the tongue, the fluency and the color are all
-    -- picked now: hearing the result is part of tuning it, so the preview
-    -- belongs beside the dials that move it, not one panel away from them.
-    -- What is left here is the one switch that governs the whole addon, plus
-    -- the furniture below, and the navigation buttons out to everything else.
+    local nativeRow = Compat.OptionRow(content, "Native dialect",
+        "The tongue your character grew up speaking. Words your fluency in the "
+        .. "language above does not cover come out in this one instead of English, "
+        .. "so a half-learned language sounds like someone falling back on their "
+        .. "own. Speaking None hands it the whole line, so to talk in plain English "
+        .. "with only your accent, speak Common. Your accent only shapes English, so "
+        .. "it has little left to do once this is set. The sentence under "
+        .. "|cffffd200Your voice|r always says what the two add up to.")
+    Compat.PlaceRow(nativeRow, speakRow, content)
+    motherDropdown = Compat.CreateDropdown(content, DROP_W)
+    nativeRow:Attach(motherDropdown, DROP_W)
+    motherDropdown:SetItems(motherItems())
+    motherDropdown.onSelect = function(value)
+        db().motherTongue = (value ~= "" and value) or nil
+        if ns.OnSettingsChanged then ns.OnSettingsChanged() else RefreshMain() end
+    end
 
-    -- Addon furniture, set once and forgotten -- but on this panel rather than
-    -- buried in a sub-panel, because "where do I turn off the minimap button"
-    -- is a question people arrive with.
-    -- Inset past the nav button column on the right: with the voice block gone
-    -- this header sits high enough to collide with it.
-    local ifaceHeader = sectionHeader(content, "Interface", NAV.TEXT_INSET)
-    ifaceHeader:SetPoint("TOPLEFT", enableHint, "BOTTOMLEFT", -24, -26)
+    local accentRow = Compat.OptionRow(content, "Accent",
+        "How your English sounds: the words your languages leave in English are "
+        .. "spoken in this accent. Its strength and its flourishes are on "
+        .. "|cffffd200Accents|r.")
+    Compat.PlaceRow(accentRow, nativeRow, content)
+    V.accentDropdown = Compat.CreateDropdown(content, DROP_W)
+    accentRow:Attach(V.accentDropdown, DROP_W)
+    V.accentDropdown.onSelect = function(value)
+        if CH.lockedBy("accent.id") then
+            local current = db().accent.id
+            V.accentDropdown:SetSelected(current, Accent.GetAccentName(current))
+            return
+        end
+        db().accent.id = value
+        if ns.OnSettingsChanged then ns.OnSettingsChanged() else RefreshMain() end
+    end
 
-    minimapCheck = Compat.CreateCheckbox(content, "Show minimap button")
-    minimapCheck:SetPoint("TOPLEFT", ifaceHeader, "BOTTOMLEFT", 0, -8)
+    -- The sentence is the answer to "why does my chat look like that", which
+    -- used to take hovering three icons and reading three paragraphs.
+    local voiceHeader = sectionHeader(content, "Your voice")
+    voiceHeader:SetPoint("TOPLEFT", accentRow, "BOTTOMLEFT", 0, -26)
+    V.homeVoice = V.voicePreview(content, voiceHeader)
+    mainPanel._lastChild = V.homeVoice.output
+
+    mainPanel.refresh = RefreshMain
+    mainPanel:SetScript("OnShow", RefreshMain)
+end
+
+-- A readout and a live preview under `anchor`: the sentence describing the
+-- voice, a box to type in, and the line as it would leave. Returned and
+-- remembered, so RefreshVoice keeps every copy current.
+function V.voicePreview(content, anchor)
+    local v = {}
+    local sentence = content:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+    sentence:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -10)
+    sentence:SetPoint("RIGHT", content, "RIGHT", -24, 0)
+    sentence:SetJustifyH("LEFT")
+    if sentence.SetWordWrap then sentence:SetWordWrap(true) end
+    sentence:SetSpacing(3)
+    v.sentence = sentence
+
+    local label = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    label:SetPoint("TOPLEFT", sentence, "BOTTOMLEFT", 0, -14)
+    label:SetText("Preview")
+
+    local input = CreateFrame("EditBox", nil, content, "InputBoxTemplate")
+    input:SetPoint("LEFT", label, "RIGHT", 12, 0)
+    input:SetPoint("RIGHT", content, "RIGHT", -28, 0)
+    input:SetHeight(20)
+    input:SetAutoFocus(false)
+    input:SetText(SAMPLE)
+    input:SetScript("OnTextChanged", refreshPreview)
+    input:SetScript("OnEnterPressed", input.ClearFocus)
+    input:SetScript("OnEscapePressed", input.ClearFocus)
+    v.input = input
+
+    local output = content:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+    output:SetPoint("TOPLEFT", label, "BOTTOMLEFT", 0, -8)
+    output:SetPoint("RIGHT", content, "RIGHT", -24, 0)
+    output:SetJustifyH("LEFT")
+    output:SetHeight(32)
+    output:SetSpacing(2)
+    v.output = output
+
+    V.voices[#V.voices + 1] = v
+    return v
+end
+
+--=========================================================================--
+--  Settings > General
+--  The addon's own furniture: set once and forgotten.
+--=========================================================================--
+function V.BuildGeneral()
+    local panel = Compat.CreateOptionsPanel("GlyphicGeneralOptions")
+    panel.name = "General"
+    V.generalPanel = panel
+    local content = Compat.CreateScrollContent(panel, 400)
+
+    local title = content:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+    title:SetPoint("TOPLEFT", 16, -16)
+    title:SetText("General")
+
+    local header = sectionHeader(content, "Interface")
+    header:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -26)
+
+    minimapCheck = Compat.CheckRow(content, "Show minimap button",
+        "Left-click it to open this window, right-click to switch the whole "
+        .. "addon off for a minute (and back on as you left it), and scroll over "
+        .. "it to cycle languages.")
+    Compat.PlaceRow(minimapCheck.row, header, content, 0, 8)
     minimapCheck:SetScript("OnClick", function(self)
         db().minimap.hide = not self:GetChecked()
         ApplyMinimapShown()
     end)
 
-    widgetCheck = Compat.CreateCheckbox(content, "Show floating language bar")
-    widgetCheck:SetPoint("TOPLEFT", minimapCheck, "BOTTOMLEFT", 0, -8)
+    widgetCheck = Compat.CheckRow(content, "Show floating language bar",
+        "A small bar showing the language you are speaking, with a button that "
+        .. "switches the addon off and back on. Click the language to change it.")
+    Compat.PlaceRow(widgetCheck.row, minimapCheck.row, content)
     widgetCheck:SetScript("OnClick", function(self)
         db().widget.enabled = self:GetChecked() and true or false
         if not db().widget.enabled then closeWidgetMenu() end
         SetupLanguageWidget()
-        if widgetLockCheck then widgetLockCheck:SetShown(db().widget.enabled) end
-        layoutMainWidgetLock()
-        RefreshMain()
+        V.RefreshGeneral()
     end)
 
-    widgetLockCheck = Compat.CreateCheckbox(content, "Lock the floating bar in place")
-    widgetLockCheck:SetPoint("TOPLEFT", widgetCheck, "BOTTOMLEFT", 16, -6)
+    widgetLockCheck = Compat.CheckRow(content, "Lock the floating bar in place")
+    Compat.PlaceRow(widgetLockCheck.row, widgetCheck.row, content, 20)
     widgetLockCheck:SetScript("OnClick", function(self)
         db().widget.locked = self:GetChecked() and true or false
     end)
+    panel._lastChild = widgetLockCheck.row
 
-    -- Last element, so the scroll height can be sized to it exactly. Which one
-    -- that is depends on whether the lock row is showing; layoutMainWidgetLock
-    -- keeps it current.
-    mainPanel._lastChild = widgetLockCheck
-
-    mainPanel.refresh = RefreshMain
-    mainPanel:SetScript("OnShow", RefreshMain)
+    panel.refresh = V.RefreshGeneral
+    panel:SetScript("OnShow", V.RefreshGeneral)
+    return panel
 end
 
 --=========================================================================--
@@ -1837,7 +1999,6 @@ local function BuildChatPanel()
     chatPanel.parent = mainPanel.name
 
     local content = Compat.CreateScrollContent(chatPanel, 700)
-    chatContent = content
 
     local title = content:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
     title:SetPoint("TOPLEFT", 16, -16)
@@ -1847,19 +2008,21 @@ local function BuildChatPanel()
     subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -8)
     subtitle:SetPoint("RIGHT", content, "RIGHT", -24, 0)
     subtitle:SetJustifyH("LEFT")
-    subtitle:SetText("Where translation applies, and how foreign speech reads when it reaches you.")
+    subtitle:SetText("Where you speak in character, and how names and languages are colored in your chat window.")
 
     --------------------------------------------------------------------
     -- When you speak
     --------------------------------------------------------------------
     local speakHeader = sectionHeader(content, "When you speak")
-    speakHeader:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -24)
+    speakHeader:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -26)
+    infoFor(content, speakHeader, "The channels you're in character on. Your tongue "
+        .. "and your accent both follow this list; anywhere unchecked, you speak plainly.")
 
+    -- An empty line under the heading for the grid to hang from, so the grid
+    -- keeps one anchor whatever sits above it.
     local channelHint = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-    channelHint:SetPoint("TOPLEFT", speakHeader, "BOTTOMLEFT", 0, -6)
-    channelHint:SetPoint("RIGHT", content, "RIGHT", -24, 0)
-    channelHint:SetJustifyH("LEFT")
-    channelHint:SetText("The channels you're in character on. Your tongue and your accent both follow this list; anywhere unchecked, you speak plainly.")
+    channelHint:SetPoint("TOPLEFT", speakHeader, "BOTTOMLEFT", 0, -2)
+    channelHint:SetText(" ")
 
     local channelList = ns.CHANNEL_TYPES or {}
     local ROW_H = 24
@@ -1895,132 +2058,39 @@ local function BuildChatPanel()
     channelBottom:SetPoint("TOPLEFT", channelHint, "BOTTOMLEFT", 0, -10 - half * ROW_H)
     channelBottom:SetText(" ")
 
-    -- The [Language] tag itself is always on (it's what lets other players decode
-    -- your speech reliably), so it isn't exposed as a setting. Only the optional
-    -- fluency adjective prefix is configurable.
-    fluencyCheck = Compat.CreateCheckbox(content, "Show fluency in tag (e.g. [Broken Orcish])")
-    fluencyCheck:SetPoint("TOPLEFT", channelBottom, "BOTTOMLEFT", 0, -4)
-    fluencyCheck:SetScript("OnClick", function(self)
-        db().tagFluency = self:GetChecked() and true or false
-        refreshPreview()
+    namesCheck = Compat.CheckRow(content, "Leave player names readable", function()
+        return "Names pass through untranslated, the way a real language treats a "
+            .. "proper noun, so someone can tell they're being addressed even "
+            .. "when they can't read the rest.\n\n"
+            .. "|cff999999Recognises people who have spoken near you, your group, guild and "
+            .. "friends, and whoever you target. A name only counts when you "
+            .. "capitalise it, so ordinary words keep translating.|r"
+            .. (ns.Names and ("\n\n|cff999999" .. ns.Names.Count()
+                .. " name(s) remembered right now.|r") or "")
     end)
-
-    namesCheck = Compat.CreateCheckbox(content, "Leave player names readable")
-    namesCheck:SetPoint("TOPLEFT", fluencyCheck, "BOTTOMLEFT", 0, -8)
+    Compat.PlaceRow(namesCheck.row, channelBottom, content, 0, 4)
     namesCheck:SetScript("OnClick", function(self)
         db().protectNames = self:GetChecked() and true or false
         RefreshChat()
         refreshPreview()
     end)
-    namesCheck._toaTooltip = true
-    namesCheck:SetScript("OnEnter", function(self)
-        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-        GameTooltip:AddLine("Leave player names readable", 1, 0.82, 0)
-        GameTooltip:AddLine(
-            "Names pass through untranslated, the way a real language treats a "
-                .. "proper noun, so someone can tell they're being addressed even "
-                .. "when they can't read the rest.", 0.8, 0.8, 0.8, true)
-        GameTooltip:AddLine(" ")
-        GameTooltip:AddLine(
-            "Recognises people who have spoken near you, your group, guild and "
-                .. "friends, and whoever you target. A name only counts when you "
-                .. "capitalise it, so ordinary words keep translating.",
-            0.6, 0.6, 0.6, true)
-        if ns.Names then
-            GameTooltip:AddLine(" ")
-            GameTooltip:AddLine(ns.Names.Count() .. " name(s) remembered right now.", 0.6, 0.6, 0.6)
-        end
-        GameTooltip:Show()
-    end)
-    namesCheck:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
     -- Indented because it only means anything while the box above is ticked.
-    nameColorCheck = Compat.CreateCheckbox(content, "Color those names in your chat window")
-    nameColorCheck:SetPoint("TOPLEFT", namesCheck, "BOTTOMLEFT", 16, -6)
+    nameColorCheck = Compat.CheckRow(content, "Color those names in your chat window", function()
+        return "A name that came through untranslated and a word your fluency "
+            .. "happened to leave in English look identical. Coloring the "
+            .. "names says which is which.\n\n"
+            .. "Class color when the class is known -- from your group, guild, "
+            .. "friends or whoever you've targeted -- and "
+            .. "|cff" .. (ns.Colors and ns.Colors.NameHex() or "ffd100") .. "gold|r "
+            .. "otherwise.\n\n|cff999999Only your own chat window is painted. Nothing "
+            .. "is added to the message other people receive.|r"
+    end)
+    Compat.PlaceRow(nameColorCheck.row, namesCheck.row, content, 20)
     nameColorCheck:SetScript("OnClick", function(self)
         db().colorNames = self:GetChecked() and true or false
         refreshPreview()
     end)
-    nameColorCheck._toaTooltip = true
-    nameColorCheck:SetScript("OnEnter", function(self)
-        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-        GameTooltip:AddLine("Color those names", 1, 0.82, 0)
-        GameTooltip:AddLine(
-            "A name that came through untranslated and a word your fluency "
-                .. "happened to leave in English look identical. Coloring the "
-                .. "names says which is which.", 0.8, 0.8, 0.8, true)
-        GameTooltip:AddLine(" ")
-        GameTooltip:AddLine(
-            "Class color when the class is known -- from your group, guild, "
-                .. "friends or whoever you've targeted -- and "
-                .. "|cff" .. (ns.Colors and ns.Colors.NameHex() or "ffd100") .. "gold|r "
-                .. "otherwise.", 0.8, 0.8, 0.8, true)
-        GameTooltip:AddLine(" ")
-        GameTooltip:AddLine(
-            "Only your own chat window is painted. Nothing is added to the "
-                .. "message other people receive.", 0.6, 0.6, 0.6, true)
-        GameTooltip:Show()
-    end)
-    nameColorCheck:SetScript("OnLeave", function() GameTooltip:Hide() end)
-
-    autoDisableCheck = Compat.CreateCheckbox(content, "Pause translation during instances")
-    autoDisableCheck:SetPoint("TOPLEFT", nameColorCheck, "BOTTOMLEFT", -16, -8)
-    autoDisableCheck:SetScript("OnClick", function(self)
-        db().autoDisableInInstances = self:GetChecked() and true or false
-        -- Apply immediately if we're already inside an instance.
-        if ns.RefreshInstanceState then ns.RefreshInstanceState() end
-    end)
-
-    -- The instance restriction is a Blizzard limitation, not an addon bug. It
-    -- sits with the option it explains rather than at the top of the panel you
-    -- land on, where it was the first thing a new player read.
-    local instanceNote = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-    instanceNote:SetPoint("TOPLEFT", autoDisableCheck, "BOTTOMLEFT", 24, -2)
-    instanceNote:SetPoint("RIGHT", content, "RIGHT", -24, 0)
-    instanceNote:SetJustifyH("LEFT")
-    if instanceNote.SetWordWrap then instanceNote:SetWordWrap(true) end
-    instanceNote:SetText("|cffffd200Heads-up:|r During boss fights Blizzard blocks addons from reading chat, so Glyphic can't translate or decode inside instances either way. This is a game restriction, not a bug. Accents are unaffected and keep working there.")
-
-    --------------------------------------------------------------------
-    -- When you listen
-    --------------------------------------------------------------------
-    local listenHeader = sectionHeader(content, "When you listen")
-    listenHeader:SetPoint("TOPLEFT", instanceNote, "BOTTOMLEFT", -24, -26)
-
-    local listenHint = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-    listenHint:SetPoint("TOPLEFT", listenHeader, "BOTTOMLEFT", 0, -6)
-    listenHint:SetPoint("RIGHT", content, "RIGHT", -24, 0)
-    listenHint:SetJustifyH("LEFT")
-    if listenHint.SetWordWrap then listenHint:SetWordWrap(true) end
-    listenHint:SetText("How a tongue you understand is shown to you once it's decoded. Which languages you understand is set under |cffffd200Languages & Fluency|r.")
-
-    local styleLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    styleLabel:SetPoint("TOPLEFT", listenHint, "BOTTOMLEFT", 0, -12)
-    styleLabel:SetText("Decode display style")
-
-    decodeStyleDropdown = Compat.CreateDropdown(content, 220)
-    decodeStyleDropdown:SetPoint("TOPLEFT", styleLabel, "BOTTOMLEFT", 0, -6)
-    local styleItems = {}
-    for i = 1, #DECODE_STYLES do
-        styleItems[i] = { text = DECODE_STYLES[i].name, value = DECODE_STYLES[i].id }
-    end
-    decodeStyleDropdown:SetItems(styleItems)
-    decodeStyleDropdown.onSelect = function(value)
-        db().decodeStyle = value
-    end
-
-    -- Where decoded translations are printed. Sits beside the style picker.
-    local outputLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    outputLabel:SetPoint("TOPLEFT", styleLabel, "TOPLEFT", 250, 0)
-    outputLabel:SetText("Show translations in")
-
-    outputDropdown = Compat.CreateDropdown(content, 220)
-    outputDropdown:SetPoint("TOPLEFT", outputLabel, "BOTTOMLEFT", 0, -6)
-    outputDropdown:SetItems(outputItems())
-    outputDropdown.onSelect = function(value)
-        db().outputFrame = value
-        outputDropdown:SetSelected(value, outputWindowLabel(value))
-    end
 
     -- Chat colors. They were next to the language list, on the grounds that the
     -- per-language swatches live on its rows -- but a swatch picks *which*
@@ -2029,17 +2099,11 @@ local function BuildChatPanel()
     -- here. Labels are kept short so the three sit on one line; the detail
     -- lives in the tooltips.
     local function colorCheck(label, tip, get, set)
-        local cb = Compat.CreateCheckbox(content, label)
+        local cb = Compat.CheckRow(content, label, tip)
         cb:SetScript("OnClick", function(self)
             if ns.Colors then set(self:GetChecked() and true or false) end
             if ns.OnSettingsChanged then ns.OnSettingsChanged() end
         end)
-        cb:HookScript("OnEnter", function(self)
-            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-            GameTooltip:SetText(tip, 1, 1, 1, 1, true)
-            GameTooltip:Show()
-        end)
-        cb:HookScript("OnLeave", function() GameTooltip:Hide() end)
         cb._get = get
         return cb
     end
@@ -2049,8 +2113,11 @@ local function BuildChatPanel()
         function() return ns.Colors and ns.Colors.TagsEnabled() end,
         function(v) ns.Colors.SetTagsEnabled(v) end)
     local colorHeader = sectionHeader(content, "Colors")
-    colorHeader:SetPoint("TOPLEFT", decodeStyleDropdown, "BOTTOMLEFT", 0, -26)
-    colorTagCheck:SetPoint("TOPLEFT", colorHeader, "BOTTOMLEFT", 0, -8)
+    colorHeader:SetPoint("TOPLEFT", nameColorCheck.row, "BOTTOMLEFT", -20, -26)
+    infoFor(content, colorHeader, "Which color each tongue gets is set on its own "
+        .. "row, under |cffffd200Languages|r. These decide whether any color reaches "
+        .. "your chat window at all.")
+    Compat.PlaceRow(colorTagCheck.row, colorHeader, content, 0, 8)
 
     -- "Tint all speech" rather than "Tint speech". The old label read as "tint
     -- the speech part of the line", which is exactly what it does not do: with
@@ -2062,35 +2129,102 @@ local function BuildChatPanel()
         "Color the spoken words as well as the tag, so a line in a tongue arrives painted end to end.\n\nOff by default -- the tag alone marks the language without repainting whole conversations, and leaving the words in the channel's own color is what makes Glyphic's languages look like the game's.\n\nIndependent of \"Color tags\": either can be on without the other.",
         function() return ns.Colors and ns.Colors.SpeechEnabled() end,
         function(v) ns.Colors.SetSpeechEnabled(v) end)
-    colorSpeechCheck:SetPoint("LEFT", colorTagCheck.labelText, "RIGHT", 24, 0)
+    Compat.PlaceRow(colorSpeechCheck.row, colorTagCheck.row, content)
 
     colorRealCheck = colorCheck("Tint in-game languages",
         "Also color WoW's own languages from players who don't run the addon. Off by default: nearly all chat is Common or your faction's tongue, so this tints most of the window rather than picking anything out of it.",
         function() return ns.Colors and ns.Colors.RealLanguagesEnabled() end,
         function(v) ns.Colors.SetRealLanguagesEnabled(v) end)
-    colorRealCheck:SetPoint("LEFT", colorSpeechCheck.labelText, "RIGHT", 24, 0)
+    Compat.PlaceRow(colorRealCheck.row, colorSpeechCheck.row, content)
 
-    local colorPointer = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-    colorPointer:SetPoint("TOPLEFT", colorTagCheck, "BOTTOMLEFT", 0, -8)
-    colorPointer:SetPoint("RIGHT", content, "RIGHT", -24, 0)
-    colorPointer:SetJustifyH("LEFT")
-    if colorPointer.SetWordWrap then colorPointer:SetWordWrap(true) end
-    colorPointer:SetText("Which color each tongue gets is set on its own row, under |cffffd200Languages & Fluency|r.")
-
-    chatPanel._lastChild = colorPointer
+    chatPanel._lastChild = colorRealCheck.row
     chatPanel.refresh = RefreshChat
     chatPanel:SetScript("OnShow", RefreshChat)
 end
 
--- Puts the game's information icon beside a label or a checkbox, with the
--- explanation behind it. `after` is the thing it sits to the right of; a
--- checkbox is given by name rather than by its label, since the label is
--- the part the icon actually has to clear.
-local function infoFor(parent, after, text)
-    local anchor = (type(after) == "table" and rawget(after, "labelText")) or after
-    local b = Compat.InfoButton(parent, text)
-    b:SetPoint("LEFT", anchor, "RIGHT", 6, 0)
-    return b
+--=========================================================================--
+--  Settings > Advanced
+--  Settings that change how the machinery behaves rather than how you sound,
+--  each with a default that is right for nearly everyone. Nothing that
+--  shapes your voice goes here: a player has to be able to find everything
+--  they would want to change without opening this page.
+--=========================================================================--
+function V.BuildAdvanced()
+    local panel = Compat.CreateOptionsPanel("GlyphicAdvancedOptions")
+    panel.name = "Advanced"
+    V.advancedPanel = panel
+    local content = Compat.CreateScrollContent(panel, 500)
+
+    local title = content:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+    title:SetPoint("TOPLEFT", 16, -16)
+    title:SetText("Advanced")
+
+    local speakHeader = sectionHeader(content, "When you speak")
+    speakHeader:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -26)
+
+    -- The [Language] tag itself is always on (it's what lets other players
+    -- decode your speech reliably), so it isn't exposed as a setting. Only the
+    -- optional fluency adjective prefix is configurable.
+    fluencyCheck = Compat.CheckRow(content, "Show your fluency in the [Language] tag",
+        "Adds how well you speak the tongue to the tag everyone sees: "
+        .. "[Partial Orcish] instead of [Orcish]. Off by default, because the lowest "
+        .. "of the four words is \"Broken\", and players who don't run Glyphic took "
+        .. "[Broken Orcish] to mean the addon was broken. Other Glyphic users read "
+        .. "either form.")
+    Compat.PlaceRow(fluencyCheck.row, speakHeader, content, 0, 8)
+    fluencyCheck:SetScript("OnClick", function(self)
+        db().tagFluency = self:GetChecked() and true or false
+        refreshPreview()
+    end)
+
+    -- The instance restriction is a Blizzard limitation, not an addon bug, and
+    -- it is said behind the switch it explains rather than printed under it.
+    autoDisableCheck = Compat.CheckRow(content, "Pause translation during instances",
+        "|cffffd200Heads-up:|r During boss fights Blizzard blocks addons from reading "
+        .. "chat, so Glyphic can't translate or decode inside instances either way. "
+        .. "This is a game restriction, not a bug. Accents are unaffected and keep "
+        .. "working there.")
+    Compat.PlaceRow(autoDisableCheck.row, fluencyCheck.row, content)
+    autoDisableCheck:SetScript("OnClick", function(self)
+        db().autoDisableInInstances = self:GetChecked() and true or false
+        -- Apply immediately if we're already inside an instance.
+        if ns.RefreshInstanceState then ns.RefreshInstanceState() end
+    end)
+
+    local listenHeader = sectionHeader(content, "When you listen")
+    listenHeader:SetPoint("TOPLEFT", autoDisableCheck.row, "BOTTOMLEFT", 0, -26)
+
+    local DROP_W = 240
+    local styleRow = Compat.OptionRow(content, "Decode display style",
+        "How a tongue you understand is shown to you once it's decoded. Which "
+        .. "languages you understand is set under |cffffd200Languages|r.")
+    Compat.PlaceRow(styleRow, listenHeader, content, 0, 8)
+    decodeStyleDropdown = Compat.CreateDropdown(content, DROP_W)
+    styleRow:Attach(decodeStyleDropdown, DROP_W)
+    local styleItems = {}
+    for i = 1, #DECODE_STYLES do
+        styleItems[i] = { text = DECODE_STYLES[i].name, value = DECODE_STYLES[i].id }
+    end
+    decodeStyleDropdown:SetItems(styleItems)
+    decodeStyleDropdown.onSelect = function(value)
+        db().decodeStyle = value
+    end
+
+    local outputRow = Compat.OptionRow(content, "Show translations in",
+        "Which chat window a decoded line is printed to.")
+    Compat.PlaceRow(outputRow, styleRow, content)
+    outputDropdown = Compat.CreateDropdown(content, DROP_W)
+    outputRow:Attach(outputDropdown, DROP_W)
+    outputDropdown:SetItems(outputItems())
+    outputDropdown.onSelect = function(value)
+        db().outputFrame = value
+        outputDropdown:SetSelected(value, outputWindowLabel(value))
+    end
+
+    panel._lastChild = outputRow
+    panel.refresh = V.RefreshAdvanced
+    panel:SetScript("OnShow", V.RefreshAdvanced)
+    return panel
 end
 
 -- Small square icon button with a tooltip: the check and circle-slash pair used
@@ -2132,11 +2266,11 @@ local ICON_DISCARD = "Interface\\RAIDFRAME\\ReadyCheck-NotReady"
 
 local function BuildLearnedPanel()
     learnedPanel = Compat.CreateOptionsPanel("TonguesOfAzerothLearnedOptions")
-    -- "Learned Languages" while it only held the learned list, then "Languages"
-    -- once it grew the speaking controls. Fluency is half of what it edits and
-    -- the only half with a row per tongue, so the name says both.
-    learnedPanel.name = "Languages & Fluency"
-    learnedPanel.parent = mainPanel.name
+    -- "Learned Languages", then "Languages & Fluency" while it also carried
+    -- the speaking controls. Those are on the landing page now, and the page
+    -- list down the left wants short names, so it is the list of languages
+    -- and is called that.
+    learnedPanel.name = "Languages"
 
     -- This panel outgrew the window. It now carries two dropdowns, five
     -- checkboxes, a live preview and a row for every language you know, and on
@@ -2153,211 +2287,22 @@ local function BuildLearnedPanel()
 
     local title = content:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
     title:SetPoint("TOPLEFT", 16, -16)
-    title:SetText("Languages & Fluency")
+    title:SetText("Languages")
 
     local subtitle = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -8)
     subtitle:SetPoint("RIGHT", content, "RIGHT", -32, 0)
     subtitle:SetJustifyH("LEFT")
-    subtitle:SetText("Which tongue you speak, how fluently you speak each one, and the color it reads in. |cffffd200Drag the handle|r on a bar to set fluency; |cffffd200star|r a language to keep it near the top. The tongue you're speaking is always the first row.")
+    subtitle:SetText("How fluently you speak each tongue, and the color it reads in. |cffffd200Drag the handle|r on a bar to set fluency; |cffffd200star|r a language to keep it near the top. The tongue you're speaking is always the first row. Which one that is, and your native dialect, are on the |cffffd200Glyphic|r page.")
 
-    -- "Which language am I speaking" lives here, not on the panel you land on.
-    -- It is the same kind of setting as the fluency and color on the rows
-    -- below -- pick the tongue, then set it up -- and splitting it off onto the
-    -- front panel is what sent people hunting for it here in the first place.
-    --
-    -- A dropdown rather than making the rows selectable, because the rows are
-    -- primaries only (a sub-dialect shares its parent's fluency and color, so
-    -- it gets no row), while this list also carries sub-dialects, your
-    -- favorites and "None".
-    -- Native dialect comes first because it is the one answer that does not
-    -- change: it is who your character is, set once and left alone, where the
-    -- tongue you are speaking changes with whoever you are standing next to.
-    -- Reading downward the panel now asks the questions in that order.
-    local speakHeader = sectionHeader(content, "What you speak", 32)
-    speakHeader:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -24)
-
-    local nativeLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    nativeLabel:SetPoint("TOPLEFT", speakHeader, "BOTTOMLEFT", 0, -10)
-    nativeLabel:SetText("Native dialect")
-
-    infoFor(content, nativeLabel, "The tongue your character grew up speaking. "
-        .. "Words your fluency in the language below does not cover come out in "
-        .. "this one instead of English, so a half-learned language sounds like "
-        .. "someone falling back on their own. Speaking None hands it the whole "
-        .. "line, so to talk in plain English with only your accent, speak Common. "
-        .. "Your accent only shapes English, so it has little left to do once "
-        .. "this is set.")
-
-    motherDropdown = Compat.CreateDropdown(content, 260)
-    motherDropdown:SetPoint("TOPLEFT", nativeLabel, "BOTTOMLEFT", 0, -6)
-    motherDropdown:SetItems(motherItems())
-    motherDropdown.onSelect = function(value)
-        db().motherTongue = (value ~= "" and value) or nil
-        if ns.OnSettingsChanged then ns.OnSettingsChanged() else RefreshLearned() end
-    end
-
-    local speakLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    speakLabel:SetPoint("TOPLEFT", motherDropdown, "BOTTOMLEFT", 0, -14)
-    speakLabel:SetText("Speaking")
-
-    langDropdown = Compat.CreateDropdown(content, 260)
-    langDropdown:SetPoint("TOPLEFT", speakLabel, "BOTTOMLEFT", 0, -6)
-    langDropdown:SetItems(langItems())
-    langDropdown.onSelect = function(value)
-        db().language = value
-        -- Goes through the shared refresh: the landing panel's voice summary
-        -- and the floating bar both report this.
-        if ns.OnSettingsChanged then ns.OnSettingsChanged() else RefreshLearned() end
-    end
-    -- Favoriting moved to the stars on the language rows below; this list still
-    -- groups your favorites at the top, it just no longer sets them. Right-click
-    -- stays, without a star drawn on every row, because it is the only way to
-    -- favorite a *sub-dialect* -- the rows below are primaries, so Eldre'Thalassian
-    -- (Skyborne) has no star of its own to click.
-    langDropdown.onAltClick = function(value)
-        if ns.ToggleFavorite then ns.ToggleFavorite(value) end
-        if ns.OnSettingsChanged then ns.OnSettingsChanged() else RefreshLearned() end
-    end
-
-    -- Full immersion. Beside the fluency list because that list is what it
-    -- defers to: the whole switch is "understanding is what this panel says it
-    -- is, not what my race says it is".
-    immersionCheck = Compat.CreateCheckbox(content,
-        "Remove in-game learned languages -- only use Glyphic for languages")
-    local immersionHeader = sectionHeader(content, "Full immersion", 32)
-    immersionHeader:SetPoint("TOPLEFT", langDropdown, "BOTTOMLEFT", 0, -26)
-    immersionCheck:SetPoint("TOPLEFT", immersionHeader, "BOTTOMLEFT", -2, -8)
-    immersionCheck:SetScript("OnClick", function(self)
-        db().fullImmersion = self:GetChecked() and true or false
-        if ns.QuestText then ns.QuestText.Refresh() end
-    end)
-    -- Says what you will see rather than what the switch does internally.
-    -- The first version led with "removes your ability to immediately
-    -- understand default game languages", which over-promised in one
-    -- direction and said nothing about the carve-out a player meets first:
-    -- your own speech. Anyone who ticks this and tests it by typing in /say
-    -- reads their own words back in plain English and concludes the switch is
-    -- broken, which is exactly what happened. Naming that here costs a
-    -- sentence and saves the conclusion.
-    infoFor(content, immersionCheck, "Other players' speech in the game's own "
-        .. "tongues stops arriving pre-translated: you read Common and your "
-        .. "racial tongues only as well as the fluency list below says you do. "
-        .. "Your own messages always come back to you as you typed them, so "
-        .. "test this on somebody else. General, Trade and custom channels "
-        .. "carry no language of their own, so they need the switch below. "
-        .. "What you say still reaches players without Glyphic exactly as it "
-        .. "does now. Applies to the channels picked under "
-        .. "|cffffd200Chat Channels|r.")
-
-    -- The hole in everything above: /say and /yell carry a language, so the
-    -- client translated them and this addon can take that back. General and
-    -- Trade carry none at all, so there is nothing to take and the result is a
-    -- world where the stranger next to you is unintelligible and the same
-    -- stranger one channel over is not.
-    --
-    -- Closing it means lending those lines a tongue they never had, which is
-    -- why it is asked for by name and off by default. Trade is how a player
-    -- finds a group, a summon or a portal, and somebody who ticked the switch
-    -- above to make questing strange did not ask to be unable to do that.
-    immersionChannelCheck = Compat.CreateCheckbox(content,
-        "Also apply to General, Trade and custom channels")
-    immersionChannelCheck:SetPoint("TOPLEFT", immersionCheck, "BOTTOMLEFT", 16, -6)
-    immersionChannelCheck:SetScript("OnClick", function(self)
-        db().immersionChannels = self:GetChecked() and true or false
-    end)
-    infoFor(content, immersionChannelCheck, "The game attaches no language to "
-        .. "these channels, so everyone reads everyone there whatever their "
-        .. "race. Tick this and they are read as your own faction's tongue "
-        .. "instead -- the same one the people around you are speaking. "
-        .. "Emotes are left alone either way, since an emote is narration "
-        .. "rather than speech. Off by default, because Trade chat is how you "
-        .. "find a group. The |cffffd200Mythic|r challenge turns it on and "
-        .. "holds it there.")
-
-    immersionNPCCheck = Compat.CreateCheckbox(content, "Include all NPC text and speech")
-    immersionNPCCheck:SetPoint("TOPLEFT", immersionChannelCheck, "BOTTOMLEFT", -16, -6)
-    immersionNPCCheck:SetScript("OnClick", function(self)
-        db().immersionNPCs = self:GetChecked() and true or false
-        if ns.QuestText then ns.QuestText.Refresh() end
-    end)
-    infoFor(content, immersionNPCCheck, "Anything an NPC says out loud -- boss "
-        .. "callouts, emotes, yells and greetings -- in whatever tongue its race "
-        .. "would use, instead of arriving already translated for you.")
-
-    -- Nested under the NPC switch, and indented to say so, because quest text
-    -- is the one thing here the game never hid. A boss callout in Orcish is a
-    -- line the client would have garbled anyway; a quest window has no tongue
-    -- attached at all, so garbling one is Glyphic's own invention. Off even
-    -- when everything above it is on, until it's asked for by name.
-    immersionQuestCheck = Compat.CreateCheckbox(content,
-        "Also garble quest text and dialogue windows")
-    immersionQuestCheck:SetPoint("TOPLEFT", immersionNPCCheck, "BOTTOMLEFT", 16, -6)
-    immersionQuestCheck:SetScript("OnClick", function(self)
-        db().immersionQuests = self:GetChecked() and true or false
-        if ns.QuestText then ns.QuestText.Refresh() end
-    end)
-    infoFor(content, immersionQuestCheck, "Quest offers and gossip windows -- the "
-        .. "story an NPC tells you. You can still accept a quest you can't read; "
-        .. "the buttons are yours, not theirs. Quests you already had fall back "
-        .. "to your own faction's tongue, since nothing can tell Glyphic who gave "
-        .. "you one after the fact -- hand one in and the real tongue is "
-        .. "recorded. Needs |cffffd200Include all NPC text and speech|r above.")
-
-    -- The last two, nested under the quest switch and separate from it,
-    -- because they are not prose. Everything above is a story you can be shut
-    -- out of and lose nothing but the story; these two are what you operate
-    -- the game with, and hiding them stops being flavour and starts being a
-    -- difficulty setting. Something that changes how hard the game is to play
-    -- should be something you went and asked for.
-    CH.trackerCheck = Compat.CreateCheckbox(content,
-        "Include your quest log and the objective tracker")
-    CH.trackerCheck:SetPoint("TOPLEFT", immersionQuestCheck, "BOTTOMLEFT", 16, -6)
-    CH.trackerCheck:SetScript("OnClick", function(self)
-        db().immersionTracker = self:GetChecked() and true or false
-        if ns.QuestText then ns.QuestText.Refresh() end
-    end)
-    infoFor(content, CH.trackerCheck, "The whole page: the titles down the side, "
-        .. "the checklist under each one, and the tracker on your screen. This is "
-        .. "the switch that says the written word is foreign too, so a quest off a "
-        .. "notice board stops being readable with it. Zone headers stay in plain "
-        .. "words -- those are the client sorting your log, not anything somebody "
-        .. "wrote. Turn it off and the story is still hidden but the log is yours.")
-
-    CH.optionsCheck = Compat.CreateCheckbox(content,
-        "Include the replies you click to answer an NPC")
-    CH.optionsCheck:SetPoint("TOPLEFT", CH.trackerCheck, "BOTTOMLEFT", 0, -4)
-    CH.optionsCheck:SetScript("OnClick", function(self)
-        db().immersionGossipOptions = self:GetChecked() and true or false
-        if ns.QuestText then ns.QuestText.Refresh() end
-    end)
-
-    infoFor(content, CH.optionsCheck, "Off, and deliberately: it hides "
-        .. "|cffffd200I wish to train|r along with everything else, so you are "
-        .. "navigating menus by shape. Bracing if you want it, and a trap if "
-        .. "it arrives without being asked for.")
-
-    CH.lockNote = content:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
-    CH.lockNote:SetPoint("TOPLEFT", CH.optionsCheck, "BOTTOMLEFT", 0, -6)
-    CH.lockNote:SetPoint("RIGHT", content, "RIGHT", -28, 0)
-    CH.lockNote:SetJustifyH("LEFT")
-    CH.lockNote:SetTextColor(1, 0.82, 0.2)
-    CH.lockNote:Hide()
-
-    -- What everything above and below adds up to. Every dial that shapes your
-    -- voice is on this panel now, so the readout and the preview are too: pick
-    -- the tongue, drag its fluency, watch the line change.
-    --
-    -- Full width, on its own line. Squeezing it into a second column beside the
-    -- Speaking dropdown fit the panel but not the content -- the preview is a
-    -- sentence, and half a panel is not enough to read one in.
+    -- The readout and the preview stay here as well as on the landing page:
+    -- dragging a fluency bar and watching the line change is how a fluency
+    -- gets set, and that only works with both on screen at once.
     --
     -- The summary shares the header's line rather than taking another, so the
     -- block costs the language list as little height as possible.
-    -- -30 undoes the nesting of the switches above, so the section starts
-    -- back at the panel's left margin with the others.
     local voiceLabel = sectionHeader(content, "Your voice", 32)
-    voiceLabel:SetPoint("TOPLEFT", CH.optionsCheck, "BOTTOMLEFT", -30, -26)
+    voiceLabel:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -26)
 
     voiceText = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     voiceText:SetPoint("LEFT", voiceLabel, "RIGHT", 10, 0)
@@ -2755,6 +2700,160 @@ local function BuildLearnedPanel()
     learnedPanel:SetScript("OnShow", RefreshLearned)
 end
 
+--=========================================================================--
+--  Settings > Immersion
+--  Taking understanding away: the game's own languages, NPCs and quests.
+--  Its own page because it is a different decision from everything on
+--  Languages -- that page sets how well you speak, and this one decides
+--  whether the game stops translating for you at all.
+--=========================================================================--
+function V.BuildImmersion()
+    local panel = Compat.CreateOptionsPanel("GlyphicImmersionOptions")
+    panel.name = "Immersion"
+    V.immersionPanel = panel
+    local content = Compat.CreateScrollContent(panel, 560)
+
+    local title = content:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+    title:SetPoint("TOPLEFT", 16, -16)
+    title:SetText("Immersion")
+
+    local subtitle = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -8)
+    subtitle:SetPoint("RIGHT", content, "RIGHT", -24, 0)
+    subtitle:SetJustifyH("LEFT")
+    subtitle:SetText("Stop understanding the game's own languages unless Glyphic "
+        .. "says you studied them. Everything here is off until you ask for it.")
+
+    local header = sectionHeader(content, "Full immersion")
+    header:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -26)
+
+    -- Says what you will see rather than what the switch does internally.
+    -- The first version led with "removes your ability to immediately
+    -- understand default game languages", which over-promised in one
+    -- direction and said nothing about the carve-out a player meets first:
+    -- your own speech. Anyone who ticks this and tests it by typing in /say
+    -- reads their own words back in plain English and concludes the switch is
+    -- broken, which is exactly what happened. Naming that here costs a
+    -- sentence and saves the conclusion.
+    immersionCheck = Compat.CheckRow(content,
+        "Remove in-game learned languages -- only use Glyphic for languages",
+        "Other players' speech in the game's own "
+        .. "tongues stops arriving pre-translated: you read Common and your "
+        .. "racial tongues only as well as your fluency on |cffffd200Languages|r says you do. "
+        .. "Your own messages always come back to you as you typed them, so "
+        .. "test this on somebody else. General, Trade and custom channels "
+        .. "carry no language of their own, so they need the switch below. "
+        .. "What you say still reaches players without Glyphic exactly as it "
+        .. "does now. Applies to the channels picked under "
+        .. "|cffffd200Chat Channels|r.")
+    Compat.PlaceRow(immersionCheck.row, header, content, 0, 8)
+    immersionCheck:SetScript("OnClick", function(self)
+        db().fullImmersion = self:GetChecked() and true or false
+        if ns.QuestText then ns.QuestText.Refresh() end
+    end)
+
+    -- The hole in everything above: /say and /yell carry a language, so the
+    -- client translated them and this addon can take that back. General and
+    -- Trade carry none at all, so there is nothing to take and the result is a
+    -- world where the stranger next to you is unintelligible and the same
+    -- stranger one channel over is not.
+    --
+    -- Closing it means lending those lines a tongue they never had, which is
+    -- why it is asked for by name and off by default. Trade is how a player
+    -- finds a group, a summon or a portal, and somebody who ticked the switch
+    -- above to make questing strange did not ask to be unable to do that.
+    immersionChannelCheck = Compat.CheckRow(content,
+        "Also apply to General, Trade and custom channels",
+        "The game attaches no language to "
+        .. "these channels, so everyone reads everyone there whatever their "
+        .. "race. Tick this and they are read as your own faction's tongue "
+        .. "instead -- the same one the people around you are speaking. "
+        .. "Emotes are left alone either way, since an emote is narration "
+        .. "rather than speech. Off by default, because Trade chat is how you "
+        .. "find a group. The |cffffd200Mythic|r challenge turns it on and "
+        .. "holds it there.")
+    Compat.PlaceRow(immersionChannelCheck.row, immersionCheck.row, content, 20)
+    immersionChannelCheck:SetScript("OnClick", function(self)
+        db().immersionChannels = self:GetChecked() and true or false
+    end)
+
+    local npcHeader = sectionHeader(content, "NPCs and quests")
+    npcHeader:SetPoint("TOPLEFT", immersionChannelCheck.row, "BOTTOMLEFT", -20, -26)
+
+    immersionNPCCheck = Compat.CheckRow(content, "Include all NPC text and speech",
+        "Anything an NPC says out loud -- boss "
+        .. "callouts, emotes, yells and greetings -- in whatever tongue its race "
+        .. "would use, instead of arriving already translated for you.")
+    Compat.PlaceRow(immersionNPCCheck.row, npcHeader, content, 0, 8)
+    immersionNPCCheck:SetScript("OnClick", function(self)
+        db().immersionNPCs = self:GetChecked() and true or false
+        if ns.QuestText then ns.QuestText.Refresh() end
+    end)
+
+    -- Nested under the NPC switch, and indented to say so, because quest text
+    -- is the one thing here the game never hid. A boss callout in Orcish is a
+    -- line the client would have garbled anyway; a quest window has no tongue
+    -- attached at all, so garbling one is Glyphic's own invention. Off even
+    -- when everything above it is on, until it's asked for by name.
+    immersionQuestCheck = Compat.CheckRow(content,
+        "Also garble quest text and dialogue windows",
+        "Quest offers and gossip windows -- the "
+        .. "story an NPC tells you. You can still accept a quest you can't read; "
+        .. "the buttons are yours, not theirs. Quests you already had fall back "
+        .. "to your own faction's tongue, since nothing can tell Glyphic who gave "
+        .. "you one after the fact -- hand one in and the real tongue is "
+        .. "recorded. Needs |cffffd200Include all NPC text and speech|r above.")
+    Compat.PlaceRow(immersionQuestCheck.row, immersionNPCCheck.row, content, 20)
+    immersionQuestCheck:SetScript("OnClick", function(self)
+        db().immersionQuests = self:GetChecked() and true or false
+        if ns.QuestText then ns.QuestText.Refresh() end
+    end)
+
+    -- The last two, nested under the quest switch and separate from it,
+    -- because they are not prose. Everything above is a story you can be shut
+    -- out of and lose nothing but the story; these two are what you operate
+    -- the game with, and hiding them stops being flavour and starts being a
+    -- difficulty setting. Something that changes how hard the game is to play
+    -- should be something you went and asked for.
+    CH.trackerCheck = Compat.CheckRow(content,
+        "Include your quest log and the objective tracker",
+        "The whole page: the titles down the side, "
+        .. "the checklist under each one, and the tracker on your screen. This is "
+        .. "the switch that says the written word is foreign too, so a quest off a "
+        .. "notice board stops being readable with it. Zone headers stay in plain "
+        .. "words -- those are the client sorting your log, not anything somebody "
+        .. "wrote. Turn it off and the story is still hidden but the log is yours.")
+    Compat.PlaceRow(CH.trackerCheck.row, immersionQuestCheck.row, content, 20)
+    CH.trackerCheck:SetScript("OnClick", function(self)
+        db().immersionTracker = self:GetChecked() and true or false
+        if ns.QuestText then ns.QuestText.Refresh() end
+    end)
+
+    CH.optionsCheck = Compat.CheckRow(content,
+        "Include the replies you click to answer an NPC",
+        "Off, and deliberately: it hides "
+        .. "|cffffd200I wish to train|r along with everything else, so you are "
+        .. "navigating menus by shape. Bracing if you want it, and a trap if "
+        .. "it arrives without being asked for.")
+    Compat.PlaceRow(CH.optionsCheck.row, CH.trackerCheck.row, content)
+    CH.optionsCheck:SetScript("OnClick", function(self)
+        db().immersionGossipOptions = self:GetChecked() and true or false
+        if ns.QuestText then ns.QuestText.Refresh() end
+    end)
+
+    CH.lockNote = content:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
+    CH.lockNote:SetPoint("TOPLEFT", CH.optionsCheck.row, "BOTTOMLEFT", 0, -6)
+    CH.lockNote:SetPoint("RIGHT", content, "RIGHT", -28, 0)
+    CH.lockNote:SetJustifyH("LEFT")
+    CH.lockNote:SetTextColor(1, 0.82, 0.2)
+    CH.lockNote:Hide()
+
+    panel._lastChild = CH.lockNote
+    panel.refresh = V.RefreshImmersion
+    panel:SetScript("OnShow", V.RefreshImmersion)
+    return panel
+end
+
 local ACCENT_SAMPLE = "I'm going to the tavern tonight. What do you think about a good drink with the lads?"
 
 local function refreshAccentPreview()
@@ -2774,6 +2873,9 @@ local function accentItems()
     end
     return items
 end
+-- The landing page is built before this point in the file, so it reaches the
+-- list through here.
+V.accentItems = accentItems
 
 -- How many accents were in the list when it was last built. The dropdown is
 -- built once, and the Living Legend accent is hidden until a Mythic run is
@@ -4640,7 +4742,7 @@ local function BuildChallengePanel()
         .. "tuned. While one is running the switches it uses stop being yours "
         .. "to change, so that two people who say they did this did the same "
         .. "thing. Nothing here is needed to use immersion normally -- the "
-        .. "ordinary switches are on |cffffd200Languages & Fluency|r and work "
+        .. "ordinary switches are on |cffffd200Settings > Immersion|r and work "
         .. "on their own.")
 
     CH.panelStatus = content:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
@@ -5324,45 +5426,51 @@ end
 local function BuildPanels()
     if panelsBuilt then return end
 
+    -- The page list, top to bottom. The things you play with first; then
+    -- Challenges under a rule, as the one entry that changes what the addon
+    -- is doing rather than tuning it; then Settings, the pages set once and
+    -- left alone, folded under one heading so the list stays short.
+    --
+    -- The trainer and Challenges are only built at PLAYER_LOGIN (see below),
+    -- so their places are held here by name and filled in when they arrive.
+    -- The list is drawn in the order entries were made, not the order pages
+    -- turned up, and an entry with no page yet is simply not drawn.
     BuildMainPanel()
-    Compat.RegisterOptionsPanel(mainPanel, mainPanel.name)
+    Compat.AddPage(mainPanel, mainPanel.name)
 
     BuildLearnedPanel()
-    Compat.RegisterOptionsPanel(learnedPanel, learnedPanel.name, mainPanel.name)
-
-    BuildChatPanel()
-    Compat.RegisterOptionsPanel(chatPanel, chatPanel.name, mainPanel.name)
+    Compat.AddPage(learnedPanel, learnedPanel.name)
 
     BuildAccentPanel()
-    Compat.RegisterOptionsPanel(accentPanel, accentPanel.name, mainPanel.name)
-
-    BuildCustomPanel()
-    Compat.RegisterOptionsPanel(customPanel, customPanel.name, mainPanel.name)
+    Compat.AddPage(accentPanel, accentPanel.name)
 
     BuildCastPanel()
-    Compat.RegisterOptionsPanel(castPanel, castPanel.name, mainPanel.name)
+    Compat.AddPage(castPanel, castPanel.name)
 
-    -- Built here with its siblings but registered later, in
-    -- RegisterChallengePanel below. The settings tree lists panels in the
-    -- order they were registered, and the trainer registers at PLAYER_LOGIN
-    -- rather than here, so registering in place would wedge Challenges
-    -- between two panels of dials instead of leaving it at the bottom under
-    -- all of them.
+    Compat.AddPageGroup("Language Trainer")
+
+    BuildCustomPanel()
+    Compat.AddPage(customPanel, customPanel.name)
+
     if ns.Challenge then BuildChallengePanel() end
+    Compat.AddPageGroup("Challenges", { ruleAbove = true })
 
-    -- Last in the list on purpose: it is the panel you reach for once, before
-    -- a beta ends or when setting up an alt, not one you live in.
+    Compat.AddPageGroup("Settings", { ruleAbove = true })
+    Compat.AddPage(V.BuildGeneral(), "General", "Settings")
+    BuildChatPanel()
+    Compat.AddPage(chatPanel, chatPanel.name, "Settings")
+    Compat.AddPage(V.BuildImmersion(), "Immersion", "Settings")
+    Compat.AddPage(V.BuildAdvanced(), "Advanced", "Settings")
+    -- Last on purpose: it is the page you reach for once, before a beta ends
+    -- or when setting up an alt, not one you live in.
     BuildProfilePanel()
-    Compat.RegisterOptionsPanel(profilePanel, profilePanel.name, mainPanel.name)
+    Compat.AddPage(profilePanel, profilePanel.name, "Settings")
 
-    -- In the shared standalone window the sub-panels show a Back button (to the
-    -- main panel) instead of their own close button.
-    learnedPanel._backAction = function() ns.OpenConfig() end
-    chatPanel._backAction = function() ns.OpenConfig() end
-    accentPanel._backAction = function() ns.OpenConfig() end
-    customPanel._backAction = function() ns.OpenConfig() end
-    castPanel._backAction = function() ns.OpenConfig() end
-    if CH.panel then CH.panel._backAction = function() ns.OpenConfig() end end
+    Compat.RegisterLauncher("Glyphic",
+        "Glyphic's settings have their own window, with every page listed down the "
+        .. "left. You can also open it with |cffffff00/glyphic|r or by clicking the "
+        .. "minimap button.",
+        function() ns.OpenConfig() end)
 
     panelsBuilt = true
 end
@@ -5383,8 +5491,7 @@ local function RegisterTrainerPanel()
     local trainer = ns.BuildTrainerPanel()
     -- nil means BuildTrainerPanel already reported why in chat.
     if not trainer then return end
-    Compat.RegisterOptionsPanel(trainer, trainer.name, mainPanel.name)
-    trainer._backAction = function() ns.OpenConfig() end
+    Compat.AddPage(trainer, trainer.name)
     trainerRegistered = true
 end
 ns.EnsureTrainerPanel = RegisterTrainerPanel
@@ -5400,12 +5507,8 @@ local challengeRegistered = false
 local function RegisterChallengePanel()
     if challengeRegistered or not CH.panel then return end
     BuildPanels()
-    -- The rule above it, matching the one the main panel's own list draws.
-    -- Registered first because the sidebar lists categories in the order
-    -- they arrive, so the line has to be put down before the thing it is
-    -- drawn above.
-    Compat.RegisterOptionsSeparator(mainPanel.name, CH.panel)
-    Compat.RegisterOptionsPanel(CH.panel, CH.panel.name, mainPanel.name)
+    -- Into the place BuildPanels held for it, under its rule.
+    Compat.AddPage(CH.panel, CH.panel.name)
     challengeRegistered = true
 end
 ns.EnsureChallengePanel = RegisterChallengePanel
@@ -5435,6 +5538,9 @@ ns.OnSettingsChanged = function()
     if mainPanel and mainPanel:IsVisible() then RefreshMain() end
     if learnedPanel and learnedPanel:IsVisible() then RefreshLearned() end
     if chatPanel and chatPanel:IsVisible() then RefreshChat() end
+    if V.generalPanel and V.generalPanel:IsVisible() then V.RefreshGeneral() end
+    if V.immersionPanel and V.immersionPanel:IsVisible() then V.RefreshImmersion() end
+    if V.advancedPanel and V.advancedPanel:IsVisible() then V.RefreshAdvanced() end
     if accentPanel and accentPanel:IsVisible() then RefreshAccent() end
     if customPanel and customPanel:IsVisible() then RefreshCustom() end
     if castPanel and castPanel:IsVisible() then RefreshCasts() end

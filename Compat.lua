@@ -444,10 +444,12 @@ end
 -- A section title with a divider across the panel above it. Returns the
 -- label, so callers anchor to it exactly as they would to a plain one; the
 -- divider sits in the gap above, which therefore wants to be 20px or more.
+-- White and large, the way TRP titles its sections: the rows under it carry
+-- gold nowhere but their controls, so the heading is what the eye lands on.
 function Compat.SectionHeader(parent, text, rightInset)
-    local label = parent:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    local label = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlightLarge")
     label:SetText(text)
-    label:SetTextColor(1, 0.82, 0.2)
+    label:SetTextColor(1, 1, 1)
     local rule = Compat.Divider(parent)
     rule:SetPoint("BOTTOMLEFT", label, "TOPLEFT", 0, 6)
     rule:SetPoint("RIGHT", parent, "RIGHT", -(rightInset or 24), 0)
@@ -728,49 +730,6 @@ function Compat.RegisterOptionsPanel(frame, name, parentName)
     end
 end
 
--- Blizzard's settings sidebar has no notion of a separator. The Settings API
--- registers pages and nothing else, so the only thing an addon can put in
--- that list is another category -- which is why "put a line above it" was
--- never a matter of getting the order right.
---
--- So the line is a category whose entire name is the game's own divider.
--- Font strings render texture escapes anywhere they are drawn, and the
--- sidebar draws its entries with one, so the list gets a real line in it
--- without anything here reaching into frames Blizzard rebuilds every
--- expansion.
---
--- Narrower than the sidebar on purpose: a texture escape is measured as a
--- word, and one wider than the column gets truncated rather than wrapped.
-local SEPARATOR_LABEL = "|TInterface\\Common\\UI-TooltipDivider-Transparent:8:140|t"
-
--- `target` is the panel the line was drawn above. A line is not a page, so
--- clicking it goes where it points rather than to a blank canvas.
-function Compat.RegisterOptionsSeparator(parentName, target)
-    if not Compat.hasSettingsAPI then return end
-    local parentCategory = parentName and ns._optionCategories[parentName]
-    if not (parentCategory and Settings.RegisterCanvasLayoutSubcategory) then return end
-
-    local frame = CreateFrame("Frame", nil, UIParent)
-    frame:Hide()
-    -- Deliberately not recorded in ns._optionCategories: it is not a panel
-    -- anyone opens by name, and a key that is a texture escape is a key
-    -- nobody can type.
-    Settings.RegisterCanvasLayoutSubcategory(parentCategory, frame, SEPARATOR_LABEL)
-
-    frame:SetScript("OnShow", function()
-        -- Only when the player is actually looking at the settings panel.
-        -- The list shows and hides its canvases while it works out how big
-        -- they are, and bouncing somebody to another page because Blizzard
-        -- measured something would be worse than the blank page this avoids.
-        if not (SettingsPanel and SettingsPanel:IsShown()) then return end
-        local open = function() Compat.OpenOptionsPanel(target) end
-        -- A frame later: asking the settings panel to open a category from
-        -- inside its own show pass is asking it to lay out while it is
-        -- already laying out.
-        if C_Timer and C_Timer.After then C_Timer.After(0, open) else open() end
-    end)
-end
-
 -- A single, shared, draggable window that hosts ONE options panel at a time
 -- (main panel, learned, trainer, ...). The Language Trainer always uses this, and
 -- it also backs any panel we can't hand to the Settings tree. Navigation model:
@@ -894,8 +853,397 @@ function Compat.ShowStandalone(frame)
     if type(frame.refresh) == "function" then frame.refresh() end
 end
 
+--=========================================================================--
+--  The addon's own window: a page list down the left, one page on the right.
+--=========================================================================--
+-- Total RP 3's shape, which is what players asked for by name. Blizzard's
+-- settings tree is a list of every addon's pages in one sidebar; nesting our
+-- own sub-pages a level deeper is the most it allows, and a page about chat
+-- channels sat three clicks from the tongue it was configuring. This window is
+-- Glyphic's alone, so it can group the pages by what they are for -- the
+-- things you play with on top, the settings you set once under "Settings".
+--
+-- Pages are the same frames the settings tree used to host. They are
+-- reparented into the window when opened, exactly as ShowStandalone does, so
+-- nothing inside a panel knows which of the two it is living in.
+--
+-- Entries are kept in the order they are added, which is the order they are
+-- listed. A group (`Compat.AddPageGroup`) has no frame of its own: clicking it
+-- opens its first child, and its children are listed under it, indented,
+-- while any one of them is the page on show.
+local NAV = {
+    W = 900, H = 640,     -- the window
+    COL = 212,            -- the page list, inset to inset
+    BTN_H = 26, SUB_H = 24, GAP = 4,
+    entries = {}, byName = {}, byFrame = {},
+}
+Compat.NAV = NAV
+
+local function navEntry(name, frame, parentName, opts)
+    local e = NAV.byName[name]
+    if not e then
+        e = { name = name, children = {} }
+        NAV.byName[name] = e
+        local parent = parentName and NAV.byName[parentName]
+        if parent then
+            e.parent = parent
+            parent.children[#parent.children + 1] = e
+        else
+            NAV.entries[#NAV.entries + 1] = e
+        end
+    end
+    if frame then
+        e.frame = frame
+        NAV.byFrame[frame] = e
+        frame._navEntry = e
+    end
+    if opts and opts.ruleAbove then e.ruleAbove = true end
+    if NAV.win then NAV.Reflow() end
+    return e
+end
+
+-- A page in the list. `parentName` names a group (or another page) to file it
+-- under; nil puts it at the top level.
+function Compat.AddPage(frame, name, parentName, opts)
+    frame.name = name
+    return navEntry(name, frame, parentName, opts)
+end
+
+-- A heading with pages under it and no page of its own.
+function Compat.AddPageGroup(name, opts)
+    return navEntry(name, nil, nil, opts)
+end
+
+-- Every page in list order, for anything that has to walk them (the tests,
+-- and the refresh that redraws whichever page is up).
+function Compat.Pages()
+    local out = {}
+    local function walk(list)
+        for i = 1, #list do
+            out[#out + 1] = list[i]
+            walk(list[i].children)
+        end
+    end
+    walk(NAV.entries)
+    return out
+end
+
+local function firstPage(e)
+    if e.frame then return e end
+    for i = 1, #e.children do
+        local hit = firstPage(e.children[i])
+        if hit then return hit end
+    end
+end
+
+local function navButton(parent, sub)
+    local b = Compat.CreateBackdropFrame("Button", nil, parent)
+    b:SetHeight(sub and NAV.SUB_H or NAV.BTN_H)
+    Compat.Backdrop(b, "tooltip", 0.06, 0.05, 0.05, 0.92)
+    local text = b:CreateFontString(nil, "OVERLAY",
+        sub and "GameFontHighlightSmall" or "GameFontNormal")
+    if sub then
+        -- Right-aligned, the way TRP files a page under its heading: the
+        -- indent says "belongs to the one above" and the ragged left edge
+        -- keeps the two levels from reading as one list.
+        text:SetPoint("RIGHT", b, "RIGHT", -12, 0)
+        text:SetJustifyH("RIGHT")
+    else
+        text:SetPoint("LEFT", b, "LEFT", 12, 0)
+        text:SetJustifyH("LEFT")
+    end
+    b.text = text
+    local hl = b:CreateTexture(nil, "HIGHLIGHT")
+    hl:SetPoint("TOPLEFT", 4, -4)
+    hl:SetPoint("BOTTOMRIGHT", -4, 4)
+    Compat.SolidTexture(hl, 1, 0.85, 0.5, 0.10)
+    -- The selected page is told apart by its fill and its lettering, never by
+    -- recolouring the border: the border is the game's art, and tinting it is
+    -- how a frame stops looking like part of WoW.
+    local sel = b:CreateTexture(nil, "ARTWORK")
+    sel:SetPoint("TOPLEFT", 4, -4)
+    sel:SetPoint("BOTTOMRIGHT", -4, 4)
+    Compat.SolidTexture(sel, 1, 0.82, 0.35, 0.16)
+    sel:Hide()
+    b.sel = sel
+    return b
+end
+
+local function contains(e, target)
+    if e == target then return true end
+    for i = 1, #e.children do
+        if contains(e.children[i], target) then return true end
+    end
+    return false
+end
+
+-- Lays the list out from the top, opening the group the current page is in.
+-- Rebuilt on every page change rather than kept: there are a dozen buttons,
+-- and a list that is only ever drawn whole cannot get out of step with itself.
+function NAV.Reflow()
+    local win = NAV.win
+    if not win then return end
+    local col = win.navCol
+    local current = win._entry
+    local y = -8
+    local function place(e, depth)
+        -- A place held for a page that has not arrived (the trainer before
+        -- login, or one that failed to build) is not drawn at all: a button
+        -- that opens nothing reads as broken.
+        if not firstPage(e) then
+            if e.button then e.button:Hide() end
+            if e.rule then e.rule:Hide() end
+            return
+        end
+        if not e.button then
+            e.button = navButton(col, depth > 0)
+            e.button.text:SetText(e.name)
+            e.button:SetScript("OnClick", function()
+                local page = firstPage(e)
+                if page then Compat.OpenPage(page.frame) end
+            end)
+        end
+        if e.ruleAbove then
+            if not e.rule then
+                e.rule = Compat.Divider(col)
+            end
+            e.rule:ClearAllPoints()
+            e.rule:SetPoint("TOPLEFT", col, "TOPLEFT", 8, y - 6)
+            e.rule:SetPoint("RIGHT", col, "RIGHT", -8, 0)
+            e.rule:Show()
+            y = y - 14
+        end
+        local b = e.button
+        b:ClearAllPoints()
+        b:SetPoint("TOPLEFT", col, "TOPLEFT", depth > 0 and 22 or 4, y)
+        b:SetPoint("RIGHT", col, "RIGHT", -4, 0)
+        b:Show()
+        local on = (current == e)
+        b.sel:SetShown(on)
+        if depth > 0 then
+            b.text:SetTextColor(on and 1 or 0.85, on and 0.82 or 0.85, on and 0.2 or 0.85)
+        else
+            b.text:SetTextColor(1, on and 1 or 0.82, on and 1 or 0)
+        end
+        y = y - b:GetHeight() - NAV.GAP
+        local open = current and contains(e, current)
+        for i = 1, #e.children do
+            local c = e.children[i]
+            if open then
+                place(c, depth + 1)
+            else
+                if c.button then c.button:Hide() end
+                if c.rule then c.rule:Hide() end
+            end
+        end
+    end
+    for i = 1, #NAV.entries do place(NAV.entries[i], 0) end
+end
+
+local function ensureNavWindow()
+    if NAV.win then return NAV.win end
+
+    local win = Compat.CreateBackdropFrame("Frame", "GlyphicWindow", UIParent)
+    win:SetFrameStrata("HIGH")
+    win:SetToplevel(true)
+    win:SetSize(NAV.W, NAV.H)
+    win:SetPoint("CENTER")
+    win:EnableMouse(true)
+    win:SetMovable(true)
+    if win.SetClampedToScreen then win:SetClampedToScreen(true) end
+    win:RegisterForDrag("LeftButton")
+    win:SetScript("OnDragStart", function(self) self:StartMoving() end)
+    win:SetScript("OnDragStop", function(self) self:StopMovingOrSizing() end)
+    win:Hide()
+    Compat.Backdrop(win, "dialog")
+
+    -- Stone under the whole window, as the game's own framed windows have.
+    -- A client without the file shows the dialog's dark fill instead, which
+    -- is plain but whole.
+    local stone = win:CreateTexture(nil, "BACKGROUND", nil, 1)
+    stone:SetPoint("TOPLEFT", 11, -12)
+    stone:SetPoint("BOTTOMRIGHT", -12, 11)
+    if stone:SetTexture("Interface\\FrameGeneral\\UI-Background-Rock", "REPEAT", "REPEAT") == false then
+        stone:Hide()
+    end
+    if stone.SetHorizTile then stone:SetHorizTile(true); stone:SetVertTile(true) end
+    stone:SetVertexColor(0.55, 0.5, 0.45, 1)
+
+    local col = CreateFrame("Frame", nil, win)
+    col:SetPoint("TOPLEFT", 14, -64)
+    col:SetPoint("BOTTOMLEFT", 14, 14)
+    col:SetWidth(NAV.COL)
+    local colBg = col:CreateTexture(nil, "BACKGROUND", nil, 2)
+    colBg:SetAllPoints()
+    Compat.SolidTexture(colBg, 0, 0, 0, 0.35)
+    win.navCol = col
+
+    -- The addon's name over the list, where TRP keeps its own.
+    local mark = win:CreateTexture(nil, "ARTWORK")
+    mark:SetSize(32, 32)
+    mark:SetPoint("TOPLEFT", 20, -20)
+    mark:SetTexture("Interface\\AddOns\\Glyphic\\Media\\Glyphic-Mark-On")
+    local title = win:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+    title:SetPoint("LEFT", mark, "RIGHT", 8, 0)
+    title:SetText("Glyphic")
+    win.titleText = title
+
+    -- Where the page goes: a recessed panel to the right of the list.
+    local host = Compat.CreateBackdropFrame("Frame", "GlyphicWindowPage", win)
+    host:SetPoint("TOPLEFT", col, "TOPRIGHT", 8, 50)
+    host:SetPoint("BOTTOMRIGHT", -14, 14)
+    Compat.Backdrop(host, "tooltip", 0.05, 0.045, 0.04, 0.82)
+    win.host = host
+
+    local okClose, close = pcall(CreateFrame, "Button", nil, win, "UIPanelCloseButton")
+    if not okClose or not close then close = CreateFrame("Button", nil, win) end
+    close:SetPoint("TOPRIGHT", -6, -6)
+    close:SetScript("OnClick", function() win:Hide() end)
+    win.closeBtn = close
+
+    tinsert(UISpecialFrames, "GlyphicWindow")
+
+    win:SetScript("OnHide", function(self)
+        -- Hidden rather than detached: the page stays parented here, and
+        -- hiding it is what makes its OnShow refresh run next time.
+        local e = self._entry
+        if e and e.frame then e.frame:Hide() end
+    end)
+
+    NAV.win = win
+    return win
+end
+
+-- Shows the window at `frame`'s page. Returns false for a frame that is not a
+-- page, so a caller can fall back.
+function Compat.OpenPage(frame)
+    local e = frame and NAV.byFrame[frame]
+    if not e then return false end
+    local win = ensureNavWindow()
+    local prev = win._entry
+    if prev and prev ~= e and prev.frame then prev.frame:Hide() end
+
+    frame:SetParent(win.host)
+    frame:ClearAllPoints()
+    frame:SetPoint("TOPLEFT", win.host, "TOPLEFT", 6, -6)
+    frame:SetPoint("BOTTOMRIGHT", win.host, "BOTTOMRIGHT", -6, 6)
+    win._entry = e
+    NAV.Reflow()
+    win:Show()
+    if win.Raise then win:Raise() end
+    -- After the window, so OnShow runs once the page is actually on screen
+    -- and measuring itself against something.
+    frame:Hide()
+    frame:Show()
+    if type(frame.refresh) == "function" then frame.refresh() end
+    return true
+end
+
+function Compat.IsPageOpen(frame)
+    local win = NAV.win
+    return win and win:IsShown() and win._entry and win._entry.frame == frame or false
+end
+
+function Compat.CloseWindow()
+    if NAV.win then NAV.win:Hide() end
+end
+
+-- The one entry Glyphic keeps in Blizzard's settings tree. Everything lives
+-- in the window now, and a second copy of every page in the tree would be two
+-- places to learn and two places to keep in step; but the AddOns list is
+-- where a player looks first, so it has to lead somewhere.
+function Compat.RegisterLauncher(name, blurb, open)
+    local f = Compat.CreateOptionsPanel(nil)
+    local title = f:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+    title:SetPoint("TOPLEFT", 16, -16)
+    title:SetText(name)
+    local text = f:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+    text:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -10)
+    text:SetPoint("RIGHT", f, "RIGHT", -24, 0)
+    text:SetJustifyH("LEFT")
+    text:SetText(blurb)
+    local btn = CreateFrame("Button", nil, f)
+    Compat.PanelButton(btn, "Open " .. name, 180, 26)
+    btn:SetPoint("TOPLEFT", text, "BOTTOMLEFT", 0, -14)
+    btn:SetScript("OnClick", function()
+        -- Out of the way first: the game's settings panel takes the screen
+        -- and would sit beside the window rather than under it.
+        if SettingsPanel and SettingsPanel:IsShown() and HideUIPanel
+            and not (InCombatLockdown and InCombatLockdown()) then
+            HideUIPanel(SettingsPanel)
+        end
+        open()
+    end)
+    f.openButton = btn
+    Compat.RegisterOptionsPanel(f, name)
+    return f
+end
+
+--=========================================================================--
+--  Settings rows: an information icon, a label, and the control at the end.
+--=========================================================================--
+-- TRP's layout, and the reason it reads calmly: every row is the same shape,
+-- so the eye runs down one column of labels and one column of controls, and
+-- the explanation is one hover away instead of printed under every switch.
+-- The icon sits in front of the label so a row with nothing to explain still
+-- lines up with its neighbours -- the space is kept whether or not it is used.
+local ROW_H = 28
+local ROW_LABEL_X = 24
+
+function Compat.OptionRow(parent, label, info)
+    local row = CreateFrame("Frame", nil, parent)
+    row:SetHeight(ROW_H)
+    if info then
+        row.info = Compat.InfoButton(row, info)
+        row.info:SetPoint("LEFT", row, "LEFT", 2, 0)
+    end
+    local fs = row:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+    fs:SetPoint("LEFT", row, "LEFT", ROW_LABEL_X, 0)
+    fs:SetJustifyH("LEFT")
+    fs:SetText(label or "")
+    row.label = fs
+
+    -- Pins `ctrl` to the end of the row and stops the label short of it, so
+    -- a long label wraps rather than running underneath the control.
+    function row:Attach(ctrl, width)
+        ctrl:ClearAllPoints()
+        ctrl:SetPoint("RIGHT", self, "RIGHT", -4, 0)
+        fs:SetPoint("RIGHT", self, "RIGHT", -((width or ctrl:GetWidth() or 0) + 16), 0)
+        self.control = ctrl
+        return ctrl
+    end
+    return row
+end
+
+-- A checkbox row. Returns the CheckButton, as Compat.CreateCheckbox does, so
+-- everything that reads `GetChecked` and `labelText` keeps working; anchor
+-- `cb.row`, not the box. Clicking anywhere on the row toggles it, which is
+-- what makes a label at the far end of a wide row still feel attached.
+function Compat.CheckRow(parent, label, info)
+    local row = Compat.OptionRow(parent, label, info)
+    local cb = CreateFrame("CheckButton", nil, row, "UICheckButtonTemplate")
+    cb:SetSize(26, 26)
+    row:Attach(cb, 26)
+    cb.row = row
+    cb.labelText = row.label
+    row:EnableMouse(true)
+    row:SetScript("OnMouseUp", function(_, button)
+        if button == "LeftButton" and cb:IsEnabled() and cb.Click then cb:Click() end
+    end)
+    return cb
+end
+
+-- Anchors a row under `anchor` and across the page. `indent` nests it under
+-- the row above, for a switch that only means something while that one is on.
+function Compat.PlaceRow(row, anchor, page, indent, gap)
+    row:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", indent or 0, -(gap or 2))
+    row:SetPoint("RIGHT", page, "RIGHT", -24, 0)
+    return row
+end
+
 function Compat.OpenOptionsPanel(frame)
     if not frame then return end
+    if Compat.OpenPage(frame) then return end
     if Compat.hasSettingsAPI and frame._settingsCategory then
         Settings.OpenToCategory(frame._settingsCategory:GetID())
         return
