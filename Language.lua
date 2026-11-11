@@ -1782,7 +1782,10 @@ local function addReverseEntry(langId, outputLower, sourceLower)
     end
 end
 
+local seedReverse
+
 local function rememberTranslation(langId, sourceWord, outputWord)
+    seedReverse(langId)
     local outputLower = strlower(outputWord)
     local sourceLower = strlower(sourceWord)
     addReverseEntry(langId, outputLower, sourceLower)
@@ -1793,22 +1796,6 @@ local function rememberTranslation(langId, sourceWord, outputWord)
                 table.remove(entry, i)
                 table.insert(entry, 1, sourceLower)
                 break
-            end
-        end
-    end
-end
-
-local function buildReverseMaps(forwardFn)
-    for i = 1, #LANGUAGE_ORDER do
-        local langId = LANGUAGE_ORDER[i]
-        -- Plain "languages" have no word set and never encode anything, so
-        -- there is nothing to reverse -- and asking for a translation would
-        -- reach a generator they don't have.
-        if not Language.IsPlain(langId) then
-            for j = 1, #COMMON_WORDS do
-                local word = COMMON_WORDS[j]
-                local out = forwardFn(word, langId)
-                rememberTranslation(langId, word, out)
             end
         end
     end
@@ -1829,22 +1816,39 @@ local function wordFrequencyScore(lower)
 end
 
 local origTranslateWord = Language.TranslateWord
-buildReverseMaps(origTranslateWord)
 
-local function sortReverseCollisions()
-    for _, map in pairs(REVERSE) do
-        for _, entry in pairs(map) do
-            if type(entry) == "table" then
-                table.sort(entry, function(a, b)
-                    return wordFrequencyScore(a) < wordFrequencyScore(b)
-                end)
-            end
+-- A language's reverse map is seeded with the common words the first time
+-- anything reads or grows it, so tongues nobody speaks or hears cost nothing.
+-- The seed must land before the map's first runtime entry, or collision order
+-- differs from a map seeded at load. Only tongues present at load are seeded:
+-- custom languages arrive later from saved variables. Plain "languages" have
+-- no word set and never encode anything, so there is nothing to reverse.
+local SEED_PENDING = {}
+for i = 1, #LANGUAGE_ORDER do
+    local langId = LANGUAGE_ORDER[i]
+    if not Language.IsPlain(langId) then SEED_PENDING[langId] = true end
+end
+
+seedReverse = function(langId)
+    if not SEED_PENDING[langId] then return end
+    SEED_PENDING[langId] = nil
+    for j = 1, #COMMON_WORDS do
+        local word = COMMON_WORDS[j]
+        rememberTranslation(langId, word, origTranslateWord(word, langId))
+    end
+    local map = REVERSE[langId]
+    if not map then return end
+    for _, entry in pairs(map) do
+        if type(entry) == "table" then
+            table.sort(entry, function(a, b)
+                return wordFrequencyScore(a) < wordFrequencyScore(b)
+            end)
         end
     end
 end
-sortReverseCollisions()
 
 local function getMappedCandidates(outputWord, langId)
+    seedReverse(langId)
     local lower = strlower(outputWord)
     local list = {}
     local seen = {}
