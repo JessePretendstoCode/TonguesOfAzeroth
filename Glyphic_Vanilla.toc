@@ -4,7 +4,7 @@
 ## Category: Roleplay
 ## IconTexture: Interface\AddOns\Glyphic\Media\Glyphic-On
 ## Author: JesseMods
-## Version: 0.6.6
+## Version: 0.6.6.1
 ## SavedVariablesPerCharacter: GlyphicDB
 ## SavedVariables: GlyphicAccountDB
 ## X-Curse-Project-ID: 1641225
@@ -30,9 +30,11 @@ Challenge.lua
 CastLibrary.lua
 Casts.lua
 GameVoices.lua
+EmoteSounds.lua
 Voice.lua
 Whispers.lua
 Game.lua
 Toast.lua
+Update.lua
 WhatsNew.lua
 UI.lua

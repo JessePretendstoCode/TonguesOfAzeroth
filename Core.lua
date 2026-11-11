@@ -135,6 +135,10 @@ local VOICE_TAG = "TOAV1:"
 -- TOAV1, because a client that predates it must drop it -- an old receiver
 -- would hold a TOAV1 pin for an emote that is never coming.
 local VOICE_ALONE_TAG = "TOAW1:"
+-- ...and "TOAU1:<version>", which addon version the sender runs. Update.lua
+-- owns it. An older client finds no tag it knows and hands it to the decode
+-- importer, which wants three \001 separators and drops it.
+ns.ADDON_PREFIX = ADDON_PREFIX
 
 local function addonDistribution(chatType, channel)
     chatType = normalizeChatType(chatType)
@@ -2258,6 +2262,9 @@ chatFrame:SetScript("OnEvent", function(self, event, ...)
                 if ns.Voice and ns.Voice.OnAlone then
                     ns.Voice.OnAlone(tonumber(message:sub(#VOICE_ALONE_TAG + 1)), sender, channel)
                 end
+            elseif ns.Update and type(message) == "string"
+                and message:sub(1, #ns.Update.TAG) == ns.Update.TAG then
+                ns.Update.OnVersion(message:sub(#ns.Update.TAG + 1), sender, channel)
             elseif Language.ImportDecodePayload then
                 Language.ImportDecodePayload(message)
             end
@@ -3917,6 +3924,8 @@ local function handleSlash(input)
         setEnabled(false)
     elseif cmd == "toggle" or cmd == "ic" or cmd == "ooc" then
         ns.ToggleInCharacter()
+    elseif cmd == "update" then
+        if ns.Update then ns.Update.Preview() end
     elseif cmd == "lang" or cmd == "language" then
         setLanguage(rest)
     elseif cmd == "native" or cmd == "dialect" or cmd == "mother" or cmd == "fallback" then

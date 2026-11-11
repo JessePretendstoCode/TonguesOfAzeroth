@@ -2,21 +2,13 @@
 -- edit the changelog and re-run the tool.
 local _, ns = ...
 ns.WhatsNew = {
-    { title = "Changelog: 0.6.6", groups = {
+    { title = "Changelog: 0.6.6.1", groups = {
         { name = "Added", entries = {
-            { text = "Glyphic has its own window, with every page listed down the left." },
-            { text = "A home page with your status, what's new, and an About tab." },
-            { text = "A Settings group for the things you set once and forget." },
+            { text = "A popup tells you when someone in your guild or group has a newer Glyphic than you, and you can switch it off in Settings, General." },
         } },
-        { name = "Changed", entries = {
-            { text = "Explanations moved off the pages and behind an \"i\" icon." },
-            { text = "Your language, native dialect and accent moved to a new IC Speech page." },
-            { text = "The lowest fluency is now called Sparse instead of Broken, in your tag and on the bar." },
-        } },
-        { name = "Improved", entries = {
-            { text = "IC Speech sums up in one sentence how your chat will sound." },
-            { text = "The window wears Forever's bronze around the game's own wood and parchment, with in-game scroll bars." },
-            { text = "The Gilnean accent sounds like London instead of the Echo Isles." },
+        { name = "Fixed", entries = {
+            { text = "Your character's own emote voice, like /hello's \"Hail!\", no longer plays on top of a voice line you pinned to that emote." },
+            { text = "The Cast Phrases page no longer slides off to the side after switching from an emote to a spell." },
         } },
     } },
 }

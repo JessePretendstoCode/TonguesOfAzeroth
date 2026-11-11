@@ -970,6 +970,12 @@ function Casts.Speak(spellName, opts)
     if ns.Voice and ns.Voice.NoteChoice then
         ns.Voice.NoteChoice(body, choice)
     end
+    -- Hush the game's own recording of the emote, which would otherwise play
+    -- on top of the pinned one. It plays when the server echoes the emote,
+    -- so muting here, inside the hook, is in time.
+    if choice and opts.emoteToken and ns.Voice and ns.Voice.MuteEmote then
+        ns.Voice.MuteEmote(opts.emoteToken, choice.line)
+    end
 
     local now = GetTime and GetTime() or 0
     lastSpoken = now
@@ -1111,7 +1117,7 @@ local function onEmote(token)
     lastEmoteAt = now
     lastEmoteByKey[key] = now
 
-    Casts.Speak(key, { fromKeypress = true })
+    Casts.Speak(key, { fromKeypress = true, emoteToken = token })
 end
 
 if type(hooksecurefunc) == "function" then

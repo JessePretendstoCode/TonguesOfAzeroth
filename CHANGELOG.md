@@ -3,6 +3,14 @@
 All notable changes to Glyphic are documented here. The addon was called
 Tongues of Azeroth before 0.5.3.
 
+## [0.6.6.1]
+- **New:** a popup tells you when someone in your guild or group has a newer
+  Glyphic than you, and you can switch it off in Settings, General.
+- **Fixed:** your character's own emote voice, like /hello's "Hail!", no
+  longer plays on top of a voice line you pinned to that emote.
+- **Fixed:** the Cast Phrases page no longer slides off to the side after
+  switching from an emote to a spell.
+
 ## [0.6.6]
 - **New:** Glyphic has its own window, with every page listed down the left.
 - **New:** a home page with your status, what's new, and an About tab.

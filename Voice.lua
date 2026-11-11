@@ -205,6 +205,96 @@ function Voice.PlayLine(spoken, source)
     return Voice.PlayGame(id, source)
 end
 
+--=========================================================================--
+--  Hushing the game's own emote voice
+--=========================================================================--
+-- /hello plays your character's "Hail!" and then the line you pinned, on top
+-- of each other. The emote's text can't be stopped (see AGENTS.md), but its
+-- sound can: MuteSoundFile silences a FileDataID until it is unmuted or the
+-- session ends. EmoteSounds.lua lists, per emote, race and sex, the files the
+-- game picks from, so the hook mutes those as the emote is performed -- its
+-- recording plays only once the server echoes the emote back -- and unmutes
+-- them a few seconds later. A mute is a session-only thing, so a /reload or a
+-- crash inside the window cannot leave anything silenced.
+--
+-- Only your own race's files, and the forms it shares a voice with, so other
+-- people's /hello nearby stays audible. The pinned line itself is never
+-- muted: it may well be one of these very recordings.
+Voice.MUTE_WINDOW = 4
+
+local LINKED_RACES = {}
+for _, set in ipairs({
+    { 22, 23 },             -- Worgen and their Gilnean form
+    { 24, 25, 26 },         -- Pandaren: neutral, Alliance, Horde
+    { 52, 70, 75, 76 },     -- Dracthyr and their visage forms
+    { 84, 85 },             -- Earthen
+    { 86, 91 },             -- Harronir
+}) do
+    for _, race in ipairs(set) do LINKED_RACES[race] = set end
+end
+
+local muted = {}        -- [fileDataId] = GetTime() it may be unmuted
+Voice._muted = muted
+
+-- The game's recordings for `token`, for a race and sex (0 male, 1 female).
+function Voice.EmoteFiles(token, race, sex)
+    local byRace = ns.EmoteSounds and type(token) == "string" and ns.EmoteSounds[token:upper()]
+    if not byRace or type(race) ~= "number" or (sex ~= 0 and sex ~= 1) then return {} end
+    local out = {}
+    for _, r in ipairs(LINKED_RACES[race] or { race }) do
+        for _, id in ipairs((byRace[r] and byRace[r][sex]) or {}) do out[#out + 1] = id end
+    end
+    return out
+end
+
+local function playerVoice()
+    if type(UnitRace) ~= "function" or type(UnitSex) ~= "function" then return nil end
+    local _, _, race = UnitRace("player")
+    local sex = UnitSex("player")
+    if isSecret(race) or isSecret(sex) then return nil end
+    if type(race) ~= "number" or (sex ~= 2 and sex ~= 3) then return nil end
+    return race, sex - 2
+end
+
+local function unmuteDue()
+    local now = GetTime and GetTime() or 0
+    for id, at in pairs(muted) do
+        if at <= now + 0.05 then
+            pcall(UnmuteSoundFile, id)
+            muted[id] = nil
+        end
+    end
+end
+Voice._unmuteDue = unmuteDue
+
+-- Called by Casts from inside the emote hook, once a pinned line is chosen.
+-- Returns how many files were muted.
+function Voice.MuteEmote(token, keepLine)
+    local c = castDB()
+    if c and c.muteEmoteVoice == false then return 0 end
+    if type(MuteSoundFile) ~= "function" or type(UnmuteSoundFile) ~= "function" then return 0 end
+    if not (C_Timer and type(C_Timer.After) == "function") then return 0 end
+    local race, sex = playerVoice()
+    if not race then return 0 end
+    local keep = Voice.GameId(keepLine)
+    -- Still muted from an emote a moment ago, and about to be played.
+    if keep and muted[keep] then
+        pcall(UnmuteSoundFile, keep)
+        muted[keep] = nil
+    end
+    local untilAt = (GetTime and GetTime() or 0) + Voice.MUTE_WINDOW
+    local n = 0
+    for _, id in ipairs(Voice.EmoteFiles(token, race, sex)) do
+        if id ~= keep then
+            if not muted[id] then pcall(MuteSoundFile, id) end
+            muted[id] = untilAt
+            n = n + 1
+        end
+    end
+    if n > 0 then C_Timer.After(Voice.MUTE_WINDOW, unmuteDue) end
+    return n
+end
+
 -- Every quoted span in an emote body, in order. Mirrors the pattern Casts.lua
 -- renders with, so the two can never disagree about what counts as speech.
 function Voice.SpansOf(body)

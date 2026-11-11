@@ -662,6 +662,19 @@ local function layoutMainWidgetLock()
     local barOn = d.widget and d.widget.enabled and true or false
     if widgetLockCheck then widgetLockCheck.row:SetShown(barOn) end
     V.generalPanel._lastChild = (barOn and widgetLockCheck.row) or widgetCheck.row
+    -- The update switch follows whichever of those is showing, with the lock
+    -- row's indent taken back out.
+    local upd = V.updateCheck
+    if upd and V.generalContent then
+        upd.row:ClearAllPoints()
+        if barOn and widgetLockCheck then
+            upd.row:SetPoint("TOPLEFT", widgetLockCheck.row, "BOTTOMLEFT", -20, -2)
+            upd.row:SetPoint("RIGHT", V.generalContent, "RIGHT", -24, 0)
+        else
+            Compat.PlaceRow(upd.row, widgetCheck.row, V.generalContent)
+        end
+        V.generalPanel._lastChild = upd.row
+    end
 end
 
 function V.RefreshGeneral()
@@ -672,6 +685,7 @@ function V.RefreshGeneral()
     if widgetLockCheck then
         widgetLockCheck:SetChecked(d.widget.locked and true or false)
     end
+    if V.updateCheck then V.updateCheck:SetChecked(d.updateNotice ~= false) end
     layoutMainWidgetLock()
     V.sizePage(V.generalPanel)
 end
@@ -2224,7 +2238,16 @@ function V.BuildGeneral()
     widgetLockCheck:SetScript("OnClick", function(self)
         db().widget.locked = self:GetChecked() and true or false
     end)
-    panel._lastChild = widgetLockCheck.row
+
+    V.updateCheck = Compat.CheckRow(content, "Tell me when a new version is out",
+        "Glyphic hears which version other Glyphic users in your guild and group "
+        .. "run. When one is newer than yours, you get a popup once per session.")
+    V.generalContent = content
+    V.updateCheck:SetScript("OnClick", function(self)
+        db().updateNotice = self:GetChecked() and true or false
+    end)
+    panel._lastChild = V.updateCheck.row
+    layoutMainWidgetLock()
 
     panel.refresh = V.RefreshGeneral
     panel:SetScript("OnShow", V.RefreshGeneral)
@@ -4197,6 +4220,7 @@ local function RefreshCasts()
     setSlider(castGapSlider, c.gap or cd.gap, seconds(c.gap or cd.gap))
     setSlider(castSpellGapSlider, c.spellGap or cd.spellGap, seconds(c.spellGap or cd.spellGap))
     if castPanel.emoteCheck then castPanel.emoteCheck:SetChecked(c.emotes) end
+    if castPanel.emoteHush then castPanel.emoteHush:SetChecked(c.muteEmoteVoice ~= false) end
     setSlider(castPanel.emoteChance, c.emoteChance or cd.emoteChance,
         (c.emoteChance or cd.emoteChance) .. "%")
     setSlider(castPanel.emoteGap, c.emoteGap or cd.emoteGap, seconds(c.emoteGap or cd.emoteGap))
@@ -4263,19 +4287,13 @@ local function RefreshCasts()
     -- Each section ends with its frequency sliders, under the editor when the
     -- editor is open there and under the picker when it isn't. The headers
     -- below hang off the last slider, so they follow.
+    -- Unhooked now and placed at the very end, once the editor has settled.
+    -- Until then the editor still hangs off the section it is leaving, which
+    -- hangs off these sliders, so anchoring one under the editor here loops
+    -- back to itself; the client refuses that and the page falls apart.
     local emoteChance = castPanel.emoteChance
-    if castChanceSlider and emoteChance and castSpellDropdown and emoteDrop and castStatus then
-        castChanceSlider:ClearAllPoints()
-        emoteChance:ClearAllPoints()
-        -- castStatus sits 6px in from the section's left edge.
-        if emoteActive then
-            castChanceSlider:SetPoint("TOPLEFT", castSpellDropdown, "BOTTOMLEFT", 4, -34)
-            emoteChance:SetPoint("TOPLEFT", castStatus, "BOTTOMLEFT", -2, -34)
-        else
-            castChanceSlider:SetPoint("TOPLEFT", castStatus, "BOTTOMLEFT", -2, -34)
-            emoteChance:SetPoint("TOPLEFT", emoteDrop, "BOTTOMLEFT", 4, -34)
-        end
-    end
+    if castChanceSlider then castChanceSlider:ClearAllPoints() end
+    if emoteChance then emoteChance:ClearAllPoints() end
 
     -- Lay the phrase rows out under the selector. `indent` tracks how far the
     -- list has stepped in from it, so the add row can step back out.
@@ -4720,6 +4738,19 @@ local function RefreshCasts()
             castStatus:SetPoint("TOPLEFT", castPreviewText, "BOTTOMLEFT", 0, -6)
         end
         castStatus:SetPoint("RIGHT", castContent, "RIGHT", -24, 0)
+    end
+
+    -- Each section ends with its frequency sliders, under the editor when the
+    -- editor is open there and under the picker when it isn't. castStatus sits
+    -- 6px in from the section's left edge.
+    if castChanceSlider and emoteChance and castSpellDropdown and emoteDrop and castStatus then
+        if emoteActive then
+            castChanceSlider:SetPoint("TOPLEFT", castSpellDropdown, "BOTTOMLEFT", 4, -34)
+            emoteChance:SetPoint("TOPLEFT", castStatus, "BOTTOMLEFT", -2, -34)
+        else
+            castChanceSlider:SetPoint("TOPLEFT", castStatus, "BOTTOMLEFT", -2, -34)
+            emoteChance:SetPoint("TOPLEFT", emoteDrop, "BOTTOMLEFT", 4, -34)
+        end
     end
 
     -- Preview whatever is being typed, so a phrase can be checked before it's
@@ -5643,8 +5674,17 @@ local function BuildCastPanel()
     emoteMute:Hide()
     castPanel.emoteMute = emoteMute
 
+    -- The game plays your character's own recording of an emote (/hello's
+    -- "Hail!") under any line pinned to it. See Voice.MuteEmote.
+    local emoteHush = Compat.CreateCheckbox(content, "Hush my character's own emote voice under a pinned line")
+    emoteHush:SetPoint("TOPLEFT", emoteSameGap, "BOTTOMLEFT", -4, -30)
+    emoteHush:SetScript("OnClick", function(self)
+        castDB().muteEmoteVoice = self:GetChecked() and true or false
+    end)
+    castPanel.emoteHush = emoteHush
+
     local hearLabel = sectionHeader(content, "Hearing other players")
-    hearLabel:SetPoint("TOPLEFT", emoteSameGap, "BOTTOMLEFT", -4, -56)
+    hearLabel:SetPoint("TOPLEFT", emoteHush, "BOTTOMLEFT", 0, -26)
     castPanel.hearHeader = hearLabel
 
     local hearIntro = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
