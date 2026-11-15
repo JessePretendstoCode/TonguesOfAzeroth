@@ -142,11 +142,18 @@ end
 --   auditioned ...or by the play button, which is not the same evidence
 --   fromOthers ...or by somebody else's line, which is not either
 --   missing    a pin named a file this client does not carry
+--   alone      somebody's spell line arrived with no emote behind it
+--   aloneUnplaced ...but its sender matched nobody in your group
+--   aloneFar   ...or matched someone the client could not see
 Voice.stats = {
     played = 0, auditioned = 0, fromOthers = 0,
     missing = 0, unmapped = 0, heard = 0, unpinned = 0, rewritten = 0,
     emotes = 0, secret = 0, nameless = 0, mine = 0,
+    alone = 0, aloneUnplaced = 0, aloneFar = 0,
 }
+-- The sender of the last spell line that matched nobody in the group, and the
+-- names the group answered to, so a mismatch can be read rather than deduced.
+Voice.lastUnplaced = nil
 
 -- The last line that came back different from the one that went out. Kept
 -- whole rather than counted, because the useful question is what changed.
@@ -516,27 +523,76 @@ end
 -- guild -- plays only from a group member the client can currently see, which
 -- is roughly the distance you would have read their emote from. A guildmate
 -- who is not in your group cannot be placed, and is not played.
-local function groupUnitFor(who)
-    if type(GetNumGroupMembers) ~= "function" or type(UnitName) ~= "function" then
-        return nil
+--
+-- The addon message names its sender one way and the group roster another,
+-- and on WoW: Forever the two disagree about surnames: "Charlie" off the wire,
+-- "Charlie Lightcairn" from UnitName, or the reverse. Matching on one exact
+-- string left every surnamed groupmate's spells silent while their emotes,
+-- which pair two chat-event names, played fine. So every call with an opinion
+-- is asked, as ns.SelfNames does for you, and failing an exact match the first
+-- names are compared -- but only when exactly one member answers to it, since
+-- surnames exist so that first names need not be unique.
+local function unitNames(unit)
+    local out = {}
+    local function add(name)
+        local n = shortName(name)
+        if n and n ~= "" then out[#out + 1] = n end
     end
+    if type(UnitName) == "function" then
+        local ok, name = pcall(UnitName, unit)
+        if ok then add(name) end
+    end
+    if type(GetUnitName) == "function" then
+        local ok, name = pcall(GetUnitName, unit, false)
+        if ok then add(name) end
+        ok, name = pcall(GetUnitName, unit, true)
+        if ok then add(name) end
+    end
+    return out
+end
+
+local function firstName(name)
+    return name:match("^(%S+)")
+end
+
+local function groupUnitFor(who, record)
+    if type(GetNumGroupMembers) ~= "function" then return nil end
     local raid = Compat and Compat.InRaid and Compat.InRaid()
     local n = tonumber(GetNumGroupMembers()) or 0
+    local first = firstName(who)
+    local byFirst, seen = {}, {}
     for i = 1, n do
         local unit = (raid and "raid" or "party") .. i
-        local ok, name = pcall(UnitName, unit)
-        if ok and shortName(name) == who then return unit end
+        for _, name in ipairs(unitNames(unit)) do
+            if name == who then return unit end
+            seen[#seen + 1] = name
+            if first and firstName(name) == first and byFirst[#byFirst] ~= unit then
+                byFirst[#byFirst + 1] = unit
+            end
+        end
     end
+    if #byFirst == 1 then return byFirst[1] end
+    if record then Voice.lastUnplaced = { sender = who, group = seen } end
     return nil
 end
 
 local function standingNear(who, channel)
     if channel == "SAY" or channel == "YELL" then return true end
-    local unit = groupUnitFor(who)
-    if not unit or type(UnitIsVisible) ~= "function" then return false end
-    local ok, visible = pcall(UnitIsVisible, unit)
-    if not ok or isSecret(visible) then return false end
-    return visible == true
+    -- Only a line that came over the group can be a groupmate gone unmatched;
+    -- a guildmate off in another zone is unplaced every time, and correctly.
+    local overGroup = channel == "PARTY" or channel == "RAID" or channel == "INSTANCE_CHAT"
+    local unit = groupUnitFor(who, overGroup)
+    if not unit then
+        if overGroup then Voice.stats.aloneUnplaced = Voice.stats.aloneUnplaced + 1 end
+        return false
+    end
+    local visible = false
+    if type(UnitIsVisible) == "function" then
+        local ok, v = pcall(UnitIsVisible, unit)
+        visible = ok and not isSecret(v) and v == true
+    end
+    if not visible then Voice.stats.aloneFar = Voice.stats.aloneFar + 1 end
+    return visible
 end
 
 local heardAlone = {}    -- [speaker] = { id = n, at = t }
@@ -552,6 +608,7 @@ function Voice.OnAlone(id, sender, channel)
     -- The same catalogue gate as OnBroadcast, for the same reason.
     local gv = ns.GameVoices
     if not (gv and gv.ById and gv.ById[id]) then return end
+    Voice.stats.alone = Voice.stats.alone + 1
     if not standingNear(who, channel) then return end
 
     -- One cast reaches a guildmate in your group on two channels.
@@ -710,6 +767,7 @@ function Voice.Describe()
         stats = Voice.stats,
         lastRewrite = Voice.lastRewrite,
         lastStranger = Voice.lastStranger,
+        lastUnplaced = Voice.lastUnplaced,
         hearing = hearing,
         canHearNearby = (Compat and Compat.hasProximityAddonMessages) or false,
     }

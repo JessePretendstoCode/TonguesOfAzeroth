@@ -438,6 +438,57 @@ reg("gilnean", {
     tails = { ", innit.", ", mate.", ", know wot I mean?", ", eh?" },
 })
 
+-- Kul Tiran == West Country (Cornwall, Devon, Bristol), which is what the BfA
+-- cast and the allied race are doing. It is the accent the stage pirate was
+-- built from, so it must not drift into the Pirate entry below: no "arr", no
+-- "matey", "the" stays "the". The West Country half is the grammar -- "be" for
+-- every person ("I be", "be 'ee comin'?"), "'ee" for you, "us" for we, ent,
+-- weren't, summat, proper, gert, dreckly, 'ansum -- plus h-dropping and, at
+-- the top, a written rolled R. The sea comes in as Navy and dockside words,
+-- not buccaneer ones.
+reg("kultiran", {
+    name = "Kul Tiran",
+    swaps = {
+        [10] = {
+            yes = "aye", hello = "ahoy", hi = "ahoy", hey = "ahoy",
+            friend = "shipmate", friends = "shipmates", buddy = "shipmate",
+            pal = "shipmate", goodbye = "fair winds", bye = "fair winds",
+            everyone = "all hands", everybody = "all hands",
+            very = "proper", handsome = "'ansum", beautiful = "'ansum",
+        },
+        [30] = {
+            am = "be", are = "be", ["i'm"] = "I be", ["you're"] = "you be",
+            ["we're"] = "we be", ["they're"] = "they be",
+            ["isn't"] = "ent", ["aren't"] = "ent", ["ain't"] = "ent",
+            ["haven't"] = "ent", ["wasn't"] = "weren't",
+            my = "me", myself = "meself", your = "yer", them = "'em",
+            ["and"] = "an'", captain = "cap'n", boss = "skipper",
+            leader = "skipper", drunk = "three sheets to the wind",
+            tidy = "shipshape", neat = "shipshape", lost = "adrift",
+        },
+        [50] = {
+            you = "'ee", of = "o'", ["it's"] = "'tis", something = "summat",
+            soon = "dreckly", later = "dreckly", great = "gert", big = "gert",
+            huge = "gert big", stupid = "daft", idiot = "landlubber",
+            tired = "knackered", kitchen = "galley", floor = "deck",
+            bed = "bunk", food = "vittles", bathroom = "head", toilet = "head",
+            child = "nipper", kid = "nipper", money = "coin",
+            quickly = "smartly",
+        },
+        [75] = {
+            is = "be", we = "us",
+        },
+    },
+    patterns = {
+        { "ing$", "in'", 20 },              -- sailin', fishin'
+        { "^h", "'", 50 },                  -- 'arbour, 'ave, 'ow
+        { "([aeiou])r$", "%1rr", 70 },      -- the rolled R: forr, farr, waterr
+    },
+    -- "my 'ansum" is Cornwall's address for anyone, so it carries no gender.
+    tails = { ", my 'ansum.", ", proper job.", " By the Tides!", ", shipmate.",
+              " Fair winds!" },
+})
+
 -- Vrykul == Norse/Viking. Scandinavian-English: w->v (we->ve), j for y
 -- (yes->ja), th->d (the->de, this->dis), plus mead-hall gravitas.
 reg("vrykul", {

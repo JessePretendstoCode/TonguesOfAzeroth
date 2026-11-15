@@ -3,6 +3,13 @@
 All notable changes to Glyphic are documented here. The addon was called
 Tongues of Azeroth before 0.5.3.
 
+## [0.6.7]
+- **New:** a Kul Tiran accent, West Country with a sailor's vocabulary: "Ahoy shipmate, be 'ee 'eadin' to the 'arbour dreckly?"
+- **Changed:** Cast Phrases is now called Audible Phrases, since it covers your emotes as well as your spells.
+- **Improved:** Glyphic uses about 10 MB less memory after login.
+- **Fixed:** on WoW: Forever, groupmates now hear your spell voice lines when your character has a surname.
+- **Fixed:** spell voice lines now reach groupmates in a dungeon or raid finder group.
+
 ## [0.6.6.1]
 - **New:** a popup tells you when someone in your guild or group has a newer
   Glyphic than you, and you can switch it off in Settings, General.

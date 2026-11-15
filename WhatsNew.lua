@@ -2,13 +2,19 @@
 -- edit the changelog and re-run the tool.
 local _, ns = ...
 ns.WhatsNew = {
-    { title = "Changelog: 0.6.6.1", groups = {
+    { title = "Changelog: 0.6.7", groups = {
         { name = "Added", entries = {
-            { text = "A popup tells you when someone in your guild or group has a newer Glyphic than you, and you can switch it off in Settings, General." },
+            { text = "A Kul Tiran accent, West Country with a sailor's vocabulary: \"Ahoy shipmate, be 'ee 'eadin' to the 'arbour dreckly?\"" },
+        } },
+        { name = "Changed", entries = {
+            { text = "Cast Phrases is now called Audible Phrases, since it covers your emotes as well as your spells." },
+        } },
+        { name = "Improved", entries = {
+            { text = "Glyphic uses about 10 MB less memory after login." },
         } },
         { name = "Fixed", entries = {
-            { text = "Your character's own emote voice, like /hello's \"Hail!\", no longer plays on top of a voice line you pinned to that emote." },
-            { text = "The Cast Phrases page no longer slides off to the side after switching from an emote to a spell." },
+            { text = "On WoW: Forever, groupmates now hear your spell voice lines when your character has a surname." },
+            { text = "Spell voice lines now reach groupmates in a dungeon or raid finder group." },
         } },
     } },
 }

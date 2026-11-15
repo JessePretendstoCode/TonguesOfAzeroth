@@ -36,7 +36,7 @@ One install runs on Retail (Midnight), WoW: Forever, and Classic (Vanilla, Cata,
 *   **Per-channel filters.** Choose which chat types are affected: Say, Yell, Party, Raid, Guild, Whisper and the rest.
 *   **Decoding.** Mark the tongues your character understands. When another Glyphic user speaks one, you see the decoded meaning in your own chat, with your fluency in it shown on a progress bar.
 *   **An ordered language list.** The tongue you're speaking is always the first row, favorites sit under it, and the rest follow, so nothing you use is ever seventy rows down. Star a language on its row to favorite it, and the star on the floating bar decides whether scrolling cycles only those.
-*   **Cast Phrases.** Customize your character to speaks configured voice lines and phrases when a spell lands.
+*   **Audible Phrases.** Customize your character to speak configured voice lines and phrases when a spell lands or you emote.
 *   **Minimap button** and a draggable window for one-click access, with Back and Close navigation on clients that have no native options tree.
 *   **Deterministic.** The same words always translate the same way, so speech stays consistent between everyone running the addon.
 *   Punctuation, numbers and links are preserved.
@@ -68,13 +68,13 @@ Another 60 or so generated tongues and dialects sit behind those, each with its 
 
 ## Accents
 
-Prefer to be understood? Accents rewrite your English into a spoken dialect rather than a foreign language. Choose one, set its strength, and speak normally. There are eight: Dwarven, Troll, Orcish, Draenei, Goblin, Gilnean, Vrykul and Pirate.
+Prefer to be understood? Accents rewrite your English into a spoken dialect rather than a foreign language. Choose one, set its strength, and speak normally. There are nine: Dwarven, Troll, Orcish, Draenei, Goblin, Gilnean, Kul Tiran, Vrykul and Pirate.
 
 Accents and languages compose. Whatever your fluency leaves in English keeps your accent, so a Dwarf at 50% Orcish sounds like a Dwarf speaking broken Orcish. At 100% there is no English left for the accent to touch.
 
-## Cast Phrases
+## Audible Phrases
 
-Your character can speak when a spell lands, in whatever tongue you're currently speaking:
+Your character can speak when a spell lands or you emote, in whatever tongue you're currently speaking:
 
 > _Corvin snarls "Aman!" in Broken Demonic and the fire takes hold._
 
@@ -119,7 +119,7 @@ Handy commands:
 *   Chat has a 255-character limit, so translated text is trimmed to fit.
 *   This transforms your text client-side. It does not touch WoW's real server-side language system.
 *   Settings are stored per character, so each of your characters keeps its own voice. The color palette is the one exception: it's shared account-wide, because a language reading as the same color everywhere is the point of coloring it.
-*   Cast Phrases go out as emotes. `/say` and `/yell` have needed a real keypress since patch 8.2.5, so no addon can send those from a spell cast. During raid encounters, Mythic+ and rated PvP the game blocks addon chat altogether, and the line is shown to you alone instead.
+*   Audible Phrases go out as emotes. `/say` and `/yell` have needed a real keypress since patch 8.2.5, so no addon can send those from a spell cast. During raid encounters, Mythic+ and rated PvP the game blocks addon chat altogether, and the line is shown to you alone instead.
 
 ## How it's built, and an AI disclosure
 

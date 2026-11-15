@@ -11,7 +11,7 @@
         what those add up to and a preview that runs the real outgoing path.
       * Languages -- how is each tongue set up? The per-language list: what you
         understand, how fluently, and what color it reads in.
-      * Accents, Cast Phrases, Language Trainer, Create Language, Challenges --
+      * Accents, Audible Phrases, Language Trainer, Create Language, Challenges --
         self-contained jobs.
       * Settings -- the things a player sets once: General (minimap, bar),
         Chat Channels (where you speak in character, names and colors),
@@ -1173,7 +1173,7 @@ local function tooltipLines(tt)
     if not db().inCharacter and not muted then
         -- Said here because this is where it gets switched off, and a button
         -- that silences four features ought to admit to all four of them.
-        tt:AddLine("Out of character: no tongue, no accent, no cast phrases.", 0.8, 0.5, 0.5)
+        tt:AddLine("Out of character: no tongue, no accent, no audible phrases.", 0.8, 0.5, 0.5)
     end
     tt:AddLine(" ")
     tt:AddLine("|cffffffffLeft-click|r  Open settings", 1, 1, 1)
@@ -1820,7 +1820,7 @@ local function BuildMainPanel()
     -- plain English and hit again after.
     enableCheck = Compat.CheckRow(content, "Speak in character",
         "Off mutes everything this addon says for you: your chat goes out exactly "
-        .. "as typed, with no accent, and cast phrases stay quiet. You still read, "
+        .. "as typed, with no accent, and audible phrases stay quiet. You still read, "
         .. "color and decode everyone else either way. Applies to the channels "
         .. "picked under |cffffd200Settings > Chat Channels|r.")
     Compat.PlaceRow(enableCheck.row, statusHeader, content, 0, 8)
@@ -2084,7 +2084,7 @@ function V.BuildHome()
 
     V.homeEnable = Compat.CheckRow(box, "Speak in character",
         "Off mutes everything this addon says for you: your chat goes out exactly "
-        .. "as typed, with no accent, and cast phrases stay quiet. You still read, "
+        .. "as typed, with no accent, and audible phrases stay quiet. You still read, "
         .. "color and decode everyone else either way.")
     V.homeEnable.row:SetPoint("TOPLEFT", box, "TOPLEFT", 12, -42)
     V.homeEnable.row:SetPoint("RIGHT", box, "RIGHT", -12, 0)
@@ -4603,7 +4603,7 @@ local function RefreshCasts()
                 or "It can be brought back with Restore under the list."
             Compat.ShowConfirm({
                 text = string.format(
-                    "Remove this cast phrase?\n\n\"%s\"\n\n%s", quoted, consequence),
+                    "Remove this phrase?\n\n\"%s\"\n\n%s", quoted, consequence),
                 acceptText = "Remove",
                 cancelText = "Cancel",
                 onAccept = function()
@@ -4802,7 +4802,7 @@ function ns.ConfirmProfileImport(parsed)
     local body = "Replace this character's Glyphic settings with the profile from |cffffff00"
         .. from .. "|r" .. when .. "?\n\n"
         .. "|cffff8080Everything currently set on this character is overwritten|r -- language, "
-        .. "fluency, accents, channels, cast phrases and any languages you invented."
+        .. "fluency, accents, channels, audible phrases and any languages you invented."
     if hasColors then
         body = body .. "\n\nThe account-wide colour palette is included, so this affects every character."
     end
@@ -5192,7 +5192,7 @@ local function BuildProfilePanel()
     outHint:SetPoint("RIGHT", profilePanel, "RIGHT", -32, 0)
     outHint:SetJustifyH("LEFT")
     if outHint.SetWordWrap then outHint:SetWordWrap(true) end
-    outHint:SetText("Includes your language, fluency, accents, channels, cast phrases, invented languages and the shared colour palette. Keep the code somewhere outside the game.")
+    outHint:SetText("Includes your language, fluency, accents, channels, audible phrases, invented languages and the shared colour palette. Keep the code somewhere outside the game.")
     Compat.Tuck(profilePanel, outHint, outLabel)
 
     profileOutput = CreateFrame("EditBox", "TonguesOfAzerothProfileOut", profilePanel, "InputBoxTemplate")
@@ -5262,7 +5262,7 @@ end
 
 local function BuildCastPanel()
     castPanel = Compat.CreateOptionsPanel("TonguesOfAzerothCastOptions")
-    castPanel.name = "Cast Phrases"
+    castPanel.name = "Audible Phrases"
     castPanel.parent = mainPanel.name
 
     local content = Compat.CreateScrollContent(castPanel, 900)
@@ -5270,7 +5270,7 @@ local function BuildCastPanel()
 
     local title = content:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
     title:SetPoint("TOPLEFT", 16, -16)
-    title:SetText("Cast Phrases")
+    title:SetText("Audible Phrases")
 
     local subtitle = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -8)
@@ -5286,7 +5286,7 @@ local function BuildCastPanel()
     limits:SetJustifyH("LEFT")
     if limits.SetWordWrap then limits:SetWordWrap(true) end
     if Compat.IsForever() then
-        limits:SetText("|cffffd200Heads-up:|r on WoW: Forever a spell's phrase is a voice line and nothing else. Forever only lets an addon post an emote when you press a key, which a spell going off is not -- so a spell plays the line you pick, and nothing appears in chat. Emote phrases still go out as text, because they ride on the emote you typed.")
+        limits:SetText("|cffffd200Heads-up:|r on WoW: Forever a spell's phrase is a voice line and nothing else. Forever only lets an addon post an emote when you press a key, which a spell going off is not -- so a spell plays the line you pick, and nothing appears in chat. Other Glyphic players hear it only while they are grouped with you and can see you. Emote phrases still go out as text, because they ride on the emote you typed.")
     else
         limits:SetText("|cffffd200Heads-up:|r lines go out as emotes. /say and /yell need a real keypress, so no addon can send them from a cast -- and during raid encounters, Mythic+ and rated PvP Blizzard blocks addon chat entirely, where the line is shown to you alone instead.")
     end

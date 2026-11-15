@@ -42,8 +42,9 @@ in character when you want to be heard in it.
   sub-dialects share their parent's vocabulary but bend it, so `Amani`, `Gurubashi` and
   `Drakkari` come out recognisably Zandali without being identical to it.
 - Accents, which flavor your *English* with a spoken dialect rather than translating it.
-    There are eight: Dwarven ("I cannae do this, aye!"), Troll ("da voodoo, mon."),
-    Orcish, Draenei, Goblin, Gilnean, Vrykul and Pirate. Each has its own strength
+    There are nine: Dwarven ("I cannae do this, aye!"), Troll ("da voodoo, mon."),
+    Orcish, Draenei, Goblin, Gilnean, Kul Tiran ("proper job, shipmate."), Vrykul and
+    Pirate. Each has its own strength
     slider, so you can go subtle or thick.
 - A language trainer, called Decipher. It's a Wordle-style minigame: pick a language,
   solve daily-style word puzzles, climb reputation ranks, and build fluency, shown on
@@ -100,7 +101,7 @@ in character when you want to be heard in it.
   on Auction House searches and profession recipes. The star on the floating language bar
   toggles whether scrolling and `/toa next` walk only your favorites or everything you've
   learned.
-- Cast phrases. Your character speaks when a spell lands: *Corvin snarls "Aman!" in Broken
+- Audible phrases. Your character speaks when a spell lands or you emote: *Corvin snarls "Aman!" in Broken
   Demonic and the fire takes hold.* Words in `"quotes"` are spoken aloud and get translated
   into your current tongue, while the narration around them stays in English. Fifteen
   opt-in packs ship with it (one per class, plus pets and professions) covering 143 spells
@@ -266,7 +267,7 @@ All of them appear in the config dropdown and in `/toa list`.
 | `/toa challenge`            | Your challenge record: tier, levels, quests, tongues    |
 | `/toa challenge abandon`    | End the run, restore your settings, keep the fluency    |
 | `/toa minimap`              | Show / hide the minimap button                          |
-| `/toa cast`                 | Open the Cast Phrases panel                             |
+| `/toa phrases`              | Open the Audible Phrases page (`/toa cast` also works)  |
 | `/toa cast on` / `off`      | Toggle speaking when you cast                           |
 | `/toa cast list`            | List spells that have phrases                           |
 | `/toa cast test [spell]`    | Show what a spell would say (sends nothing)             |
@@ -294,7 +295,7 @@ Each panel answers one question, which is how to guess where a setting lives:
 | Tongues of Azeroth | Am I in character? |
 | Languages | Which tongue do I speak, and how is each one set up? |
 | Chat | Where does translation apply, and how does it read? |
-| Accents / Cast Phrases / Create Language / Language Trainer | One self-contained job each |
+| Accents / Audible Phrases / Create Language / Language Trainer | One self-contained job each |
 
 ### Tongues of Azeroth, the panel you land on
 

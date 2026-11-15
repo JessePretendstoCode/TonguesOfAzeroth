@@ -413,6 +413,21 @@ function Compat.InParty()
     return false
 end
 
+-- Where an addon message reaches your group, or nil when you have none. A
+-- group made by the dungeon or raid finder is not your party as far as the
+-- server is concerned: PARTY and RAID go nowhere from inside one, and only
+-- INSTANCE_CHAT arrives.
+function Compat.GroupChannel()
+    if type(IsInGroup) == "function" and LE_PARTY_CATEGORY_INSTANCE
+        and IsInGroup(LE_PARTY_CATEGORY_INSTANCE)
+        and not IsInGroup(LE_PARTY_CATEGORY_HOME) then
+        return "INSTANCE_CHAT"
+    end
+    if Compat.InRaid() then return "RAID" end
+    if Compat.InParty() then return "PARTY" end
+    return nil
+end
+
 --=========================================================================--
 --  Solid-color textures.
 --=========================================================================--

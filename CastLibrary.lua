@@ -2,7 +2,7 @@
     Glyphic - CastLibrary.lua
     The shipped phrase packs: ready-made lines for spells you already cast, so
     the feature is usable without writing seventy phrases first. Every pack is
-    opt-in -- nothing here speaks until you tick it in Cast Phrases.
+    opt-in -- nothing here speaks until you tick it in Audible Phrases.
 
     Writing phrases:
       * A phrase is the body of an emote, so it continues the sentence "<Your

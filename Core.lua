@@ -200,11 +200,8 @@ function ns.BroadcastVoicePin(id, alone)
     local payload = (alone and VOICE_ALONE_TAG or VOICE_TAG) .. tostring(id)
     if #payload > MAX_ADDON_PAYLOAD then return end
 
-    if Compat.InRaid() then
-        Compat.SendAddonMessage(ADDON_PREFIX, payload, "RAID")
-    elseif Compat.InParty() then
-        Compat.SendAddonMessage(ADDON_PREFIX, payload, "PARTY")
-    end
+    local group = Compat.GroupChannel()
+    if group then Compat.SendAddonMessage(ADDON_PREFIX, payload, group) end
     if type(IsInGuild) == "function" and IsInGuild() then
         Compat.SendAddonMessage(ADDON_PREFIX, payload, "GUILD")
     end
@@ -2621,7 +2618,7 @@ function ns.SetInCharacter(state, silent)
     if silent then return end
     if not state then
         Print("Speaking |cffff0000out of character|r -- chat goes out as typed, "
-            .. "no accent, and cast phrases are quiet.")
+            .. "no accent, and audible phrases are quiet.")
         return
     end
     local a = GlyphicDB.accent
@@ -3296,7 +3293,7 @@ end
 local function castCommand(rest)
     local Casts = ns.Casts
     if not Casts then
-        Print("cast phrases are unavailable (Casts.lua did not load).")
+        Print("audible phrases are unavailable (Casts.lua did not load).")
         return
     end
     migrateDB()
@@ -3306,7 +3303,7 @@ local function castCommand(rest)
 
     if sub == "on" or sub == "off" then
         c.enabled = (sub == "on")
-        Print("cast phrases: " .. (c.enabled and "|cff00ff00on|r" or "|cffff0000off|r"))
+        Print("spell phrases: " .. (c.enabled and "|cff00ff00on|r" or "|cffff0000off|r"))
     elseif sub == "" or sub == "config" or sub == "ui" then
         if ns.OpenCastConfig then ns.OpenCastConfig() end
     elseif sub == "pets" then
@@ -3325,14 +3322,14 @@ local function castCommand(rest)
         local n = tonumber(arg)
         if n then
             c.chance = math.max(0, math.min(100, math.floor(n + 0.5)))
-            Print("cast phrase chance: |cffffff00" .. c.chance .. "%|r")
+            Print("spell phrase chance: |cffffff00" .. c.chance .. "%|r")
         else
-            Print("cast phrase chance is |cffffff00" .. (c.chance or CAST_DEFAULTS.chance) .. "%|r (usage: /glyphic cast chance 0-100)")
+            Print("spell phrase chance is |cffffff00" .. (c.chance or CAST_DEFAULTS.chance) .. "%|r (usage: /glyphic cast chance 0-100)")
         end
     elseif sub == "list" then
         local keys = Casts.GetKeys()
         if #keys == 0 then
-            Print("no spells have phrases yet -- pick a spell in Cast Phrases and write one.")
+            Print("no spells have phrases yet -- pick a spell in Audible Phrases and write one.")
             return
         end
         Print("spells with phrases:")
@@ -3365,7 +3362,7 @@ local function castCommand(rest)
             Print(string.format("  [%d] %s", phrase.weight, line or phrase.text))
         end
     elseif sub == "status" then
-        Print("cast phrases: " .. (c.enabled and "|cff00ff00on|r" or "|cffff0000off|r")
+        Print("spell phrases: " .. (c.enabled and "|cff00ff00on|r" or "|cffff0000off|r")
             .. ", pets " .. (c.pets and "on" or "off")
             .. ", chance " .. (c.chance or CAST_DEFAULTS.chance) .. "%"
             .. ", pauses " .. (c.gap or CAST_DEFAULTS.gap) .. "s / "
@@ -3406,14 +3403,14 @@ local function voiceCommand(rest)
         local id = tonumber(arg)
         if not id then
             Print("usage: /glyphic voice test <fileDataId>")
-            Print("ids come from the Browse button on the Cast Phrases panel.")
+            Print("ids come from the Browse button on the Audible Phrases page.")
             return
         end
         Print(Voice.PlayGame(id, "audition") and ("played |cffffff00" .. id .. "|r.")
             or ("|cffff0000" .. id .. "|r would not play -- this client may not carry that file."))
     else
         local d = Voice.Describe()
-        Print("spoken cast phrases: " .. (d.enabled and "|cff00ff00on|r" or "|cffff0000off|r"))
+        Print("phrase voice lines: " .. (d.enabled and "|cff00ff00on|r" or "|cffff0000off|r"))
         Print(string.format("%d line(s) from the game are catalogued.", d.catalogue))
         -- Counted apart rather than summed. A single "played" number cannot
         -- answer the only question anybody asks it, because the play button
@@ -3474,6 +3471,20 @@ local function voiceCommand(rest)
             Print("  sent:    |cffffff00" .. tostring(d.lastRewrite and d.lastRewrite.sent) .. "|r")
             Print("  arrived: |cffffff00" .. tostring(d.lastRewrite and d.lastRewrite.arrived) .. "|r")
         end
+        if s.aloneUnplaced > 0 then
+            Print(string.format("|cffff8000%d spell line(s) came over your group from someone the"
+                .. " group list does not name.|r", s.aloneUnplaced))
+            local u = d.lastUnplaced
+            if u then
+                Print("  the last came from |cffffff00" .. tostring(u.sender)
+                    .. "|r; the group answers to |cffffff00"
+                    .. (#u.group > 0 and table.concat(u.group, "|r, |cffffff00") or "nobody") .. "|r.")
+            end
+        end
+        if s.aloneFar > 0 then
+            Print(string.format("%d spell line(s) came from a groupmate too far away to see.",
+                s.aloneFar))
+        end
         if #d.hearing == 0 then
             Print("you are not listening for |cffffff00anyone else's|r pinned lines.")
         else
@@ -3484,8 +3495,8 @@ local function voiceCommand(rest)
             Print("|cff808080this version of the game only lets addons reach players you are"
                 .. " grouped or guilded with, so a stranger's line cannot arrive at all.|r")
         end
-        Print("a phrase stays silent until you pin a line to it -- open the Cast")
-        Print("Phrases panel and use |cffffff00Browse voice lines|r on the line you want.")
+        Print("a phrase stays silent until you pin a line to it -- open the Spoken")
+        Print("Phrases page and use |cffffff00Browse voice lines|r on the line you want.")
         Print("usage: /glyphic voice [test <fileDataId>]")
     end
 end
@@ -3899,8 +3910,8 @@ local function usage()
     Print("  |cffffff00/glyphic accent [on|off|<id>|list]|r  - speak in a dialect accent")
     Print("  |cffffff00/glyphic accentstrength <0-100>|r  - set accent thickness")
     Print("  |cffffff00/glyphic accenttails <0-100>|r  - how often lines end with a flourish (0 = never)")
-    Print("  |cffffff00/glyphic cast|r  - phrases spoken when you cast (panel)")
-    Print("  |cffffff00/glyphic cast on|off|r  - toggle cast phrases")
+    Print("  |cffffff00/glyphic phrases|r  - lines spoken when you cast or emote (page; /glyphic cast also works)")
+    Print("  |cffffff00/glyphic cast on|off|r  - toggle spell phrases")
     Print("  |cffffff00/glyphic cast test [spell]|r  - show what a spell would say (sends nothing)")
     Print("  |cffffff00/glyphic cast status|r  - settings, plus whether chat is blocked right now")
     Print("  |cffffff00/glyphic say <text>|r  - say a translated line once")

@@ -1249,7 +1249,7 @@ end
 -- shows, one for the binding body in Bindings.xml to call. New globals of our
 -- own, not replacements for Blizzard's, so none of this can taint anything.
 _G.BINDING_HEADER_TONGUESOFAZEROTH = "Glyphic"
-_G.BINDING_NAME_TONGUESOFAZEROTH_CASTPHRASES = "Cast phrases for the spell under the cursor"
+_G.BINDING_NAME_TONGUESOFAZEROTH_CASTPHRASES = "Audible phrases for the spell under the cursor"
 
 function _G.TonguesOfAzeroth_OpenCastPhrases()
     Casts.OpenUnderMouse()
