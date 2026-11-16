@@ -330,6 +330,8 @@ function V.voiceSentence()
     local accentOn = Accent and d.accent and d.accent.id ~= Accent.NONE
     local accentName = accentOn and Accent.GetAccentName(d.accent.id) or nil
     local native = ns.GetMotherTongue and ns.GetMotherTongue()
+    -- An orc's Orcish fills in as English: it is what the Horde hears anyway.
+    if native and ns.SpeaksPlain and ns.SpeaksPlain(native) then native = nil end
     local nativeName = native and Language.GetLanguageName(native)
     -- Only a running challenge drains the native dialect; everywhere else it
     -- covers every word handed to it.
@@ -357,7 +359,7 @@ function V.voiceSentence()
                 .. "The words you haven't learned yet come out in %s, your native dialect.",
                 name, pct, w(nativeName))
         else
-            first = "You speak " .. name .. ", which everyone reads as plain English."
+            first = "You speak " .. name .. ", which everyone who can hear you reads as plain English."
         end
         englishLeft = true
     else

@@ -7,7 +7,7 @@ Tongues of Azeroth before 0.5.3.
 - **Fixed:** Common's fluency works again: with a native dialect set, the Common words you haven't learned come out in your dialect.
 - **Changed:** choosing a native dialect makes you fully fluent in it, and able to read it.
 - **Changed:** outside a challenge, your character starts fluent in the languages they were born with, like a human's Common or an orc's Orcish.
-- **Fixed:** Horde characters speaking Common are now translated, since the Horde around them doesn't know it.
+- **Changed:** your faction's own tongue reads as plain English, Common for the Alliance and Orcish for the Horde, while the other faction's is translated.
 - **Fixed:** Low Common's slurred words ("ya", "'em", "o'") now actually reach chat.
 
 ## [0.6.7.1]

@@ -918,8 +918,9 @@ local function factionTongue()
 end
 
 -- The same, in Glyphic's vocabulary: the tongue Glyphic's own lines travel in,
--- and so the one whose listeners read Common as English. nil when the client
--- cannot say, which TranslateMarked takes as Common, as it always was.
+-- which everyone who can hear them already knows -- Common for the Alliance,
+-- Orcish for the Horde. nil when the client cannot say, which TranslateMarked
+-- takes as Common, as it always was.
 local function carrierTongue()
     local id = factionTongue()
     return id and NATIVE_LANG_IDS[id] or nil
@@ -927,10 +928,10 @@ end
 ns.CarrierTongue = carrierTongue
 
 -- Does speaking this tongue come out as plain English for this character?
--- None always; Common only where Common is what the game carries the line in.
+-- None always, and the carrier or a dialect of it; see TranslateMarked.
 function ns.SpeaksPlain(langId)
     if Language.IsNoTongue(langId) then return true end
-    return Language.IsPlain(langId) and (carrierTongue() or "common") == "common"
+    return Language.GetWordsetId(langId) == Language.GetWordsetId(carrierTongue() or "common")
 end
 -- { [blizzardLanguageID] = true } for the tongues this character speaks in
 -- game, or nil if we couldn't determine any. Keyed by Blizzard's own number

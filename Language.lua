@@ -1559,14 +1559,17 @@ local FOREIGN_PLACEHOLDER = "\003"
 -- challenge has any use for.
 --
 -- `carrierId` is the tongue the game itself sends the line in -- Common for the
--- Alliance, Orcish for the Horde -- and nil means Common. Common reads as
--- English only when it is the carrier: a Horde character's listeners do not
--- know Common, so for them it is translated like any other tongue.
+-- Alliance, Orcish for the Horde -- and nil means Common. The carrier, and any
+-- dialect of it, reads as English: everyone who can hear the line knows it,
+-- and anyone who does not gets the game's own garbling. Any other tongue,
+-- Common included for a Horde speaker, is translated.
 function Language.TranslateMarked(text, strength, langId, motherId, motherStrength, carrierId)
     if not text or text == "" then return text, nil end
     strength = strength or 100
     motherStrength = tonumber(motherStrength) or 100
     local lang = resolveLang(langId)
+    local carrier = Language.GetWordsetId(carrierId or "common")
+    local function carried(l) return Language.GetWordsetId(l.id) == carrier end
 
     -- A mother tongue only makes sense as somewhere *else* to fall back to.
     -- Naming the language you are already speaking, or a plain one (whose whole
@@ -1578,14 +1581,15 @@ function Language.TranslateMarked(text, strength, langId, motherId, motherStreng
     if motherId and motherId ~= lang.id and Language.IsValid(motherId)
         and motherStrength > 0 then
         local n = resolveLang(motherId)
-        if n and n.id ~= lang.id and not Language.IsPlain(n.id) then mother = n end
+        if n and n.id ~= lang.id and not Language.IsNoTongue(n.id) and not carried(n) then
+            mother = n
+        end
     end
 
     -- Attempting Common keeps the mother tongue: the words Common's fluency
     -- covers stay English, and the rest fall through like any other tongue's.
     -- See Language.IsNoTongue.
-    local attemptPlain = Language.IsNoTongue(lang.id)
-        or (Language.IsPlain(lang.id) and (carrierId or "common") == "common")
+    local attemptPlain = Language.IsNoTongue(lang.id) or carried(lang)
     -- Selecting no tongue is not a fluency of any amount, so the attempted
     -- gate must never fire and every word has to reach the mother. Said as a
     -- strength rather than as a branch so the marking loop stays one path.
