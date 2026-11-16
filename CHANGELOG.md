@@ -3,6 +3,9 @@
 All notable changes to Glyphic are documented here. The addon was called
 Tongues of Azeroth before 0.5.3.
 
+## [0.6.8]
+- **Fixed:** on WoW: Forever, groupmates hear your spell voice lines only within 40 yards of you, not from across the zone.
+
 ## [0.6.7]
 - **New:** a Kul Tiran accent, West Country with a sailor's vocabulary: "Ahoy shipmate, be 'ee 'eadin' to the 'arbour dreckly?"
 - **Changed:** Cast Phrases is now called Audible Phrases, since it covers your emotes as well as your spells.

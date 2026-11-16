@@ -2,19 +2,9 @@
 -- edit the changelog and re-run the tool.
 local _, ns = ...
 ns.WhatsNew = {
-    { title = "Changelog: 0.6.7", groups = {
-        { name = "Added", entries = {
-            { text = "A Kul Tiran accent, West Country with a sailor's vocabulary: \"Ahoy shipmate, be 'ee 'eadin' to the 'arbour dreckly?\"" },
-        } },
-        { name = "Changed", entries = {
-            { text = "Cast Phrases is now called Audible Phrases, since it covers your emotes as well as your spells." },
-        } },
-        { name = "Improved", entries = {
-            { text = "Glyphic uses about 10 MB less memory after login." },
-        } },
+    { title = "Changelog: 0.6.8", groups = {
         { name = "Fixed", entries = {
-            { text = "On WoW: Forever, groupmates now hear your spell voice lines when your character has a surname." },
-            { text = "Spell voice lines now reach groupmates in a dungeon or raid finder group." },
+            { text = "On WoW: Forever, groupmates hear your spell voice lines only within 40 yards of you, not from across the zone." },
         } },
     } },
 }

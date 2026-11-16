@@ -520,8 +520,8 @@ end
 -- cast does can post one. Without the emote there is no proximity test to
 -- borrow, so this makes its own. Say is range-limited by the server, so a pin
 -- that came that way is nearby by definition. Anything else -- party, raid,
--- guild -- plays only from a group member the client can currently see, which
--- is roughly the distance you would have read their emote from. A guildmate
+-- guild -- plays only from a group member within Voice.HEAR_YARDS, which is
+-- roughly the distance you would have read their emote from. A guildmate
 -- who is not in your group cannot be placed, and is not played.
 --
 -- The addon message names its sender one way and the group roster another,
@@ -576,6 +576,30 @@ local function groupUnitFor(who, record)
     return nil
 end
 
+-- "In sight" alone reached anyone the client had loaded, which is a hundred
+-- yards or more: a spell heard from across the zone. Earshot is a distance.
+-- UnitDistanceSquared gives one in the open world and nothing in instances;
+-- UnitInRange is the ~40 yard test raid frames grey members out by. Either
+-- may come back secret, and is then no answer rather than a no.
+Voice.HEAR_YARDS = 40
+
+local function inEarshot(unit)
+    if type(UnitDistanceSquared) == "function" then
+        local ok, d, checked = pcall(UnitDistanceSquared, unit)
+        if ok and not isSecret(d) and not isSecret(checked)
+                and checked and type(d) == "number" then
+            return d <= Voice.HEAR_YARDS * Voice.HEAR_YARDS
+        end
+    end
+    if type(UnitInRange) == "function" then
+        local ok, inRange, checked = pcall(UnitInRange, unit)
+        if ok and not isSecret(inRange) and not isSecret(checked) and checked then
+            return inRange == true
+        end
+    end
+    return nil
+end
+
 local function standingNear(who, channel)
     if channel == "SAY" or channel == "YELL" then return true end
     -- Only a line that came over the group can be a groupmate gone unmatched;
@@ -591,8 +615,14 @@ local function standingNear(who, channel)
         local ok, v = pcall(UnitIsVisible, unit)
         visible = ok and not isSecret(v) and v == true
     end
-    if not visible then Voice.stats.aloneFar = Voice.stats.aloneFar + 1 end
-    return visible
+    -- With no distance to be had, sight is the best guess left.
+    local near = visible
+    if visible then
+        local close = inEarshot(unit)
+        if close ~= nil then near = close end
+    end
+    if not near then Voice.stats.aloneFar = Voice.stats.aloneFar + 1 end
+    return near
 end
 
 local heardAlone = {}    -- [speaker] = { id = n, at = t }
