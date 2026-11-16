@@ -3,7 +3,7 @@
 All notable changes to Glyphic are documented here. The addon was called
 Tongues of Azeroth before 0.5.3.
 
-## [0.6.8]
+## [0.6.7.1]
 - **Fixed:** on WoW: Forever, groupmates hear your spell voice lines only within 40 yards of you, not from across the zone.
 
 ## [0.6.7]

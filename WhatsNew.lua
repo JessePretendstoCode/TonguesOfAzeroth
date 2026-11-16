@@ -2,7 +2,7 @@
 -- edit the changelog and re-run the tool.
 local _, ns = ...
 ns.WhatsNew = {
-    { title = "Changelog: 0.6.8", groups = {
+    { title = "Changelog: 0.6.7.1", groups = {
         { name = "Fixed", entries = {
             { text = "On WoW: Forever, groupmates hear your spell voice lines only within 40 yards of you, not from across the zone." },
         } },
