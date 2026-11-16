@@ -899,6 +899,39 @@ local NATIVE_LANG_IDS = {
 -- Shared so the quest-text diagnostic can name a tongue the player would
 -- recognise instead of reciting Blizzard's number at them.
 ns.NATIVE_LANG_IDS = NATIVE_LANG_IDS
+
+-- The Blizzard language this character's chat goes out in by default.
+local function factionTongue()
+    if type(GetDefaultLanguage) == "function" then
+        local ok, _, id = pcall(GetDefaultLanguage)
+        if ok and type(id) == "number" and id ~= 0 then return id end
+    end
+    -- Older clients answer GetDefaultLanguage with the name alone. The
+    -- client's own language list is the next best thing: its first entry is
+    -- the tongue the character speaks by default.
+    if type(GetLanguageByIndex) == "function"
+        and type(GetNumLanguages) == "function" and (GetNumLanguages() or 0) > 0 then
+        local _, id = GetLanguageByIndex(1)
+        if type(id) == "number" and id ~= 0 then return id end
+    end
+    return nil
+end
+
+-- The same, in Glyphic's vocabulary: the tongue Glyphic's own lines travel in,
+-- and so the one whose listeners read Common as English. nil when the client
+-- cannot say, which TranslateMarked takes as Common, as it always was.
+local function carrierTongue()
+    local id = factionTongue()
+    return id and NATIVE_LANG_IDS[id] or nil
+end
+ns.CarrierTongue = carrierTongue
+
+-- Does speaking this tongue come out as plain English for this character?
+-- None always; Common only where Common is what the game carries the line in.
+function ns.SpeaksPlain(langId)
+    if Language.IsNoTongue(langId) then return true end
+    return Language.IsPlain(langId) and (carrierTongue() or "common") == "common"
+end
 -- { [blizzardLanguageID] = true } for the tongues this character speaks in
 -- game, or nil if we couldn't determine any. Keyed by Blizzard's own number
 -- rather than ours on purpose: the client knows tongues Glyphic has no name
@@ -1249,7 +1282,7 @@ local function transformOutgoing(msg, sendType, channel)
     if translating then
         local langId, strength = db.language, getStrength()
         local marked, marks, meta = Language.TranslateMarked(msg, strength, langId,
-            motherTongue(), motherStrength())
+            motherTongue(), motherStrength(), carrierTongue())
         if marks then
             local body = marked
             if accentOn then body = applyAccent(body, true) end
@@ -1427,7 +1460,7 @@ local function speak(msg, chatType, channel)
 
     local out = msg
     local marked, marks, meta = Language.TranslateMarked(msg, strength, langId,
-        motherTongue(), motherStrength())
+        motherTongue(), motherStrength(), carrierTongue())
     if marks then
         local body = marked
         if accentAppliesTo(normalizeChatType(sendType)) then body = applyAccent(body, true) end
@@ -1479,7 +1512,7 @@ function ns.EncodeSpeech(text, live)
     if db.inCharacter and (strength > 0
         or (motherTongue() ~= nil and motherStrength() > 0)) then
         local marked, marks, meta = Language.TranslateMarked(text, strength, langId,
-            motherTongue(), motherStrength())
+            motherTongue(), motherStrength(), carrierTongue())
         if marks then
             local out = marked
             if accentOn then
@@ -2112,22 +2145,7 @@ end
 -- narration, not speech: running "Thrall waves." through a tongue has the
 -- narrator speaking a foreign language about somebody in the third person.
 -- They are also the one chat type that genuinely has no language and should
--- not be given one.
-local function factionTongue()
-    if type(GetDefaultLanguage) == "function" then
-        local ok, _, id = pcall(GetDefaultLanguage)
-        if ok and type(id) == "number" and id ~= 0 then return id end
-    end
-    -- Older clients answer GetDefaultLanguage with the name alone. The
-    -- client's own language list is the next best thing: its first entry is
-    -- the tongue the character speaks by default.
-    if type(GetLanguageByIndex) == "function"
-        and type(GetNumLanguages) == "function" and (GetNumLanguages() or 0) > 0 then
-        local _, id = GetLanguageByIndex(1)
-        if type(id) == "number" and id ~= 0 then return id end
-    end
-    return nil
-end
+-- not be given one. The tongue itself is factionTongue(), further up.
 
 local function effectiveLangId(chatType, blizzId)
     if type(blizzId) == "number" and blizzId ~= 0 then return blizzId end
@@ -3912,7 +3930,7 @@ local function debugReport()
         local composed = sample
         if translating then
             local marked, marks = Language.TranslateMarked(sample, getStrength(), db.language,
-                motherTongue(), motherStrength())
+                motherTongue(), motherStrength(), carrierTongue())
             if marks then
                 local body = marked
                 -- `false` = not a real utterance, so debugging never consumes

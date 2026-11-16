@@ -9,6 +9,7 @@ ns.WhatsNew = {
         } },
         { name = "Fixed", entries = {
             { text = "Common's fluency works again: with a native dialect set, the Common words you haven't learned come out in your dialect." },
+            { text = "Horde characters speaking Common are now translated, since the Horde around them doesn't know it." },
             { text = "Low Common's slurred words (\"ya\", \"'em\", \"o'\") now actually reach chat." },
         } },
     } },

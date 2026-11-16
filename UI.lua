@@ -264,7 +264,7 @@ end
 local function RefreshVoice()
     local d = db()
     if voiceText then
-        local plain = Language.IsPlain and Language.IsPlain(d.language)
+        local plain = (ns.SpeaksPlain or Language.IsPlain)(d.language)
             and not (ns.GetMotherTongue and ns.GetMotherTongue()
                 and fluencyPct(d.language) < 100)
         local accentOn = Accent and d.accent and d.accent.id ~= Accent.NONE
@@ -349,7 +349,7 @@ function V.voiceSentence()
             first = "You speak plain English."
             englishLeft = true
         end
-    elseif Language.IsPlain(d.language) then
+    elseif (ns.SpeaksPlain or Language.IsPlain)(d.language) then
         local pct = fluencyPct(d.language)
         local name = w(Language.GetLanguageName(d.language))
         if native and pct < 100 then
@@ -1330,7 +1330,7 @@ local function RefreshLanguageWidget()
     -- Plain speech has no fluency to grade; a word there would be made up.
     local adj, ar, ag, ab = fluencyAdjective(fluencyPct(d.language))
     -- Common with a native dialect behind it is graded like any tongue.
-    if Language.IsNoTongue(d.language) or (Language.IsPlain(d.language)
+    if Language.IsNoTongue(d.language) or ((ns.SpeaksPlain or Language.IsPlain)(d.language)
         and not (ns.GetMotherTongue and ns.GetMotherTongue())) then adj = "" end
     langWidget.sub:SetText(adj)
     langWidget.sub:SetTextColor(ar, ag, ab)

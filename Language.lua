@@ -1557,7 +1557,12 @@ local FOREIGN_PLACEHOLDER = "\003"
 -- the words it stops covering come out as plain English. Passing a number here is
 -- saying "I speak my own language this well *any more*", which is a sentence only a
 -- challenge has any use for.
-function Language.TranslateMarked(text, strength, langId, motherId, motherStrength)
+--
+-- `carrierId` is the tongue the game itself sends the line in -- Common for the
+-- Alliance, Orcish for the Horde -- and nil means Common. Common reads as
+-- English only when it is the carrier: a Horde character's listeners do not
+-- know Common, so for them it is translated like any other tongue.
+function Language.TranslateMarked(text, strength, langId, motherId, motherStrength, carrierId)
     if not text or text == "" then return text, nil end
     strength = strength or 100
     motherStrength = tonumber(motherStrength) or 100
@@ -1579,7 +1584,8 @@ function Language.TranslateMarked(text, strength, langId, motherId, motherStreng
     -- Attempting Common keeps the mother tongue: the words Common's fluency
     -- covers stay English, and the rest fall through like any other tongue's.
     -- See Language.IsNoTongue.
-    local attemptPlain = Language.IsPlain(lang.id)
+    local attemptPlain = Language.IsNoTongue(lang.id)
+        or (Language.IsPlain(lang.id) and (carrierId or "common") == "common")
     -- Selecting no tongue is not a fluency of any amount, so the attempted
     -- gate must never fire and every word has to reach the mother. Said as a
     -- strength rather than as a branch so the marking loop stays one path.
@@ -1598,7 +1604,7 @@ function Language.TranslateMarked(text, strength, langId, motherId, motherStreng
     -- native dialect doing nothing whatsoever -- and since "none" is what a
     -- fresh character has selected, that was the first thing a Mythic run did.
     if not mother and (attemptPlain or strength <= 0) then
-        return applySlur(text, lang), nil
+        return attemptPlain and applySlur(text, lang) or text, nil
     end
 
     local protected, saved = protectSegments(text)
@@ -1826,12 +1832,13 @@ local origTranslateWord = Language.TranslateWord
 -- anything reads or grows it, so tongues nobody speaks or hears cost nothing.
 -- The seed must land before the map's first runtime entry, or collision order
 -- differs from a map seeded at load. Only tongues present at load are seeded:
--- custom languages arrive later from saved variables. Plain "languages" have
--- no word set and never encode anything, so there is nothing to reverse.
+-- custom languages arrive later from saved variables. "None" never encodes
+-- anything, so there is nothing to reverse; Common does, when a Horde
+-- character speaks it (see TranslateMarked's plainId).
 local SEED_PENDING = {}
 for i = 1, #LANGUAGE_ORDER do
     local langId = LANGUAGE_ORDER[i]
-    if not Language.IsPlain(langId) then SEED_PENDING[langId] = true end
+    if not Language.IsNoTongue(langId) then SEED_PENDING[langId] = true end
 end
 
 seedReverse = function(langId)
