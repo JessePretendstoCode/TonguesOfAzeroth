@@ -5,6 +5,7 @@ ns.WhatsNew = {
     { title = "Changelog: 0.6.7.2", groups = {
         { name = "Changed", entries = {
             { text = "Choosing a native dialect makes you fully fluent in it, and able to read it." },
+            { text = "Outside a challenge, your character starts fluent in the languages they were born with, like a human's Common or an orc's Orcish." },
         } },
         { name = "Fixed", entries = {
             { text = "Common's fluency works again: with a native dialect set, the Common words you haven't learned come out in your dialect." },

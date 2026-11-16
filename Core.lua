@@ -939,8 +939,34 @@ end
 
 -- Refresh the client's language set. Called at login and on world entry, in
 -- case a faction change or an allied-race unlock has added one.
+-- A character speaks and reads the tongues they were born with: a human's
+-- Common, an orc's Orcish, a night elf's Common and Darnassian. Filled in once
+-- per character, and only where fluency was never set, so a night elf who is
+-- learning Common keeps her 80%. Never during a challenge, whose wipe to zero
+-- is the point; fluency earned in a run is kept when it ends, as everywhere.
+local function seedOwnTongues()
+    local db = GlyphicDB
+    if not db or db.ownTonguesSeeded then return end
+    if not (ns.Trainer and ns.Trainer.SetFluency) then return end
+    if ns.Challenge and ns.Challenge.Current and ns.Challenge.Current() then return end
+    local natives = ns.NativeLanguageIds()
+    -- Asked again next time: the client fills its language list in during login.
+    if #natives == 0 then return end
+    db.ownTonguesSeeded = true
+    local points = db.trainer and db.trainer.points or {}
+    for i = 1, #natives do
+        local id = natives[i].id
+        if Language.IsValid(id) and points[Language.GetWordsetId(id)] == nil then
+            ns.Trainer.SetFluency(id, 1)
+            db.learned = db.learned or {}
+            db.learned[id] = true
+        end
+    end
+end
+
 ns.RefreshNativeLanguages = function()
     computeNativeLanguages()
+    seedOwnTongues()
     if ns.OnSettingsChanged then ns.OnSettingsChanged() end
 end
 
