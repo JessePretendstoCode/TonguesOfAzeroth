@@ -551,6 +551,19 @@ local function migrateDB()
         end
     end
 
+    -- One-time (0.6.7.2): choosing a native dialect now makes you fluent in
+    -- it, so a dialect chosen before that is brought up to match.
+    if not db.nativeFluent and ns.Trainer and ns.Trainer.SetFluency
+        and not (ns.Challenge and ns.Challenge.IsLocked("fluency")) then
+        db.nativeFluent = true
+        local m = db.motherTongue
+        if m and Language.IsValid(m) and not Language.IsPlain(m) then
+            ns.Trainer.SetFluency(m, 1)
+            db.learned = db.learned or {}
+            db.learned[m] = true
+        end
+    end
+
     if not db.accent then db.accent = {} end
     if db.accent.strength == nil then db.accent.strength = 100 end
     -- Emotes describe an action ("/e waves"), so accenting them reads oddly.
@@ -1206,6 +1219,7 @@ local function transformOutgoing(msg, sendType, channel)
         and (getStrength() > 0 or motherTongue() ~= nil)
         and ns.IsChannelEnabled(channelKey)
 
+    local plainOut = msg
     if translating then
         local langId, strength = db.language, getStrength()
         local marked, marks, meta = Language.TranslateMarked(msg, strength, langId,
@@ -1230,14 +1244,16 @@ local function transformOutgoing(msg, sendType, channel)
         end
         -- Nothing translated: Common and Low Common read as plain speech, and a
         -- line can have no mapped words at low fluency. Fall through so the
-        -- accent still gets the whole line.
+        -- accent still gets the whole line -- Low Common's slur included,
+        -- which is the one change an unmarked line can carry.
+        plainOut = marked or msg
     end
 
     if accentOn then
-        local out = applyAccent(msg, true)
+        local out = applyAccent(plainOut, true)
         return out, out ~= msg
     end
-    return msg, false
+    return plainOut, plainOut ~= msg
 end
 
 -- The SendChatMessage wrapper. Taint-safe: SendChatMessage is never in the path
@@ -1392,8 +1408,9 @@ local function speak(msg, chatType, channel)
         publishDecode(body, marks, meta, langId, strength, sendType, channel)
         body = fit(Language.RestoreMarked(body, marks))
         out = fit(composedTag(meta, langId) .. body)
-    elseif accentAppliesTo(normalizeChatType(sendType)) then
-        out = applyAccent(msg, true)
+    else
+        out = marked or msg
+        if accentAppliesTo(normalizeChatType(sendType)) then out = applyAccent(out, true) end
     end
 
     if orig_SendChatMessage then
@@ -1461,6 +1478,7 @@ function ns.EncodeSpeech(text, live)
             out = Language.RestoreMarked(out, marks)
             return out, langId, true, meta
         end
+        text = marked or text
     end
 
     if accentOn then
@@ -3107,6 +3125,17 @@ function ns.MakeLanguageFluent(langId)
     if ns.RefreshFluencyIfShown then ns.RefreshFluencyIfShown() end
 end
 
+-- Set (or with nil, clear) the native dialect. The tongue you grew up speaking
+-- is one you speak and read perfectly, so choosing it also makes you fluent in
+-- it; leaving it at whatever the trainer had said meant an elf speaking her own
+-- Darnassian came out half English. Skipped while a challenge holds fluency.
+function ns.SetMotherTongue(langId)
+    migrateDB()
+    GlyphicDB.motherTongue = langId
+    if langId then ns.MakeLanguageFluent(langId) end
+    if ns.OnSettingsChanged then ns.OnSettingsChanged() end
+end
+
 -- Reset a language to 0%: wipe fluency, unlocked trainer words and the learned
 -- flag, so it's as if you never knew it. (The "Reset" button, after confirm.)
 function ns.ResetLanguageFluency(langId)
@@ -3864,8 +3893,9 @@ local function debugReport()
                 -- the interjection your next real line would have got.
                 if accenting then body = applyAccent(body, false) end
                 composed = Language.RestoreMarked(body, marks)
-            elseif accenting then
-                composed = applyAccent(sample, false)
+            else
+                composed = marked or sample
+                if accenting then composed = applyAccent(composed, false) end
             end
         elseif accenting then
             composed = applyAccent(sample, false)
@@ -3946,13 +3976,12 @@ local function handleSlash(input)
             local m = motherTongue()
             Print(m and ("Native dialect is |cffffff00" .. Language.GetLanguageName(m)
                     .. "|r. Words your fluency doesn't cover come out in it, and"
-                    .. " speaking None is speaking it. Speak Common for plain English.")
+                    .. " speaking None is speaking it. Speak Common at full fluency for plain English.")
                 or "No native dialect. Words your fluency doesn't cover stay in English.")
             Print("  |cffffff00/glyphic native <language>|r or |cffffff00/glyphic native none|r")
         elseif arg == "none" or arg == "off" or arg == "clear" then
-            GlyphicDB.motherTongue = nil
+            ns.SetMotherTongue(nil)
             Print("Native dialect cleared. The rest of your speech stays in English.")
-            if ns.OnSettingsChanged then ns.OnSettingsChanged() end
         elseif not Language.IsValid(arg) then
             Print("Unknown language '|cffff0000" .. arg .. "|r'. Use |cffffff00/glyphic list|r.")
         elseif Language.IsPlain(arg) then
@@ -3963,11 +3992,11 @@ local function handleSlash(input)
                 .. "|r reads as ordinary speech, so there is nothing to fall back to."
                 .. " Use |cffffff00/glyphic native none|r for that.")
         else
-            GlyphicDB.motherTongue = arg
+            ns.SetMotherTongue(arg)
             Print("Native dialect set to |cffffff00" .. Language.GetLanguageName(arg)
-                .. "|r. Words your fluency doesn't cover will come out in it, and"
-                .. " speaking None is speaking it. Speak Common for plain English.")
-            if ns.OnSettingsChanged then ns.OnSettingsChanged() end
+                .. "|r, which you speak fluently. Words your fluency in another language"
+                .. " doesn't cover will come out in it, and speaking None is speaking it."
+                .. " Speak Common at full fluency for plain English.")
         end
     elseif cmd == "next" or cmd == "cycle" then
         ns.CycleLanguage(1)

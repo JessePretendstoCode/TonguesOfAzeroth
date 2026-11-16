@@ -3,6 +3,11 @@
 All notable changes to Glyphic are documented here. The addon was called
 Tongues of Azeroth before 0.5.3.
 
+## [0.6.7.2]
+- **Fixed:** Common's fluency works again: with a native dialect set, the Common words you haven't learned come out in your dialect.
+- **Changed:** choosing a native dialect makes you fully fluent in it, and able to read it.
+- **Fixed:** Low Common's slurred words ("ya", "'em", "o'") now actually reach chat.
+
 ## [0.6.7.1]
 - **Fixed:** on WoW: Forever, groupmates hear your spell voice lines only within 40 yards of you, not from across the zone.
 

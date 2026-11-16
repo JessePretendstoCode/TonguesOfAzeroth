@@ -265,6 +265,8 @@ local function RefreshVoice()
     local d = db()
     if voiceText then
         local plain = Language.IsPlain and Language.IsPlain(d.language)
+            and not (ns.GetMotherTongue and ns.GetMotherTongue()
+                and fluencyPct(d.language) < 100)
         local accentOn = Accent and d.accent and d.accent.id ~= Accent.NONE
         local accentName = accentOn and Accent.GetAccentName(d.accent.id) or nil
         local native = Language.IsNoTongue(d.language)
@@ -348,8 +350,15 @@ function V.voiceSentence()
             englishLeft = true
         end
     elseif Language.IsPlain(d.language) then
-        first = "You speak " .. w(Language.GetLanguageName(d.language))
-            .. ", which everyone reads as plain English."
+        local pct = fluencyPct(d.language)
+        local name = w(Language.GetLanguageName(d.language))
+        if native and pct < 100 then
+            first = string.format("You speak %s, which is plain English, at %d%% fluency. "
+                .. "The words you haven't learned yet come out in %s, your native dialect.",
+                name, pct, w(nativeName))
+        else
+            first = "You speak " .. name .. ", which everyone reads as plain English."
+        end
         englishLeft = true
     else
         local pct = fluencyPct(d.language)
@@ -1320,7 +1329,9 @@ local function RefreshLanguageWidget()
     langWidget.name:SetText(speakingName(d.language))
     -- Plain speech has no fluency to grade; a word there would be made up.
     local adj, ar, ag, ab = fluencyAdjective(fluencyPct(d.language))
-    if Language.IsPlain and Language.IsPlain(d.language) then adj = "" end
+    -- Common with a native dialect behind it is graded like any tongue.
+    if Language.IsNoTongue(d.language) or (Language.IsPlain(d.language)
+        and not (ns.GetMotherTongue and ns.GetMotherTongue())) then adj = "" end
     langWidget.sub:SetText(adj)
     langWidget.sub:SetTextColor(ar, ag, ab)
     local tr, tg, tb, on = stateTint()
@@ -1846,8 +1857,9 @@ local function BuildMainPanel()
         "The tongue your character grew up speaking. Words your fluency in the "
         .. "language you're speaking does not cover come out in this one instead of "
         .. "English, so a half-learned language sounds like someone falling back on "
-        .. "their own. Speaking None hands it the whole line, so to talk in plain "
-        .. "English with only your accent, speak Common. Your accent only shapes "
+        .. "their own. Choosing one makes you fluent in it. Speaking None hands it "
+        .. "the whole line, so to talk in plain English with only your accent, speak "
+        .. "Common at full fluency. Your accent only shapes "
         .. "English, so it has little left to do once this is set. The sentence under "
         .. "|cffffd200Your voice|r always says what the two add up to.")
     Compat.PlaceRow(nativeRow, enableCheck.row, content)
@@ -1855,8 +1867,13 @@ local function BuildMainPanel()
     nativeRow:Attach(motherDropdown, DROP_W)
     motherDropdown:SetItems(motherItems())
     motherDropdown.onSelect = function(value)
-        db().motherTongue = (value ~= "" and value) or nil
-        if ns.OnSettingsChanged then ns.OnSettingsChanged() else RefreshMain() end
+        local id = (value ~= "" and value) or nil
+        if ns.SetMotherTongue then
+            ns.SetMotherTongue(id)
+        else
+            db().motherTongue = id
+            RefreshMain()
+        end
     end
 
     local speakRow = Compat.OptionRow(content, "Speaking",

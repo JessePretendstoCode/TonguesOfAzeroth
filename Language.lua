@@ -438,14 +438,16 @@ end
 -- The narrower question, and the two are not interchangeable: is this the
 -- absence of a tongue, rather than a tongue that happens to read as English?
 --
--- Both answer IsPlain, and a native dialect has to treat them as opposites.
--- Common is the shared tongue and you are speaking it successfully, so no word
--- falls through it and there is nothing for a fallback to catch -- a Common
--- speaker with a Darnassian native dialect should sound like English, which is
--- what Common is. "None" is a player who has selected no tongue at all, so
--- every word falls through and the native dialect takes the whole line. It is
--- also the default selection, so on Mythic it is the usual case rather than an
--- edge of one.
+-- Both answer IsPlain, and a native dialect must never treat them as one.
+-- Common is a language you speak at a fluency like any other; it just comes
+-- out as English. So a night elf learning Common at 80% says four words in
+-- five in English and reaches for Darnassian for the fifth, and only at 100%
+-- does she sound like plain English. (0.6.7.1 and earlier dropped the native
+-- dialect whenever Common was spoken, which made Common's fluency inert and
+-- Common indistinguishable from None.) "None" is a player who has selected no
+-- tongue at all, so every word falls through and the native dialect takes the
+-- whole line. It is also the default selection, so on Mythic it is the usual
+-- case rather than an edge of one.
 --
 -- `plain == true` is set on exactly one entry and is already the discriminator;
 -- Common reaches IsPlain through the id test instead.
@@ -1574,13 +1576,10 @@ function Language.TranslateMarked(text, strength, langId, motherId, motherStreng
         if n and n.id ~= lang.id and not Language.IsPlain(n.id) then mother = n end
     end
 
-    -- Whether the mother tongue has anything to catch. Attempting Common
-    -- leaves it nothing -- see Language.IsNoTongue -- so it is dropped here
-    -- rather than tested for again further down.
-    if mother and Language.IsPlain(lang.id) and not Language.IsNoTongue(lang.id) then
-        mother = nil
-    end
-
+    -- Attempting Common keeps the mother tongue: the words Common's fluency
+    -- covers stay English, and the rest fall through like any other tongue's.
+    -- See Language.IsNoTongue.
+    local attemptPlain = Language.IsPlain(lang.id)
     -- Selecting no tongue is not a fluency of any amount, so the attempted
     -- gate must never fire and every word has to reach the mother. Said as a
     -- strength rather than as a branch so the marking loop stays one path.
@@ -1598,7 +1597,7 @@ function Language.TranslateMarked(text, strength, langId, motherId, motherStreng
     -- to take this early return and go out as English, which read as the
     -- native dialect doing nothing whatsoever -- and since "none" is what a
     -- fresh character has selected, that was the first thing a Mythic run did.
-    if not mother and (Language.IsPlain(lang.id) or strength <= 0) then
+    if not mother and (attemptPlain or strength <= 0) then
         return applySlur(text, lang), nil
     end
 
@@ -1627,6 +1626,12 @@ function Language.TranslateMarked(text, strength, langId, motherId, motherStreng
     end
     local marked = protected:gsub(WORD_PATTERN, function(word)
         if Language.WordTranslates(word, strength) then
+            -- A word Common covers is said in Common, which is English --
+            -- in Low Common's register, if that is the tongue.
+            if attemptPlain then
+                local hit = lang.slur and lang.slur[strlower(word)]
+                return hit and applyCase(word, hit) or word
+            end
             local hit = mark(word, lang)
             if hit then return hit end
         end
@@ -1636,7 +1641,7 @@ function Language.TranslateMarked(text, strength, langId, motherId, motherStreng
         end
         return word
     end)
-    if n == 0 then return text, nil end
+    if n == 0 then return restoreSegments(marked, saved), nil end
 
     -- Markup and bracket spans go back now. Only the foreign words stay behind
     -- sentinels, because only they must survive the accent untouched -- the

@@ -2,9 +2,13 @@
 -- edit the changelog and re-run the tool.
 local _, ns = ...
 ns.WhatsNew = {
-    { title = "Changelog: 0.6.7.1", groups = {
+    { title = "Changelog: 0.6.7.2", groups = {
+        { name = "Changed", entries = {
+            { text = "Choosing a native dialect makes you fully fluent in it, and able to read it." },
+        } },
         { name = "Fixed", entries = {
-            { text = "On WoW: Forever, groupmates hear your spell voice lines only within 40 yards of you, not from across the zone." },
+            { text = "Common's fluency works again: with a native dialect set, the Common words you haven't learned come out in your dialect." },
+            { text = "Low Common's slurred words (\"ya\", \"'em\", \"o'\") now actually reach chat." },
         } },
     } },
 }
