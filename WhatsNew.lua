@@ -3,8 +3,8 @@
 local _, ns = ...
 ns.WhatsNew = {
     { title = "Changelog: 0.6.7.4", groups = {
-        { name = "Improved", entries = {
-            { text = "Hide [Language] tags can now hide only your own tags, so you still see which language everyone else is speaking." },
+        { name = "Added", entries = {
+            { text = "You can hide [Language] tags from your chat window under Settings, Advanced, on just your lines or everyone's." },
         } },
     } },
 }

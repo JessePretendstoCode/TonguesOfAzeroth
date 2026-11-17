@@ -4,7 +4,7 @@ All notable changes to Glyphic are documented here. The addon was called
 Tongues of Azeroth before 0.5.3.
 
 ## [0.6.7.4]
-- **Improved:** Hide [Language] tags can now hide only your own tags, so you still see which language everyone else is speaking.
+- **New:** You can hide [Language] tags from your chat window under Settings, Advanced, on just your lines or everyone's.
 
 ## [0.6.7.3]
 - **New:** Settings, Advanced can hide [Language] tags in your own chat windows; your lines still go out tagged, so others decode them as before.
