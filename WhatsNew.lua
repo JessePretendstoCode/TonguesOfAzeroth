@@ -2,10 +2,9 @@
 -- edit the changelog and re-run the tool.
 local _, ns = ...
 ns.WhatsNew = {
-    { title = "Changelog: 0.6.7.3", groups = {
-        { name = "Added", entries = {
-            { text = "Settings, Advanced can hide [Language] tags in your own chat windows; your lines still go out tagged, so others decode them as before." },
-            { text = "Ralof_le_roux joins the contributors on the About tab, for reporting the Common fluency bug." },
+    { title = "Changelog: 0.6.7.4", groups = {
+        { name = "Improved", entries = {
+            { text = "Hide [Language] tags can now hide only your own tags, so you still see which language everyone else is speaking." },
         } },
     } },
 }

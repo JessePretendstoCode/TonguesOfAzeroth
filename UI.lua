@@ -781,7 +781,10 @@ function V.RefreshAdvanced()
     local d = db()
     if fluencyCheck then fluencyCheck:SetChecked(d.tagFluency ~= false) end
     if autoDisableCheck then autoDisableCheck:SetChecked(d.autoDisableInInstances ~= false) end
-    if V.hideTagCheck then V.hideTagCheck:SetChecked(d.hideTags == true) end
+    if V.hideTagDropdown then
+        local mode = V.HIDE_TAG_LABELS[d.hideTags] and d.hideTags or "off"
+        V.hideTagDropdown:SetSelected(mode, V.HIDE_TAG_LABELS[mode])
+    end
     if decodeStyleDropdown then
         decodeStyleDropdown:SetSelected(d.decodeStyle, decodeStyleLabel(d.decodeStyle))
     end
@@ -2509,18 +2512,27 @@ function V.BuildAdvanced()
         outputDropdown:SetSelected(value, outputWindowLabel(value))
     end
 
-    V.hideTagCheck = Compat.CheckRow(content, "Hide [Language] tags in your chat",
-        "Shows Glyphic speech without its [Language] tag in your own chat windows. "
-        .. "Only you see the difference: your lines still go out tagged, because "
-        .. "that is how other players' Glyphic knows to decode them. With the tag "
-        .. "gone its colour goes too; |cffffd200Tint all speech|r on Chat Channels "
-        .. "colours the words instead.")
-    Compat.PlaceRow(V.hideTagCheck.row, outputRow, content)
-    V.hideTagCheck:SetScript("OnClick", function(self)
-        db().hideTags = self:GetChecked() and true or false
-    end)
+    local hideRow = Compat.OptionRow(content, "Hide [Language] tags",
+        "Shows Glyphic speech without its [Language] tag in your own chat windows, "
+        .. "on your own lines only or on everyone's. Only you see the difference: "
+        .. "lines still go out tagged, because that is how other players' Glyphic "
+        .. "knows to decode them. With the tag gone its colour goes too; "
+        .. "|cffffd200Tint all speech|r on Chat Channels colours the words instead.")
+    Compat.PlaceRow(hideRow, outputRow, content)
+    V.hideTagDropdown = Compat.CreateDropdown(content, DROP_W)
+    hideRow:Attach(V.hideTagDropdown, DROP_W)
+    V.HIDE_TAG_LABELS = { off = "Never", mine = "On my own lines", all = "On everyone's lines" }
+    V.hideTagDropdown:SetItems({
+        { text = V.HIDE_TAG_LABELS.off,  value = "off" },
+        { text = V.HIDE_TAG_LABELS.mine, value = "mine" },
+        { text = V.HIDE_TAG_LABELS.all,  value = "all" },
+    })
+    V.hideTagDropdown.onSelect = function(value)
+        db().hideTags = value
+        V.hideTagDropdown:SetSelected(value, V.HIDE_TAG_LABELS[value])
+    end
 
-    panel._lastChild = V.hideTagCheck.row
+    panel._lastChild = hideRow
     panel.refresh = V.RefreshAdvanced
     panel:SetScript("OnShow", V.RefreshAdvanced)
     return panel

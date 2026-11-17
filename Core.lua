@@ -439,8 +439,13 @@ local function migrateDB()
     -- true so a saved-var that previously had it off still behaves consistently.
     db.tagLanguage = true
     -- Hiding the tag is a display choice for your own chat window only; lines
-    -- still go out tagged (see hideTags in inlineChatFilter).
-    if db.hideTags == nil then db.hideTags = false end
+    -- still go out tagged (see hideTags in inlineChatFilter). "off", "mine"
+    -- (your own lines) or "all"; 0.6.7.3 saved it as a boolean.
+    if db.hideTags == true then
+        db.hideTags = "all"
+    elseif db.hideTags ~= "mine" and db.hideTags ~= "all" then
+        db.hideTags = "off"
+    end
     -- Include a fluency adjective in that tag (Sparse/Partial/Fluent/Perfect)
     -- based on your Language Trainer progress for the spoken language. This
     -- prefix stays optional (see the "Show fluency in tag" checkbox).
@@ -2543,7 +2548,9 @@ local function inlineChatFilter(_, event, msg, sender, languageName, ...)
     -- "Hide [Language] tags" is a display choice, made here and nowhere else:
     -- the wire line keeps its tag, which decoding depends on. A bare body has
     -- no tag to colour, so only the speech tint is left to mark the tongue.
-    local hideTags = GlyphicDB.hideTags == true
+    local hideMode = GlyphicDB.hideTags
+    local hideTags = hideMode == "all" or hideMode == true
+        or (hideMode == "mine" and isSelf(sender))
     local function bare(text, decoded)
         text = relabel(text)
         if langId and not decoded and ns.Names then text = ns.Names.Highlight(text) end
