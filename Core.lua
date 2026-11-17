@@ -438,6 +438,9 @@ local function migrateDB()
     -- receivers rely on to decode without false-positiving on plain chat. Force it
     -- true so a saved-var that previously had it off still behaves consistently.
     db.tagLanguage = true
+    -- Hiding the tag is a display choice for your own chat window only; lines
+    -- still go out tagged (see hideTags in inlineChatFilter).
+    if db.hideTags == nil then db.hideTags = false end
     -- Include a fluency adjective in that tag (Sparse/Partial/Fluent/Perfect)
     -- based on your Language Trainer progress for the spoken language. This
     -- prefix stays optional (see the "Show fluency in tag" checkbox).
@@ -2537,6 +2540,19 @@ local function inlineChatFilter(_, event, msg, sender, languageName, ...)
         return Colors.Apply(text, langId)
     end
 
+    -- "Hide [Language] tags" is a display choice, made here and nowhere else:
+    -- the wire line keeps its tag, which decoding depends on. A bare body has
+    -- no tag to colour, so only the speech tint is left to mark the tongue.
+    local hideTags = GlyphicDB.hideTags == true
+    local function bare(text, decoded)
+        text = relabel(text)
+        if langId and not decoded and ns.Names then text = ns.Names.Highlight(text) end
+        if Colors and langId and Colors.SpeechEnabled() then
+            return Colors.Wrap(text, Colors.Hex(langId))
+        end
+        return text
+    end
+
     -- Genuine in-game speech was never ours to decode; it still gets painted
     -- below. Your own speech, on the other hand, is always decoded -- at any
     -- fluency, including none -- because it is the one line on screen whose
@@ -2578,6 +2594,7 @@ local function inlineChatFilter(_, event, msg, sender, languageName, ...)
             if proseLangId then
                 return false, paint(decoded, true), sender, languageName, ...
             end
+            if hideTags then return false, bare(decoded, true), sender, languageName, ... end
             -- The marker is itself a "[Language] " tag, so it goes through the
             -- same painter as any other tagged line and picks up that tongue's
             -- color. The hardcoded purple remains the answer when the palette
@@ -2601,6 +2618,9 @@ local function inlineChatFilter(_, event, msg, sender, languageName, ...)
     -- also recolor would be quietly thrown away and the original printed.
     -- Immersion is the first thing to rewrite a line without coloring it, and
     -- the fault was invisible while it always did both.
+    if hideTags and tag and not garbled then
+        return false, bare(stripped, false), sender, languageName, ...
+    end
     local painted = paint(msg)
     if painted ~= msg or garbled then
         return false, painted, sender, languageName, ...

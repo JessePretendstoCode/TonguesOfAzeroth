@@ -2,15 +2,10 @@
 -- edit the changelog and re-run the tool.
 local _, ns = ...
 ns.WhatsNew = {
-    { title = "Changelog: 0.6.7.2", groups = {
-        { name = "Changed", entries = {
-            { text = "Choosing a native dialect makes you fully fluent in it, and able to read it." },
-            { text = "Outside a challenge, your character starts fluent in the languages they were born with, like a human's Common or an orc's Orcish." },
-            { text = "Your faction's own tongue reads as plain English, Common for the Alliance and Orcish for the Horde, while the other faction's is translated." },
-        } },
-        { name = "Fixed", entries = {
-            { text = "Common's fluency works again: with a native dialect set, the Common words you haven't learned come out in your dialect." },
-            { text = "Low Common's slurred words (\"ya\", \"'em\", \"o'\") now actually reach chat." },
+    { title = "Changelog: 0.6.7.3", groups = {
+        { name = "Added", entries = {
+            { text = "Settings, Advanced can hide [Language] tags in your own chat windows; your lines still go out tagged, so others decode them as before." },
+            { text = "Ralof_le_roux joins the contributors on the About tab, for reporting the Common fluency bug." },
         } },
     } },
 }

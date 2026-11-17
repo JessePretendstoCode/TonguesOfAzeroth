@@ -781,6 +781,7 @@ function V.RefreshAdvanced()
     local d = db()
     if fluencyCheck then fluencyCheck:SetChecked(d.tagFluency ~= false) end
     if autoDisableCheck then autoDisableCheck:SetChecked(d.autoDisableInInstances ~= false) end
+    if V.hideTagCheck then V.hideTagCheck:SetChecked(d.hideTags == true) end
     if decodeStyleDropdown then
         decodeStyleDropdown:SetSelected(d.decodeStyle, decodeStyleLabel(d.decodeStyle))
     end
@@ -2018,7 +2019,8 @@ function V.homeTabText(which)
         .. "Feel free to whisper me in game with any questions or feedback!", 8)
     add("GameFontNormalLarge", "Contributors", 18)
     add("GameFontHighlight", table.concat({ "Bockses", "Tirasa", "Rhysi",
-        "RizTheHuntress", "xxglitch404xx", "Andrey_IMN" }, "  |cff8a7a5a\194\183|r  "), 8)
+        "RizTheHuntress", "xxglitch404xx", "Andrey_IMN", "Ralof_le_roux" },
+        "  |cff8a7a5a\194\183|r  "), 8)
     add("GameFontDisableSmall", "Formerly Tongues of Azeroth.", 16)
     return lines
 end
@@ -2507,7 +2509,18 @@ function V.BuildAdvanced()
         outputDropdown:SetSelected(value, outputWindowLabel(value))
     end
 
-    panel._lastChild = outputRow
+    V.hideTagCheck = Compat.CheckRow(content, "Hide [Language] tags in your chat",
+        "Shows Glyphic speech without its [Language] tag in your own chat windows. "
+        .. "Only you see the difference: your lines still go out tagged, because "
+        .. "that is how other players' Glyphic knows to decode them. With the tag "
+        .. "gone its colour goes too; |cffffd200Tint all speech|r on Chat Channels "
+        .. "colours the words instead.")
+    Compat.PlaceRow(V.hideTagCheck.row, outputRow, content)
+    V.hideTagCheck:SetScript("OnClick", function(self)
+        db().hideTags = self:GetChecked() and true or false
+    end)
+
+    panel._lastChild = V.hideTagCheck.row
     panel.refresh = V.RefreshAdvanced
     panel:SetScript("OnShow", V.RefreshAdvanced)
     return panel

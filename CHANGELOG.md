@@ -3,6 +3,10 @@
 All notable changes to Glyphic are documented here. The addon was called
 Tongues of Azeroth before 0.5.3.
 
+## [0.6.7.3]
+- **New:** Settings, Advanced can hide [Language] tags in your own chat windows; your lines still go out tagged, so others decode them as before.
+- **New:** Ralof_le_roux joins the contributors on the About tab, for reporting the Common fluency bug.
+
 ## [0.6.7.2]
 - **Fixed:** Common's fluency works again: with a native dialect set, the Common words you haven't learned come out in your dialect.
 - **Changed:** choosing a native dialect makes you fully fluent in it, and able to read it.
