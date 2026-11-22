@@ -3,6 +3,9 @@
 All notable changes to Glyphic are documented here. The addon was called
 Tongues of Azeroth before 0.5.3.
 
+## [0.6.7.6]
+- **Improved:** the Walk up button now has lines for every race and class, plus its own set for 13 classic pairings like human paladin and tauren druid.
+
 ## [0.6.7.5]
 - **New:** a Walk up button says a line of roleplay musing in /say, shaped by your race and class; turn it on under Settings, General.
 - **New:** with Total RP 3, the world map can scan for nearby Glyphic speakers and show what each one is speaking.

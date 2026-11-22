@@ -2,14 +2,9 @@
 -- edit the changelog and re-run the tool.
 local _, ns = ...
 ns.WhatsNew = {
-    { title = "Changelog: 0.6.7.5", groups = {
-        { name = "Added", entries = {
-            { text = "A Walk up button says a line of roleplay musing in /say, shaped by your race and class; turn it on under Settings, General." },
-            { text = "With Total RP 3, the world map can scan for nearby Glyphic speakers and show what each one is speaking." },
-        } },
-        { name = "Fixed", entries = {
-            { text = "Whispers you send now read back in English in your own window, not in your tongue." },
-            { text = "ForeverImmersion can now fade the language bar and the Walk up button." },
+    { title = "Changelog: 0.6.7.6", groups = {
+        { name = "Improved", entries = {
+            { text = "The Walk up button now has lines for every race and class, plus its own set for 13 classic pairings like human paladin and tauren druid." },
         } },
     } },
 }
