@@ -6,5 +6,8 @@ ns.WhatsNew = {
         { name = "Added", entries = {
             { text = "Walkups keep to your expansion's era, so a Forever dwarf won't mourn the Loch Modan dam; pick the era under Settings, General." },
         } },
+        { name = "Changed", entries = {
+            { text = "The Walk up button is now called Walkup Helper." },
+        } },
     } },
 }

@@ -942,7 +942,7 @@ end
 
 local function showTooltip(owner)
     GameTooltip:SetOwner(owner, "ANCHOR_TOP")
-    GameTooltip:SetText("Walkup", 1, 1, 1)
+    GameTooltip:SetText("Walkup Helper", 1, 1, 1)
     GameTooltip:AddLine("Your character thinks out loud in /say, shaped by their race, "
         .. "their class or both, through your tongue and accent like anything "
         .. "you type.", 0.8, 0.8, 0.8, true)
@@ -964,7 +964,7 @@ end
 local function build()
     if button then return button end
     local b = CreateFrame("Button", "GlyphicWalkupButton", UIParent)
-    Compat.PanelButton(b, "Walk up", 96, 22, "GameFontNormalSmall")
+    Compat.PanelButton(b, "Walkup Helper", 116, 22, "GameFontNormalSmall")
     b:SetFrameStrata("MEDIUM")
     b:SetClampedToScreen(true)
     b:SetMovable(true)

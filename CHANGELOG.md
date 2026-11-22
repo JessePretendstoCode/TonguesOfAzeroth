@@ -5,6 +5,7 @@ Tongues of Azeroth before 0.5.3.
 
 ## [0.6.7.7]
 - **New:** walkups keep to your expansion's era, so a Forever dwarf won't mourn the Loch Modan dam; pick the era under Settings, General.
+- **Changed:** the Walk up button is now called Walkup Helper.
 
 ## [0.6.7.6]
 - **Improved:** the Walk up button now has lines for every race and class, plus its own set for 13 classic pairings like human paladin and tauren druid.
