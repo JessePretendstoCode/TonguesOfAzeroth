@@ -100,6 +100,9 @@ local CHAT_EVENTS = {
     -- and cast phrases put spoken words inside an emote by design.
     CHAT_MSG_EMOTE           = "EMOTE",
     CHAT_MSG_WHISPER         = "WHISPER",
+    -- The echo of a whisper you sent. Its sender argument is the person you
+    -- whispered, so it is yours by event, never by name (see lineIsMine).
+    CHAT_MSG_WHISPER_INFORM  = "WHISPER",
     CHAT_MSG_PARTY           = "PARTY",
     CHAT_MSG_PARTY_LEADER    = "PARTY",
     CHAT_MSG_RAID            = "RAID",
@@ -1614,6 +1617,18 @@ function ns.RawSend(msg, chatType, channel)
     suppress = false
 end
 
+-- A line we wrote, said as though it had been typed into /say: tongue, accent,
+-- tag and decode payload all apply, and the channel list still decides whether
+-- any of them do. Only call this from a click or a keypress; SAY refuses
+-- anything else.
+function ns.SayInCharacter(msg)
+    migrateDB()
+    if type(msg) ~= "string" or msg == "" then return nil end
+    local out = transformOutgoing(msg, "SAY")
+    ns.RawSend(out, "SAY")
+    return out
+end
+
 --=========================================================================--
 --  Learned-language decode on incoming chat.
 --=========================================================================--
@@ -1702,6 +1717,10 @@ end
 
 local function isSelf(sender)
     return ns.IsSelfName(sender)
+end
+
+local function lineIsMine(event, sender)
+    return event == "CHAT_MSG_WHISPER_INFORM" or isSelf(sender)
 end
 
 -- Combine two partial reveals of the same line.
@@ -2254,7 +2273,7 @@ local function onIncomingChat(event, message, sender)
     if instanceSuppressed then return end
     if not message or message == "" then return end
     migrateDB()
-    local mine = isSelf(sender)
+    local mine = lineIsMine(event, sender)
 
     local chatType = CHAT_EVENTS[event]
     if not chatType or not ns.IsChannelEnabled(chatType) then return end
@@ -2413,6 +2432,7 @@ local function inlineChatFilter(_, event, msg, sender, languageName, ...)
 
     local chatType = CHAT_EVENTS[event]
     if not chatType then return false end
+    local mine = lineIsMine(event, sender)
     -- The channel's base name is the ninth argument, the sixth of the varargs
     -- left here; the fourth argument ("6. OOC") is the fallback.
     if chatType == "CHANNEL" then
@@ -2482,7 +2502,10 @@ local function inlineChatFilter(_, event, msg, sender, languageName, ...)
     -- Marked `isReal` so the rest of the filter treats it as genuine in-game
     -- speech, which it is: that skips the decoder, which has nothing to offer
     -- a line nobody encoded.
-    local garbled, garbledId = immersionRewrite(msg, tag, sender, effectiveLang, false)
+    local garbled, garbledId
+    if not mine then
+        garbled, garbledId = immersionRewrite(msg, tag, sender, effectiveLang, false)
+    end
     if logEntry then logEntry.rewritten = garbled ~= nil end
     if garbled then
         msg = garbled
@@ -2550,7 +2573,7 @@ local function inlineChatFilter(_, event, msg, sender, languageName, ...)
     -- no tag to colour, so only the speech tint is left to mark the tongue.
     local hideMode = GlyphicDB.hideTags
     local hideTags = hideMode == "all" or hideMode == true
-        or (hideMode == "mine" and isSelf(sender))
+        or (hideMode == "mine" and mine)
     local function bare(text, decoded)
         text = relabel(text)
         if langId and not decoded and ns.Names then text = ns.Names.Highlight(text) end
@@ -2565,7 +2588,6 @@ local function inlineChatFilter(_, event, msg, sender, languageName, ...)
     -- fluency, including none -- because it is the one line on screen whose
     -- meaning you cannot possibly be in doubt about. The bubble over your head
     -- is where you see how it actually came out.
-    local mine = isSelf(sender)
     local inlineMode = (GlyphicDB.decodeStyle or "inline") == "inline"
     if inlineMode and not isReal then
         local decoded, _, decodedId, plainName = tryDecodeMessage(stripped, langId, false, mine)
@@ -2876,10 +2898,15 @@ function TonguesOfAzeroth_CycleLanguage(dir)
     if ns.CycleLanguage then ns.CycleLanguage(dir) end
 end
 
+function Glyphic_Walkup()
+    if ns.Walkup then ns.Walkup.Speak() end
+end
+
 BINDING_HEADER_TONGUESOFAZEROTH = "Glyphic"
 BINDING_NAME_TONGUESOFAZEROTH_TOGGLE_IC = "Speak in character (toggle)"
 BINDING_NAME_TONGUESOFAZEROTH_NEXT_LANG = "Next language"
 BINDING_NAME_TONGUESOFAZEROTH_PREV_LANG = "Previous language"
+BINDING_NAME_GLYPHIC_WALKUP = "Say a walkup line"
 
 local setEnabled = ns.SetInCharacter
 
@@ -4016,6 +4043,7 @@ local function usage()
     Print("  |cffffff00/glyphic cast on|off|r  - toggle spell phrases")
     Print("  |cffffff00/glyphic cast test [spell]|r  - show what a spell would say (sends nothing)")
     Print("  |cffffff00/glyphic cast status|r  - settings, plus whether chat is blocked right now")
+    Print("  |cffffff00/glyphic walkup [show|hide]|r  - think out loud in /say, or show/hide its button")
     Print("  |cffffff00/glyphic say <text>|r  - say a translated line once")
     Print("  |cffffff00/glyphic yell <text>|r  - yell a translated line once")
     Print("  |cffffff00/glyphic p <text>|r  - preview a translation (only you see it)")
@@ -4080,6 +4108,8 @@ local function handleSlash(input)
         castCommand(rest)
     elseif cmd == "voice" or cmd == "voices" then
         voiceCommand(rest)
+    elseif cmd == "walkup" then
+        if ns.Walkup then ns.Walkup.Command(rest) end
     elseif cmd == "favonly" then
         migrateDB()
         local db = GlyphicDB

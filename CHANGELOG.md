@@ -3,6 +3,12 @@
 All notable changes to Glyphic are documented here. The addon was called
 Tongues of Azeroth before 0.5.3.
 
+## [0.6.7.5]
+- **New:** a Walk up button says a line of roleplay musing in /say, shaped by your race and class; turn it on under Settings, General.
+- **New:** with Total RP 3, the world map can scan for nearby Glyphic speakers and show what each one is speaking.
+- **Fixed:** whispers you send now read back in English in your own window, not in your tongue.
+- **Fixed:** ForeverImmersion can now fade the language bar and the Walk up button.
+
 ## [0.6.7.4]
 - **New:** You can hide [Language] tags from your chat window under Settings, Advanced, on just your lines or everyone's.
 

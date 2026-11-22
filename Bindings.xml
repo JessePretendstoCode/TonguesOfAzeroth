@@ -19,4 +19,7 @@
     <Binding name="TONGUESOFAZEROTH_PREV_LANG" category="ADDONS">
         TonguesOfAzeroth_CycleLanguage(-1)
     </Binding>
+    <Binding name="GLYPHIC_WALKUP" category="ADDONS">
+        Glyphic_Walkup()
+    </Binding>
 </Bindings>

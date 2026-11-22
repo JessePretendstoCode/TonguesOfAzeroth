@@ -577,22 +577,25 @@ local WOOD_L, WOOD_R, WOOD_W = 7 / 512, 24 / 512, 17
 -- frame afterwards gives you the method without the thing it draws on. An
 -- unknown template name throws, hence the pcall -- and a client that has
 -- SetBackdrop natively needs no template at all.
+--
+-- The probes are unnamed and the named frame is made exactly once. Making it
+-- plain first and again with the template left two frames under one global
+-- name, and the hidden one was what other addons found by that name:
+-- ForeverImmersion faded the invisible copy of the language bar.
 function Compat.CreateBackdropFrame(frameType, name, parent)
     frameType = frameType or "Frame"
-    local plain = CreateFrame(frameType, name, parent)
-    if type(plain.SetBackdrop) == "function" then return plain, true end
-    -- Named frames cannot be made twice, so the probe is unnamed and the real
-    -- frame is built once we know which road works.
+    local plain = CreateFrame(frameType, nil, parent)
+    plain:Hide()
+    if type(plain.SetBackdrop) == "function" then
+        return CreateFrame(frameType, name, parent), true
+    end
     local ok, probe = pcall(CreateFrame, frameType, nil, parent, "BackdropTemplate")
     if ok and probe and type(probe.SetBackdrop) == "function" then
         probe:Hide()
         local okReal, real = pcall(CreateFrame, frameType, name, parent, "BackdropTemplate")
-        if okReal and real then
-            plain:Hide()
-            return real, true
-        end
+        if okReal and real then return real, true end
     end
-    return plain, false
+    return CreateFrame(frameType, name, parent), false
 end
 
 -- Dress `frame` in one of the named backdrops. Returns the same

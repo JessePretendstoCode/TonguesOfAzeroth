@@ -2,9 +2,14 @@
 -- edit the changelog and re-run the tool.
 local _, ns = ...
 ns.WhatsNew = {
-    { title = "Changelog: 0.6.7.4", groups = {
+    { title = "Changelog: 0.6.7.5", groups = {
         { name = "Added", entries = {
-            { text = "You can hide [Language] tags from your chat window under Settings, Advanced, on just your lines or everyone's." },
+            { text = "A Walk up button says a line of roleplay musing in /say, shaped by your race and class; turn it on under Settings, General." },
+            { text = "With Total RP 3, the world map can scan for nearby Glyphic speakers and show what each one is speaking." },
+        } },
+        { name = "Fixed", entries = {
+            { text = "Whispers you send now read back in English in your own window, not in your tongue." },
+            { text = "ForeverImmersion can now fade the language bar and the Walk up button." },
         } },
     } },
 }

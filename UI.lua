@@ -686,6 +686,7 @@ local function layoutMainWidgetLock()
         end
         V.generalPanel._lastChild = upd.row
     end
+    if V.walkupCheck then V.generalPanel._lastChild = V.walkupCheck.row end
 end
 
 function V.RefreshGeneral()
@@ -697,9 +698,13 @@ function V.RefreshGeneral()
         widgetLockCheck:SetChecked(d.widget.locked and true or false)
     end
     if V.updateCheck then V.updateCheck:SetChecked(d.updateNotice ~= false) end
+    if V.walkupCheck then
+        V.walkupCheck:SetChecked(ns.Walkup and ns.Walkup.IsShown() or false)
+    end
     layoutMainWidgetLock()
     V.sizePage(V.generalPanel)
 end
+ns.RefreshGeneralPanel = V.RefreshGeneral
 
 local function RefreshMain()
     if not mainPanel then return end
@@ -1777,6 +1782,22 @@ local function SetupLanguageWidget()
 end
 ns.SetupLanguageWidget = SetupLanguageWidget
 
+-- ForeverImmersion fades the frames other addons list in ForeverUI.elements,
+-- read again whenever the revision changes, so load order does not matter.
+-- Picking the bar by hand did not stick for players; announced, it gets a row
+-- of its own. A frame not built yet (the walkup button while it is off) is
+-- skipped until it exists.
+do
+    ForeverUI = type(ForeverUI) == "table" and ForeverUI or {}
+    ForeverUI.elements = type(ForeverUI.elements) == "table" and ForeverUI.elements or {}
+    table.insert(ForeverUI.elements, {
+        key = "glyphic", label = "Glyphic",
+        frames = { "TonguesOfAzerothLangWidget", "GlyphicWalkupButton" },
+        visible = { idle = true, resting = true },
+    })
+    ForeverUI.revision = (tonumber(ForeverUI.revision) or 0) + 1
+end
+
 -- Puts the game's information icon beside a label or a checkbox, with the
 -- explanation behind it. `after` is the thing it sits to the right of; a
 -- checkbox is given by name rather than by its label, since the label is
@@ -2270,7 +2291,16 @@ function V.BuildGeneral()
     V.updateCheck:SetScript("OnClick", function(self)
         db().updateNotice = self:GetChecked() and true or false
     end)
-    panel._lastChild = V.updateCheck.row
+
+    V.walkupCheck = Compat.CheckRow(content, "Show walkup button",
+        "A button that has your character think out loud in /say, shaped by "
+        .. "their race and class, as a hook for anyone nearby. "
+        .. "It also has a keybind and /glyphic walkup.")
+    Compat.PlaceRow(V.walkupCheck.row, V.updateCheck.row, content)
+    V.walkupCheck:SetScript("OnClick", function(self)
+        if ns.Walkup then ns.Walkup.SetShown(self:GetChecked()) end
+    end)
+    panel._lastChild = V.walkupCheck.row
     layoutMainWidgetLock()
 
     panel.refresh = V.RefreshGeneral
