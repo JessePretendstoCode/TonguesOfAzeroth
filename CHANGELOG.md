@@ -3,6 +3,9 @@
 All notable changes to Glyphic are documented here. The addon was called
 Tongues of Azeroth before 0.5.3.
 
+## [0.6.7.8]
+- **Changed:** accent Strength is now the percentage of words spoken in the accent, so each step of the slider changes a little instead of jumping at 25%.
+
 ## [0.6.7.7]
 - **New:** walkups keep to your expansion's era, so a Forever dwarf won't mourn the Loch Modan dam; pick the era under Settings, General.
 - **Changed:** the Walk up button is now called Walkup Helper.

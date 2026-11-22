@@ -4,7 +4,7 @@
 ## Category: Roleplay
 ## IconTexture: Interface\AddOns\Glyphic\Media\Glyphic-On
 ## Author: JesseMods
-## Version: 0.6.7.7
+## Version: 0.6.7.8
 ## SavedVariablesPerCharacter: GlyphicDB
 ## SavedVariables: GlyphicAccountDB
 ## X-Curse-Project-ID: 1641225

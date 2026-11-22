@@ -2,12 +2,9 @@
 -- edit the changelog and re-run the tool.
 local _, ns = ...
 ns.WhatsNew = {
-    { title = "Changelog: 0.6.7.7", groups = {
-        { name = "Added", entries = {
-            { text = "Walkups keep to your expansion's era, so a Forever dwarf won't mourn the Loch Modan dam; pick the era under Settings, General." },
-        } },
+    { title = "Changelog: 0.6.7.8", groups = {
         { name = "Changed", entries = {
-            { text = "The Walk up button is now called Walkup Helper." },
+            { text = "Accent Strength is now the percentage of words spoken in the accent, so each step of the slider changes a little instead of jumping at 25%." },
         } },
     } },
 }

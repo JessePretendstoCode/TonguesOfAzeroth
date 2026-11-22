@@ -4,25 +4,25 @@
     language (see Language.lua), this rewrites your ENGLISH into a spoken accent,
     e.g. Dwarven "I cannae do this, aye!" or Troll "Stay away from da voodoo, mon."
 
-    An accent is data-driven and GRADED by strength:
-      * swaps    : whole-word lexical/phonetic swaps, grouped by the strength at
-                   which they switch on:  swaps = { [10] = { you = "ye" }, ... }.
-                   The number is a 0-100 threshold; the lightest, most iconic
-                   markers sit low (~10) and the heaviest respellings sit high
-                   (~70+).
-      * patterns : Lua gsub rules { pattern, repl, at } applied to a word
-                   (lowercased), e.g. { "ing$", "in'", 20 }. `at` is the strength
-                   threshold, same idea.
+    An accent is data-driven:
+      * swaps    : whole-word lexical/phonetic swaps, grouped into tiers:
+                   swaps = { [10] = { you = "ye" }, ... }. The tier number is
+                   authoring order only, lightest markers low and heaviest
+                   respellings high; when a word sits in two tiers the lower one
+                   wins. It no longer gates anything.
+      * patterns : Lua gsub rules { pattern, repl, tier } applied in order to a
+                   word (lowercased), e.g. { "ing$", "in'", 20 }.
       * tails    : occasional sentence-end interjections (", aye!", ", mon.").
                    How often they fire is the player's "Interjections" dial,
                    unless the accent overrides it with tailRate/tailMinWords/
                    tailGap -- which only an accent that is nothing but tails
                    should do. See reg("legend") for the one that does.
 
-    Strength (0-100) controls HOW GARBLED the whole sentence is, not merely which
-    words change: at strength S, every swap/pattern whose threshold <= S fires, so
-    the accent thickens smoothly and deterministically as you raise the slider.
-    At 100 the speech is heavily accented; at ~15 you just get the signature words.
+    Strength (0-100) is the percentage of words that take the accent, each one in
+    its full form (see wordAccented). It used to switch whole tiers on at their
+    threshold, which made the slider dead between tiers and then change half a
+    sentence in one step (Dwarven's 24% -> 25% turned on "tae", "o'", "an'",
+    "nae", "whit"... all at once).
 ---------------------------------------------------------------------------]]
 
 local ADDON, ns = ...
@@ -93,16 +93,29 @@ local function applyCase(original, out)
     return out
 end
 
+-- Strength is the share of words that take the accent: a word is accented when
+-- its own hash falls under the strength, so 25% accents about a quarter of the
+-- words the accent has rules for, and each step of the slider adds about 1% more.
+-- Keyed on the word alone, so "you" is "ye" everywhere in a line or nowhere, and
+-- an accented word is always in its full (100%) form -- a partial accent is
+-- fewer words changed, never lighter spellings of all of them. The salt keeps
+-- this independent of Language.WordTranslates, or the words a tongue leaves in
+-- English would be exactly the ones the accent skips.
+local function wordAccented(lower, strength)
+    if strength >= 100 then return true end
+    return (hashString("toa-accent:" .. lower) % 100) < strength
+end
+
 -- Grammar a word swap can't reach: "I want" -> "I be wantin'". An accent
--- opts in with `habitual = { at = threshold, subjects = {...}, verbs = {
--- verb = "verbin'" } }`; a subject followed directly by one of those verbs
--- gains "be" and the verb's -in' form. Walked word by word rather than with a
--- two-word pattern, because gsub consumes its matches: "that I want" would
--- pair "that I" and step straight past "I want".
--- Below `allAt` only the first pair in a line changes: three in one sentence
--- ("I be tinkin' we be needin'... dey be wantin'") is the phrase-repeating
--- problem that got "I an' I" removed, and is kept for the heaviest settings.
-local function applyHabitual(text, h, all)
+-- opts in with `habitual = { subjects = {...}, verbs = { verb = "verbin'" } }`;
+-- a subject followed directly by one of those verbs gains "be" and the verb's
+-- -in' form, when the verb passes the word gate. Walked word by word rather
+-- than with a two-word pattern, because gsub consumes its matches: "that I
+-- want" would pair "that I" and step straight past "I want".
+-- Three in one sentence ("I be tinkin' we be needin'... dey be wantin'") is
+-- the phrase-repeating problem that got "I an' I" removed; the word gate is
+-- what thins it out below full strength.
+local function applyHabitual(text, h, strength)
     local spans = {}
     for s, word, e in text:gmatch("()([%a']+)()") do
         spans[#spans + 1] = { s = s, e = e, word = word }
@@ -110,10 +123,11 @@ local function applyHabitual(text, h, all)
     local hits = {}
     for i = 1, #spans - 1 do
         local subj, verb = spans[i], spans[i + 1]
-        if h.verbs[strlower(verb.word)] and h.subjects[strlower(subj.word)]
+        local lverb = strlower(verb.word)
+        if h.verbs[lverb] and h.subjects[strlower(subj.word)]
+            and wordAccented(lverb, strength)
             and strsub(text, subj.e, verb.s - 1):match("^ +$") then
             hits[#hits + 1] = verb
-            if not all then break end
         end
     end
     -- Spliced from the end so earlier positions stay valid.
@@ -131,8 +145,8 @@ local ACCENTS = {}
 local ORDER = {}
 
 -- reg() flattens the tiered `swaps` table into fast lookup maps:
---   def._wordTo[en] = replacement,  def._wordAt[en] = strength threshold.
--- If the same word appears in several tiers, the lowest threshold wins.
+--   def._wordTo[en] = replacement,  def._wordAt[en] = its tier.
+-- If the same word appears in several tiers, the lowest tier wins.
 local function reg(id, def)
     def.id = id
     def._wordTo = {}
@@ -159,12 +173,12 @@ end
 --=========================================================================--
 --  Accent definitions
 --
---  swaps[threshold] = { english = replacement, ... }
---    threshold ~10  : iconic markers you'd hear even from a mild speaker
---    threshold ~25  : common function-word shifts
---    threshold ~45  : broad vowel/word respelling
---    threshold ~70+ : heavy dialect spelling (hard to read = very "garbled")
---  patterns = { { luaPattern, repl, threshold }, ... }   (applied after swaps)
+--  swaps[tier] = { english = replacement, ... }   (tier is authoring order only)
+--    tier ~10  : iconic markers you'd hear even from a mild speaker
+--    tier ~25  : common function-word shifts
+--    tier ~45  : broad vowel/word respelling
+--    tier ~70+ : heavy dialect spelling
+--  patterns = { { luaPattern, repl, tier }, ... }   (for words with no swap)
 --=========================================================================--
 
 -- Speaking plainly is a voice like any other, so "no accent" is an entry in the
@@ -275,7 +289,6 @@ reg("troll", {
     -- "I mean," and "I see." are set phrases that come out wrong as
     -- "ya be knowin'?".
     habitual = {
-        at = 45, allAt = 70,
         subjects = { i = true, you = true, we = true, they = true },
         verbs = {
             want = "wantin'", need = "needin'", think = "tinkin'",
@@ -808,30 +821,23 @@ function Accent.Apply(text, id, strength, emotesOn, live)
     -- Keep links, [brackets] and (OOC asides) out of the accent entirely; also
     -- keep *emote* actions out unless emote accents are enabled.
     local protected, saved, spanCount = protectSpans(text, not emotesOn)
-    if acc.habitual and strength >= acc.habitual.at then
-        protected = applyHabitual(protected, acc.habitual,
-            strength >= (acc.habitual.allAt or 0))
+    if acc.habitual then
+        protected = applyHabitual(protected, acc.habitual, strength)
     end
 
-    -- Strength is the "garble level": every swap/pattern whose threshold is at or
-    -- below the current strength fires, on EVERY eligible word. Raising strength
-    -- switches on more (and heavier) transforms, so the accent thickens smoothly.
     local out = protected:gsub(WORD, function(word)
         local lower = strlower(word)
+        if not wordAccented(lower, strength) then return word end
 
         -- Lexical/phonetic word swap (terminal: slang words aren't re-spelled).
         local to = acc._wordTo[lower]
-        if to and strength >= acc._wordAt[lower] then
-            return applyCase(word, to)
-        end
+        if to then return applyCase(word, to) end
 
         -- Cumulative phonetic respelling.
         local w = lower
         for i = 1, #acc.patterns do
             local p = acc.patterns[i]
-            if strength >= (p[3] or 0) then
-                w = w:gsub(p[1], p[2])
-            end
+            w = w:gsub(p[1], p[2])
         end
         if w ~= lower then return applyCase(word, w) end
         return word
