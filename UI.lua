@@ -686,7 +686,7 @@ local function layoutMainWidgetLock()
         end
         V.generalPanel._lastChild = upd.row
     end
-    if V.walkupCheck then V.generalPanel._lastChild = V.walkupCheck.row end
+    if V.walkupEraRow then V.generalPanel._lastChild = V.walkupEraRow end
 end
 
 function V.RefreshGeneral()
@@ -700,6 +700,12 @@ function V.RefreshGeneral()
     if V.updateCheck then V.updateCheck:SetChecked(d.updateNotice ~= false) end
     if V.walkupCheck then
         V.walkupCheck:SetChecked(ns.Walkup and ns.Walkup.IsShown() or false)
+    end
+    if V.walkupEraDropdown and ns.Walkup then
+        local W = ns.Walkup
+        local v = W.GetEraSetting()
+        local text = W.ERAS[v] or ("This client: " .. W.ERAS[W.ClientEra()])
+        V.walkupEraDropdown:SetSelected(v, text)
     end
     layoutMainWidgetLock()
     V.sizePage(V.generalPanel)
@@ -2300,7 +2306,25 @@ function V.BuildGeneral()
     V.walkupCheck:SetScript("OnClick", function(self)
         if ns.Walkup then ns.Walkup.SetShown(self:GetChecked()) end
     end)
-    panel._lastChild = V.walkupCheck.row
+
+    V.walkupEraRow = Compat.OptionRow(content, "Walkup lines from",
+        "Leaves out walkup lines about events from later expansions, so a dwarf "
+        .. "in a Classic-era world isn't mourning a dam that hasn't burst yet. "
+        .. "|cffffd200Match this client|r uses Classic on Classic Era and WoW: "
+        .. "Forever, each Classic flavor's own expansion, and everything on Retail.")
+    Compat.PlaceRow(V.walkupEraRow, V.walkupCheck.row, content)
+    V.walkupEraDropdown = Compat.CreateDropdown(content, 240)
+    V.walkupEraRow:Attach(V.walkupEraDropdown, 240)
+    if ns.Walkup then
+        local items = { { text = "Match this client", value = "auto" } }
+        for i, name in ipairs(ns.Walkup.ERAS) do items[#items + 1] = { text = name, value = i } end
+        V.walkupEraDropdown:SetItems(items)
+    end
+    V.walkupEraDropdown.onSelect = function(value)
+        if ns.Walkup then ns.Walkup.SetEra(value) end
+        V.RefreshGeneral()
+    end
+    panel._lastChild = V.walkupEraRow
     layoutMainWidgetLock()
 
     panel.refresh = V.RefreshGeneral

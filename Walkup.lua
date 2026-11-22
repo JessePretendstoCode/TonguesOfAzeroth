@@ -20,12 +20,30 @@ local Compat = ns.Compat
     hardware event on every client, so there is no timer here and must not
     be one; nor may a line wait for some later keypress to ride out on.
     The player picks the moment, so nothing here looks for who is nearby.
+
+    A line that leans on a later expansion carries that era (CATA "..."),
+    and is left out while the player's chosen era is earlier: a dwarf on a
+    Classic-era world has no burst dam to mourn. Untagged means "from the
+    start", and the start is the race's or class's own debut -- a worgen's
+    lines are Cataclysm lore, but a worgen existing at all says as much.
 -----------------------------------------------------------------------------]]
 
 local Walkup = {}
 ns.Walkup = Walkup
 
 Walkup.PAIR_CHANCE = 0.5    -- how often a pairing's own line is chosen, when it has any
+
+-- In release order; a line's era is an index into this.
+Walkup.ERAS = {
+    "Classic", "The Burning Crusade", "Wrath of the Lich King", "Cataclysm",
+    "Mists of Pandaria", "Warlords of Draenor", "Legion", "Battle for Azeroth",
+    "Shadowlands", "Dragonflight", "The War Within", "Midnight",
+}
+
+local function since(era)
+    return function(text) return { text = text, era = era } end
+end
+local WRATH, CATA, MISTS, LEGION, BFA = since(3), since(4), since(5), since(7), since(8)
 
 -- Keyed by UnitRace's second return, the client's file string.
 Walkup.RACES = {
@@ -44,7 +62,7 @@ Walkup.RACES = {
         "I'd trade my good boots for one more night at the Thunderbrew bar.",
     },
     Human = {
-        "Stormwind's been rebuilt twice in my lifetime. I keep wondering what the third time will cost.",
+        CATA "Stormwind's been rebuilt twice in my lifetime. I keep wondering what the third time will cost.",
         "My grandmother still won't say Lordaeron out loud. She says the name brings the cold with it.",
         "Elwynn's farmers say the wolves are bolder this year. Nobody's asked the wolves why.",
         "Every human I know has a cousin in the Defias, or a cousin who swears they don't.",
@@ -62,7 +80,7 @@ Walkup.RACES = {
         "I miss the old night. The stars burned brighter before the Well was lost.",
         "The younger races measure time in seasons. I measure it in which forests are still standing.",
         "Elune's light falls differently here. Thinner, somehow, like it has further to travel.",
-        "Teldrassil's roots used to hum at night. I've not heard anything like it since.",
+        BFA "Teldrassil's roots used to hum at night. I've not heard anything like it since.",
         "The Highborne thought they were the wisest of us. Look how that turned out.",
         "Every owl in this wood has been watching me. I think they're waiting for me to say something worthwhile.",
         "Humans build in stone so they'll be remembered. We planted trees, and the trees remember for us.",
@@ -161,7 +179,7 @@ Walkup.RACES = {
         "My grandmother remembers when the centaur drove us from plain to plain.",
         "The plains are wider than any city, and they never once asked me to duck through a doorway.",
         "The orcs taught us to hold our ground. We taught them to listen to it.",
-        "Cairne used to say a tribe is only as strong as its quietest member.",
+        CATA "Cairne used to say a tribe is only as strong as its quietest member.",
         "These shoes the city folk wear look like a punishment.",
         "A kodo never forgets a kindness. I try to live by that, though my memory is shorter.",
         "The sun rises the same here as over Mulgore, but here it seems to be in a hurry.",
@@ -180,7 +198,7 @@ Walkup.RACES = {
         "Somebody here smells of a hex. Not a bad hex, mind. Just a careless one.",
         "The Gurubashi built temples that reached the sky. Now monkeys nest in them.",
         "I've got a necklace of teeth, and only half are from things that tried to eat me.",
-        "Bwonsamdi takes his cut of every soul eventually. I'd rather keep him waiting.",
+        CATA "Bwonsamdi takes his cut of every soul eventually. I'd rather keep him waiting.",
         "Tusks get in the way when you drink. Nobody tells you that when you're young.",
     },
     BloodElf = {
@@ -411,7 +429,7 @@ Walkup.CLASSES = {
         "My totems have been humming all morning. I wish I knew what about.",
         "There's a storm coming. Not today, but the air already knows.",
         "The ancestors walk close in places like this. Mind where you step.",
-        "The Earthen Ring says the world's wounds are still healing. Some days I believe them.",
+        CATA "The Earthen Ring says the world's wounds are still healing. Some days I believe them.",
         "Even a pebble has a spirit, if you listen long enough. Most just want to be left alone.",
     },
     WARRIOR = {
@@ -433,7 +451,7 @@ Walkup.CLASSES = {
         "Uther said a paladin's strength is in what they protect. I think about that every morning.",
         "My hammer is heavy, but the oath I swore is heavier.",
         "Some days faith is a fire. Other days it's just the decision to keep walking.",
-        "The Silver Hand has broken and reformed so many times. It always comes back together.",
+        LEGION "The Silver Hand has broken and reformed so many times. It always comes back together.",
         "Polishing plate is a meditation, they told me. They lied. It's just polishing.",
         "Mercy is harder than justice. Anyone can swing a hammer.",
         "I've seen the Light heal a wound I thought was fatal. I've also seen it decline to.",
@@ -501,7 +519,7 @@ Walkup.CLASSES = {
     MAGE = {
         "The ley lines run close here. My fingertips have been tingling all morning.",
         "Somebody nearby is using cheap teleport runes. I can smell the burnt air.",
-        "Dalaran goes wherever it likes. I've stopped trying to predict the commute.",
+        WRATH "Dalaran goes wherever it likes. I've stopped trying to predict the commute.",
         "I conjured my own breakfast. It tasted of magic and disappointment.",
         "Every spell has a cost. The Kirin Tor just keep the receipts hidden.",
         "There's a book in the Violet Citadel I was never allowed to read. I still think about it.",
@@ -520,7 +538,7 @@ Walkup.CLASSES = {
         "I keep a soul shard in my coat pocket. Most people assume it's a fancy stone.",
         "There's a price for power. I paid mine in advance, which is how I like it.",
         "People cross the street when they see my felhunter. It only chases the ones who run.",
-        "The Black Harvest says knowledge has no morals. Then again, they would say that.",
+        MISTS "The Black Harvest says knowledge has no morals. Then again, they would say that.",
         "Every warlock thinks they're the one who won't be corrupted. I'm the exception, obviously.",
         "My candles burn green on their own. I've stopped explaining it to landlords.",
         "Something in the Nether knows my name. I'd like to know how.",
@@ -599,7 +617,7 @@ Walkup.PAIRS = {
             "Ale is the only offering I've ever left the spirits that they sent back for seconds.",
             "Nothing holding the sky up out here. The wind spirits think that's very funny. I don't.",
             "Thaurissan called up a fire lord once and it swallowed half a mountain. I ask politely, these days.",
-            "The water spirits in Loch Modan have been sulking since the dam broke. Can't say I blame them, half their loch ran off.",
+            CATA "The water spirits in Loch Modan have been sulking since the dam broke. Can't say I blame them, half their loch ran off.",
         },
     },
     Human = {
@@ -709,7 +727,7 @@ Walkup.PAIRS = {
             "Humans think we fight because we're angry. We fight because a warrior who doesn't forgets who they are.",
             "Every blade I own is named in my clan's tongue. Most of the names translate to something like bad day.",
             "My first axe was a stone tied to a stick in the camps. I keep it, so I never forget where strength begins.",
-            "The Kor'kron called me too wild and the old guard called me too soft. I fought for neither of them.",
+            MISTS "The Kor'kron called me too wild and the old guard called me too soft. I fought for neither of them.",
         },
         SHAMAN = {
             "Ner'zhul was a shaman too, before he sold us to the Legion. Every orc shaman since has had to win back the elements' trust.",
@@ -719,7 +737,7 @@ Walkup.PAIRS = {
             "My grandmother was a warlock in the Horde's dark days. I became a shaman partly to apologize for her.",
             "The Earthen Ring has nearly as many orcs as tauren now. I'm still proud of that.",
             "Before the Dark Portal, every clan had its own shaman. Mine are still trying to remember the old Frostwolf songs.",
-            "The air spirits whistle through the Valley of Wisdom. They used to talk to Thrall there, they say.",
+            CATA "The air spirits whistle through the Valley of Wisdom. They used to talk to Thrall there, they say.",
             "An orc shaman learns humility early. The elements don't care how strong your arm is.",
             "When I call lightning, I think of Draenor's storms. My elders say they were wilder, and freer.",
             "The fel left a scar in our blood. The earth, at least, is willing to help us heal it.",
@@ -769,7 +787,7 @@ Walkup.PAIRS = {
             "My pet once caught a wolf twice its size. It brought it back to show me, then ate it anyway.",
             "Spears were for my grandfather. I prefer a good bow, and the raptor prefers a good chase.",
             "The Darkspear eat what they hunt. It keeps us honest about what we kill and why.",
-            "Zandalari hunters ride dinosaurs. We ride raptors and pretend we aren't jealous.",
+            BFA "Zandalari hunters ride dinosaurs. We ride raptors and pretend we aren't jealous.",
             "Every beast has a spirit, and every spirit has a price. My raptor charges extra on rainy days.",
             "I've tracked beasts through jungle, desert and snow. Snow is the worst, it remembers every mistake you make.",
         },
@@ -809,8 +827,48 @@ local function db()
     if w.point == nil then w.point = "CENTER" end
     if w.x == nil then w.x = 0 end
     if w.y == nil then w.y = -200 end
+    if w.era == nil then w.era = "auto" end
     return w
 end
+
+-- The era this client's world is set in. Forever runs Midnight's client over
+-- a Classic-era world, and its 16001 is not an expansion number, so it is
+-- asked by game type; every other client's interface leads with its expansion.
+function Walkup.ClientEra()
+    if Compat.IsForever() then return 1 end
+    local iface = type(GetBuildInfo) == "function" and select(4, GetBuildInfo())
+    local era = type(iface) == "number" and math.floor(iface / 10000) or #Walkup.ERAS
+    return math.max(1, math.min(era, #Walkup.ERAS))
+end
+
+-- "auto" or an index into ERAS.
+function Walkup.GetEraSetting() return db().era end
+
+function Walkup.SetEra(v)
+    if v ~= "auto" and not Walkup.ERAS[v] then return end
+    db().era = v
+end
+
+function Walkup.Era()
+    local v = db().era
+    if Walkup.ERAS[v] then return v end
+    return Walkup.ClientEra()
+end
+
+-- The lines of `pool` that belong to `era`, as plain text; nil if none do.
+local function inEra(pool, era)
+    if not pool then return nil end
+    local out = {}
+    for _, line in ipairs(pool) do
+        if type(line) == "string" then
+            out[#out + 1] = line
+        elseif line.era <= era then
+            out[#out + 1] = line.text
+        end
+    end
+    return out[1] and out or nil
+end
+Walkup.InEra = inEra
 
 local function playerToken(fn)
     if type(fn) ~= "function" then return nil end
@@ -819,11 +877,14 @@ local function playerToken(fn)
     return readable(token)
 end
 
--- The race, class and pairing lists your character can draw on; any may be nil.
+-- The race, class and pairing lines your character can draw on in the chosen
+-- era; any may be nil.
 function Walkup.Pools()
     local race, class = playerToken(UnitRace) or "", playerToken(UnitClass) or ""
     local byClass = Walkup.PAIRS[race]
-    return Walkup.RACES[race], Walkup.CLASSES[class], byClass and byClass[class]
+    local era = Walkup.Era()
+    return inEra(Walkup.RACES[race], era), inEra(Walkup.CLASSES[class], era),
+        inEra(byClass and byClass[class], era)
 end
 
 local last = {}

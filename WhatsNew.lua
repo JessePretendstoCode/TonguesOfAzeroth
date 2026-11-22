@@ -2,9 +2,9 @@
 -- edit the changelog and re-run the tool.
 local _, ns = ...
 ns.WhatsNew = {
-    { title = "Changelog: 0.6.7.6", groups = {
-        { name = "Improved", entries = {
-            { text = "The Walk up button now has lines for every race and class, plus its own set for 13 classic pairings like human paladin and tauren druid." },
+    { title = "Changelog: 0.6.7.7", groups = {
+        { name = "Added", entries = {
+            { text = "Walkups keep to your expansion's era, so a Forever dwarf won't mourn the Loch Modan dam; pick the era under Settings, General." },
         } },
     } },
 }
