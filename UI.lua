@@ -955,7 +955,6 @@ local function RefreshLearned()
     if not learnedPanel then return end
     local d = db()
     reflowLearnedRows()
-    if V.learnedKeep then V.learnedKeep.refresh() end
     for langId, rowRef in pairs(learnedRows) do
       -- A deleted custom language leaves its row behind, hidden. Nothing below
       -- expects an id the registry has never heard of, so skip it outright.
@@ -1816,14 +1815,14 @@ local function infoFor(parent, after, text)
     return b
 end
 
--- A freeform "words to leave alone" box, shared by the Languages and Accents
--- pages: a header with its explanation behind the icon, then one line of
--- comma-separated words. `get`/`set` read and write the saved string; the
--- box is saved as it is typed, and `onChange` refreshes that page's preview.
+-- A freeform "words to leave alone" box on the Reserved Words page: a header
+-- with its explanation behind the icon, then one line of comma-separated
+-- words. `get`/`set` read and write the saved string, as it is typed.
+-- `dx` shifts the header left to line up when `anchor` is the box above.
 -- Returns the edit box, whose `refresh` reloads it from the saved string.
-function V.KeepWordsBox(content, anchor, title, info, get, set, onChange)
+function V.KeepWordsBox(content, anchor, dx, title, info, get, set)
     local header = sectionHeader(content, title)
-    header:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -24)
+    header:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", dx or 0, -24)
     infoFor(content, header, info)
 
     local box = CreateFrame("EditBox", nil, content, "InputBoxTemplate")
@@ -1834,7 +1833,6 @@ function V.KeepWordsBox(content, anchor, title, info, get, set, onChange)
     box:SetScript("OnTextChanged", function(self, userInput)
         if not userInput then return end
         set(self:GetText() or "")
-        if onChange then onChange() end
     end)
     box:SetScript("OnEnterPressed", box.ClearFocus)
     box:SetScript("OnEscapePressed", box.ClearFocus)
@@ -2528,6 +2526,46 @@ end
 --  shapes your voice goes here: a player has to be able to find everything
 --  they would want to change without opening this page.
 --=========================================================================--
+--  Settings: Reserved Words
+--=========================================================================--
+-- The player's own lists of words to leave alone, one for the tongue and one
+-- for the accent. Applied before a line is sent, so everyone reads them as
+-- typed. See ns.StashKeptWords.
+function V.BuildReserved()
+    local panel = Compat.CreateOptionsPanel("GlyphicReservedOptions")
+    panel.name = "Reserved Words"
+    local content = Compat.CreateScrollContent(panel, 300)
+
+    local title = content:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+    title:SetPoint("TOPLEFT", 16, -16)
+    title:SetText("Reserved Words")
+    panel.pageInfo = "Words you always say your own way. Separate them with commas; "
+        .. "capitals don't matter, and a phrase counts as one entry. Your lines go out "
+        .. "with these words as typed, so everyone reads them that way."
+
+    local lang = V.KeepWordsBox(content, title, 0, "Language",
+        "Words and names your tongue never translates, e.g. "
+        .. "|cffffd200Thrall, Light's Hope, Stormwind|r. They stay English, and "
+        .. "still take your accent unless they are listed below too.",
+        function() return db().keepWords end,
+        function(text) db().keepWords = text end)
+
+    local accent = V.KeepWordsBox(content, lang, -6, "Accent",
+        "Words your accent never respells, e.g. |cffffd200you, the, Thrall|r.",
+        function() return db().accent.keepWords end,
+        function(text) db().accent.keepWords = text end)
+
+    panel._lastChild = accent
+    local function refresh()
+        lang.refresh()
+        accent.refresh()
+    end
+    panel.refresh = refresh
+    panel:SetScript("OnShow", refresh)
+    return panel
+end
+
+--=========================================================================--
 function V.BuildAdvanced()
     local panel = Compat.CreateOptionsPanel("GlyphicAdvancedOptions")
     panel.name = "Advanced"
@@ -2810,16 +2848,11 @@ local function BuildLearnedPanel()
     child:SetPoint("RIGHT", content, "RIGHT", -28, 0)
     learnedChild = child
 
-    -- Below the list, which it follows down as rows come and go, and the last
-    -- thing on the page, so the page is measured against it.
-    V.learnedKeep = V.KeepWordsBox(content, child, "Keep in English",
-        "Words and names your tongue never translates, separated by commas -- "
-        .. "e.g. |cffffd200Thrall, Light's Hope, Stormwind|r. Capitals don't matter. "
-        .. "Your accent has its own list, under |cffffd200Accents|r.",
-        function() return db().keepWords end,
-        function(text) db().keepWords = text end,
-        refreshPreview)
-    learnedPanel._lastChild = V.learnedKeep
+    -- The list is the last thing on the page now, so it is what the page is
+    -- measured against. The footer that used to do that job said the same
+    -- thing twice over for anyone who had read this far, and it is on the
+    -- heading's icon instead.
+    learnedPanel._lastChild = child
 
     -- One row per primary language; sub-languages share their parent's word set
     -- (and fluency), so the parent covers them. Rows for tongues your race
@@ -3309,7 +3342,6 @@ local function RefreshAccent()
     if accentTailSlider then accentTailSlider:SetValue(tails) end
     if accentTailValueText then accentTailValueText:SetText(Accent.DescribeTailFrequency(tails)) end
     if accentEmotesCheck then accentEmotesCheck:SetChecked(d.accent.emotes) end
-    if V.accentKeep then V.accentKeep.refresh() end
     refreshAccentPreview()
 
     -- Size the scroll child to the last element so the panel fits its window.
@@ -3433,16 +3465,8 @@ local function BuildAccentPanel()
     channelHint:SetText("Your accent follows the same channels as your tongue -- pick them under |cffffd200Chat Channels|r.")
     Compat.Tuck(content, channelHint, whereHeader)
 
-    V.accentKeep = V.KeepWordsBox(content, channelHint, "Leave unaccented",
-        "Words your accent never respells, separated by commas -- "
-        .. "e.g. |cffffd200Thrall, you, the|r. Capitals don't matter. "
-        .. "Words your tongue keeps in English are listed under |cffffd200Languages|r.",
-        function() return db().accent.keepWords end,
-        function(text) db().accent.keepWords = text end,
-        refreshAccentPreview)
-
     local previewLabel = sectionHeader(content, "Preview (type to test)")
-    previewLabel:SetPoint("TOPLEFT", V.accentKeep, "BOTTOMLEFT", -6, -24)
+    previewLabel:SetPoint("TOPLEFT", channelHint, "BOTTOMLEFT", 0, -24)
 
     accentPreviewInput = CreateFrame("EditBox", "TonguesOfAzerothAccentPreviewInput", content, "InputBoxTemplate")
     accentPreviewInput:SetPoint("TOPLEFT", previewLabel, "BOTTOMLEFT", 6, -10)
@@ -5933,6 +5957,7 @@ local function BuildPanels()
     BuildChatPanel()
     Compat.AddPage(chatPanel, chatPanel.name, "Settings")
     Compat.AddPage(V.BuildImmersion(), "Immersion", "Settings")
+    Compat.AddPage(V.BuildReserved(), "Reserved Words", "Settings")
     Compat.AddPage(V.BuildAdvanced(), "Advanced", "Settings")
     -- Last on purpose: it is the page you reach for once, before a beta ends
     -- or when setting up an alt, not one you live in.
