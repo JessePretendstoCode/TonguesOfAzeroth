@@ -2,9 +2,9 @@
 -- edit the changelog and re-run the tool.
 local _, ns = ...
 ns.WhatsNew = {
-    { title = "Changelog: 0.6.7.8", groups = {
-        { name = "Changed", entries = {
-            { text = "Accent Strength is now the percentage of words spoken in the accent, so each step of the slider changes a little instead of jumping at 25%." },
+    { title = "Changelog: 0.6.7.9", groups = {
+        { name = "Added", entries = {
+            { text = "A Reserved Words page under Settings lists words your tongue never translates and words your accent never respells, so everyone reads them as you typed them." },
         } },
     } },
 }

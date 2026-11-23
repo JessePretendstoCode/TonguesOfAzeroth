@@ -3,6 +3,9 @@
 All notable changes to Glyphic are documented here. The addon was called
 Tongues of Azeroth before 0.5.3.
 
+## [0.6.7.9]
+- **New:** a Reserved Words page under Settings lists words your tongue never translates and words your accent never respells, so everyone reads them as you typed them.
+
 ## [0.6.7.8]
 - **Changed:** accent Strength is now the percentage of words spoken in the accent, so each step of the slider changes a little instead of jumping at 25%.
 
