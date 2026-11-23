@@ -1389,7 +1389,67 @@ function ns.StashMarkup(text, stash)
     return text
 end
 
-local function protectSegments(text)
+-- Words the player has asked to keep as they are, typed as one freeform list:
+-- "Thrall, Light's Hope, Stormwind". Commas, semicolons or new lines separate
+-- entries, case is ignored and an entry may be a phrase. Parsed lists are
+-- memoised by the raw string; the memo is emptied rather than grown, because
+-- the box re-parses on every keystroke.
+local KEEP_MEMO, KEEP_MEMO_N = {}, 0
+
+function Language.ParseKeepList(raw)
+    if type(raw) ~= "string" or raw == "" then return nil end
+    local hit = KEEP_MEMO[raw]
+    if hit ~= nil then return hit or nil end
+    local list, seen = {}, {}
+    for entry in raw:gmatch("[^,;\r\n]+") do
+        entry = gsub(strlower(entry), "%s+", " "):match("^ ?(.-) ?$")
+        if entry:find("%a") and not seen[entry] then
+            seen[entry] = true
+            list[#list + 1] = entry
+        end
+    end
+    -- Longest first, so "Light's Hope" is stashed whole before "Light" can
+    -- take the front of it.
+    table.sort(list, function(a, b) return #a > #b end)
+    if KEEP_MEMO_N >= 8 then KEEP_MEMO, KEEP_MEMO_N = {}, 0 end
+    KEEP_MEMO[raw] = #list > 0 and list or false
+    KEEP_MEMO_N = KEEP_MEMO_N + 1
+    return KEEP_MEMO[raw] or nil
+end
+
+-- Stash every whole-word occurrence of a kept entry, through the same callback
+-- the markup protection uses. A trailing possessive goes with the word:
+-- "Thrall's" left as "Thrall" plus a translated "s" reads as a typo.
+-- Shared with Accent.lua, which keeps a list of its own.
+function ns.StashKeptWords(text, stash, keep)
+    local list = type(keep) == "table" and keep or Language.ParseKeepList(keep)
+    if not list or type(text) ~= "string" or text == "" then return text end
+    local LETTER = "[%w\128-\255]"
+    for i = 1, #list do
+        local entry = list[i]
+        local lower, from = strlower(text), 1
+        while true do
+            local s, e = lower:find(entry, from, true)
+            if not s then break end
+            if (s > 1 and strsub(lower, s - 1, s - 1):find(LETTER))
+                or strsub(lower, e + 1, e + 1):find(LETTER) then
+                from = s + 1
+            else
+                local tail = strsub(text, e + 1):match("^'%a*")
+                if tail then e = e + #tail end
+                local token = stash(strsub(text, s, e))
+                text = strsub(text, 1, s - 1) .. token .. strsub(text, e + 1)
+                lower, from = strlower(text), s + #token
+            end
+        end
+    end
+    return text
+end
+
+-- `keep` is the player's own list (see ns.StashKeptWords). Only the outgoing
+-- path passes one: it is a choice about how you speak, not about how other
+-- people's lines read to you.
+local function protectSegments(text, keep)
     local saved = {}
     local n = 0
     local function stash(segment)
@@ -1407,6 +1467,7 @@ local function protectSegments(text)
     if ns.Names then
         out = ns.Names.Stash(out, stash)
     end
+    if keep then out = ns.StashKeptWords(out, stash, keep) end
     -- Any remaining [bracketed] text (should not be translated).
     out = out:gsub("%b[]", stash)
     -- (Parenthetical) OOC asides are left in plain speech, not translated.
@@ -1427,9 +1488,9 @@ end
 -- thing left to change is the handful of words that mark the register. Markup
 -- is stashed first for the usual reason -- an item link whose name contains
 -- "of" is not an invitation to rewrite the link.
-local function applySlur(text, lang)
+local function applySlur(text, lang, keep)
     if not lang or not lang.slur then return text end
-    local protected, saved = protectSegments(text)
+    local protected, saved = protectSegments(text, keep)
     local slurred = gsub(protected, WORD_PATTERN, function(word)
         local hit = lang.slur[strlower(word)]
         if not hit then return word end
@@ -1563,7 +1624,10 @@ local FOREIGN_PLACEHOLDER = "\003"
 -- dialect of it, reads as English: everyone who can hear the line knows it,
 -- and anyone who does not gets the game's own garbling. Any other tongue,
 -- Common included for a Horde speaker, is translated.
-function Language.TranslateMarked(text, strength, langId, motherId, motherStrength, carrierId)
+--
+-- `keep` is the player's list of words to leave in English (db.keepWords).
+-- A kept word is neither attempted nor handed to the mother tongue.
+function Language.TranslateMarked(text, strength, langId, motherId, motherStrength, carrierId, keep)
     if not text or text == "" then return text, nil end
     strength = strength or 100
     motherStrength = tonumber(motherStrength) or 100
@@ -1608,10 +1672,10 @@ function Language.TranslateMarked(text, strength, langId, motherId, motherStreng
     -- native dialect doing nothing whatsoever -- and since "none" is what a
     -- fresh character has selected, that was the first thing a Mythic run did.
     if not mother and (attemptPlain or strength <= 0) then
-        return attemptPlain and applySlur(text, lang) or text, nil
+        return attemptPlain and applySlur(text, lang, keep) or text, nil
     end
 
-    local protected, saved = protectSegments(text)
+    local protected, saved = protectSegments(text, keep)
     -- `meta` is what makes a two-tongue line decodable. Each mark records the
     -- word it replaced and the tongue it was rendered in, so a listener can
     -- later be shown the words in the languages they know and no others. With

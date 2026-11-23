@@ -56,7 +56,7 @@ local function isUpper(ch) return ch >= "A" and ch <= "Z" end
 -- through the swap/pattern pass.
 local ACCENT_PLACEHOLDER = "\002"
 
-local function protectSpans(text, protectStars)
+local function protectSpans(text, protectStars, keep)
     local saved = {}
     local n = 0
     local function stash(seg)
@@ -65,6 +65,9 @@ local function protectSpans(text, protectStars)
         return ACCENT_PLACEHOLDER .. n .. ACCENT_PLACEHOLDER
     end
     local out = ns.StashMarkup(text, stash)             -- links, textures, colors, URLs
+    if keep and ns.StashKeptWords then                  -- the player's own kept words
+        out = ns.StashKeptWords(out, stash, keep)
+    end
     out = out:gsub("%b[]", stash)                       -- [bracketed] labels
     out = out:gsub("%b()", stash)                       -- (OOC asides)
     -- Inline *emote* actions are treated like emotes: only accented when the
@@ -809,7 +812,10 @@ end
 -- `live` marks a real utterance, as opposed to the options preview or a debug
 -- sample. Only a real one advances the tail spacing state, so previewing a line
 -- never uses up the flourish that the next thing you actually say would get.
-function Accent.Apply(text, id, strength, emotesOn, live)
+--
+-- `keep` is the player's list of words the accent leaves alone
+-- (db.accent.keepWords), parsed by Language.ParseKeepList.
+function Accent.Apply(text, id, strength, emotesOn, live, keep)
     if not text or text == "" then return text end
     -- "No accent" short-circuits before the tail bookkeeping below, so choosing
     -- it never consumes the interjection spacing that a real accent tracks.
@@ -820,7 +826,7 @@ function Accent.Apply(text, id, strength, emotesOn, live)
 
     -- Keep links, [brackets] and (OOC asides) out of the accent entirely; also
     -- keep *emote* actions out unless emote accents are enabled.
-    local protected, saved, spanCount = protectSpans(text, not emotesOn)
+    local protected, saved, spanCount = protectSpans(text, not emotesOn, keep)
     if acc.habitual then
         protected = applyHabitual(protected, acc.habitual, strength)
     end

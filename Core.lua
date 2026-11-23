@@ -624,6 +624,12 @@ local function migrateDB()
     -- swallowing ordinary words.
     if db.protectNames == nil then db.protectNames = true end
 
+    -- The player's own lists of words to leave alone: freeform, comma
+    -- separated, one for the tongue (Languages page) and one for the accent
+    -- (Accents page). See ns.StashKeptWords.
+    if type(db.keepWords) ~= "string" then db.keepWords = "" end
+    if type(db.accent.keepWords) ~= "string" then db.accent.keepWords = "" end
+
     -- And paint them, so it is visible which words survived on purpose rather
     -- than because the fluency roll left them in English.
     if db.colorNames == nil then db.colorNames = true end
@@ -1221,7 +1227,8 @@ end
 -- so previewing never uses up the flourish your next real line would get.
 local function applyAccent(text, live)
     local a = GlyphicDB.accent
-    local ok, res = pcall(ns.Accent.Apply, text, a.id, a.strength or 100, a.emotes, live and true or false)
+    local ok, res = pcall(ns.Accent.Apply, text, a.id, a.strength or 100, a.emotes,
+        live and true or false, a.keepWords)
     if ok and type(res) == "string" then return res end
     return text
 end
@@ -1294,7 +1301,7 @@ local function transformOutgoing(msg, sendType, channel)
     if translating then
         local langId, strength = db.language, getStrength()
         local marked, marks, meta = Language.TranslateMarked(msg, strength, langId,
-            motherTongue(), motherStrength(), carrierTongue())
+            motherTongue(), motherStrength(), carrierTongue(), db.keepWords)
         if marks then
             local body = marked
             if accentOn then body = applyAccent(body, true) end
@@ -1472,7 +1479,7 @@ local function speak(msg, chatType, channel)
 
     local out = msg
     local marked, marks, meta = Language.TranslateMarked(msg, strength, langId,
-        motherTongue(), motherStrength(), carrierTongue())
+        motherTongue(), motherStrength(), carrierTongue(), GlyphicDB and GlyphicDB.keepWords)
     if marks then
         local body = marked
         if accentAppliesTo(normalizeChatType(sendType)) then body = applyAccent(body, true) end
@@ -1524,13 +1531,13 @@ function ns.EncodeSpeech(text, live)
     if db.inCharacter and (strength > 0
         or (motherTongue() ~= nil and motherStrength() > 0)) then
         local marked, marks, meta = Language.TranslateMarked(text, strength, langId,
-            motherTongue(), motherStrength(), carrierTongue())
+            motherTongue(), motherStrength(), carrierTongue(), db.keepWords)
         if marks then
             local out = marked
             if accentOn then
                 local a = db.accent
                 local ok, res = pcall(ns.Accent.Apply, out, a.id, a.strength or 100, false,
-                    live and true or false)
+                    live and true or false, a.keepWords)
                 if ok and type(res) == "string" then out = res end
             end
             -- The caller (Casts.lua) broadcasts the mapping, so it has to be the
@@ -1555,7 +1562,7 @@ function ns.EncodeSpeech(text, live)
     if accentOn then
         local a = db.accent
         local ok, res = pcall(ns.Accent.Apply, text, a.id, a.strength or 100, false,
-            live and true or false)
+            live and true or false, a.keepWords)
         if ok and type(res) == "string" then return res, langId, false end
     end
     return text, langId, false
@@ -3985,7 +3992,7 @@ local function debugReport()
         local composed = sample
         if translating then
             local marked, marks = Language.TranslateMarked(sample, getStrength(), db.language,
-                motherTongue(), motherStrength(), carrierTongue())
+                motherTongue(), motherStrength(), carrierTongue(), db.keepWords)
             if marks then
                 local body = marked
                 -- `false` = not a real utterance, so debugging never consumes
